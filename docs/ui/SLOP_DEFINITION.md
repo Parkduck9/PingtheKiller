@@ -93,7 +93,7 @@ The test for any element: **"What game state does this encode, and what does the
 
 The theme comes from the **one rule**: *you are visible only while you transmit.* UI language should be **signal vs. silence**, expressed through mechanics, not costume.
 
-**Vocabulary (fixed terms):** Killer, Survivor, Signal (= being visible), Silent (= hidden), Frozen, Rescue, Exit, Locked (exit), Skill, Cooldown.
+**Vocabulary (fixed terms):** Killer, Survivor, Signal (= being visible), Silent (= hidden), Lagging (= captured once, slowed, always visible), Eliminated, Escaped, Rescue, Terminal, hack (verb), Exit, Locked (exit), Skill, Cooldown, spectate (verb).
 
 **Palette (max 4 + neutrals):**
 - Neutrals: near-black `#101113`, panel `#1A1C1F`, line `#2C2F33`, text `#E8E6E1`, muted text `#9A9890` (≥ 4.5:1 on panel).

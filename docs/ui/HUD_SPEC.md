@@ -1,6 +1,6 @@
 # HUD and screen spec — D3 UI pass
 
-Status: attempt 3 · 2026-10-27 · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
+Status: attempt 3, SPEC-PASS (89) · decisions recorded 2026-10-27 (§11) · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
 
 > **한국어 요약:** 메뉴·로비·매치 인트로·생존자 HUD·살인마 HUD·결과·재접속 화면의 구현 명세. 모든 요소는 그 역할의 클라이언트가 실제로 받는 패킷 필드, 정적 데이터, 또는 그 둘에서 계산한 값(명시)으로만 만든다. 생존자는 살인마의 위치·방향을 절대 알 수 없고, 살인마 화면은 Id를 전혀 쓰지 않는 익명 블립으로 그려 가짜 Signal(디코이)과 진짜를 구별할 수 없게 한다. 프로토콜에 없는 정보는 "열린 질문"(§11)으로 분리했다.
 
@@ -48,7 +48,7 @@ Binding inputs: `docs/ui/SLOP_DEFINITION.md`, `docs/GDD.md` v0.2, U2b rules brie
 
 ### 0.1 Data rule
 Every element names its source. Allowed sources:
-1. **Wire** — a field the viewing client receives, written `Packet.Field`.
+1. **Wire** — a field the viewing client receives, written `Packet.Field`. Protocol v0.2, plus `S2C_SelfState` from the planned protocol v0.3 (U2c, §11 Q5); every element that uses it says so.
 2. **Static** — compiled into the client: the map (`Server.Core/Runtime/Map/FixedMap`), `GameConstants`, `SkillIds` durations, key bindings, the PC's own network interfaces.
 3. **Derived** — computed only from (1) and (2); the formula is given and the element is marked *derived*.
 
@@ -131,7 +131,7 @@ Stack, top to bottom (gap after each item in brackets):
 | 1.4 | Address reason | Derived: `host:port`, port 1–65535 | Hidden when valid; invalid: `Enter an address like 192.168.0.10:7777.` | S `text` [16] |
 | 1.5 | **Join** (primary) | TCP connect, then `C2S_Join{Nickname, ReconnectToken = 0}` | All §0.5 states; disabled while 1.4 is invalid (reason = 1.4) | 280×48 [8] |
 | 1.6 | Status line | Socket state; `S2C_JoinResult.Result` | `Connecting to 192.168.0.10:7777…` (Join disabled meanwhile; no spinner) · refused: `Server not reachable at 192.168.0.10:7777 — check that the host is running.` · 5 s timeout: `No answer from 192.168.0.10:7777 after 5 s — check the address and the host's firewall.` · `Result = 1`: `No free slot — the lobby or match is full.` · other socket error: `Connection to 192.168.0.10:7777 failed — check the address.` OS error text is never shown. | S `text`, max 2 lines [32] |
-| 1.7 | Host a game | Starts `GameServer` + `TcpTransport` on port 7777 in-process (the same `Server.Core` offline mode uses), then joins `127.0.0.1:7777` | Secondary. Line under it (S `muted`): `Players on your network join at 192.168.0.10:7777. Windows may ask to allow network access.` (first private IPv4 of this PC; none: `No network address found — only this PC can join.`). Port busy: `Port 7777 is in use — close the other server and try again.` (§11 Q14) | 200×40 [4] + line [16] |
+| 1.7 | Host a game | Starts `GameServer` + `TcpTransport` on port 7777 in-process (the same `Server.Core` offline mode uses), then joins `127.0.0.1:7777` | Secondary. Line under it (S `muted`): `Players on your network join at 192.168.0.10:7777. Windows may ask to allow network access.` (first private IPv4 of this PC; none: `No network address found — only this PC can join.`). Port busy: `Port 7777 is in use — close the other server and try again.` Decided (§11 Q14): the first host triggers the Windows Firewall prompt; the Store package declares `privateNetworkClientServer`. | 200×40 [4] + line [16] |
 | 1.8 | Play offline | `ServerOptions.IsOffline = true`, `InMemoryTransport` | Secondary. Line: `Play against bots on this PC. No network needed.` (S `muted`) | 200×40 [4] + line [32] |
 | 1.9 | Quit | App quit | Secondary | 120×40 |
 
@@ -178,7 +178,7 @@ Sounds: `ui_join` (short neutral click, −18 dB) when a new human slot appears.
 
 Source: `S2C_MatchStart{Role, SkillId}`; skill name and effect from §8; `TerminalsRequired` from the first `S2C_WorldState`.
 
-The server simulates from MatchStart (no pre-match freeze in protocol v0.2, §11 Q4), so the intro **never blocks the view or input** (SLOP L5). It shows for 3.0 s and is removed in one frame. No countdown numerals.
+The server simulates from MatchStart (no pre-match freeze — decided against for now, §11 Q4), so the intro **never blocks the view or input** (SLOP L5). It shows for 3.0 s and is removed in one frame. No countdown numerals.
 
 - **Survivor:** a block 672×160 u directly above the Survivor cluster (§4.0), same width, `panel` fill, 1 u `line` border, padding 12 (inner width 648 u). The prompt row (§4.3) is suppressed while it shows.
   - L 600 `text`: `You are a Survivor` [4]
@@ -223,7 +223,7 @@ Internal layout (304×72, padding 8 left/right and 4 top/bottom inside the clust
 |---|---|---|---|---|---|
 | 1 | Eliminated | `Status = Eliminated` | meter replaced by the spectate block (§4.5) | | |
 | 2 | Escaped | `Status = Escaped` | `Escaped` (`text`) | `Waiting for the result.` (`muted`) | empty |
-| 3 | Lagging, being rescued | `Status = Lagging` and a Survivor with `Rescuing` within 1.5 m (derived) | `Lagging` (`text`) | `Rescue in progress — stay close` | fill `ally`, width = rescue estimate (§4.4) |
+| 3 | Lagging, being rescued | `Status = Lagging` and `S2C_SelfState.RescueProgress > 0` | `Lagging` (`text`) | `Rescue in progress — stay close` | fill `ally`, width = `RescueProgress` (§4.4) |
 | 4 | Lagging | `Status = Lagging` | `Lagging` (`text`) | `Always visible · 42 s left` (`ceil(StatusTimer)`, tabular) | fill `danger`, width = `StatusTimer / 60` |
 | 5 | Signal, scanned | `Signal` set and a PingScanner effect for you arrived less than its `Duration` ago | `Signal` (`signal`) | `Scanned by the Killer · 1.2 s` | fill `signal` |
 | 6 | Signal, overload | `Signal` set and own TrafficOverload active (< `Duration`) | `Signal` | `Traffic overload · 1.4 s` | fill `signal` |
@@ -233,7 +233,11 @@ Internal layout (304×72, padding 8 left/right and 4 top/bottom inside the clust
 | 10 | Silent, relay | `Signal` clear and `Stealthed` set | `Silent` (`text`) | `Relay: hidden while moving` | empty, outline `ally` |
 | 11 | Silent | `Signal` clear | `Silent` (`text`) | `Not visible to the Killer.` (`muted`) | empty |
 
-Capture tag (row A, right): `Captured once` (S `muted`) when `CaptureCount ≥ 1` and `Status = Normal`; the play menu (§5) explains that the next capture eliminates.
+Capture tag (row A, right), first match wins:
+- `Protected 1.4 s` (S `text`, tabular) while `S2C_SelfState.InvulnerableLeft > 0`. This is the 2 s after a rescue during which you cannot be captured.
+- `Captured once` (S `muted`) when `CaptureCount ≥ 1` and `Status = Normal`. The play menu (§5) explains that the next capture eliminates you.
+
+Either tag is at most 15 characters (≈ 125 u) next to the longest word, `Lagging` (≈ 70 u at M). That fits 288 u.
 Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
 
 ### 4.2 Threat cue (GDD §3.2)
@@ -268,14 +272,14 @@ Input: E down → `C2S_Interact{Active = 1}`. E up, opening the play menu, or lo
 Sounds: `hack_start` (soft click) when own `Hacking` sets; `terminal_done` (two notes, 300 ms) when any `Progress` reaches 100.
 
 ### 4.4 Rescue
-Sources: Survivors' `Status`, `Flags.Rescuing`, `X/Z`; static `RescueRadius` 1.5 m, `RescueTimeSeconds` 3 s.
+Sources: Survivors' `Status`, `Flags.Rescuing`, `X/Z`; own `S2C_SelfState.RescueProgress` (protocol v0.3, U2c — §11 Q5); static `RescueRadius` 1.5 m.
 
-Rescue progress is not on the wire (§11 Q6). *Derived* estimate `t`: continuous time during which at least one Survivor with `Rescuing` set is within 1.5 m of the Lagging Survivor; any WorldState without one resets `t = 0`. Bar width = `min(t / 3 s, 1)`. Never shown as seconds.
+Rescue progress comes from the server, own-only: for a Lagging Survivor it is the progress of their own rescue; for a rescuer it is the progress of the rescue they are taking part in; otherwise 0. Assumed range 0–1 (the U2c brief fixes the encoding). It is drawn as a bar, never as seconds. No client estimate is used.
 
 | Viewer | Trigger | Display |
 |---|---|---|
-| Normal Survivor approaching | a Survivor with `Status = Lagging` within 6 m (derived), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — stay within 1.5 m to rescue them` |
-| Rescuer | own `Rescuing` set | prompt row: `Rescuing Mina — you are Signal` + 656×4 bar, fill `ally`, width = estimate |
+| Normal Survivor approaching | a Survivor with `Status = Lagging` within 6 m (derived from positions), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — stay within 1.5 m to rescue them` |
+| Rescuer | own `Rescuing` set | prompt row: `Rescuing Mina — you are Signal` + 656×4 bar, fill `ally`, width = own `RescueProgress` |
 | Lagging Survivor | meter row 3 (§4.1) | — |
 | Done | a watched Survivor's `Status` goes Lagging → Normal | prompt and meter return to normal; `rescued` (rising two notes) for the rescued Survivor and the rescuers |
 
@@ -314,20 +318,20 @@ Sources: `ExitOpen`, `ExitLocked`; FirewallBlock `S2C_SkillEffect.Duration` (sen
 | Locked by the Killer | `ExitOpen = 1`, `ExitLocked = 1` | `Locked 4 s` (`text`; the bar marks it as the Exit line; seconds derived from FirewallBlock `Duration`; with no effect received, e.g. after a reconnect: `Exit Locked`) | 4×18 u bar `danger`; world ring solid `danger` with a bar across | `exit_locked` (short buzz) on `ExitLocked` 0 → 1 |
 
 ### 4.8 Skill block (left block, 168×72)
-Sources: `S2C_MatchStart.SkillId`; own `S2C_SkillEffect` (`CasterId` = own id); static `SurvivorSkillCooldownSeconds` 15 s and the §8 durations; own `Status`; Survivor positions.
+Sources: `S2C_MatchStart.SkillId`; own `S2C_SelfState.SkillCooldown` (seconds left, protocol v0.3, U2c — §11 Q5); own `S2C_SkillEffect` (`CasterId` = own id) for the active duration; static `SurvivorSkillCooldownSeconds` 15 s (the ring's full scale) and the §8 durations; own `Status`; Survivor positions.
 
-Cooldown is not on the wire (§11 Q5). *Derived:* a 15 s timer starts when an `S2C_SkillEffect` with `CasterId` = own id arrives. A key press alone starts nothing.
+The cooldown is the server's value: the ring and seconds follow `SkillCooldown` exactly, including after a reconnect. A key press alone changes nothing on screen.
 
 Layout (168×72, padding 8): at left a 64×64 u area holding a 56 u ring (3 u track `line`) with the 32×32 u icon centered in it (1 u `text` line drawing, §8); the Active arc (below) is drawn at 64 u diameter, so it stays inside the 64 u area and 4 u inside the block's top and bottom edges. To the right (168 − 8 − 64 − 8 − 8 = 80 u, ≈ 9 S characters per line): the skill name, S 600, max 2 lines (e.g. `Traffic` / `overload`; `Emergency` / `restore`), then the key glyph `[Q]` / `RB` (S `muted`). 2 × 18 + 18 = 54 ≤ 56 inner height.
 
 | State | Trigger | Ring | Center | Sound |
 |---|---|---|---|---|
-| Ready | no derived cooldown, `Status = Normal`, precondition holds | full ring `text` | icon | `skill_ready` (soft tick) when the cooldown ends |
+| Ready | `SkillCooldown = 0`, `Status = Normal`, precondition holds | full ring `text` | icon | `skill_ready` (soft tick) when `SkillCooldown` reaches 0 |
 | Active | own effect running; `Duration` from the effect | an **outer** 2 u arc (64 u diameter, outside the 56 u ring) shrinking clockwise in `text` (`signal` for TrafficOverload, which makes you Signal) | icon | `skill_use` on the own effect |
-| Cooldown | derived timer running | remaining fraction in `muted`, clockwise from 12 o'clock | seconds (M tabular `text`) over the icon | — |
+| Cooldown | `SkillCooldown > 0` | remaining fraction `SkillCooldown / 15 s` in `muted`, clockwise from 12 o'clock | `ceil(SkillCooldown)` (M tabular `text`) over the icon | — |
 | Disabled — Lagging | `Status = Lagging` | track only | icon `muted`; reason in the prompt row slot (S `muted`; the prompt row shows it only when no other prompt applies): `Skills are off while Lagging.` | — |
 | Disabled — no target | EmergencyRestore and no Survivor with `Status = Lagging` within 1.5 m (derived) | track only | icon `muted`; reason: `Emergency restore needs a Lagging Survivor next to you.` | — |
-| Not confirmed | key pressed while Ready, no own effect within 0.5 s | unchanged | reason for 2 s: `Skill not used — the server did not confirm it.` | — |
+| Not used | key pressed while Ready, and within 0.5 s neither an own effect arrives nor `SkillCooldown` becomes > 0 | unchanged | reason for 2 s: `Skill not used — the server did not accept it.` | — |
 
 Distinctness (SLOP §6): each skill has its own icon depicting its effect, its name in the block, and its own active-arc duration (1.5–3 s); passive skills have no ring (§6.1).
 
@@ -367,7 +371,7 @@ From the top:
 From the bottom:
 | # | Element | Source | Content | Size |
 |---|---|---|---|---|
-| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s, `ExitOpen` | Ring and icon (64 u) as in §4.8, the name (M 600) to the right, and a state line (S `muted`): `Ready` / `Cooldown 7 s` / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 300×72 |
+| 6.1d | Skill block | `MatchStart.SkillId`, the Killer's own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon (64 u) as in §4.8, the name (M 600) to the right, and a state line (S `muted`): `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 300×72 |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | above 6.1d, gap 8 |
 | 6.1e | Intro block | §3 | 300×208, above 6.1c while shown | gap 8 |
 
@@ -410,7 +414,7 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
 | `capture_confirm` (hit) | a matched pair changes `Status` Normal → Lagging, **or** a new unmatched blip with `Status = Lagging` appears within 1.2 m of the Killer (the usual ambush: the Survivor was Silent until captured). Decoys are never Lagging. At most once per 0.5 s. |
 | `execute_confirm` (low hit) | a Lagging blip within 1.2 m of the Killer has no match in the next snapshot. Lagging Survivors are always visible, so this means Eliminated; decoys are never Lagging. |
 | `exit_open` | `ExitOpen` 0 → 1 |
-| `skill_use` / `skill_ready` | own effect / end of the derived cooldown |
+| `skill_use` / `skill_ready` | own effect / own `SkillCooldown` reaching 0 |
 | `time_60` | `TimeLeft` crosses 60 |
 
 There is no cue for capturing a Normal Survivor whose `CaptureCount` is already ≥ 1. That Survivor is eliminated and leaves the view in the same tick, which looks the same as going Silent (§11 Q7).
@@ -498,9 +502,9 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
 | Transmit meter | own `PlayerState.{Status, Flags, StatusTimer, CaptureCount}` (Survivor view); PingScanner and own TrafficOverload `S2C_SkillEffect.Duration` |
 | Threat cue | `S2C_WorldState.ThreatLevel` |
 | Terminals, prompts | `S2C_WorldState.Terminals[].{Id, X, Z, Progress}`, `.TerminalsRequired`; own `Flags.Hacking`; static radius |
-| Rescue estimate | derived from Survivors' `Status`, `Flags.Rescuing`, `X/Z` |
+| Rescue progress, protection | own `S2C_SelfState.{RescueProgress, InvulnerableLeft}` (v0.3) |
 | Exit | `S2C_WorldState.{ExitOpen, ExitLocked}`; FirewallBlock `S2C_SkillEffect.Duration` |
-| Skill state | own `S2C_SkillEffect.{CasterId, SkillId, Duration}` + static cooldowns |
+| Skill state | own `S2C_SelfState.SkillCooldown` (v0.3) + own `S2C_SkillEffect.{CasterId, SkillId, Duration}` + static cooldowns as ring scale |
 | Time | `S2C_WorldState.TimeLeft` |
 | Killer blips | Killer-bound `PlayerState.{Role, Status, Flags.Signal, X, Z}` as a shuffled anonymous set |
 | Killer effect line | own Overclock / Killer-bound TrafficOverload `S2C_SkillEffect.Duration` |
@@ -512,26 +516,28 @@ Never used:
 - The Killer's position or direction, on a Survivor client.
 - `Id`, `Yaw`, `StatusTimer`, `CaptureCount` and `Afterimage` of Survivor entries, on the Killer client.
 - Counts of hidden Survivors.
-- Server cooldown and rescue progress, which are not on the wire.
+- Another player's `S2C_SelfState` (it is never sent; the Killer never receives Survivor cooldowns, rescue progress or protection).
 
 ---
 
-## 11. Open questions (for the user)
+## 11. Decisions (2026-10-27)
 
-| # | Question | Current choice in this spec |
-|---|---|---|
-| Q1 | **Vocabulary:** SLOP §8 fixes `Frozen`; the GDD and protocol say `Lagging`. SLOP also lacks `Lagging`, `Eliminated`, `Escaped`, `Terminal`, `hack`, `spectate`. | Uses the GDD/protocol terms. SLOP §8 should be amended (this spec may not edit it). |
-| Q2 | **Threat visuals vs GDD §3.2:** level 2 has no visual in the GDD, and level 3's "static noise" conflicts with SLOP's "no looping animation". | One visual per level: meter-edge noise at 1/3 and 2/3 width, then screen-edge noise at level 3. The noise is static and re-rolled once per level change. |
-| Q3 | **No sound on Signal ↔ Silent**, although SLOP §8 asks for a sound on state changes. | Exception: the toggle fires several times a second and would mask the threat beep. |
-| Q4 | **No pre-match freeze**, so the 3 s intro overlaps live play. | The intro is non-blocking. Proposal: the server freezes input and `TimeLeft` for 3 s after MatchStart (masking unchanged). |
-| Q5 | **Skill cooldown is not on the wire:** rejections are silent, and the cooldown is lost after a reconnect. | A derived timer. Proposal: an own-only packet `S2C_SelfState{SkillCooldown, RescueProgress, InvulnerableLeft}`. It must not be a `PlayerState` field, because PlayerState also goes to the Killer. |
-| Q6 | **Rescue progress is not on the wire.** | A derived estimate; the Q5 packet would fix it. |
-| Q7 | **Result stats and second-capture feedback:** `S2C_GameResult` has no captures or rescues (GDD §7 lists rescues), and the Killer cannot observe eliminating a Normal Survivor who was captured before. | The result shows terminals only, and there is no cue for that capture. Proposal: add per-match counts to `S2C_GameResult` and a Killer-only capture event. |
-| Q8 | **Decoys are detectable outside this UI:**<br>(a) Id continuity, the Id-sorted wire order, a decoy's `CaptureCount` changing when White noise re-borrows an Id, and the `Afterimage` flag (set only on real Survivors) let a modified client spot decoys.<br>(b) Any player can notice that a Dummy blip stands still for 3 s away from terminals, and that White noise spawns five blips at once. | §6.3 removes (a) for this client. Proposals for the server:<br>• Shuffled per-snapshot indices instead of Ids in the Killer view.<br>• Afterimage applied to decoys too.<br>• Slight decoy motion and staggered White noise spawns. |
-| Q9 | **Host role choice online:** GDD §7 mentions role choice for offline only, but `C2S_SetRole` works for the host in both modes. | Shown online as `Host plays as`. |
-| Q10 | **Localization:** the copy is English; Hangul needs a layout check at 720p. | English first, with a string table (no hard-coded strings); a Korean pass before Store screenshots. |
-| Q11 | **Exit open color:** `ally` is Survivor-only. | Survivors see an `ally` bar and ring; the Killer sees a `text` ring. |
-| Q12 | **Lagging stutter and photosensitivity.** | An 8 Hz frame hold with a 30 % blend by default. The reduced alternative is blend only, with no border. It is a launch option until a settings screen exists, and a settings toggle is required before Store submission. |
-| Q13 | **S text floor:** SLOP fixes S at 14 px at 1080p, which is 11.2 px at 720p. | S renders at ≥ 12 px physical (14 u × scale, floored at 12). The alternative is raising the panel-scale minimum to 0.9. |
-| Q14 | **Host a game in-process** (§1.7) starts a TCP listener from the client, which triggers the Windows Firewall prompt and needs the Store network capability. | Proposed. The alternative is a separate server executable named on the menu. |
-| Q15 | **Panel scale above 1080p** stays clamped at 1.0 (U4 follow-up 3). | Out of scope; the reviewer suggests `[0.8, 2.0]`. |
+The user decided every open question from the review loop. "Final" means the spec's choice stands as written.
+
+| # | Question | Decision | Effect on this spec |
+|---|---|---|---|
+| Q1 | Vocabulary: SLOP §8 said `Frozen`; the GDD and protocol say `Lagging`. | **Final.** SLOP §8 is amended to the GDD/protocol terms: Lagging (replacing Frozen), Eliminated, Escaped, Terminal, hack, spectate. | All copy uses these terms. |
+| Q2 | Threat visuals vs GDD §3.2. | **Final.** One static visual per level: meter-edge noise at 1/3 and 2/3 width; screen-edge noise at level 3; re-rolled once per level change. | §4.2 |
+| Q3 | No sound on Signal ↔ Silent. | **Final** (a deliberate exception to SLOP §8 feedback). | §0.7, §4.1 |
+| Q4 | 3 s pre-match freeze. | **No, not now.** | The intro stays non-blocking (§3). |
+| Q5 | Skill cooldown on the wire. | **Yes.** A new own-only packet `S2C_SelfState { SkillCooldown, RescueProgress, InvulnerableLeft }`, planned for **U2c / protocol v0.3**. It goes only to the player it describes. It is never a `PlayerState` field, and the Killer never receives it about anyone else. | §4.8 and §6.1d read `SkillCooldown`; §4.1 shows `Protected` from `InvulnerableLeft`. The derived cooldown timer is removed. These elements depend on U2c; until it lands they cannot be built as specified. |
+| Q6 | Rescue progress on the wire. | **Yes**, the `RescueProgress` field of the Q5 packet. Semantics assumed here: own rescue (Lagging) or the rescue you are taking part in (rescuer), 0–1; U2c fixes the encoding. | §4.1 row 3 and §4.4 read `RescueProgress`; the derived estimate is removed. |
+| Q7 | Result stats and a Killer capture event. | **No, not now.** | The result shows terminals only (§7.4). There is no cue for eliminating a previously captured Normal Survivor (§6.4). |
+| Q8 | Decoy detectability outside the UI. | **Under design, settled in U2c.** The user chose to evaluate shuffled per-snapshot indices instead of Ids in the Killer view, plus afterimage applied to decoys. | §6.3 keeps position-only matching. The Killer view **may stop carrying stable Ids**, so no Killer-side code may depend on `PlayerState.Id` of Survivor entries. §6.3 already forbids it. |
+| Q9 | Host role choice online. | **Final.** Shown online as `Host plays as` (host only). | §2.8 |
+| Q10 | Localization. | **Final.** English first with a string table; a Korean layout pass at 720p before Store screenshots. | All copy. |
+| Q11 | Exit-open color. | **Final.** Survivors see an `ally` bar and ring; the Killer sees a `text` ring. | §4.7, §6.2 |
+| Q12 | Lagging stutter and photosensitivity. | **Final.** 8 Hz hold + 30 % blend by default. The reduced alternative is blend only, with no border. It is a launch option until a settings screen exists, and a settings toggle is required before Store submission. | §4.5 |
+| Q13 | S text at 720p. | **Final.** S renders at ≥ 12 px physical; the panel-scale minimum stays 0.8. | §0.3 |
+| Q14 | Hosting from the game. | **Yes.** In-process `GameServer` + `TcpTransport` from the client. Expect a Windows Firewall prompt on the first host, and the Store package must declare the network-server capability (`privateNetworkClientServer`). | §1.7 |
+| Q15 | Panel scale above 1080p. | **Final.** The scale stays clamped at 1.0 for now. | §0.2 |
