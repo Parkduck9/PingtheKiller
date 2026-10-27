@@ -32,11 +32,13 @@ namespace PingTheKiller.Client.World
             Yaw = Mathf.Repeat(Yaw + delta.x, 360);
             pitch = Mathf.Clamp(pitch - delta.y, -85, 85);
         }
+        // Scripted yaw (dev wander autopilot); mouse look keeps adding to it.
+        public void Turn(float yaw) => Yaw = Mathf.Repeat(yaw, 360);
         public void Place(Vector3 localPosition)
         {
             if (role == Role.Killer)
             {
-                camera.transform.SetPositionAndRotation(MapSource.Center + Vector3.up * 35, Quaternion.Euler(90, 0, 0));
+                camera.transform.SetPositionAndRotation(SharedMap.Center + Vector3.up * 35, Quaternion.Euler(90, 0, 0));
                 camera.fieldOfView = 2 * Mathf.Atan(34 / (35 * Mathf.Min(1, camera.aspect))) * Mathf.Rad2Deg;
             }
             else

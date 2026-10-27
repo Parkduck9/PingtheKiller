@@ -51,6 +51,15 @@ namespace PingTheKiller.Client.World
         public bool TryCreate(bool held, float right, float forward, float yaw, out C2S_MoveInput packet)
             => TryCreate(held, right, forward, yaw, Interval, out packet);
 
+        // Match end: one unconditional zero with the next Seq, then silence until a new press. It bypasses the
+        // 31/s cap on purpose (one extra packet stays far under the server's 60/s limit) but is counted in the window.
+        public C2S_MoveInput Final(float yaw)
+        {
+            ResetKeys();
+            history[oldest] = clock; oldest = (oldest + 1) % history.Length;
+            return new C2S_MoveInput { Yaw = yaw, Seq = ++sequence };
+        }
+
         // New match on the same connection: forget key state, keep Seq.
         public void ResetKeys() { wasHeld = false; zerosPending = 0; slot = 0; }
     }

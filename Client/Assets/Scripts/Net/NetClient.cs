@@ -11,26 +11,27 @@ using PingTheKiller.Shared.Packets;
 namespace PingTheKiller.Client.Net
 {
     // One instance per connection. Pump is called exclusively from Unity Update.
-    public sealed class NetClient : IDisposable
+    public sealed class NetClient : IGameLink
     {
-        public readonly struct Received
-        {
-            public readonly IPacket Packet;
-            public readonly double Time;
-            public Received(IPacket packet) { Packet = packet; Time = Now; }
-        }
-
-        private readonly ConcurrentQueue<Received> incoming = new ConcurrentQueue<Received>();
+        private static int created;
+        private readonly ConcurrentQueue<ReceivedPacket> incoming = new ConcurrentQueue<ReceivedPacket>();
         private readonly ConcurrentQueue<IPacket> outgoing = new ConcurrentQueue<IPacket>();
         private readonly ConcurrentQueue<string> notices = new ConcurrentQueue<string>();
         private readonly AutoResetEvent wake = new AutoResetEvent(false);
         private readonly TcpClient socket = new TcpClient();
         private int stopped, started, connected, queuedOut, queuedIn;
         private string endpointText;
-        public static double Now => (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
+        private volatile string failureDetail;
+        public static double Now => LinkClock.Now;
+        // Instances ever constructed (each owns a TcpClient); the offline tests assert this does not move.
+        public static int Created => Volatile.Read(ref created);
+        public NetClient() { Interlocked.Increment(ref created); }
         public bool IsConnected => Volatile.Read(ref connected) != 0 && Volatile.Read(ref stopped) == 0;
+        public bool IsOffline => false;
         public double RttMilliseconds { get; private set; } = -1;
-        public event Action<Received> PacketReceived;
+        // Raw cause of the last failure, for Debug.Log only; never shown on screen.
+        public string FailureDetail => failureDetail;
+        public event Action<ReceivedPacket> PacketReceived;
         public event Action<string> Disconnected;
 
         public void Connect(IPEndPoint endpoint)
@@ -45,7 +46,7 @@ namespace PingTheKiller.Client.Net
             if (!IsConnected) return false;
             if (Interlocked.Increment(ref queuedOut) > 256)
             {
-                Stop("Send queue is full. Rejoin when the connection is stable.");
+                Stop(ConnectionMessages.Describe(LinkFailure.Lost, endpointText), "send queue full");
                 return false;
             }
             outgoing.Enqueue(packet);
@@ -56,10 +57,10 @@ namespace PingTheKiller.Client.Net
         public void Pump()
         {
             int budget = 512;
-            while (budget-- > 0 && incoming.TryDequeue(out Received item))
+            while (budget-- > 0 && incoming.TryDequeue(out ReceivedPacket item))
             {
                 Interlocked.Decrement(ref queuedIn);
-                // Received.Time is stamped on the receive thread, so frame stalls do not inflate RTT.
+                // ReceivedPacket.Time is stamped on the receive thread, so frame stalls do not inflate RTT.
                 if (item.Packet is S2C_Pong pong)
                     RttMilliseconds = Math.Max(0, (item.Time - (double)pong.Timestamp / Stopwatch.Frequency) * 1000.0);
                 PacketReceived?.Invoke(item);
@@ -73,7 +74,7 @@ namespace PingTheKiller.Client.Net
             {
                 // Connect, timeout wait, and every socket operation run on worker threads.
                 var connection = socket.ConnectAsync(endpoint.Address, endpoint.Port);
-                if (!connection.Wait(5000)) throw new IOException("Connection timed out.");
+                if (!connection.Wait(5000)) throw new TimeoutException("Connect timed out after 5 s.");
                 if (Volatile.Read(ref stopped) != 0) return;
                 socket.NoDelay = true;
                 NetworkStream stream = socket.GetStream();
@@ -96,11 +97,15 @@ namespace PingTheKiller.Client.Net
                         IPacket packet = PacketCodec.Decode(id, payload.Span);
                         if (!IsServerPacket(packet.Id)) throw new PacketFormatException("Unexpected client packet from server.");
                         if (Interlocked.Increment(ref queuedIn) > 512) throw new IOException("Receive queue is full.");
-                        incoming.Enqueue(new Received(packet));
+                        incoming.Enqueue(new ReceivedPacket(packet));
                     }
                 }
             }
-            catch (Exception exception) { Stop($"Server not reachable at {endpointText} or connection lost. Check that the host is running. {exception.GetBaseException().Message}"); }
+            catch (Exception exception)
+            {
+                bool wasConnected = Volatile.Read(ref connected) != 0;
+                Stop(ConnectionMessages.Describe(exception, wasConnected, endpointText), exception.GetBaseException().ToString());
+            }
         }
 
         private void SendLoop(NetworkStream stream)
@@ -123,7 +128,7 @@ namespace PingTheKiller.Client.Net
                     wake.WaitOne(20);
                 }
             }
-            catch (Exception exception) { Stop($"Connection to {endpointText} lost. Rejoin after checking the server. {exception.Message}"); }
+            catch (Exception exception) { Stop(ConnectionMessages.Describe(LinkFailure.Lost, endpointText), exception.GetBaseException().ToString()); }
         }
 
         private static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
@@ -135,15 +140,16 @@ namespace PingTheKiller.Client.Net
             stream.Write(frame, 0, frame.Length);
         }
 
-        private void Stop(string reason)
+        private void Stop(string reason, string detail)
         {
             if (Interlocked.Exchange(ref stopped, 1) != 0) return;
+            failureDetail = detail;
             Volatile.Write(ref connected, 0);
             socket.Close();
             wake.Set();
             notices.Enqueue(reason);
         }
 
-        public void Dispose() => Stop("Disconnected. Join a server to play.");
+        public void Dispose() => Stop(ConnectionMessages.Left, null);
     }
 }
