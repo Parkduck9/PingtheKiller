@@ -67,14 +67,14 @@ public sealed class QaScorerAndExitCodeTests
     [Fact]
     public async Task H6IsSkippedScoreZeroNotPassedAndNeverCounted()
     {
-        // No server is contacted for H6: use a closed port to prove it.
+        // U3b: H6 is a real check now (no "skipped"); with no server at the port it fails in setup.
         var (report, _) = await Qa.RunAsync(SilentServer.ClosedPort(), new[] { "H6" });
         var h6 = Assert.Single(report.Items);
         Assert.Equal("H6", h6.Id);
         Assert.Equal(0, h6.Score);
         Assert.Equal(10, h6.Max);
         Assert.False(h6.Passed);
-        Assert.Contains("skipped", h6.Evidence, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("[setup]", h6.Evidence, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, report.Total);
         Assert.False(report.GatesPassed);
     }
@@ -203,8 +203,9 @@ public sealed class QaScorerAndExitCodeTests
         string report = Path.Combine(Path.GetTempPath(), $"qa-harness-{Guid.NewGuid():N}.json");
         try
         {
-            var (exit, _, _) = await Qa.RunHarnessProcessAsync(new[] { "--only", "H6", "--threshold", "0", "--report", report },
-                TimeSpan.FromSeconds(30));
+            // U3b: H6 now talks to a server, so never let it hit a developer's server on the default port 7777.
+            var (exit, _, _) = await Qa.RunHarnessProcessAsync(new[] { "--only", "H6", "--threshold", "0", "--report", report,
+                "--port", SilentServer.ClosedPort().ToString() }, TimeSpan.FromSeconds(30));
             Assert.NotEqual(0, exit);
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(report));
             Assert.Equal(0, doc.RootElement.GetProperty("total").GetInt32());

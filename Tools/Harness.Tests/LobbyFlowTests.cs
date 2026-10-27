@@ -18,7 +18,8 @@ public sealed class LobbyFlowTests
         Assert.All(report.Items.Where(i => i.Id != "H6"), item => Assert.True(item.Passed, $"{item.Id}: {item.Evidence}"));
         Assert.Equal(45, report.Total);
         Assert.False(report.GatesPassed); // H1 was not run.
-        Assert.Equal("skipped (needs U2b)", report.Items.Single(i => i.Id == "H6").Evidence);
+        // H6 may not share this server's match: without --h6-port it fails at once, without network I/O.
+        Assert.Equal(ScenarioCheck.NeedsOwnServer, report.Items.Single(i => i.Id == "H6").Evidence);
         Assert.Equal(1, server.MatchStarts);
         Assert.Equal(1, server.Rebinds); // H4 retains the existing survivor socket.
         Assert.Equal(1, server.ReconnectRequests);

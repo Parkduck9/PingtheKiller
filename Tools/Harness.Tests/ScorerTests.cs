@@ -7,20 +7,42 @@ namespace PingTheKiller.Harness.Tests;
 public sealed class ScorerTests
 {
     [Fact]
-    public void U2aMaximumIs90AndH6IsHonest()
+    public void FailedH6Scores90AndAllSixPassingScores100()
     {
-        var report = Scorer.Summarize(new[]
+        var withoutH6 = Scorer.Summarize(new[]
         {
             Scorer.Result("H1", true, "framing"), Scorer.Result("H2", true, "sync"),
             Scorer.Result("H3", true, "masking"), Scorer.Result("H4", true, "abuse"),
-            Scorer.Result("H5", true, "reconnect"), Scorer.Result("H6", false, "skipped (needs U2b)")
+            Scorer.Result("H5", true, "reconnect"), Scorer.Result("H6", false, "[capture: killer to A] A captured ... not observed")
         });
-        Assert.Equal(90, report.Total);
-        Assert.True(report.GatesPassed);
-        Assert.True(report.MeetsThreshold(90));
-        Assert.False(report.MeetsThreshold(91));
-        Assert.Equal(0, report.Items[5].Score);
-        Assert.False(report.Items[5].Passed);
+        Assert.Equal(90, withoutH6.Total);
+        Assert.True(withoutH6.GatesPassed);
+        Assert.True(withoutH6.MeetsThreshold(90)); // default --threshold stays 90
+        Assert.False(withoutH6.MeetsThreshold(91));
+        Assert.Equal(0, withoutH6.Items[5].Score);
+        Assert.False(withoutH6.Items[5].Passed);
+
+        var all = Scorer.Summarize(Scorer.Ids.Select(id => Scorer.Result(id, true, "ok")));
+        Assert.Equal(100, all.Total);
+        Assert.True(all.GatesPassed);
+        Assert.True(all.MeetsThreshold(100));
+        Assert.Equal(10, all.Items.Single(i => i.Id == "H6").Score);
+        Assert.Equal(90, new Options().Threshold);
+    }
+
+    [Fact]
+    public void JsonOfAPassingH6IsARealCheckResult()
+    {
+        var report = Scorer.Summarize(new[] { Scorer.Result("H6", true, "setup: 3 humans ... GameResult x1 per human") });
+        using var json = JsonDocument.Parse(report.ToJson());
+        var item = json.RootElement.GetProperty("items")[0];
+        Assert.Equal("H6", item.GetProperty("id").GetString());
+        Assert.Equal(10, item.GetProperty("score").GetInt32());
+        Assert.Equal(10, item.GetProperty("max").GetInt32());
+        Assert.False(item.GetProperty("gate").GetBoolean());
+        Assert.True(item.GetProperty("passed").GetBoolean());
+        Assert.DoesNotContain("skipped", item.GetProperty("evidence").GetString());
+        Assert.Equal(10, json.RootElement.GetProperty("total").GetInt32());
     }
 
     [Fact]
@@ -30,7 +52,7 @@ public sealed class ScorerTests
         {
             Scorer.Result("H1", true, "ok"), Scorer.Result("H2", true, "ok"),
             Scorer.Result("H3", false, "leak"), Scorer.Result("H4", true, "ok"),
-            Scorer.Result("H5", true, "ok"), Scorer.Result("H6", false, "skipped (needs U2b)")
+            Scorer.Result("H5", true, "ok"), Scorer.Result("H6", false, ScenarioCheck.NeedsOwnServer)
         });
         Assert.Equal(70, report.Total);
         Assert.False(report.GatesPassed);
