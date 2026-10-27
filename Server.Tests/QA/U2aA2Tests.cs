@@ -15,7 +15,7 @@ namespace PingTheKiller.Tests.QA;
 // GameServer.Tick(dt) + InMemoryTransport, plus the Start()-driven loop-fault tests (in-memory transport, no sockets).
 // Expected values derive from the brief / GDD, never from the implementation.
 
-internal readonly record struct SurvObs(float X, float Z, bool Moved, bool Visible, bool Signal);
+internal readonly record struct SurvObs(float X, float Z, bool Moved, bool Visible, bool Signal, byte Status = 0, byte Flags = 0);
 
 // Observes one tick: survivor positions come from a human survivor's frame (it lists ALL survivors, incl. Silent ones),
 // visibility comes from the killer-bound frame of the SAME tick (both frames must carry the same server tick).
@@ -27,6 +27,10 @@ internal sealed class Watch
     internal readonly List<string> Violations = new();
     internal int TickNo;
     internal S2C_WorldState? KillerFrame;
+    // U2b migration: under the U2b rules a survivor may legitimately move and vanish from the killer frame in the same
+    // tick when that tick ends it (Eliminated / Escaped are omitted) or hides it (Stealth Relay). Everything else stays a violation.
+    internal bool U2bRules;
+    internal bool Ended;
 
     internal Watch(QaFixture f, QaPeer killer, QaPeer observer)
     {
@@ -42,6 +46,7 @@ internal sealed class Watch
         TickNo++;
         var kf = _killer.Since<S2C_WorldState>(mk);
         var of = _observer.Since<S2C_WorldState>(mo);
+        if (U2bRules && kf.Count == 0 && of.Count == 0) { Ended = true; return new Dictionary<int, SurvObs>(); }
         Assert.Single(kf);
         Assert.Single(of);
         Assert.Equal(kf[0].Tick, of[0].Tick);
@@ -53,12 +58,14 @@ internal sealed class Watch
             var entry = kf[0].Players.Where(k => k.Id == p.Id).Cast<PlayerState?>().FirstOrDefault();
             bool visible = entry.HasValue;
             bool signal = visible && (entry!.Value.Flags & (byte)PlayerFlags.Signal) != 0;
-            if (moved && !visible)
+            bool exempt = U2bRules && (p.Status == (byte)PlayerStatus.Eliminated || p.Status == (byte)PlayerStatus.Escaped ||
+                (p.Flags & (byte)PlayerFlags.Stealthed) != 0);
+            if (moved && !visible && !exempt)
                 Violations.Add($"tick {TickNo} (server tick {kf[0].Tick}): survivor {p.Id} moved ({prev.X},{prev.Z})->({p.X},{p.Z}) but is absent from the killer frame");
             if (visible && !signal)
                 Violations.Add($"tick {TickNo}: survivor {p.Id} present in killer frame without Signal flag");
             _prev[p.Id] = (p.X, p.Z);
-            result[p.Id] = new SurvObs(p.X, p.Z, moved, visible, signal);
+            result[p.Id] = new SurvObs(p.X, p.Z, moved, visible, signal, p.Status, p.Flags);
         }
         return result;
     }
@@ -295,9 +302,49 @@ public sealed class U2aA2Tests
     [Fact]
     public void BotAndHumanSurvivors_NeverMoveWhileAbsentFromKillerFrame_ManySeeds()
     {
+        int botMovedTicks = 0, botHiddenTicks = 0;
         for (int seed = 1; seed <= 6; seed++)
         {
             using var f = new QaFixture(bots: 4, seed: seed);
+            var killer = f.Join("K");
+            var observer = f.Join("S");
+            killer.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Killer });
+            killer.Send(new C2S_StartMatch());
+            f.Tick();
+            Assert.Equal((byte)Role.Killer, killer.Last<S2C_MatchStart>().Role);
+            // U2b migration (was: an absolute "a moving survivor is never absent"). U2b legitimately ends a survivor's
+            // life in the same tick it moves (a Lagging survivor walks 1 m/s, then is executed or times out; it is
+            // omitted from the killer frame as Eliminated). The invariant that the test protects is unchanged for every
+            // survivor that is still Normal/Lagging after the tick: if it moved, it is in the killer frame, unless
+            // Stealth Relay hid it (the survivor frame then carries the Stealthed flag).
+            var watch = new Watch(f, killer, observer) { U2bRules = true };
+            var rnd = new Random(seed);
+            var dirs = new[] { (1f, 0f), (0f, 1f), (-1f, 0f), (0f, -1f), (0.6f, 0.8f) };
+            for (int i = 0; i < 1000 && !watch.Ended; i++) // up to 50 s; the match may end earlier under U2b
+            {
+                if (rnd.Next(3) == 0) { var d = dirs[rnd.Next(dirs.Length)]; killer.Move(d.Item1, d.Item2); }
+                if (rnd.Next(5) == 0) { var d = dirs[rnd.Next(dirs.Length)]; observer.Move(d.Item1, d.Item2); }
+                var obs = watch.Step();
+                foreach (var (id, o) in obs)
+                {
+                    if (id == observer.Id) continue;
+                    if (o.Moved) botMovedTicks++;
+                    if (!o.Visible) botHiddenTicks++;
+                }
+            }
+            Assert.True(watch.Violations.Count == 0, "seed " + seed + ": " + string.Join(" | ", watch.Violations.Take(3)));
+        }
+        Assert.True(botMovedTicks > 500, "scenario sanity: bots must move (" + botMovedTicks + ")");
+        Assert.True(botHiddenTicks > 500, "scenario sanity: bots must also be Silent at times (" + botHiddenTicks + ")");
+    }
+
+    // The sandbox keeps U2a rules (no capture, no Lagging), so the original unmodified invariant must still hold there.
+    [Fact]
+    public void Sandbox_BotAndHumanSurvivors_NeverMoveWhileAbsentFromKillerFrame_ManySeeds()
+    {
+        for (int seed = 1; seed <= 6; seed++)
+        {
+            using var f = new QaFixture(bots: 4, seed: seed, sandbox: true);
             var killer = f.Join("K");
             var observer = f.Join("S");
             killer.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Killer });

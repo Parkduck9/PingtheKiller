@@ -33,112 +33,47 @@ namespace PingTheKiller.ServerCore
             if (distance <= GameConstants.ThreatLevel1Distance) return 1;
             return 0;
         }
-        private void BroadcastWorld()
+
+        // start is the instant this tick's movement interval begins; timed speed effects cover [cast, cast + duration).
+        private void MovePlayers(double start, float dt)
         {
-            Player killer = null;
-            foreach (var player in _players) if (player.Role == Role.Killer) killer = player;
-            foreach (var recipient in _players)
+            foreach (var player in _players)
             {
-                if (recipient.ConnectionId == null || !_connections.TryGetValue(recipient.ConnectionId, out var binding)) continue;
-                var world = new S2C_WorldState
+                // A held direction lives only as long as the hold of the last non-zero input, evaluated with the
+                // same _now as BroadcastWorld: a survivor that moves this tick is Signal unless an effect hides it.
+                // Clients must therefore resend MoveInput (>= 10 Hz) while a key is held.
+                if (!player.InputHeld(_now) || (player.Role == Role.Survivor && !player.IsActiveSurvivor))
                 {
-                    Tick = _tick, TimeLeft = Math.Max(0, GameConstants.MatchLengthSeconds - (float)_matchTime),
-                    ExitOpen = 0, ExitLocked = 1, TerminalsRequired = _terminalsRequired
-                };
-                world.Terminals.AddRange(_terminals);
-                if (recipient.Role == Role.Survivor && killer != null)
-                {
-                    float dx = recipient.X - killer.X, dz = recipient.Z - killer.Z;
-                    world.ThreatLevel = ThreatForDistance((float)Math.Sqrt(dx * dx + dz * dz));
+                    player.DirX = player.DirZ = 0;
+                    continue;
                 }
-                foreach (var player in _players)
-                {
-                    if (recipient.Role == Role.Killer)
-                    {
-                        if (player.Role == Role.Survivor && !player.IsSignal(_now)) continue;
-                    }
-                    else if (player.Role == Role.Killer) continue;
-                    world.Players.Add(player.State(_now));
-                }
-                Send(binding.Connection, world);
+                float speed = SpeedAt(player, start);
+                if (speed <= 0) continue;
+                var position = Map.Move(player.X, player.Z, player.DirX * speed * dt, player.DirZ * speed * dt);
+                player.X = position.X;
+                player.Z = position.Z;
             }
-            // TODO U2b: objective progress, exit transitions, status timers and win/lose.
         }
 
-        private void UpdateBots()
+        private static float SpeedAt(Player player, double start)
         {
-            foreach (var bot in _players)
-            {
-                if (!bot.IsBot) continue;
-                float targetX = 0, targetZ = 0;
-                bool pause = false;
-                if (bot.Role == Role.Survivor)
-                {
-                    if (_now < bot.BotPauseUntil) pause = true;
-                    else if (bot.BotTarget < 0 || _now >= bot.BotWalkUntil)
-                    {
-                        if (bot.BotTarget >= 0)
-                        {
-                            bot.BotTarget = -1;
-                            bot.BotPauseUntil = _now + 1 + _random.NextDouble() * 2;
-                            pause = true;
-                        }
-                        else
-                        {
-                            bot.BotTarget = _random.Next(_terminals.Length);
-                            bot.BotWalkUntil = _now + 3 + _random.NextDouble() * 5;
-                        }
-                    }
-                    if (!pause && bot.BotTarget >= 0)
-                    {
-                        targetX = _terminals[bot.BotTarget].X;
-                        targetZ = _terminals[bot.BotTarget].Z;
-                        if (DistanceSquared(bot.X, bot.Z, targetX, targetZ) < 0.64f)
-                        {
-                            bot.BotWalkUntil = _now;
-                            pause = true;
-                        }
-                    }
-                }
-                else
-                {
-                    float closest = float.MaxValue;
-                    foreach (var survivor in _players)
-                    {
-                        if (survivor.Role != Role.Survivor || !survivor.IsSignal(_now)) continue;
-                        float distance = DistanceSquared(bot.X, bot.Z, survivor.X, survivor.Z);
-                        if (distance >= closest) continue;
-                        closest = distance;
-                        bot.HasLastSeen = true;
-                        bot.LastSeenX = survivor.X;
-                        bot.LastSeenZ = survivor.Z;
-                    }
-                    if (bot.HasLastSeen && DistanceSquared(bot.X, bot.Z, bot.LastSeenX, bot.LastSeenZ) < 0.64f)
-                        bot.HasLastSeen = false;
-                    if (bot.HasLastSeen) { targetX = bot.LastSeenX; targetZ = bot.LastSeenZ; }
-                    else
-                    {
-                        if (bot.BotTarget < 0 || DistanceSquared(bot.X, bot.Z, _terminals[bot.BotTarget].X, _terminals[bot.BotTarget].Z) < 0.64f || _now >= bot.BotWalkUntil)
-                        {
-                            bot.BotTarget = _random.Next(_terminals.Length);
-                            bot.BotWalkUntil = _now + 10;
-                        }
-                        targetX = _terminals[bot.BotTarget].X;
-                        targetZ = _terminals[bot.BotTarget].Z;
-                    }
-                }
-                ApplyMove(bot, new C2S_MoveInput
-                {
-                    DirX = pause ? 0 : targetX - bot.X,
-                    DirZ = pause ? 0 : targetZ - bot.Z,
-                    Seq = bot.Seq + 1
-                });
-            }
+            if (player.Role == Role.Survivor)
+                return player.Status == PlayerStatus.Lagging
+                    ? GameConstants.SurvivorSpeed * GameConstants.LaggingSpeedMultiplier
+                    : GameConstants.SurvivorSpeed;
+            float speed = GameConstants.KillerSpeed;
+            if (start < player.OverclockUntil - TimeEpsilon) speed *= SkillIds.OverclockSpeedMultiplier;
+            else if (start < player.RecoveryUntil - TimeEpsilon) return 0;
+            if (start < player.SlowedUntil - TimeEpsilon) speed *= SkillIds.TrafficOverloadKillerSpeedMultiplier;
+            return speed;
         }
+
         private static float DistanceSquared(float x, float z, float tx, float tz)
         {
             float dx = x - tx, dz = z - tz;
             return dx * dx + dz * dz;
         }
+        private static bool Within(Player a, float x, float z, float radius) =>
+            DistanceSquared(a.X, a.Z, x, z) <= radius * radius + 0.000001f;
     }
 }
