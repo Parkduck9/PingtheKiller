@@ -1,0 +1,82 @@
+using NUnit.Framework;
+using PingTheKiller.Client.Dev;
+using PingTheKiller.Shared.Game;
+
+namespace PingTheKiller.Client.Tests
+{
+    public sealed class DevArgsTests
+    {
+        [Test]
+        public void NoFlagsIsInert()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "PingTheKiller.exe", "-screen-width", "1280", "-batchmode" });
+            Assert.That(args.Active, Is.False);
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(DevArgs.Parse(null).Active, Is.False);
+        }
+
+        [Test]
+        public void AllValidFlagsAreParsed()
+        {
+            DevArgs args = DevArgs.Parse(new[]
+            {
+                "PingTheKiller.exe", "-screen-fullscreen", "0", "-ptk-join", "127.0.0.1:7777", "-ptk-bots", "6", "-ptk-role", "Killer",
+                "-ptk-start", "-ptk-hold-w", "2.5", "-ptk-shots", @"C:\shots dir", "-ptk-quit-after", "8"
+            });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.Active, Is.True);
+            Assert.That(args.Join, Is.EqualTo("127.0.0.1:7777"));
+            Assert.That(args.Bots, Is.EqualTo(6));
+            Assert.That(args.RoleChoice, Is.EqualTo((byte)RoleChoice.Killer));
+            Assert.That(args.Start, Is.True);
+            Assert.That(args.HoldW, Is.EqualTo(2.5f));
+            Assert.That(args.Shots, Is.EqualTo(@"C:\shots dir"));
+            Assert.That(args.QuitAfter, Is.EqualTo(8f));
+        }
+
+        [TestCase("survivor", (byte)RoleChoice.Survivor)]
+        [TestCase("random", (byte)RoleChoice.Random)]
+        [TestCase("KILLER", (byte)RoleChoice.Killer)]
+        public void RoleNamesMapToRoleChoice(string value, byte expected)
+        {
+            Assert.That(DevArgs.Parse(new[] { "-ptk-role", value }).RoleChoice, Is.EqualTo(expected));
+        }
+
+        [TestCase("-ptk-join", "localhost:7777")]
+        [TestCase("-ptk-join", "127.0.0.1:0")]
+        [TestCase("-ptk-bots", "8")]
+        [TestCase("-ptk-bots", "-1")]
+        [TestCase("-ptk-bots", "two")]
+        [TestCase("-ptk-role", "ghost")]
+        [TestCase("-ptk-hold-w", "0")]
+        [TestCase("-ptk-hold-w", "NaN")]
+        [TestCase("-ptk-hold-w", "Infinity")]
+        [TestCase("-ptk-quit-after", "-3")]
+        public void InvalidValueDisablesTheFlagAndReportsIt(string flag, string value)
+        {
+            DevArgs args = DevArgs.Parse(new[] { flag, value });
+            Assert.That(args.Active, Is.False);
+            Assert.That(args.Errors.Count, Is.EqualTo(1));
+            Assert.That(args.Errors[0], Does.Contain(flag));
+        }
+
+        [Test]
+        public void MissingValueDoesNotSwallowTheNextFlag()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-join", "-ptk-start", "-ptk-shots" });
+            Assert.That(args.Join, Is.Null);
+            Assert.That(args.Shots, Is.Null);
+            Assert.That(args.Start, Is.True);
+            Assert.That(args.Errors.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void UnknownFlagIsReportedAndIgnored()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-fly", "-ptk-bots", "3" });
+            Assert.That(args.Bots, Is.EqualTo(3));
+            Assert.That(args.Errors.Count, Is.EqualTo(1));
+            Assert.That(args.Errors[0], Does.Contain("-ptk-fly"));
+        }
+    }
+}
