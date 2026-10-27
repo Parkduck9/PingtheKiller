@@ -75,7 +75,7 @@ The test for any element: **"What game state does this encode, and what does the
 - **Information the rules say the player cannot have.** The killer's HUD must never hint at hidden survivors (no "3 survivors nearby" counter unless a skill grants it). Leaking state = slop *and* a design bug.
 - Skill buttons that look identical for every skill; skills differ by icon only.
 - Cooldown shown only as a number with no radial/bar.
-- Showing the same HUD to killer (top-down) and survivors (first-person). The two roles have different cameras and different questions; they need different HUDs.
+- Showing the same HUD to killer (first-person) and survivors (third-person orbit). The two roles have different cameras and different questions; they need different HUDs.
 - Kill feed / score popups borrowed from shooters ("+100 FREEZE!").
 - Minimap for survivors "because games have minimaps" — it would undermine the hide-by-not-moving tension unless designed deliberately.
 - Victory/defeat screen as a generic "VICTORY" banner with confetti.
@@ -107,8 +107,8 @@ The theme comes from the **one rule**: *you are visible only while you transmit.
 **Shape & spacing:** 4 px spacing scale (4/8/12/16/24/32). Corner radius 2 px or 0. Hierarchy from size, position, and the single accent — not shadows.
 
 **Role-specific HUD:**
-- *Survivor (first-person):* bottom-center only. One **transmit meter** showing whether you are currently Signal or Silent (the core tension), skill + cooldown ring, frozen-ally direction markers at screen edge. Nothing else.
-- *Killer (top-down):* the map *is* the HUD. Survivor blips appear only as Signal, then fade per server timer (afterimage skill lengthens the fade). Skill + cooldown at bottom-left; exit lock state on the exit itself, not in a panel.
+- *Survivor (third-person orbit camera, character framed above the HUD):* bottom-center only. One **transmit meter** showing whether you are currently Signal or Silent (the core tension), skill + cooldown ring, Lagging-Survivor direction markers at screen edge. Nothing else. The own character carries no state tint; the Killer is never drawn.
+- *Killer (first-person):* the world *is* the HUD. Signal Survivors appear as the character when in line of sight and as through-wall Signal markers when occluded; Silent Survivors show nothing, even in front of the Killer (afterimage skill keeps a Survivor shown briefly after their Signal ends). Skill + cooldown at bottom-left; exit lock state on the exit marker itself, not in a panel.
 
 **Feedback:** state changes get sound + one visual change; continuous states get a steady indicator, never a looping animation.
 

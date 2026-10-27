@@ -486,3 +486,83 @@ No blocker.
 3. m5–m7 and m9–m13 as time allows; they do not block the pass.
 
 SPEC-PASS (score 86)
+
+
+# Attempt 5 (N1–N9 decisions, positional sound)
+
+- Reviewer: Claude Sonnet 5.5 (author: Claude Opus)
+- Date: 2026-10-27
+- Scope: quick re-review of `git diff a4b8f56 -- docs/ui/HUD_SPEC.md docs/ui/SLOP_DEFINITION.md`: §0.7, new §6.5.1, §6.4, §6.2 terminals, §10, §11.1, header changelog, and the SLOP §6 / §8 role lines. Cross-checked against `docs/GDD.md` §2, `docs/briefs/U2c-a1.md`, `Shared/Runtime/Game/GameConstants.cs`, `Server.Core/Runtime/GameServer.{Rules,Simulation,Visibility}.cs`. Rows with nothing changed are carried from attempt 4; I also spot-checked that the attempt-4 fixes (M1 percent removed, M2 placement rule, M3 re-arm, m1–m3 heights, m10 0.03 m, keylines, band offset) are present in the spec.
+
+## A5.1 Score
+
+| Row | Max | Score | Reasons |
+|---|---:|---:|---|
+| Visual tells | 20 | 19 | Carried 18, +1: the marker keyline fix from A4 m5 is in. No new visual element; the sound section adds none. |
+| Layout | 15 | 12 | Carried 11, +1: edge-indicator rule and cluster sums fixed. Typo left in 6.1a (m5 below). |
+| Copy / vocabulary | 15 | 14 | Carried. `Wait 1.6 s` is still a countdown in S (A4 m8), now a live server value. |
+| Every element answers state and action | 15 | 15 | Re-arm rule (A4 M3) is fixed and now server-sourced; each §6.5.1 sound maps to a visible state. |
+| Role-specific HUDs, no leak | 20 | 17 | The positional sound is decoy-safe by construction (A5.2). Deductions: the normative §6.3 rule 4 still forbids per-entry sound (M1); voice cap and edge-indicator cap can disagree (m2). |
+| Interactive states, keyboard and gamepad | 10 | 9 | Carried. |
+| Contrast and 720p readability | 5 | 4 | Carried. |
+| **Total** | **100** | **90** | Threshold 85, no gate failure, no blocker. |
+
+## A5.2 Attacks on decoy safety and leaks (§6.5.1, §6.4)
+
+| Attack | Result |
+|---|---|
+| Speed estimate `v` (mean of last 4 matched displacements ÷ 0.05 s) | Safe. Computed from on-wire X/Z only. U2c phantoms move through `Map.Move` at `SurvivorSpeed`, so v matches real Survivors (4.0 m/s, or lower when wall-sliding). Residual: a decoy that only ever walks at exactly 4.0 m/s differs from a gamepad Survivor at partial stick. That is a speed feature already covered by the U2c indistinguishability report and is visible in the animation too. |
+| Cadence, phase, pitch, sample variant | Safe. RNG is client-side and not seeded from wire data; first step is delayed by `[0, interval)`; cadence is a function of v and Status only. |
+| Silent Survivor audible | Not possible. No entry on the wire, so no instance, no voice. Despawn cancels pending steps. A Lagging Survivor is always visible server-side (`IsVisibleToKiller`), so Ragged breathing cannot reveal a Silent one. |
+| Hackers and rescuers (stationary Signal) | Safe. `IsVisibleToKiller` returns true while `Hacking` or `Rescuing`, so real stationary Signals exist and Calm breathing is the same for them and for a phantom at a terminal. |
+| Afterimage entries | Safe. The entry stays at the last seen position (`ShowsAfterimage`), so v decays to 0 over 4 ticks and the instance breathes Calm, like any stationary blip. Nothing about the Silent Survivor's real movement is audible. Same residual as the visual afterimage tail (U2c report). |
+| Voice cap (4 nearest) and hysteresis | Safe for identity: ranking uses distance only; hysteresis state is per instance and depends only on distance. It does let a voiced instance fall outside the 6-nearest edge-indicator set (m2). |
+| Occlusion low-pass, despawn fade | Safe. Same ray and same 50 ms fade for every instance. |
+| Breathing variants | Safe. Variant = f(Status, v). Decoys are never Lagging. |
+| `ExecutionGraceLeft` (§6.4) | Safe. It describes the nearest Lagging Survivor within 3 m, who is always visible and whose capture time the Killer already saw. It is 0 in a Survivor's own copy of `S2C_SelfState`. No Silent state is involved. |
+| `Progress` as 0 or 100 | Safe. The Killer learns only "done", which both roles already see in the done count. |
+
+## A5.3 Checks
+
+- Cadence: Normal 1.2 m ÷ 4.0 m/s = 0.30 s, inside the 0.25–0.9 clamp. Lagging speed = 4.0 × 0.25 = 1.0 m/s, so 0.8 m ÷ 1.0 = 0.8 s, inside 0.5–1.5. Both match the table. Walk threshold 0.5 m/s matches §6.3 rule 5.
+- Grace text: `Wait 1.6 s, step back, touch again.` is 35 characters, so it still fits S (≈ 290 u in 302 u).
+- Re-arm logic matches `GameServer.Rules.cs` Capture(): not in contact sets armed; in contact during grace clears it; in contact with armed set and grace over eliminates.
+- SLOP edits: three lines only (§6 camera line, two §8 role lines), consistent with GDD §2 (Survivor third-person orbit with the Killer never drawn; Killer first person, Signal as character or through-wall marker, Silent shows nothing). The audio rules in SLOP are untouched.
+- §0.7 exemption: sound in principle (scene audio from a character, bounded by 4 voices and by the "shows nothing the visuals do not" guard; SLOP §5 only restricts hover sound and §8 only asks for a steady indicator for continuous states). It is a spec-local carve-out with no SLOP counterpart, and its wording is wider than its one use (m3).
+
+## A5.4 Findings
+
+No blocker.
+
+[major] M1 Rule 4 contradicts §6.5.1 — §6.3 rule 4, §6.3 rule 1 — Rule 4 (normative decoy-safety text) says "no per-instance identity anywhere: no names, colors, numbers, cosmetics or sounds per entry", yet §6.5.1 gives each instance its own footstep and breathing voices. An implementer following §6.3 could drop or randomise the sound, or a reviewer could fail it. — Reword rule 4 to "no per-instance identity: …; the only per-instance sound is §6.5.1, a function of position, matched speed and `Status`", and add §6.5.1 to rule 1's list of readers of `X/Z/Status`.
+
+[minor] m1 Audio formulas incomplete — §6.5.1 — "log rolloff" has no min/max distance or curve; "silent beyond 20 m / 6 m / 8 m / 10 m" is a hard cutoff that will click, and at inverse-distance rolloff the breathing is already inaudible well before 6 m (−30 dB at 2 m is about −39 dB at 6 m, so the quoted ranges mean little); dB values have no stated reference; the step timer is not defined (recompute the interval from current v each step, or accumulate dt ÷ interval(v)?); source height is not given; the occlusion filter has no 100 ms hold or crossfade although the visual class has one; the 0.5 m/s Calm/Heavy and walk threshold has no hysteresis. — State the rolloff (inverse distance, min 2 m, linear fade over the last 2 m before max), the dB reference (master bus), source height 1.0 m, an accumulating step timer, a 100 ms occlusion crossfade, and enter 0.6 / exit 0.4 m/s hysteresis for the speed threshold (v-only, so decoy-safe). Set the breathing ranges where the rolloff reaches an audible floor.
+
+[minor] m2 Voice cap versus edge-indicator cap — §6.5.1, §6.2 Off-screen — Voices go to the 4 nearest with a 1 m hysteresis, edge indicators go to the 6 nearest. In a White noise burst (5 points close together) a voiced instance can rank 7th and have a sound but no marker, which breaks §0.7's "never encodes anything the visuals do not show". — Rank both caps with one function, or drop the hysteresis when the instance would fall outside the marker set.
+
+[minor] m3 Diegetic exemption is wider than its use, and SLOP does not mention it — §0.7, SLOP §8 Feedback — "Positional sound emitted by a character in the 3D scene" admits any future world sound, and "only while its source is on the wire and visible" conflicts with off-screen and occluded instances that sound. SLOP's feedback line still says continuous states have a steady indicator only. — Say "the only diegetic world sound is §6.5.1" and "shown in any class of §6.2"; add one line to SLOP §8 Feedback (needs user approval, as with N4) so the two documents agree. Also note that the 50 ms fade is the only tail ("exactly as its model disappears" is not literally true).
+
+[minor] m4 Mix versus priority — §6.5.1, §0.7 — World sound is "lowest priority" but footsteps peak at −14 dB per voice (4 voices at about 0.3 s cadence), louder than `ui_join` at −18 dB and close to `blip_first` at −12 dB, and the duck applies only under `capture_confirm` and `execute_confirm`. `exit_open`, `skill_ready` and `time_60` are not ducked. — Duck under every §6.5 cue, or lower the footstep peak to about −20 dB.
+
+[minor] m5 Arithmetic and stale references — §6.1a, header, §6.2, §6.3, §6.5 — 6.1a says `1 + 23 + 23 + 23 + 1 = 70`; it is 71 (still ≤ 72). The changelog still says "New open questions N1–N8 in §11.1" and the Korean summary says the new questions are in §11.1, but §11.1 now records decisions N1–N9. `§11 N1`, `§11 N2`, `§11 N6` (lines 353, 387, 427, 475) point to the Q table; they should be `§11.1 N#`. — Fix the sum, reword both statements, and update the references.
+
+[minor] m6 U2c brief lacks the new wire changes — §6.4, §6.2, §11.1 N5/N9 — `docs/briefs/U2c-a1.md` lists `S2C_SelfState { SkillCooldown, RescueProgress, InvulnerableLeft }` and says it is "never about another player"; it has neither `ExecutionGraceLeft` (which concerns another player, the Lagging target) nor the Killer `Progress` quantisation to 0 or 100. The spec correctly says it cannot be built until U2c. — Add both to the next U2c brief and harness (mask check: Killer `Progress` in {0, 100}); reword "never about another player" to "never about a hidden player".
+
+[minor] m7 Carried — §6.4 — `Wait 1.6 s` is a live countdown in S, against §0.3's rule that countdowns use M or L (A4 m8). — Put the seconds in an M run or record it as an accepted exception.
+
+[minor] m8 GDD not updated for N3 — docs/GDD.md §2 — The positional footsteps and breathing exist only in HUD_SPEC §6.5.1 and §11.1; the GDD "보이는 것" row for the Killer does not mention sound. — Add one line to GDD §2 so design and UI agree.
+
+## A5.5 What is good
+
+- The positional sound uses exactly the inputs the Killer view already treats as safe (position, matched speed, `Status`) and nothing else, so a phantom walking at `SurvivorSpeed` sounds like a real Survivor by construction, and Silent Survivors cannot sound.
+- The cadence and Lagging numbers check out against `GameConstants` (0.30 s and 0.8 s).
+- `ExecutionGraceLeft` and the derived `armed` flag mirror the server's re-arm rule, with a safe default.
+- The SLOP edits touch only the three role/camera lines and match GDD §2.
+
+## A5.6 Fix order
+
+1. M1 (rule 4 wording).
+2. m1, m2, m3, m5.
+3. m4, m6–m8 as time allows; none block the pass.
+
+SPEC-PASS (score 90)

@@ -1,13 +1,14 @@
 # HUD and screen spec — D3 UI pass
 
-Status: camera revision (GDD §2, 2026-10-27) SPEC-PASS (86) with review fixes applied · earlier: attempt 3 SPEC-PASS (89), decisions recorded 2026-10-27 (§11) · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
+Status: camera revision (GDD §2, 2026-10-27) SPEC-PASS (86) with review fixes applied · N1–N9 decided 2026-10-27 (§11.1), positional sound added (§6.5.1), re-review below · earlier: attempt 3 SPEC-PASS (89), decisions recorded 2026-10-27 (§11) · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
 
 > **한국어 요약:** 메뉴·로비·매치 인트로·생존자 HUD(3인칭)·살인마 HUD(1인칭)·결과·재접속 화면의 구현 명세. 모든 요소는 그 역할의 클라이언트가 실제로 받는 패킷 필드, 정적 데이터, 또는 그 둘에서 계산한 값(명시)으로만 만든다. 생존자는 살인마의 위치·방향을 절대 알 수 없고(살인마 캐릭터는 그려지지 않음), 살인마 화면은 Id를 전혀 쓰지 않는 익명 인스턴스(시야 안: 공통 캐릭터, 벽 뒤: Signal 마커)로 그려 가짜 Signal(디코이)과 진짜를 구별할 수 없게 한다. 카메라 변경으로 생긴 새 질문은 §11.1에 있다.
 
 **Changes in the camera revision (GDD §2 changed 2026-10-27: Survivors third-person orbit, Killer first person):**
 - **Survivor (§4):** new §4.10 camera rig, movement relative to camera yaw, wall pull-in, a framing check that keeps the character above every bottom-center block, readability rules (no state tint on the own character, tags clear the own silhouette, the prompted terminal's label is emphasised). Spectate (§4.5) is now an orbit around the spectated Survivor.
 - **Killer (§6, rewritten):** map-as-HUD replaced by a first-person view with a bottom-left cluster (intro, execution prompt, info, effect line, skill), in-view characters with a `signal` outline, through-wall Signal markers, edge indicators for off-screen Signals (6 nearest), Terminal and Exit world markers, and execution-grace guidance (GDD §3.3). The anonymous-blip rules (§6.3) now also govern facing and animation.
-- **Global:** input map (look/orbit), palette meanings, Killer intro copy, Packet afterimage effect line, connection band and data index updated. New open questions N1–N8 in §11.1.
+- **Global:** input map (look/orbit), palette meanings, Killer intro copy, Packet afterimage effect line, connection band and data index updated. New questions N1–N9, decided in §11.1.
+- **N1–N9 decided (§11.1):** positional Survivor footsteps and breathing for the Killer (§6.5.1, N3) with a diegetic-sound rule in §0.7; execution guidance reads `S2C_SelfState.ExecutionGraceLeft` (§6.4, N5); Killer terminal `Progress` is 0 or 100 only (N9); SLOP §6/§8 camera lines amended (N4).
 - **Fixes after the camera review (86/100):** the Killer terminal marker drops its percentage (M1, §11.1 N9); one derived edge-indicator placement rule with cluster keep-out and band offset, shared by both roles (M2); execution guidance mirrors the server's re-arm rule, where an in-grace touch is spent (M3); Killer cluster heights include borders (472 u worst case); marker keylines; occluded characters are not drawn; distance tags on in-view Survivors beyond 20 m; facing threshold 0.03 m; framing range corrected; Survivor camera row in §10.
 
 **Changes in attempt 3 (review of attempt 2: 84/100):**
@@ -119,7 +120,9 @@ State changes are instant (≤ 1 frame); only the focus outline fades in, ≤ 10
 Prompts show the glyph of the last-used device (`[E]` or `X`), switching on the first input from the other device.
 
 ### 0.7 Sound rules
-One sound per discrete state change. Continuous states are silent, except the threat beep, which *is* the threat indicator (GDD §3.2). Signal ↔ Silent toggles have no sound (§11 Q3). Priority: threat beep > capture/eliminated > exit opened/locked > terminal done > skill > UI.
+One sound per discrete state change. Continuous states are silent, except the threat beep, which *is* the threat indicator (GDD §3.2). Signal ↔ Silent toggles have no sound (§11 Q3). Priority: threat beep > capture/eliminated > exit opened/locked > terminal done > skill > UI > world sound.
+
+These rules govern **UI cues**. **Diegetic world sound** — positional sound emitted by a character in the 3D scene, today only the Killer-side Survivor footsteps and breathing (§6.5.1) — is part of the scene, like the walk animation, and is not a UI cue. It may be continuous, but only while its source is on the wire and visible; it never encodes anything the visuals do not show (position, motion, Lagging), and it never sounds for a Survivor who is not in the Killer view.
 
 ---
 
@@ -347,7 +350,7 @@ Source: `S2C_WorldState.TimeLeft`. Format `m:ss`, M 600 tabular `text`. In the l
 ### 4.10 Camera and framing (third person, GDD §2 changed 2026-10-27)
 Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everything here is client-side presentation; the server sees only `C2S_MoveInput`.
 
-- **Rig:** an orbit camera around a look target 0.7 m above the own character's position. Boom 4.0 m. Yaw free 360°, driven by mouse / right stick only. Pitch −10° (looking up) to +60° (looking down), default +20°. Vertical FOV 50° (Hor+ on other aspect ratios). These values are the starting point (🔶, §11 N6).
+- **Rig:** an orbit camera around a look target 0.7 m above the own character's position. Boom 4.0 m. Yaw free 360°, driven by mouse / right stick only. Pitch −10° (looking up) to +60° (looking down), default +20°. Vertical FOV 50° (Hor+ on other aspect ratios). These values are the starting point (🔶, §11.1 N6).
 - **Movement:** the move vector is relative to camera yaw: W = away from the camera. The client rotates it to world space and sends it as `C2S_MoveInput.{DirX, DirZ}`. The character turns toward the movement direction at 720°/s; `C2S_MoveInput.Yaw` = the character's facing, not the camera's. Standing still keeps the last facing, so orbiting the camera never turns the character or makes it Signal. While own `Hacking` is set, the character faces the terminal (derived).
 - **Wall collision:** a 0.2 m sphere cast from the look target toward the camera against static walls. The boom shortens to the hit distance at once and eases back out over 150 ms when the wall clears. When the boom is shorter than 1.0 m, the own character is drawn with a 40 % screen-door dither so it never blocks the view.
 - **Framing check** (default pitch, full boom): camera height 0.7 + 4.0 × sin 20° = 2.07 m, horizontal distance 3.76 m. The feet project at 8.8° below center, which is **≈ 67 % of screen height** (600 u at 720p); the head (1.8 m) is at ≈ 19 %. The character therefore stands above every bottom-center block: the 3 s intro's top edge is 636 u (71 %), the prompt row's 756 u (84 %), the cluster's 804 u (89 %). Across the pitch range (−10° … +60°) the feet stay between ≈ 58 % and 69 % (523–622 u), still above the intro, prompt row and cluster; a shortened boom enlarges the character around the screen center.
@@ -381,7 +384,7 @@ Focus: Resume → Leave match. Esc / B = Resume.
 GDD §2 (changed 2026-10-27): the Killer plays in first person with mouse look. Signal Survivors appear as characters when in line of sight and as through-wall Signal markers when occluded. Terminals and the Exit have world markers. A Silent Survivor is never sent to the Killer (masking rule 11), so nothing is drawn for them, even when they stand in front of the camera.
 
 ### 6.0 Camera and zones
-- **Camera:** eye height 1.7 m. Yaw is free; pitch is −70° to +70°; horizontal FOV is 90° at 16:9, i.e. vertical 59°, Hor+ on other aspect ratios (🔶, §11 N6). Movement input is relative to the view yaw, and `C2S_MoveInput.Yaw` = view yaw. There is no Killer body or hands model in view (art decision, §11 N6). There is no crosshair: capture is proximity-based (1.2 m), so nothing needs aiming.
+- **Camera:** eye height 1.7 m. Yaw is free; pitch is −70° to +70°; horizontal FOV is 90° at 16:9, i.e. vertical 59°, Hor+ on other aspect ratios (🔶, §11.1 N6). Movement input is relative to the view yaw, and `C2S_MoveInput.Yaw` = view yaw. There is no Killer body or hands model in view (art decision, §11.1 N6). There is no crosshair: capture is proximity-based (1.2 m), so nothing needs aiming.
 - **Zones:**
   1. One **bottom-left cluster** (SLOP §8: skill and cooldown bottom-left).
   2. **World markers** anchored to world positions.
@@ -396,7 +399,7 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
 | 6.1p | Prompt | §6.4 | execution guidance, 2 S lines | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
-| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more opens the Exit.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 70 ≤ 72 (line 3 budgeted at the M line height) [8] |
+| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more opens the Exit.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
 | 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 320×72 |
 
@@ -421,7 +424,7 @@ The classification must hold for 100 ms before it switches, which prevents flick
 
 | Class | Rendering |
 |---|---|
-| In view, `Status = Normal` | The **Survivor character**: one shared model and one shared neutral material for every Survivor in the Killer view, with no per-player color, cosmetic, name or number (§11 N1). The silhouette gets a 1 u `signal` screen-space outline, meaning "transmitting". Facing and animation follow §6.3 rule 5. Beyond 20 m, the distance tag `24 m` is also drawn under the character, so a distant in-view Survivor gets the same guidance as an occluded one. |
+| In view, `Status = Normal` | The **Survivor character**: one shared model and one shared neutral material for every Survivor in the Killer view, with no per-player color, cosmetic, name or number (§11.1 N1). The silhouette gets a 1 u `signal` screen-space outline, meaning "transmitting". Facing and animation follow §6.3 rule 5. Beyond 20 m, the distance tag `24 m` is also drawn under the character, so a distant in-view Survivor gets the same guidance as an occluded one. |
 | In view, `Status = Lagging` | The same character in the Lagging pose, with its animation stepped at 8 Hz (the GDD §3.3 stutter), plus a world tag above the head: `Lagging` (S `text` on a `panel` tag, with a 2 u `text` left bar). |
 | Occluded, Normal | The character model is **not drawn**. Instead a **Signal marker**: a 16 u filled `signal` diamond at the blip position, 1.2 m high, drawn on top of walls (screen-constant size). Under it, a distance tag `24 m` (S `text` on `panel`; distance derived from positions). |
 | Occluded, Lagging | The same diamond plus a 1 u `text` ring at 24 u; tag `Lagging · 24 m`. |
@@ -441,7 +444,7 @@ Decoys are classified and rendered by exactly the same rules (§6.3).
 
 **Terminals.**
 - An incomplete terminal gets a through-wall marker 1.5 m above it: a 14 u square outline in `text`, with the tag `Terminal 2` (S `muted` on `panel`; number = `Id + 1`).
-- **No progress percentage** in the Killer view. A blip standing at a terminal whose percentage never rises would expose a decoy, and a percentage that rises with no blip nearby would expose a Silent hacker under Stealth relay. The Killer sees only the done count (6.1a). Whether the Killer should receive `Progress` at all is §11 N9.
+- **No progress percentage** in the Killer view. From U2c the Killer-bound `Terminals[].Progress` is only 0 or 100 (§11.1 N9): the client treats 100 as done and any other value as incomplete, and never shows a number. A rising percentage would expose decoys standing at a terminal and Silent hacking. The Killer sees only which terminals are done and the done count (6.1a).
 - When the terminal is in view and within 8 m, only the tag is drawn, because its 3D model is visible.
 - A completed terminal gets no marker; its 3D model shows a done state (art).
 
@@ -464,40 +467,79 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
 
    A borrowed Id that jumps across the map therefore looks exactly like one Survivor vanishing and another appearing.
 3. Status-change cues use matched pairs or the Killer's own position only (§6.5).
-4. No per-instance identity anywhere: no names, colors, numbers, cosmetics or sounds per entry.
+4. No per-instance identity anywhere: no names, colors, numbers, cosmetics, and no per-entry sound identity. The positional sound of §6.5.1 is a function of position, matched speed and `Status` only, the same for every entry.
 5. **Facing and animation are derived only from matched position deltas.**
    - Facing = the direction of the most recent matched displacement ≥ 0.03 m (below the slowest per-tick step, a Lagging Survivor's).
    - An instance that has not moved since it spawned faces the nearest terminal (static data). This applies equally to real and fake entries.
    - Animation: walk when the matched speed is > 0.5 m/s, otherwise idle; the Lagging pose when `Status = Lagging`.
-   - There is no hacking or rescuing animation, because those flags are unread (§11 N2).
+   - There is no hacking or rescuing animation, because those flags are unread (§11.1 N2).
 
 ### 6.4 Execution guidance (GDD §3.3, execution grace added 2026-10-27)
-Rule (server, `GameServer.Rules.cs`): after a capture, the Lagging Survivor cannot be eliminated for 2 s; a touch during those 2 s is spent and does nothing; elimination needs the Killer to be out of contact (> `CaptureRadius` 1.2 m) at some tick and then touch them after the grace. The client mirrors this from what it observed, per matched Lagging instance:
-- `t0`: the moment the capture cue fired for that instance (§6.5). At `t0`, `armed = false`.
-- Each snapshot: if the Killer's own position is more than 1.2 m from the instance, `armed = true`; otherwise, if `now − t0 < 2 s`, `armed = false` (the in-grace touch is spent).
+Rule (server, `GameServer.Rules.cs`): after a capture, the Lagging Survivor cannot be eliminated for 2 s; a touch during those 2 s is spent and does nothing; elimination needs the Killer to be out of contact (> `CaptureRadius` 1.2 m) at some tick and then touch them after the grace.
 
-Prompt block 6.1p (two S lines; line 1 S 600) is shown while a Lagging instance is within 4 m:
+Sources: own `S2C_SelfState.ExecutionGraceLeft` (Killer only, protocol v0.3, U2c — §11.1 N5): seconds of grace left for the nearest Lagging Survivor within 3 m of the Killer, 0 when none or when its grace is over. Killer-bound Lagging instances (§6.3) and the Killer's own position.
+
+The **target** is the nearest Lagging instance within 3 m (the same rule the server uses for `ExecutionGraceLeft`). The client keeps one derived flag for it, mirroring the server's re-arm rule:
+- `armed = false` when an instance becomes the target (a new capture, a reconnect, or a different instance becoming nearest). This is the safe default: at worst it asks for one extra step back.
+- Each snapshot: if the Killer is more than 1.2 m from the target, `armed = true`; otherwise, if `ExecutionGraceLeft > 0`, `armed = false` (the in-grace touch is spent).
+
+Prompt block 6.1p (two S lines; line 1 S 600) is shown while a target exists:
 
 | State | Trigger | Line 1 | Line 2 |
 |---|---|---|---|
-| Grace | `now − t0 < 2 s` | `Lagging Survivor` | `Wait 1.6 s, step back, touch again.` |
-| Step back | grace over, `armed` false | `Lagging Survivor` | `Step back 1.2 m, then touch again.` |
-| Ready | grace over and `armed` true, or no `t0` was observed | `Lagging Survivor` | `Touch again to eliminate.` |
+| Grace | `ExecutionGraceLeft > 0` | `Lagging Survivor` | `Wait 1.6 s, step back, touch again.` (seconds = `ExecutionGraceLeft`, one decimal, tabular) |
+| Step back | `ExecutionGraceLeft = 0`, `armed` false | `Lagging Survivor` | `Step back 1.2 m, then touch again.` |
+| Ready | `ExecutionGraceLeft = 0`, `armed` true | `Lagging Survivor` | `Touch again to eliminate.` |
 
-Line 2 is at most 35 characters (≈ 290 u), which fits the 302 u inner width (320 − 2 × 1 border − 2 × 8 padding). Decoys are never Lagging, so the prompt cannot expose one. The server decides; the prompt is guidance, and the 2 s grace is a static GDD value (§11 N5).
+Line 2 is at most 35 characters (≈ 290 u), which fits the 302 u inner width (320 − 2 × 1 border − 2 × 8 padding). Decoys are never Lagging, so the prompt cannot expose one, and `ExecutionGraceLeft` only concerns Lagging Survivors, who are always visible. The server decides; the prompt is guidance. Until U2c lands, this element cannot be built as specified.
 
 ### 6.5 Killer sounds
 | Cue | Trigger (all observable in the Killer view) |
 |---|---|
 | `blip_first` (soft ping, −12 dB, non-positional) | The Signal count goes from 0 to ≥ 1 after ≥ 2 s with none. |
-| `capture_confirm` (hit) | Either a matched pair changes `Status` Normal → Lagging, or a new unmatched entry with `Status = Lagging` appears within 1.2 m of the Killer (the usual ambush). Decoys are never Lagging. At most once per 0.5 s. Sets `t0` (§6.4). |
+| `capture_confirm` (hit) | Either a matched pair changes `Status` Normal → Lagging, or a new unmatched entry with `Status = Lagging` appears within 1.2 m of the Killer (the usual ambush). Decoys are never Lagging. At most once per 0.5 s. |
 | `execute_confirm` (low hit) | A Lagging instance within 1.2 m of the Killer has no match in the next snapshot. Lagging Survivors are always visible, so this means Eliminated. |
 | `exit_open` | `ExitOpen` 0 → 1 |
 | `skill_use` / `skill_ready` | own effect / own `SkillCooldown` reaching 0 |
 | `time_60` | `TimeLeft` crosses 60 |
 
-Survivor characters make **no positional sound** in the Killer view: no footsteps and no breathing. Positional audio per instance would add nothing safe beyond the markers, and it would conflict with SLOP §8's minimal-feedback rule (§11 N3).
 There is no cue for eliminating a Normal Survivor whose `CaptureCount` is already ≥ 1, because that Survivor leaves the view in the same tick (§11 Q7, decided: not now).
+
+### 6.5.1 Positional Survivor sound (footsteps and breathing; §11.1 N3)
+Decided 2026-10-27: the Killer hears Signal Survivors in the style of Dead by Daylight. This is **diegetic world sound** (§0.7): it belongs to the character or marker instance in the 3D scene, like its animation, and says nothing the visuals do not already show.
+
+**Sources** (*derived*, per anonymous instance, §6.3): the instance's rendered (tweened) position; its matched speed `v`; `Status`. Nothing else: never `Id`, `Yaw`, flags, `StatusTimer` or `CaptureCount`, and never the wire order.
+- `v` = mean length of the instance's last 4 matched displacements ÷ 0.05 s (fewer if it has fewer). A new instance has `v = 0` until its first match.
+- Silent Survivors are not on the wire, so they make no sound. When an instance despawns, its sounds stop with a 50 ms fade (no tail, no echo), exactly as its model or marker disappears.
+- Decoy safety: every parameter below is a function of position, `v` and `Status` only. From U2c, decoys walk at Survivor speed (§11.1 N7), so a decoy and a real Survivor moving the same way sound the same. Random choices (sample variant, first-step phase, pitch) come from a client RNG that is never seeded from wire data.
+
+**Footsteps:**
+
+| Variant | Applies when | Samples | Step interval | Audible range |
+|---|---|---|---|---|
+| Normal | `Status = Normal`, `v > 0.5 m/s` | `step_survivor` (4 variants, random each step, pitch ± 5 %) | `1.2 m ÷ v`, clamped 0.25–0.9 s (0.30 s at 4.0 m/s) | full to 2 m, log rolloff, silent beyond 20 m |
+| Lagging | `Status = Lagging`, `v > 0.2 m/s` | `step_lagging` (dragging scuff, 4 variants) | `0.8 m ÷ v`, clamped 0.5–1.5 s (0.8 s at the Lagging 1.0 m/s) | full to 2 m, silent beyond 20 m |
+
+The first step of a newly moving instance plays after a random delay in `[0, interval)`, so step phase carries nothing. Below the speed threshold there are no steps.
+
+**Breathing** (one steady loop per voiced instance, cross-faded over 300 ms when its variant changes):
+
+| Variant | Applies when | Level at 2 m | Audible range |
+|---|---|---|---|
+| Calm | `Status = Normal`, `v ≤ 0.5 m/s` | −30 dB | silent beyond 6 m |
+| Heavy | `Status = Normal`, `v > 0.5 m/s` | −24 dB | silent beyond 8 m |
+| Ragged | `Status = Lagging` | −24 dB | silent beyond 10 m |
+
+**Spatial and mix:**
+- **Levels** are relative to the UI-cue reference level (0 dB = `capture_confirm`), so world sound always sits below the cues.
+- **Attenuation** (every row above): the stated level up to 2 m, then linear in dB down to −40 dB at the row's range limit, then a hard mute beyond it. Sources: footsteps at 0.1 m height, breathing at 1.5 m.
+- **Step timer**, per instance: it runs while `v` is above the row's threshold. Thresholds have hysteresis: footsteps start above 0.5 m/s and stop below 0.4 m/s (Lagging: 0.2 / 0.15 m/s); breathing switches Calm ↔ Heavy at the same points. Each time stepping starts, the timer restarts with the random first-step delay.
+- 3D panning by azimuth relative to the camera yaw, no Doppler.
+- Occlusion uses the §6.2 wall ray (cast even for off-screen instances): occluded instances get a 1.5 kHz low-pass and −4 dB, cross-faded over 100 ms and switching with the same 100 ms hysteresis as §6.2. Footsteps peak at −20 dB at 2 m.
+- **Voice cap:** only the 4 nearest instances are voiced (one footstep voice and one breathing voice each). A voiced instance keeps its voice until another instance is at least 1 m nearer, so voices do not flicker. With a White noise burst, the extra instances stay silent but keep their markers. A voiced instance is always drawn: the 6-nearest edge-indicator selection (§6.2) takes voiced instances first.
+- Priority (§0.7): world sound is lowest. It ducks by 6 dB for 300 ms under every UI cue (§6.5 table).
+
+The Killer itself makes no sound on Survivor clients: it is never on their wire (§0.1).
 
 ### 6.6 Killer play menu
 Esc / Start replaces the intro/prompt area at the top of the cluster with a 320×208 block, padding 12, inner width 296 u. It holds the skill name (M 600), the effect (§8; S, max 3 lines), then `Resume` (primary, focused) and `Leave match`, stacked as 296×40 u buttons with an 8 u gap.
@@ -587,7 +629,8 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
 | Spectate | Survivors' `PlayerState.{X, Z, Yaw, Status}` (orbit pivot and character facing) |
 | Survivor camera and movement | own `PlayerState.{X, Z, Yaw}`; static walls (boom collision); input → `C2S_MoveInput.{DirX, DirZ, Yaw}` (§4.10) |
 | Terminal and Exit markers (Killer) | `Terminals[].{Id, X, Z, Progress = 100}` (done only, no percentage), `ExitOpen`, `ExitLocked`, FirewallBlock `Duration`; static positions |
-| Execution guidance | derived from observed capture time and own position (§6.4); static 2 s grace |
+| Execution guidance | own `S2C_SelfState.ExecutionGraceLeft` (Killer, v0.3) + derived `armed` from own position and the Lagging target (§6.4) |
+| Positional Survivor sound (Killer) | per anonymous instance: rendered position, matched speed, `Status`; static walls for occlusion (§6.5.1) |
 | Result | `S2C_GameResult.{WinnerRole, Reason, EscapedIds}` + the last WorldState |
 | Connection band | socket, `S2C_Pong`, `S2C_JoinResult.Result` |
 
@@ -621,17 +664,17 @@ The user decided every open question from the review loop. "Final" means the spe
 | Q14 | Hosting from the game. | **Yes.** In-process `GameServer` + `TcpTransport` from the client. Expect a Windows Firewall prompt on the first host, and the Store package must declare the network-server capability (`privateNetworkClientServer`). | §1.7 |
 | Q15 | Panel scale above 1080p. | **Final.** The scale stays clamped at 1.0 for now. | §0.2 |
 
-### 11.1 Open questions from the camera change (2026-10-27)
-GDD §2 now gives Survivors a third-person orbit camera and the Killer a first-person view. These questions are new; until decided, the spec follows the choice marked "Spec now".
+### 11.1 Decisions on the camera-change questions (2026-10-27)
+GDD §2 gives Survivors a third-person orbit camera and the Killer a first-person view. The user decided every question this raised.
 
-| # | Question | Spec now | Needs |
+| # | Question | Decision | Effect on this spec |
 |---|---|---|---|
-| N1 | Survivor appearance in the Killer view. Any per-player look (cosmetic, color, build) would let the Killer tell instances apart and track a real Survivor against decoys. | One shared Survivor model and material in the Killer view, no names (§6.2). Survivors may see each other's looks. | Art / product decision; it constrains any future cosmetics. |
-| N2 | Hack and rescue animations in the Killer view. Decoys never carry `Hacking` / `Rescuing`, so animating those flags would mark every animated instance as real. | Flags unread; no hack or rescue animation; facing from position deltas only (§6.3 rule 5). | U2c: either decoys get the same flags, or the Killer view stays without these animations. |
-| N3 | Positional Survivor sound for the Killer (footsteps, breathing, as in Dead by Daylight). | None; only non-positional cues (§6.5). | Design decision; if wanted, it must be per-blip and identical for decoys. |
-| N4 | SLOP §8 "Role-specific HUD" and SLOP §6 still describe a first-person Survivor, a top-down Killer whose "map is the HUD", blip fade, and "frozen-ally" markers. | This spec follows GDD §2; the Killer's role-specific rules (skill bottom-left, Exit state on the Exit, only Signal Survivors) are kept. | User approval to amend those SLOP lines (this unit may not edit them). |
-| N5 | Execution grace guidance (§6.4) is derived from the capture the Killer observed; it is missing after a reconnect or when the capture cue was not observed. | Falls back to `Touch again to eliminate.`; the server decides. | Optional own-only Killer field in `S2C_SelfState` (U2c), e.g. grace left for the nearest Lagging target. |
-| N6 | Camera numbers: Survivor boom 4.0 m, pitch −10°…+60°, vertical FOV 50° (§4.10); Killer eye 1.7 m, pitch ±70°, horizontal FOV 90° (§6.0); no Killer hands model; no FOV / camera-sensitivity setting yet. | Values as written, marked 🔶. | Playtest tuning; an FOV and sensitivity setting before Store submission (motion comfort). |
-| N7 | Stationary decoys. A Dummy packet or White noise decoy never moves, while a real Signal Survivor usually does. This is visible in any camera; first person makes moving characters more salient. | The UI cannot hide it; spawn facing is equalised (§6.3 rule 5). | Part of the U2c decoy design (Q8): e.g. decoys that drift. |
-| N8 | Occlusion source. The Killer's in-view / occluded split uses static `FixedMap.Walls`, treated as full height (§6.2). Low cover or props would make it wrong. | Full-height walls only. | Map pipeline: an occlusion flag per wall if low cover is added. |
-| N9 | Terminal progress in the Killer view. The Killer receives `Terminals[].Progress` on the wire; shown as a percentage, it would expose decoys standing at a terminal (no progress) and Silent hacking (progress with no blip). | The Killer HUD shows no percentage, only done terminals and the done count (§6.2, 6.1a). | U2c: decide whether to send the Killer `Progress` at all, or only a done flag, since a modified client can read it. |
+| N1 | Survivor appearance in the Killer view: any per-player look would let the Killer track a real Survivor against decoys. | **Accepted.** One shared Survivor model and material in the Killer view, no names. | §6.2. It constrains any future cosmetics; Survivors may still see each other's looks. |
+| N2 | Hack and rescue animations in the Killer view (decoys never carry `Hacking` / `Rescuing`). | **Accepted.** No hack or rescue animation in the Killer view. | §6.3 rule 5 |
+| N3 | Positional Survivor sound for the Killer. | **Yes** (changed from the spec's earlier "none"). Footsteps and breathing per Signal instance, Dead by Daylight style, derived only from on-wire position and motion; Silent Survivors make no sound; decoys sound identical. | New §6.5.1; §0.7 separates diegetic world sound from UI cues. |
+| N4 | SLOP §6 and §8 still described a first-person Survivor and a top-down Killer. | **Accepted.** SLOP §6 and §8 "Role-specific HUD" are amended to GDD §2 (user-approved edit, those lines only). | `docs/ui/SLOP_DEFINITION.md` |
+| N5 | Execution grace guidance was derived from the observed capture and was lost after a reconnect. | **Server-side, U2c.** The Killer's own `S2C_SelfState` gets `ExecutionGraceLeft`: grace left for the nearest Lagging Survivor within 3 m. | §6.4 reads it; the derived `t0` and its fallback are removed. Depends on U2c. |
+| N6 | Camera numbers, Killer hands model, FOV / sensitivity settings. | **Accepted.** The numbers stay 🔶 for playtest tuning. An FOV setting and a mouse-sensitivity setting are **required before Store submission**. | §4.10, §6.0 |
+| N7 | Stationary decoys would be told apart from moving Survivors. | **U2c design:** decoys move, walking at Survivor speed, and still appear only at terminals. | §6.3 and §6.5.1 need no change: facing, animation and footsteps already follow position and motion only. |
+| N8 | Occlusion source for the Killer's in-view / occluded split. | **Accepted.** Full-height walls only. | §6.2 |
+| N9 | Terminal progress in the Killer view. | **Server-side, U2c.** The Killer receives `Terminals[].Progress` as 0 or 100 only. | §6.2 and 6.1a show done / not done and the done count; never a percentage. |
