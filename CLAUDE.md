@@ -21,6 +21,11 @@ Argon is not used for QA (user decision 2026-10-27: token cost). If a Flash call
 
 The implementer and the QA reviewer of the same unit must be different model families.
 
+**Quota fallback (user decision 2026-10-27):**
+- Codex quota/token exhausted → Claude (Sonnet subagent, Opus for hard units) implements; QA stays on a non-Claude model if available (Gemini Flash), otherwise a different Claude model than the implementer.
+- Claude quota exhausted → Codex implements (and drives the loop); QA stays on a different model family (Gemini Flash).
+- A quota switch is not a failed attempt and does not count toward the 3-attempt limit. Record the switch in the unit's report header.
+
 ## Loop engineering (per unit of work)
 
 1. Claude writes an English brief: goal, owned files, spec bullets, acceptance tests, harness items affected.
