@@ -185,18 +185,22 @@ public sealed class U2bSkillTests
             r.S[0].Move(0, 1); // keeps moving; Stealth hides it
             r.Tick();
             var truth = r.Truth(r.S[0]);
-            var seen = r.KillerSees(r.S[0]);
-            if (seen != null)
+            // U2c migration: the afterimage is no longer flagged (Flags is Signal only), so it is the one anonymous entry
+            // that does NOT sit at the survivor's live position.
+            var entries = r.KillerSurvivorEntries.ToList();
+            Assert.Null(r.KillerSees(r.S[0])); // the live, hidden position is never shown
+            if (entries.Count == 1)
             {
-                Assert.Equal((byte)(PlayerFlags.Signal | PlayerFlags.Afterimage), seen.Value.Flags);
+                var seen = entries[0];
+                Assert.Equal((byte)PlayerFlags.Signal, seen.Flags);
                 // The afterimage must be frozen at a position the killer really saw, never the live (hidden) position.
-                Assert.True(seen.Value.Z <= last.Z + 0.21f, "afterimage drifted with the hidden survivor: " + seen.Value.Z + " vs " + last.Z);
-                Assert.NotEqual(truth.Z, seen.Value.Z);
+                Assert.True(seen.Z <= last.Z + 0.21f, "afterimage drifted with the hidden survivor: " + seen.Z + " vs " + last.Z);
+                Assert.NotEqual(truth.Z, seen.Z);
                 byte[] frame = PingTheKiller.Shared.Net.PacketCodec.Encode(r.KW);
                 Assert.False(QaWire.ContainsFloat(frame, truth.Z), "live Z of the hidden survivor leaked");
                 afterimages++;
             }
-            else absentAfter++;
+            else { Assert.Empty(entries); absentAfter++; }
         }
         Assert.InRange(afterimages, 19, 21); // 1 s
         Assert.True(absentAfter >= 17);      // Stealth still hides it after the afterimage ended
@@ -209,14 +213,15 @@ public sealed class U2bSkillTests
         r.SetSkill(r.K, SkillIds.PingScanner); // a different skill: no afterimage
         r.Place(r.S[0], 30, 20);
         for (int i = 0; i < 5; i++) { r.S[0].Move(0, 1); r.Tick(); }
-        int flagged = 0;
+        // U2c migration: without the skill the tail is 0 ticks. The afterimage flag no longer exists, so "no afterimage" is
+        // observed as "no survivor entry at all once the 0.15 s Signal hold (3 ticks) is over".
+        int lingering = 0;
         for (int i = 0; i < 40; i++)
         {
             r.Tick();
-            var seen = r.KillerSees(r.S[0]);
-            if (seen != null && (seen.Value.Flags & (byte)PlayerFlags.Afterimage) != 0) flagged++;
+            if (i >= 4 && r.KillerSurvivorEntries.Any()) lingering++;
         }
-        Assert.Equal(0, flagged);
+        Assert.Equal(0, lingering);
         using var q = new QaRig(1);
         q.SetSkill(q.K, SkillIds.PacketAfterimage);
         for (int i = 0; i < 30; i++) { q.Use(q.K, SkillIds.PacketAfterimage); q.Tick(); }
@@ -227,8 +232,12 @@ public sealed class U2bSkillTests
     // ------------------------------------------------------------------ Dummy Packet
 
     [Fact]
-    public void DummyPacket_ShowsOneIndistinguishableFakeAtTheCastPointForThreeSeconds_NoEffectToKiller()
+    public void DummyPacket_ShowsOneAnonymousFakeAtTheCastPointFirst_ThenAGhostSurvivorForAtMostThreeSeconds_NoEffectToKiller()
     {
+        // U2c migration (was: a fake with a borrowed Id frozen at the cast point for exactly 3 s). The invariants kept: the
+        // fake is born at the caster's position (GDD "current position"), looks exactly like a real Signal, lives at most 3 s,
+        // never reaches the killer as an effect and is announced to the other survivors with the caster Id. What changed:
+        // no Id, and the fake now walks like a survivor (SurvivorSpeed, walkable) and may fall Silent in pauses like a bot.
         using var r = new QaRig(2);
         r.SetSkill(r.S[0], SkillIds.DummyPacket);
         r.Place(r.K, 5, 5);
@@ -238,65 +247,82 @@ public sealed class U2bSkillTests
         Assert.Single(r.KW.Players); // everyone silent
         r.Use(r.S[0], SkillIds.DummyPacket);
         r.Tick();
-        int frames = 0;
-        while (Seen(r, r.S[0]) && frames < 200)
+        var map = new FixedMap();
+        var first = Assert.Single(r.KillerSurvivorEntries);
+        Assert.Equal(14f, first.X);
+        Assert.Equal(10f, first.Z);
+        int visibleFrames = 0, lastVisibleFrame = 0;
+        float px = first.X, pz = first.Z;
+        for (int frame = 1; frame <= 70; frame++)
         {
-            var d = r.KillerSees(r.S[0])!.Value;
-            Assert.Equal((byte)Role.Survivor, d.Role);
-            Assert.Equal((byte)PlayerStatus.Normal, d.Status);
-            Assert.Equal((byte)PlayerFlags.Signal, d.Flags);
-            Assert.Equal(0f, d.StatusTimer);
-            Assert.Equal(0, d.CaptureCount);
-            Assert.Equal(14f, d.X);
-            Assert.Equal(10f, d.Z);
-            Assert.False(Seen(r, r.S[1]));
-            Assert.Equal(2, r.KW.Players.Count);
-            frames++;
+            var entries = r.KillerSurvivorEntries.ToList();
+            Assert.True(entries.Count <= 1, "one cast makes one fake");
+            if (entries.Count == 1)
+            {
+                var d = entries[0];
+                Assert.Equal(0, d.Id);
+                Assert.Equal((byte)Role.Survivor, d.Role);
+                Assert.Equal((byte)PlayerStatus.Normal, d.Status);
+                Assert.Equal((byte)PlayerFlags.Signal, d.Flags);
+                Assert.Equal(0f, d.StatusTimer);
+                Assert.Equal(0, d.CaptureCount);
+                Assert.Equal(0f, d.Yaw);
+                Assert.True(map.CanStand(d.X, d.Z), $"fake inside a wall at ({d.X},{d.Z})");
+                Assert.True(RigDist(px, pz, d.X, d.Z) <= GameConstants.SurvivorSpeed / GameConstants.TickRate * 8 + 1e-3f, "fake jumped");
+                px = d.X; pz = d.Z;
+                visibleFrames++;
+                lastVisibleFrame = frame;
+            }
             r.Tick();
         }
-        Assert.InRange(frames, 59, 61);
+        Assert.InRange(visibleFrames, 1, 62);       // 3 s lifetime, possibly with Silent pauses
+        Assert.InRange(lastVisibleFrame, 1, 61);    // nothing outlives the 3 s skill
         Assert.Empty(Effects(r.K));
         var e = Assert.Single(Effects(r.S[1]));
         Assert.Equal(SkillIds.DummyPacket, e.SkillId);
-        Assert.Equal(r.S[0].Id, e.CasterId);
+        Assert.Equal(r.S[0].Id, e.CasterId); // survivor-bound effects keep the caster
         Assert.Equal(14f, e.X);
         Assert.Equal(10f, e.Z);
         Assert.Equal(3f, e.Duration);
     }
 
+    private static float RigDist(float ax, float az, float bx, float bz) => MathF.Sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz));
+
     [Fact]
-    public void DummyPacket_CasterWalksAwayAndStops_DecoyReappearsAtCastPoint_IdJumpsBack_Characterisation()
+    public void DummyPacket_FakeIsIndependentOfTheCaster_NoIdToTrack_NeverAnExtraEntryAtTheCasterOrADuplicate()
     {
-        // Documents the "decoy Id tracking" tell raised by the HUD spec review (see the QA report, finding F3): after the
-        // caster walked 2 m away (visible, real position) and went Silent again, the decoy re-appears at the OLD cast point
-        // under the same Id. A modified client tracking per-Id positions sees an impossible 2 m teleport within ~0.15 s.
+        // U2c migration of the F3 characterisation ("decoy Id jumps back to the cast point"). That tell needed an Id shared
+        // between the decoy and the real caster; the Id is gone. What must hold now: while the caster walks away as a real
+        // Signal, the killer frame has the caster at its LIVE position, the fake (if shown) is a second anonymous entry,
+        // and nothing is ever shown at the caster's position besides the caster itself.
         using var r = new QaRig(1);
         r.SetSkill(r.S[0], SkillIds.DummyPacket);
         r.Place(r.S[0], 14, 10);
         r.Tick(2);
         r.Use(r.S[0], SkillIds.DummyPacket);
         r.Tick();
-        Assert.Equal(10f, r.KillerSees(r.S[0])!.Value.Z);
+        Assert.Single(r.KillerSurvivorEntries);
         for (int i = 0; i < 10; i++) // 2 m at 4 m/s
         {
             r.S[0].Move(0, 1);
             r.Tick();
-            var real = r.KillerSees(r.S[0]);
-            Assert.NotNull(real);
-            Assert.Equal(1, r.KW.Players.Count(p => p.Id == r.S[0].Id)); // never two entries with one Id
+            Assert.NotNull(r.KillerSees(r.S[0]));
+            var self = r.S[0].Self();
+            int atCaster = r.KillerSurvivorEntries.Count(p => RigDist(p.X, p.Z, self.X, self.Z) < 0.001f);
+            Assert.Equal(1, atCaster);
+            Assert.InRange(r.KillerSurvivorEntries.Count(), 1, 2);
+            Assert.All(r.KillerSurvivorEntries, p => Assert.Equal(0, p.Id));
         }
-        float realZ = r.KillerSees(r.S[0])!.Value.Z;
-        Assert.InRange(realZ, 11.9f, 12.1f);
-        int jumpFrames = -1;
-        for (int i = 0; i < 12 && jumpFrames < 0; i++)
+        float liveZ = r.S[0].Self().Z;
+        Assert.InRange(liveZ, 11.9f, 12.1f);
+        // Silent again: whatever remains is a fake (or none), never a second entry at the live caster position, never a duplicate.
+        for (int i = 0; i < 12; i++)
         {
             r.Tick();
-            var e = r.KillerSees(r.S[0]);
-            if (e != null && e.Value.Z < 10.5f) jumpFrames = i + 1;
+            Assert.InRange(r.KillerSurvivorEntries.Count(), 0, 2);
+            Assert.All(r.KillerSurvivorEntries, p => Assert.Equal(0, p.Id));
         }
-        Assert.True(jumpFrames > 0 && jumpFrames <= 6, "the decoy should re-appear at the cast point within a few ticks");
     }
-
     // ------------------------------------------------------------------ Stealth Relay
 
     [Fact]
@@ -351,10 +377,10 @@ public sealed class U2bSkillTests
         r.Tick();
         Assert.False(Seen(r, r.S[0]));
         Assert.False(Seen(r, r.S[1]));
-        int before = r.KW.Terminals[0].Progress;
+        int before = r.SW.Terminals[0].Progress;
         r.Tick(10);
         Assert.False(Seen(r, r.S[0]));
-        Assert.True(r.KW.Terminals[0].Progress > before, "hacking continues while hidden");
+        Assert.True(r.SW.Terminals[0].Progress > before, "hacking continues while hidden");
         r.Use(r.S[1], SkillIds.TrafficOverload); // forced exposure beats Stealth
         r.Tick();
         Assert.True(Seen(r, r.S[1]));
@@ -399,10 +425,10 @@ public sealed class U2bSkillTests
         Assert.InRange(slowed, 39, 41);
         Assert.Equal(60, slowed + normal + steps.Count(s => s > b * 0.51f && s < b * 0.99f) /* transitional none expected */);
         var ke = Assert.Single(Effects(r.K));
-        Assert.Equal(r.S[0].Id, ke.CasterId);
+        Assert.Equal(0, ke.CasterId); // U2c: a killer-bound packet never carries a survivor Id
         Assert.Equal(SkillIds.TrafficOverload, ke.SkillId);
         Assert.Equal(2f, ke.Duration);
-        Assert.True((ke.X == 0 && ke.Z == 0) || (ke.X == 30f && ke.Z == 30f));
+        Assert.True(ke.X == 0 && ke.Z == 0, "killer-bound Traffic Overload effect must not carry the caster position");
         var se = Effects(r.S[1]).Single();
         Assert.Equal(30f, se.X);
         Assert.Equal(30f, se.Z);
@@ -481,8 +507,11 @@ public sealed class U2bSkillTests
     // ------------------------------------------------------------------ White Noise
 
     [Fact]
-    public void WhiteNoise_FiveFakeSignalsOnWalkablePointsWithDistinctBorrowedIds_ForOnePointFiveSeconds_StableIdsPerPoint()
+    public void WhiteNoise_FiveAnonymousFakesOnWalkablePoints_StaggeredOverHalfASecond_AllGoneAtOnePointFiveSeconds()
     {
+        // U2c migration (was: five fakes with distinct borrowed Ids, stable positions, shown together). Kept: five fakes
+        // for 1.5 s on walkable points, a plain Signal look, the effect only for survivors. Changed: no Ids, the five
+        // appear staggered over 0-0.5 s, and they walk like survivors instead of standing still.
         using var r = new QaRig(6);
         r.SetSkill(r.S[0], SkillIds.WhiteNoise);
         r.Place(r.K, 5, 5);
@@ -490,21 +519,18 @@ public sealed class U2bSkillTests
         r.Tick(3);
         Assert.Single(r.KW.Players);
         var map = new FixedMap();
-        var ids = new HashSet<int>(r.S.Select(s => s.Id));
         r.Use(r.S[0], SkillIds.WhiteNoise);
         r.Tick();
-        var first = r.KW.Players.Where(p => p.Id != r.K.Id).ToList();
-        Assert.Equal(5, first.Count);
-        var layout = first.Select(p => (p.Id, p.X, p.Z)).OrderBy(t => t.Id).ToList();
-        int frames = 0;
-        while (r.KW.Players.Count > 1 && frames < 100)
+        int maxCount = 0, firstVisible = -1, lastVisible = -1;
+        for (int frame = 0; frame < 60; frame++)
         {
-            var now = r.KW.Players.Where(p => p.Id != r.K.Id).ToList();
-            Assert.Equal(5, now.Count);
-            Assert.Equal(now.Count, now.Select(p => p.Id).Distinct().Count());
+            var now = r.KillerSurvivorEntries.ToList();
+            Assert.InRange(now.Count, 0, 5);
+            maxCount = Math.Max(maxCount, now.Count);
+            if (now.Count > 0) { if (firstVisible < 0) firstVisible = frame; lastVisible = frame; }
             foreach (var p in now)
             {
-                Assert.Contains(p.Id, ids);
+                Assert.Equal(0, p.Id);
                 Assert.Equal((byte)Role.Survivor, p.Role);
                 Assert.Equal((byte)PlayerStatus.Normal, p.Status);
                 Assert.Equal((byte)PlayerFlags.Signal, p.Flags);
@@ -514,11 +540,11 @@ public sealed class U2bSkillTests
                 Assert.InRange(p.X, 0f, 60f);
                 Assert.InRange(p.Z, 0f, 60f);
             }
-            Assert.Equal(layout, now.Select(p => (p.Id, p.X, p.Z)).OrderBy(t => t.Id).ToList());
-            frames++;
             r.Tick();
         }
-        Assert.InRange(frames, 29, 31);
+        Assert.Equal(5, maxCount);                  // all five are shown at once (staggered, not fewer)
+        Assert.InRange(firstVisible, 0, 11);        // the stagger is at most 0.5 s
+        Assert.InRange(lastVisible, 28, 30);        // everything is gone 1.5 s after the cast
         Assert.Empty(Effects(r.K));
         var e = Effects(r.S[3]).Single();
         Assert.Equal(SkillIds.WhiteNoise, e.SkillId);
@@ -526,30 +552,41 @@ public sealed class U2bSkillTests
     }
 
     [Fact]
-    public void WhiteNoise_WithFewerAbsentIdsThanPoints_ShowsOnlyAsManyAsThereAreIds_NeverDuplicates()
+    public void WhiteNoise_ShowsFiveFakesEvenInAOneVersusOne_NoIdsToRunOutOf_NeverMoreThanTheCap()
     {
-        using var r = new QaRig(2);
+        // U2c migration of "with fewer absent Ids than points": fakes no longer borrow Ids, so the count does not depend on
+        // how many survivors are absent (the old rule leaked the number of hidden survivors).
+        using var r = new QaRig(1);
         r.SetSkill(r.S[0], SkillIds.WhiteNoise);
         r.Place(r.S[0], 40, 55);
-        r.Place(r.S[1], 44, 55);
         r.Tick(3);
         r.Use(r.S[0], SkillIds.WhiteNoise);
-        r.Tick();
-        var decoys = r.KW.Players.Where(p => p.Id != r.K.Id).ToList();
-        Assert.InRange(decoys.Count, 1, 2);
-        Assert.Equal(decoys.Count, decoys.Select(p => p.Id).Distinct().Count());
-        // A survivor that becomes visible stops being a borrowable Id: no duplicate even then.
-        r.S[1].Move(1, 0);
-        r.Tick();
-        Assert.Equal(1, r.KW.Players.Count(p => p.Id == r.S[1].Id));
-        var ids = r.KW.Players.Select(p => p.Id).ToList();
-        Assert.Equal(ids.Count, ids.Distinct().Count());
+        int max = 0;
+        for (int i = 0; i < 12; i++)
+        {
+            r.Tick();
+            max = Math.Max(max, r.KillerSurvivorEntries.Count());
+            Assert.True(r.KW.Players.Count <= 16);
+        }
+        Assert.Equal(5, max);
+        // A survivor that becomes visible adds exactly one real entry.
+        using var q = new QaRig(2);
+        q.SetSkill(q.S[0], SkillIds.WhiteNoise);
+        q.Place(q.S[0], 40, 55);
+        q.Place(q.S[1], 44, 55);
+        q.Tick(3);
+        q.Use(q.S[0], SkillIds.WhiteNoise);
+        q.Tick(2);
+        q.S[1].Move(1, 0);
+        q.Tick();
+        Assert.NotNull(q.KillerSees(q.S[1]));
+        Assert.Equal(1, q.KillerSurvivorEntries.Count(p => RigDist(p.X, p.Z, q.S[1].Self().X, q.S[1].Self().Z) < 0.001f));
+        Assert.All(q.KW.Players.Where(p => p.Role == (byte)Role.Survivor), p => Assert.Equal(0, p.Id));
         // Cooldown 15 s.
         using var c = new QaRig(2);
         c.SetSkill(c.S[0], SkillIds.WhiteNoise);
         Assert.InRange(CastGap(c, c.S[0], SkillIds.WhiteNoise), 299, 301);
     }
-
     // ------------------------------------------------------------------ invalid uses / cooldown consumption
 
     [Fact]

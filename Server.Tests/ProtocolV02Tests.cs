@@ -61,11 +61,13 @@ public sealed class ProtocolV02Tests
     }
 
     [Fact]
-    public void DefaultPacketCoverageIncludesAllFifteenIds()
+    public void DefaultPacketCoverageIncludesEveryPacketId()
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
-        Assert.Equal(15, packets.Length);
-        Assert.Equal(Enumerable.Range(1, 15).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
+        int count = Enum.GetValues<PacketId>().Length;
+        Assert.Equal(16, count); // v0.3 adds S2C_SelfState (0x0010)
+        Assert.Equal(count, packets.Length);
+        Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
     }
 
     [Fact]

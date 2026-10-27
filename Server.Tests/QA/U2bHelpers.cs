@@ -127,7 +127,22 @@ internal sealed class QaRig : IDisposable
 
     internal S2C_WorldState KW => K.World();
     internal S2C_WorldState SW => S[0].World();
-    internal PlayerState? KillerSees(QaPeer survivor) => Entry(KW, survivor.Id);
+    // U2c migration: killer-bound survivor entries carry no Id, so "the killer sees survivor s" now means "there is an
+    // anonymous survivor entry at s's true position" (the survivor's own frame is the ground truth). Ambiguous only when
+    // a phantom shares the exact position (Dummy Packet on the cast tick), which the callers account for.
+    internal PlayerState? KillerSees(QaPeer survivor)
+    {
+        var self = survivor.Self();
+        return KillerAt(KW, self.X, self.Z);
+    }
+    internal static PlayerState? KillerAt(S2C_WorldState killerWorld, float x, float z, float tol = 1e-3f)
+    {
+        foreach (var p in killerWorld.Players)
+            if (p.Role == (byte)Role.Survivor && MathF.Abs(p.X - x) <= tol && MathF.Abs(p.Z - z) <= tol) return p;
+        return null;
+    }
+    // Every survivor-shaped (non-killer) entry of the killer frame.
+    internal IEnumerable<PlayerState> KillerSurvivorEntries => KW.Players.Where(p => p.Role == (byte)Role.Survivor);
     internal PlayerState Truth(QaPeer survivor) => Entry(SW, survivor.Id)!.Value;
     internal PlayerState TruthOf(QaPeer viaSurvivor, QaPeer survivor) => Entry(viaSurvivor.World(), survivor.Id)!.Value;
     internal static PlayerState? Entry(S2C_WorldState w, int id)

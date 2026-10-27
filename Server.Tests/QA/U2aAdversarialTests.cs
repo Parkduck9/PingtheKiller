@@ -34,9 +34,16 @@ public sealed class U2aAdversarialTests
         Assert.NotEqual(MathF.Round(pos.Z), pos.Z);
 
         // Age 0.05 s: Signal, entry and its coordinate bytes present (also validates the byte-search method).
+        // U2c migration: killer-bound survivor entries are anonymous (Id 0), so "the survivor's entry" is the one survivor
+        // entry of this 1v1 frame (killer skill neutralised below so a Packet Afterimage cannot keep it alive).
+        Spy.Set(Spy.Player(f.Server, killer.Id), "Skill", (byte)255);
+        for (int i = 0; i < 3; i++) { survivor.Move(0.6f, 0.8f); f.Tick(); }
+        pos = survivor.Self();
         var w = killer.World();
-        var entry = Assert.Single(w.Players, p => p.Id == id);
+        var entry = Assert.Single(w.Players, p => p.Role == (byte)Role.Survivor);
+        Assert.Equal(0, entry.Id);
         Assert.True(IsSignal(entry));
+        Assert.Equal(pos.X, entry.X);
         byte[] frame = PingTheKiller.Shared.Net.PacketCodec.Encode(w);
         Assert.True(QaBytes.ContainsFloat(frame, entry.X) && QaBytes.ContainsFloat(frame, entry.Z));
 
@@ -44,14 +51,19 @@ public sealed class U2aAdversarialTests
         survivor.Move(0, 0); f.Tick();
         pos = survivor.Self();
         w = killer.World();
-        Assert.Contains(w.Players, p => p.Id == id && IsSignal(p));
+        Assert.Contains(w.Players, p => p.Role == (byte)Role.Survivor && IsSignal(p));
 
         // Age 0.15 s: gone (brief: stationary >= 0.15 s is omitted). Then 0.20 s and a long silence.
         for (int i = 0; i < 40; i++)
         {
             f.Tick();
             w = killer.World();
-            QaBytes.AssertAbsent(w, id, pos.X, pos.Z, "stationary tick " + i);
+            Assert.DoesNotContain(w.Players, p => p.Role == (byte)Role.Survivor);
+            frame = PingTheKiller.Shared.Net.PacketCodec.Encode(w);
+            var legit = QaBytes.LegitFloatBits(w);
+            foreach (float v in new[] { pos.X, pos.Z })
+                if (!legit.Contains(BitConverter.SingleToInt32Bits(v)))
+                    Assert.False(QaBytes.ContainsFloat(frame, v), "stationary tick " + i + ": hidden coordinate " + v + " found in the frame");
             // The killer still sees itself.
             Assert.Contains(w.Players, p => p.Id == killer.Id);
         }
@@ -59,7 +71,7 @@ public sealed class U2aAdversarialTests
         // Moving again: entry is present again with the new coordinates.
         survivor.Move(0.6f, 0.8f); f.Tick();
         w = killer.World();
-        var back = Assert.Single(w.Players, p => p.Id == id);
+        var back = Assert.Single(w.Players, p => p.Role == (byte)Role.Survivor);
         Assert.True(IsSignal(back));
         Assert.NotEqual(pos.X, back.X);
     }
@@ -80,7 +92,8 @@ public sealed class U2aAdversarialTests
             float x = survivor.Self().X;
             bool moved = Math.Abs(x - prevX) > 1e-4f;
             prevX = x;
-            bool visible = killer.World().Players.Any(p => p.Id == survivor.Id);
+            // U2c migration: anonymous killer view; the pair has exactly one survivor, so any survivor entry is it.
+            bool visible = killer.World().Players.Any(p => p.Role == (byte)Role.Survivor);
             if (moved && !visible)
             {
                 hiddenWhileMoving++;
@@ -542,12 +555,14 @@ public sealed class U2aAdversarialTests
                 "stale token reclaimed the slot after the 10 s window");
 
             // The bot actually drives the slot: it walks, so the killer sees it Signal at some position away from the stop point.
+            // U2c migration: the killer entry is anonymous (the only survivor in this pair), and a survivor bot waits 2-8 s
+            // before its first walk (burst pacing), so the window is 20 s instead of 10 s.
             bool movedAway = false;
-            for (int i = 0; i < 200 && !movedAway; i++)
+            for (int i = 0; i < 400 && !movedAway; i++)
             {
                 f.Tick();
-                var e = killer.World().Players.FirstOrDefault(p => p.Id == id);
-                if (e.Id == id && Math.Abs(e.X - pos.X) + Math.Abs(e.Z - pos.Z) > 1f) movedAway = true;
+                var e = killer.World().Players.FirstOrDefault(p => p.Role == (byte)Role.Survivor);
+                if (e.Role == (byte)Role.Survivor && Math.Abs(e.X - pos.X) + Math.Abs(e.Z - pos.Z) > 1f) movedAway = true;
             }
             Assert.True(movedAway, "bot never moved the expired player's character");
         }

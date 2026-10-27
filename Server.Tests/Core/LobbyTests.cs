@@ -58,7 +58,9 @@ public sealed class LobbyTests
         f.Tick();
         Assert.Equal((byte)Role.Killer, host.Last<S2C_MatchStart>().Role);
         var world = host.Last<S2C_WorldState>();
-        Assert.Equal(8, world.Players.Count);
+        // Bots open with a Silent pause, so the killer frame may omit them; the match itself has all 8 players.
+        Assert.Equal(8, f.Server.PlayerSnapshot().Count);
+        Assert.InRange(world.Players.Count, 1, 8);
         Assert.Single(world.Players, p => p.Role == (byte)Role.Killer);
         Assert.InRange(host.Last<S2C_MatchStart>().SkillId, 0, 3);
         Assert.Equal(6, world.Terminals.Count);

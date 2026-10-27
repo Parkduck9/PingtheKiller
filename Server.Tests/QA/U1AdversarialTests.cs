@@ -551,15 +551,28 @@ public sealed class U1AdversarialTests
         Assert.Empty(w.Players);
     }
 
+    // U2c migration: the entry cap rose from 8 to 16 (reserved slots per hidden player plus phantoms); the byte layout is
+    // unchanged. The invariant kept: more than the cap is a wire-format violation, up to the cap is accepted.
+    [Theory]
+    [InlineData(17)]
+    [InlineData(18)]
+    [InlineData(32)]
+    [InlineData(255)]
+    public void WorldState_MoreThanSixteenEntries_IsRejected(int count)
+    {
+        Assert.Throws<PacketFormatException>(() =>
+            PacketCodec.Decode(0x0005, WorldPayload((byte)count, count)));
+    }
+
     [Theory]
     [InlineData(9)]
     [InlineData(10)]
     [InlineData(16)]
-    [InlineData(255)]
-    public void WorldState_MoreThanEightPlayers_IsRejected(int count)
+    public void WorldState_UpToSixteenEntries_AreAccepted_ForTheNineToSixteenRangeThatWasRejectedBefore(int count)
     {
-        Assert.Throws<PacketFormatException>(() =>
-            PacketCodec.Decode(0x0005, WorldPayload((byte)count, count)));
+        var w = Assert.IsType<S2C_WorldState>(PacketCodec.Decode(0x0005, WorldPayload((byte)count, count)));
+        Assert.Equal(count, w.Players.Count);
+        Assert.Equal(count, w.Players[count - 1].Id);
     }
 
     [Fact]
@@ -569,10 +582,14 @@ public sealed class U1AdversarialTests
     }
 
     [Fact]
-    public void WorldState_EncodeNinePlayers_Throws()
+    public void WorldState_EncodeSeventeenEntries_Throws_SixteenRoundTrips()
     {
         var w = new S2C_WorldState();
-        for (int i = 0; i < 9; i++) w.Players.Add(new PlayerState { Id = i });
+        for (int i = 0; i < 16; i++) w.Players.Add(new PlayerState { Id = i + 1, X = i, Z = 2 * i });
+        var back = Assert.IsType<S2C_WorldState>(PacketCodec.Decode(0x0005, PacketCodec.Encode(w).AsSpan(6)));
+        Assert.Equal(16, back.Players.Count);
+        Assert.Equal(16, back.Players[15].Id);
+        w.Players.Add(new PlayerState { Id = 17 });
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(w));
     }
 

@@ -33,7 +33,11 @@ public sealed class BotMatchTests
                 if (packet is S2C_GameResult r) result = r;
                 if (packet is not S2C_WorldState world) continue;
                 ++worlds;
-                Assert.Equal(world.Players.Count, world.Players.Select(p => p.Id).Distinct().Count());
+                // Survivor frames carry real, distinct Ids; killer frames carry Id 0 for every survivor-shaped entry.
+                var named = world.Players.Where(p => p.Id != 0).ToList();
+                Assert.Equal(named.Count, named.Select(p => p.Id).Distinct().Count());
+                if (world.Players.Any(p => p.Role == (byte)Role.Killer))
+                    Assert.All(world.Players, p => Assert.True(p.Role == (byte)Role.Killer || p.Id == 0));
                 Assert.All(world.Players, p => Assert.True(float.IsFinite(p.X) && float.IsFinite(p.Z) && float.IsFinite(p.Yaw) &&
                     float.IsFinite(p.StatusTimer) && f.Server.Map.CanStand(p.X, p.Z)));
             }

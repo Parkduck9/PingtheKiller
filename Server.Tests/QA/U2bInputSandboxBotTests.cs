@@ -236,10 +236,15 @@ public sealed class U2bInputSandboxBotTests
             f.Tick();
             var kw = killer.World();
             var sw = survivor.World();
+            // U2c migration: killer-bound entries are anonymous, so each one is matched to its survivor by position. The
+            // sandbox still has no phantoms and no afterimage: the entries are exactly the survivors that are Signal.
+            var signalTruth = sw.Players.Where(x => x.Role == (byte)Role.Survivor && (x.Flags & (byte)PlayerFlags.Signal) != 0).ToList();
+            Assert.Equal(signalTruth.Count, kw.Players.Count(p => p.Role == (byte)Role.Survivor));
             foreach (var p in kw.Players.Where(p => p.Role == (byte)Role.Survivor))
             {
                 Assert.Equal((byte)PlayerFlags.Signal, p.Flags);
-                var t = sw.Players.Single(x => x.Id == p.Id);
+                Assert.Equal(0, p.Id);
+                var t = Assert.Single(signalTruth, x => x.X == p.X && x.Z == p.Z);
                 Assert.Equal(t.X, p.X);
                 Assert.Equal(t.Z, p.Z);
                 truthSignal++;
@@ -323,29 +328,38 @@ public sealed class U2bInputSandboxBotTests
     [Fact]
     public void Bots_SurvivorBotStopsAtThreatTwoOrMore_AndOnlyTheBandMatters_NotTheDirection()
     {
-        (float X, float Z) Run(float kx, float kz, int ticks)
+        // U2c migration (bot timing changed): a survivor bot now waits 2-8 s before its first walk, pauses 6 s at ThreatLevel 1
+        // and freezes for 12 s at ThreatLevel 2+. The old 30-tick runs therefore proved nothing. The killer is re-placed
+        // every tick at a fixed distance from the bot in a chosen direction, so the ThreatLevel is constant by construction
+        // and the only thing that differs between two runs is the direction the killer is in.
+        List<(float X, float Z)> Run(float dirX, float dirZ, float distance, int ticks)
         {
             using var b = new BotSet(4, humanKiller: true, bots: 1);
-            b.Move(b.KillerPlayer!, kx, kz);
-            b.F.Tick();
-            b.F.Tick();
-            var start = BotSet.At(b.Bots[0]);
-            for (int i = 0; i < ticks; i++) b.F.Tick();
-            var end = BotSet.At(b.Bots[0]);
-            return (end.X - start.X, end.Z - start.Z);
+            var track = new List<(float, float)>();
+            float len = MathF.Sqrt(dirX * dirX + dirZ * dirZ);
+            for (int i = 0; i < ticks; i++)
+            {
+                var (x, z) = BotSet.At(b.Bots[0]);
+                b.Move(b.KillerPlayer!, x + dirX / len * distance, z + dirZ / len * distance);
+                b.F.Tick();
+                track.Add(BotSet.At(b.Bots[0]));
+            }
+            return track;
         }
-        // Bot spawns at (5,26). Distance 8 and 11 (threat 2) from different directions: it must not move.
-        var a = Run(5, 18, 30);
-        Assert.True(MathF.Abs(a.X) + MathF.Abs(a.Z) < 0.01f, $"bot moved ({a.X},{a.Z}) at threat 2");
-        var c = Run(14.5f, 20f, 30); // dist ~ 10.9 (threat 2), different direction
-        Assert.True(MathF.Abs(c.X) + MathF.Abs(c.Z) < 0.01f, $"bot moved ({c.X},{c.Z}) at threat 2");
-        // Threat 1 (distance 15) from two directions: identical movement, and it does move.
-        var d1 = Run(5, 11, 6);
-        var d2 = Run(15.6f, 15.4f, 6);
+        static float Travel(List<(float X, float Z)> t) => MathF.Abs(t[^1].X - t[0].X) + MathF.Abs(t[^1].Z - t[0].Z);
+        // ThreatLevel 2 (8 m) from two different directions: frozen for 10 s, identically.
+        var a = Run(0, -1, 8, 200);
+        var c = Run(1, -0.7f, 8, 200);
+        Assert.True(Travel(a) < 0.01f, $"bot moved {Travel(a)} at threat 2");
+        Assert.Equal(a, c);
+        // Control: with the killer far away (ThreatLevel 0) the same bot walks within 10 s, so the freeze above is not vacuous.
+        Assert.True(Travel(Run(0, -1, 40, 200)) > 0.5f, "control bot never moved");
+        // ThreatLevel 1 (15 m): identical movement from two directions, and it does move after its pause.
+        var d1 = Run(0, -1, 15, 320);
+        var d2 = Run(1, -1, 15, 320);
         Assert.Equal(d1, d2);
-        Assert.True(MathF.Abs(d1.X) + MathF.Abs(d1.Z) > 0.5f);
+        Assert.True(Travel(d1) > 0.5f, "bot never moved at threat 1");
     }
-
     [Theory]
     [InlineData(2)]
     [InlineData(6)]
@@ -358,6 +372,12 @@ public sealed class U2bInputSandboxBotTests
             using var b = new BotSet(seed, humanKiller: false, bots: 1);
             Assert.NotNull(b.KillerPlayer);
             Assert.True(Spy.Get<bool>(b.KillerPlayer!, "IsBot"));
+            // U2c migration: with the new private RNG seeds 2 and 6 give the bot killer Ping Scanner, which by design exposes the NEAREST
+            // survivor (Signal or not) and so legitimately reacts to where a silent survivor sits. The invariant protected here is that
+            // the bot's own decisions use only the anonymous view, so the skill is neutralised for this comparison.
+            Spy.Set(b.KillerPlayer!, "Skill", (byte)255);
+            // The scanner may already have fired during BotSet construction and left a forced exposure on the human; clear it.
+            foreach (var pl in new[] { b.HumanPlayer, b.Bots[0] }) Spy.Set(pl, "ExposedUntil", double.NegativeInfinity);
             b.Move(b.HumanPlayer, spot.Item1, spot.Item2);
             var track = new List<(float, float)>();
             for (int i = 0; i < 300; i++)
@@ -369,7 +389,8 @@ public sealed class U2bInputSandboxBotTests
             tracks.Add(track);
         }
         Assert.Equal(tracks[0], tracks[1]);
-        Assert.True(tracks[0].Distinct().Count() > 200);
+        // Non-vacuity: the bot walks (it also stops for look-around pauses of 1.5-4 s, so well under 300 distinct points is normal).
+        Assert.True(tracks[0].Distinct().Count() > 100, $"killer bot barely moved: {tracks[0].Distinct().Count()} distinct positions");
 
         // Positive control: a moving (visible) survivor is chased.
         using var c = new BotSet(seed, humanKiller: false, bots: 1);

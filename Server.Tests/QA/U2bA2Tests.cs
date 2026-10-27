@@ -310,41 +310,22 @@ public sealed class U2bA2Tests
         }
     }
 
-    private static bool StreamContains(int candidateSeed, int[] observed, int maxOffset)
-    {
-        var rnd = new Random(candidateSeed);
-        var stream = new int[maxOffset + observed.Length];
-        for (int i = 0; i < stream.Length; i++) stream[i] = rnd.Next();
-        for (int o = 0; o < maxOffset; o++)
-        {
-            if (stream[o] != observed[0]) continue;
-            bool all = true;
-            for (int j = 1; j < observed.Length && all; j++) all = stream[o + j] == observed[j];
-            if (all) return true;
-        }
-        return false;
-    }
-    private static int[] Draw(Random r, int n) { var a = new int[n]; for (int i = 0; i < n; i++) a[i] = r.Next(); return a; }
-    private static IEnumerable<int> DerivedSeeds(int wire)
-    {
-        yield return wire; yield return -wire; yield return ~wire; yield return wire + 1; yield return wire - 1;
-        yield return unchecked(wire * 7919 + 17); yield return unchecked(wire * 31 + 7); yield return unchecked(wire ^ 0x5DEECE66);
-        yield return unchecked((int)(((long)wire * 0x5DEECE66DL + 0xB) & 0x7fffffff)); yield return unchecked(wire * 1664525 + 1013904223);
-        yield return unchecked((int)(wire * 2654435761L));
-    }
-
     [Fact]
     public void Seed_StreamScan_NoServerRandomStreamIsAnyOffsetOfAStreamSeededFromTheWireSeed_AcrossThreeMatches()
     {
-        // Reads the server's private System.Random objects through reflection (ground truth), draws 12 values from each and
-        // checks whether they occur anywhere in the first 20 000 outputs of a Random seeded with the wire seed or any
-        // simple function of it. A hit would prove a derivation path. A positive control with the legacy coupling must hit.
+        // U2c migration: the server streams are now xoshiro256** (PrivateRandom), so the scan generates candidate streams with
+        // the server's own generator instead of System.Random. Reads the server's three private streams through reflection
+        // (ground truth), draws 8 values from each and checks whether they occur anywhere in the first 20 000 outputs of a
+        // stream seeded with the wire seed or any simple function of it. A hit would prove a derivation path. A positive
+        // control with the legacy coupling must hit.
         using (var control = new QaRig(2, seed: 4711, matchSeed: 4711))
         {
-            var obs = Draw(Spy.Server<Random>(control.Server, "_random"), 12);
-            Assert.True(StreamContains(4711, obs, 20000), "detector self-check: hook seed == wire seed must be found");
-            var dec = Draw(Spy.Server<Random>(control.Server, "_decoyRandom"), 12);
-            Assert.True(StreamContains(unchecked(4711 * 7919 + 17), dec, 20000), "detector self-check for the decoy stream");
+            string[] names = { "_random", "_decoyRandom", "_shuffleRandom" };
+            for (int stream = 0; stream < 3; stream++)
+            {
+                var obs = SeedAttack.Draw(Spy.Server<object>(control.Server, names[stream]), 8);
+                Assert.True(SeedAttack.Contains(4711, stream, obs, 20000), "detector self-check: hook seed == wire seed must be found in " + names[stream]);
+            }
         }
         foreach (int fixedWire in new[] { 424242, 0, int.MaxValue, int.MinValue, -1 })
         {
@@ -354,17 +335,16 @@ public sealed class U2bA2Tests
                 if (match > 1) r.NextMatch();
                 Assert.Equal(fixedWire, r.K.Last<S2C_MatchStart>().Seed);
                 r.Tick(40);
-                var main = Draw(Spy.Server<Random>(r.Server, "_random"), 12);
-                var decoy = Draw(Spy.Server<Random>(r.Server, "_decoyRandom"), 12);
-                foreach (int candidate in DerivedSeeds(fixedWire))
+                foreach (string field in new[] { "_random", "_decoyRandom", "_shuffleRandom" })
                 {
-                    Assert.False(StreamContains(candidate, main, 20000), $"_random derives from wire seed {fixedWire} via candidate {candidate} (match {match})");
-                    Assert.False(StreamContains(candidate, decoy, 20000), $"_decoyRandom derives from wire seed {fixedWire} via candidate {candidate} (match {match})");
+                    var observed = SeedAttack.Draw(Spy.Server<object>(r.Server, field), 8);
+                    foreach (int candidate in SeedAttack.Derived(fixedWire))
+                        for (int stream = 0; stream < 6; stream++)
+                            Assert.False(SeedAttack.Contains(candidate, stream, observed, 20000), $"{field} derives from wire seed {fixedWire} via candidate {candidate}/stream {stream} (match {match})");
                 }
             }
         }
     }
-
     [Fact]
     public void Seed_EveryMatchReseedsBothPrivateStreamsAndDrawsAFreshWireSeed_AllHumansAgreeOnTheWireSeed()
     {

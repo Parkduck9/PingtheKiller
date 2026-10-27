@@ -17,7 +17,7 @@ namespace PingTheKiller.Tests.Core;
 // Tests for the U2a attempt-2 fix list (docs/briefs/U2a-a2.md), one region per fix.
 public sealed class AttemptTwoFixTests
 {
-    private static bool Visible(S2C_WorldState world, int id) => world.Players.Any(p => p.Id == id);
+    private static bool Visible(CoreFixture f, S2C_WorldState world, int id) => KillerTruth.Has(f.Server, world, id);
     private static float Step(PlayerState a, PlayerState b) => MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
 
     // ------------------------------------------------------------ fix 1: held direction expires with the Signal hold
@@ -40,13 +40,13 @@ public sealed class AttemptTwoFixTests
             if (Step(previous, current) > 1e-4f)
             {
                 movingTicks++;
-                if (!moveKiller) Assert.True(Visible(killer.Last<S2C_WorldState>(), survivor.Id), "moved while hidden at tick " + i);
+                if (!moveKiller) Assert.True(Visible(f, killer.Last<S2C_WorldState>(), survivor.Id), "moved while hidden at tick " + i);
             }
             previous = current;
         }
         // The hold is 0.15 s: the input moves the player for at most three 0.05 s ticks, then it stops.
         Assert.InRange(movingTicks, 1, (int)Math.Round(GameConstants.SignalHoldSeconds / 0.05f));
-        Assert.DoesNotContain(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id);
+        Assert.False(Visible(f, killer.Last<S2C_WorldState>(), survivor.Id));
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class AttemptTwoFixTests
             f.Walk(survivor, 0, 1, 1);
             var current = survivor.Self();
             Assert.InRange(Step(previous, current), 0.199f, 0.201f);
-            Assert.Contains(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id && (p.Flags & (byte)PlayerFlags.Signal) != 0);
+            Assert.Equal((byte)PlayerFlags.Signal, KillerTruth.Entry(f.Server, killer.Last<S2C_WorldState>(), survivor.Id)?.Flags);
             previous = current;
         }
     }
@@ -70,8 +70,8 @@ public sealed class AttemptTwoFixTests
     {
         // Cross-unit contract: the Unity client sends MoveInput at a fixed 30 Hz while a key is held (never above 30/s).
         // Here the client stops sending entirely after 1 s (no zero input), the worst case for the server.
-        using var f = new CoreFixture();
-        var (killer, survivor) = f.StartPair();
+        var (fixture, killer, survivor) = CoreFixture.PairWithoutAfterimage();
+        using var f = fixture;
         var previous = survivor.Self();
         int nextInput = 0; // input k is sent at simulated time k / 30 s
         int lastInputTick = -1, lastMovingTick = -1;
@@ -91,7 +91,7 @@ public sealed class AttemptTwoFixTests
             f.Tick();
             var current = survivor.Self();
             bool moved = Step(previous, current) > 1e-4f;
-            bool visible = Visible(killer.Last<S2C_WorldState>(), survivor.Id);
+            bool visible = Visible(f, killer.Last<S2C_WorldState>(), survivor.Id);
             visibleByTick.Add(visible);
             if (moved) lastMovingTick = tick;
             // (4) never changes position in a tick where it is absent from the killer's WorldState.
@@ -143,9 +143,9 @@ public sealed class AttemptTwoFixTests
                 if (Step(before, state) > 1e-5f)
                 {
                     movedChecks++;
-                    Assert.True(Visible(killerView, state.Id), $"survivor {state.Id} moved while hidden at tick {tick}");
+                    Assert.True(Visible(f, killerView, state.Id), $"survivor {state.Id} moved while hidden at tick {tick}");
                 }
-                else if (!Visible(killerView, state.Id)) hiddenTicks++;
+                else if (!Visible(f, killerView, state.Id)) hiddenTicks++;
                 previous[state.Id] = state;
             }
         }

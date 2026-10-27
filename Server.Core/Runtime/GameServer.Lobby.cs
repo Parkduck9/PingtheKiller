@@ -28,6 +28,7 @@ namespace PingTheKiller.ServerCore
                         stale.Connection.Close();
                     }
                     old.ConnectionId = connection.RemoteId;
+                    old.SelfSent = null;
                     old.DirX = old.DirZ = 0;
                     old.LastSignal = double.NegativeInfinity;
                     old.HasSeq = false;
@@ -61,6 +62,7 @@ namespace PingTheKiller.ServerCore
             player.Nickname = SanitizeNickname(join.Nickname, player.Id);
             player.Token = NewToken();
             player.ConnectionId = connection.RemoteId;
+            player.SelfSent = null;
             player.HasSeq = false;
             player.InputTimes.Clear();
             player.DirX = player.DirZ = 0;
@@ -196,8 +198,7 @@ namespace PingTheKiller.ServerCore
                 player.Token = 0;
                 player.HasSeq = false;
                 player.InputTimes.Clear();
-                player.BotTarget = -1;
-                player.BotPauseUntil = player.BotWalkUntil = 0;
+                player.ResetBotPlan();
                 changed = true;
             }
             if (!changed) return;

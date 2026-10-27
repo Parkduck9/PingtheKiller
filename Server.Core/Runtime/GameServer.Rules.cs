@@ -34,6 +34,7 @@ namespace PingTheKiller.ServerCore
             _skillRequests.Clear();
             _decoys.Clear();
             _killerView.Clear();
+            _killerViewSources.Clear();
         }
 
         // Order: skills (inputs) -> statuses/timers -> capture -> rescue -> hacking -> exit/escape -> win check.
@@ -46,6 +47,7 @@ namespace PingTheKiller.ServerCore
                     _result = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.TimeUp };
                 return;
             }
+            MovePhantoms(dt);
             ExecuteSkills();
             UpdateStatuses();
             Capture();
@@ -60,8 +62,6 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players)
                 if (player.Role == Role.Survivor && player.Status == PlayerStatus.Lagging && !Active(player.LaggingUntil))
                     SetStatus(player, PlayerStatus.Eliminated, "timeout");
-            for (int i = _decoys.Count - 1; i >= 0; --i)
-                if (!Active(_decoys[i].Until)) _decoys.RemoveAt(i);
         }
 
         private void SetStatus(Player player, PlayerStatus status, string reason)
@@ -228,6 +228,7 @@ namespace PingTheKiller.ServerCore
             _skillRequests.Clear();
             _decoys.Clear();
             _killerView.Clear();
+            _killerViewSources.Clear();
             WriteLog($"match end winner={(Role)result.WinnerRole} reason={(GameEndReason)result.Reason} escaped={result.EscapedIds.Count}");
             BroadcastLobby();
         }

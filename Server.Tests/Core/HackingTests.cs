@@ -6,7 +6,8 @@ namespace PingTheKiller.Tests.Core;
 
 public sealed class HackingTests
 {
-    private static byte Progress(RulesMatch m, int terminal = 0) => m.Killer.Last<S2C_WorldState>().Terminals[terminal].Progress;
+    // Survivors receive the exact percentage; the killer only 0 or 100 (U2c N9, see KillerSeesOnlyDoneOrNotDone).
+    private static byte Progress(RulesMatch m, int terminal = 0) => m.Survivors[0].Last<S2C_WorldState>().Terminals[terminal].Progress;
 
     [Fact]
     public void OneSurvivorCompletesATerminalInTenSecondsAndIsSignalWhileHacking()

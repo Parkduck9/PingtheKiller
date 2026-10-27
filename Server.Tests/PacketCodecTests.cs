@@ -166,7 +166,8 @@ public sealed class PacketCodecTests
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new C2S_Join { Nickname = new string('한', 17) }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new C2S_Join { Nickname = "\uD800" }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new C2S_Join { Nickname = null! }));
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Players = new(new PlayerState[9]) }));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Players = new(new PlayerState[Protocol.MaxWorldEntries + 1]) }));
+        PacketCodec.Encode(new S2C_WorldState { Players = new(new PlayerState[Protocol.MaxWorldEntries]) });
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Terminals = new(new TerminalState[9]) }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_GameResult { EscapedIds = new(new int[9]) }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_LobbyState { Slots = new Slot[7] }));
