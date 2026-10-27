@@ -366,3 +366,123 @@ All minor; none blocks the pass.
 - **Q15 panel scale above 1080p:** Ship the `[0.8, 2.0]` clamp with the next U4 pass.
 
 SPEC-PASS (score 89)
+
+
+# Attempt 4 (camera revision)
+
+- Reviewer: Claude Sonnet 5.5 (author: Claude Opus)
+- Spec: `docs/ui/HUD_SPEC.md` with the camera revision (`git diff HEAD` read in full, then the whole file)
+- Date: 2026-10-27
+- Files read: `docs/ui/HUD_SPEC.md`, `docs/ui/SLOP_DEFINITION.md`, `docs/GDD.md`, `docs/briefs/U2b-a1.md`, `docs/briefs/U2c-a1.md`, `Shared/Runtime/Packets/{Client,Server}Packets.cs`, `Shared/Runtime/Game/{PlayerTypes,GameConstants,SkillIds}.cs`, `Server.Core/Runtime/Map/FixedMap.cs`, `Server.Core/Runtime/GameServer.{Visibility,Rules,Simulation}.cs` (to check Signal, Afterimage, decoy and execution-grace behaviour), and the earlier sections of this file.
+- Method: I recomputed every new number by hand and with a small script (projection maths, word wrap at 35 S characters, block sums). The camera is judged against GDD §2, everything else against SLOP, as instructed.
+
+## A4.1 Score
+
+| Row | Max | Score | Reasons |
+|---|---:|---:|---|
+| Visual tells | 20 | 18 | Clean: flat fills, 1 u strokes, no glow (§6.2 says so), no emoji, the dither is functional. Deduction: through-wall markers and the 1 u amber outline sit on an arbitrary 3D background with no contrast backing, and the old "unlit flat materials" rule was dropped with the map (m5). |
+| Layout | 15 | 11 | Camera framing and most block sums are right. Deductions: edge-indicator placement is not defined and on-screen markers can sit behind the cluster (M2); blocks 6.1a and 6.1c ignore their 1 u border, 6.1p needs off-scale padding, the normal-play cluster height is mis-summed (m1–m3). |
+| Copy / vocabulary | 15 | 14 | New copy (`Wait 1.6 s, step back, touch again.`, `Lagging Survivor`) follows SLOP §4 and the fixed vocabulary; no "map" wording is left in player-facing text. Carried: countdown digits in S against §0.3, `Locked 4 s` on the Survivor side (m8). |
+| Every element answers state and action | 15 | 14 | Each new element names its state and the action it prompts. The execution guidance can show the wrong action after a touch during grace (M3). |
+| Role-specific HUDs, no leak | 20 | 16 | The Killer view reads only `Role/Status/X/Z`, matches by position, shares one model, and adds no sound or animation that separates decoys, except the terminal percent tag (M1). The Survivor view cannot show the Killer (A4.4). Deduction for M1 and the carried Afterimage amber stretch. |
+| Interactive states, keyboard and gamepad | 10 | 9 | Unchanged and still complete; look/orbit rows added to the input map. No sensitivity setting yet (N6 covers it). |
+| Contrast and 720p readability | 5 | 4 | Ratios unchanged; S 12 px floor held. World markers have no backing (m5). |
+| **Total** | **100** | **86** | Threshold 85, no gate failure, no blocker. |
+
+## A4.2 Gates
+
+| Gate | Result | Evidence |
+|---|---|---|
+| V1 / V2 / V4 / V8 / V10 | PASS | §0.2–0.5; §6.2 "no glow"; no gradients, blur, emoji or default Unity look. |
+| Every element answers state and action | PASS | §4.10 readability list, §6.1 table, §6.4 table. |
+| Role-specific HUDs, no forbidden leak | PASS | Killer: Silent Survivors are omitted by masking rule 11 and nothing in §6 reads a field that would reveal one; M1 is a residual hint (terminal progress), not a leak of a Silent Survivor's position. Survivor: no Killer model, shadow, sound or marker (§4.10). |
+| Interactive states, keyboard and gamepad | PASS | §0.5, §0.6 unchanged; the HUD has no focusable elements; menus are gamepad-reachable. |
+| Buildable from protocol | PASS with M2 | All sources are Wire / Static / Derived and available to the viewing role (own `X/Z/Yaw`, `FixedMap.Walls`, Killer-bound blips, `Terminals`, own `SelfState`). Missing formula: edge-indicator placement (M2). |
+
+## A4.3 Geometry recomputed
+
+| Item | Spec | My result |
+|---|---|---|
+| §4.10 camera height / distance | 0.7 + 4.0 sin 20° = 2.07 m; 3.76 m | Correct (2.068 m, 3.759 m) |
+| Feet and head on screen | feet ≈ 67 % (600 u), head ≈ 19 % | Correct. Perspective projection, vertical FOV 50°, 900 u canvas: feet 600 u (66.7 %), head 175 u (19.4 %) |
+| Intro / prompt / cluster tops | 636 / 756 / 804 u | Correct: 900−24−72 = 804; 804−8−40 = 756; 804−8−160 = 636. Feet clear the intro by 36 u at the default pitch |
+| Other pitches | "the cluster may cover the feet" | Not true inside the stated pitch range: feet fall between 523 u (+60°) and 622 u (−10°), always above 636 u. Only a shortened boom moves them out of frame, and that already triggers the dither. Harmless, but the sentence is wrong (m11) |
+| Killer FOV | 90° horizontal at 16:9 = 59° vertical | Correct (58.7°) |
+| §6.1 worst case | 208+8+48+8+64+8+26+8+72 = 450, top 426 u | Correct |
+| §6.1 normal play | 186 u | Wrong: 64+8+26+8+72 = 178 (144 without the effect line). Conservative, but stated as a sum (m1) |
+| 6.1a block | 23+23+18 = 64 in a 64 u block with a 1 u border | Inner height is 62 u: 2 u over (the Survivor cluster counts its border: 70 u inner). Same for 6.1c: 18+8 = 26 in a bordered 26 u block (m2) |
+| 6.1p block | 2 S lines (36 u) in 48 u | Needs 6 u top/bottom padding, which is not on the spacing scale; the width check assumes padding 8 (m3) |
+| 6.1p line 2 | ≤ 35 characters ≈ 290 u in 304 u | Longest is `Wait 1.6 s, step back, touch again.` = 35 characters = 289 u. Fits |
+| 6.1d text area | 232 u | Correct; `Packet afterimage` 168 u, `Passive — always on` 158 u |
+| 6.1c width | 282+4+4 = 290 ≤ 312 | Correct (34 characters) |
+| §3 Killer intro | inner 296, 35 chars/line, 201 ≤ 208 | Wrap simulated: the muted line is 97 characters (spec says 96) and wraps to exactly 3 lines at 35; the longest effect line (`Passive: Survivors stay visible 1 s after their Signal ends.`) is 60 characters, not 65, and wraps to 2 lines. Sum 12+34+4+23+4+54+4+54+12 = 201. No overflow; the two counts are stale (m4) |
+| §6.6 menu | 12+23+4+54+12+40+8+40+12 = 205 ≤ 208 | Correct |
+| Overlap with the §9 band | top 48 u vs cluster top 426 u | No overlap with the cluster. Edge indicators inset 24 u at the top edge sit under the band while it shows (m7) |
+
+## A4.4 Attacks on decoy safety and leaks
+
+| Attack | Result |
+|---|---|
+| Tell decoys by facing | Blocked: facing comes only from matched position deltas; a never-moved instance faces the nearest terminal for real and fake alike (§6.3.5). Real stationary Signal Survivors away from terminals (rescuing, scanned, afterimage) still exist and decoys do not stand there; that is N7, a server residual |
+| Tell decoys by animation or outline | Blocked: walk/idle from speed only, Lagging pose only for Lagging (decoys are never Lagging), identical outline, no hack or rescue animation (N2) |
+| Track identity across snapshots | Blocked: greedy 0.4 m matching on positions only, shuffled input, no spawn or despawn animation, one shared model and material (N1) |
+| Edge indicators "6 nearest" | Safe: ranking uses distance only, so decoys and real blips rank alike. The cap only hides some blips |
+| Sounds | Safe: `blip_first`, `capture_confirm`, `execute_confirm` use count, Lagging status and the Killer's own position; no positional audio (N3) |
+| Terminal `40%` tag (§6.2) | **Tell** (M1): live progress cross-checks a stationary blip at a terminal (decoys do not raise it) and shows a Stealth-relay hacker, who is Silent, as a progress jump with no blip |
+| Execution guidance | Not a tell, but wrong in one case (M3) |
+| Silent Survivor revealed in front of the camera | Not possible: no entry, no shadow, no sound, no marker. An ambush capture spawns a Lagging character in place (§6.5), as before |
+| Survivor peeks around a corner and sees the Killer | Not possible: no Killer position is received, and §4.10 forbids a model, shadow, footstep or marker. `C2S_MoveInput.Yaw` = facing, and orbiting sends no direction, so it does not trigger Signal (checked in `GameServer.Simulation.cs`: Signal needs a non-zero direction) |
+| Survivor-bound effects | Unchanged from U2b rule 10; PingScanner X/Z = 0,0 and FirewallBlock = exit |
+
+## A4.5 Findings
+
+No blocker.
+
+[major] M1 Terminal percent tag is a decoy and Stealth tell — §6.2 Terminals (and §10) — The Killer sees `40%` on every incomplete terminal through walls. U2c decoys stand still "hacking" at terminals (U2c brief §3) but never raise the percentage; a real hacker does. Conversely, a Stealth-relay Survivor hacks while Silent (2 s = a 20 % jump) and the Killer can read it. This is information beyond positions that the UI makes trivial to use. — Show only `Terminal` (and a done state) on the Killer's terminal markers; keep the completed count in 6.1a. Record the wire-level residual (`Terminals[].Progress` is sent to the Killer) as a new open question N9.
+
+[major] M2 Edge-indicator and marker placement are not defined — §6.2 Off-screen, §4.6 — "pointing along the direction to the blip" gives no rule for blips behind the camera, above or below the view, or for how the direction maps to a point on the screen edge. Behind the Killer is the case that matters most. Also, an on-screen marker or character can sit behind the bottom-left cluster (the draw order puts the cluster on top), where it has neither a marker nor an edge indicator. — Specify: angle = signed yaw difference between view yaw and the direction to the blip; place the chevron where a ray from the screen center at that angle meets the screen rectangle inset by 24 u (behind = bottom edge); treat anything whose projected point falls inside the cluster rectangle as off-screen. Apply the same rule to §4.6.
+
+[major] M3 `away` latch ignores the server's re-arm rule — §6.4 — In `GameServer.Rules.cs` a touch during the grace sets `ExecutionArmed = false`, and leaving contact sets it true. If the Killer steps back, then touches again inside the 2 s, the spec's `away` stays true and shows `Ready` / `Touch again to eliminate.` while the server will not execute until the Killer leaves and re-enters. Also, during grace a Killer who already stepped back is told to `step back`. — Define `away` as: reset to false on any tick the Killer is within 1.2 m of the instance while `now − t0 < 2 s`, set to true on any tick it is outside 1.2 m. Grace line 2 when `away` is true: `Wait 1.6 s, then touch again.`
+
+[minor] m1 §6.1 — Normal-play height — "186 u" is 64+8+26+8+72 = 178 u (144 u without the effect line). Also "every block except the last two is shown only when it applies" is wrong: 6.1a and 6.1d are always shown, and 6.1c hides when no effect applies. — Fix the sum and the sentence.
+
+[minor] m2 §6.1 — Border and block heights — 6.1a (64 u) and 6.1c (26 u) hold content of exactly their height but carry a 1 u border; inner heights are 62 u and 24 u. The Survivor cluster counts its border. — Make them 66 and 28 u (worst case 454 u, top 422 u, still below the band) or state that borders are drawn outside the block.
+
+[minor] m3 §6.1 — 6.1p padding — 48 u for two 18 u lines needs 6 u vertical padding; the scale is 4/8/12. — Use 52 u (padding 8/8) and update the sums.
+
+[minor] m4 §3, §6.1 — Stale counts — The muted Killer line is 97 characters, not 96; the longest Killer effect line is 60 characters, not 65. Wrapping still gives 3 and 2 lines. — Correct the numbers.
+
+[minor] m5 §6.2, §0.4 — World markers have no contrast backing — The 16 u `signal` diamond, the 1 u amber outline and the `text` rings sit on whatever the 3D scene shows, and the earlier "unlit flat materials" rule was dropped with the map. — Add a 1 u `bg` stroke around diamonds and chevrons, state that gameplay geometry uses flat unlit materials, and require a 3:1 check of marker colors against floor and wall colors.
+
+[minor] m6 §6.2 — Model visibility per class — The spec classifies by one ray at 1.2 m but does not say whether the character model is hidden in the `occluded` and `off-screen` classes. At a wall corner the model can show without an outline while the 100 ms hold keeps the class, or show beside its diamond. — State that models are always depth-tested, the outline is drawn only for the `in view` class, and the diamond is hidden while the character's screen bounds are more than 50 % visible.
+
+[minor] m7 §9, §6.2 — Band and top-edge indicators — The 48 u connection band covers indicators at the top edge (inset 24 u). — Inset top-edge indicators below the band while it shows.
+
+[minor] m8 §0.3, §4.7, §6.5, §6.1c — Carried findings — `Wait 1.6 s` (S) is another countdown in S against §0.3's own rule; the Survivor exit line `Locked 4 s` is still ambiguous next to `Exit Locked`, while the Killer marker uses `Exit Locked 4 s`; `execute_confirm` can misfire if an Emergency restore turns a Lagging instance Silent while the Killer is within 1.2 m; the Killer's slow bar still uses `danger`. — Same fixes as attempt 3 (M2, M3, M5, M9).
+
+[minor] m9 §6.2 — Killer-side reconnect fallback — The Survivor "locked by the Killer" row falls back to `Exit Locked` when no FirewallBlock effect was received; the Killer marker's `Exit Locked 4 s` has no such fallback after a reconnect. — Add the same fallback.
+
+[minor] m10 §6.3.5 — Facing threshold — Facing updates on a matched displacement ≥ 0.05 m, but a Lagging Survivor moves exactly 1.0 m/s × 0.05 s = 0.05 m per tick, so float noise can freeze its facing. — Use ≥ 0.03 m.
+
+[minor] m11 §4.10 — Wrong sentence — "At other pitches or with a shortened boom, the cluster may cover the feet" is untrue for pitch alone (A4.3). — Say "with a shortened boom the feet leave the frame; the dither keeps the view clear".
+
+[minor] m12 §11 Q7, §10, §6.2 — Cross-references and index — Q7 points to §6.4 for "no cue for eliminating"; that text is now §6.5. §10 has no row for the Survivor camera (own `X/Z/Yaw`, `FixedMap.Walls`). N8 is not referenced from §6.2. — Fix the three references.
+
+[minor] m13 §6.2 — Far characters get less help than hidden ones — An in-view Survivor at 50 m is a figure about 40 u tall with a 1 px outline and no distance tag, while an occluded one gets a 16 u diamond and a tag. The map has only four interior walls, so this is the common case. — Add the distance tag (and optionally the diamond) to in-view Survivors beyond 25 m.
+
+## A4.6 What is good
+
+- The camera framing is correct and checked: the character stays above every bottom-center block at the default pitch.
+- Movement is relative to camera yaw while `Yaw` is the character's facing, so orbiting never makes a Survivor Signal. The server code confirms it.
+- The Killer view is built on anonymous blips with one shared model, position-only matching and no per-instance sound, animation or facing that could separate decoys. Hack and rescue animations are rejected (N2).
+- The new open questions (N1–N8) are honest and point at the right owners, especially N4 (SLOP lines), N7 (stationary decoys) and N8 (occlusion source).
+- Grace guidance is derived from observable events only, with a safe fallback when `t0` is unknown (N5).
+- The cluster arithmetic is mostly right and conservative; the worst case of 450 u leaves the top edge below the screen center.
+
+## A4.7 Fix order
+
+1. M1 (hide the percent), M2 (edge-indicator rule), M3 (`away` latch).
+2. m1–m4 (sums and counts), m12 (cross-references).
+3. m5–m7 and m9–m13 as time allows; they do not block the pass.
+
+SPEC-PASS (score 86)

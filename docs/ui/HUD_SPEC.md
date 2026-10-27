@@ -1,8 +1,14 @@
 # HUD and screen spec — D3 UI pass
 
-Status: attempt 3, SPEC-PASS (89) · decisions recorded 2026-10-27 (§11) · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
+Status: camera revision (GDD §2, 2026-10-27) SPEC-PASS (86) with review fixes applied · earlier: attempt 3 SPEC-PASS (89), decisions recorded 2026-10-27 (§11) · author: Claude Opus (orchestrator) · reviewer: Claude Sonnet, `docs/qa/UI-spec-review.md`
 
-> **한국어 요약:** 메뉴·로비·매치 인트로·생존자 HUD·살인마 HUD·결과·재접속 화면의 구현 명세. 모든 요소는 그 역할의 클라이언트가 실제로 받는 패킷 필드, 정적 데이터, 또는 그 둘에서 계산한 값(명시)으로만 만든다. 생존자는 살인마의 위치·방향을 절대 알 수 없고, 살인마 화면은 Id를 전혀 쓰지 않는 익명 블립으로 그려 가짜 Signal(디코이)과 진짜를 구별할 수 없게 한다. 프로토콜에 없는 정보는 "열린 질문"(§11)으로 분리했다.
+> **한국어 요약:** 메뉴·로비·매치 인트로·생존자 HUD(3인칭)·살인마 HUD(1인칭)·결과·재접속 화면의 구현 명세. 모든 요소는 그 역할의 클라이언트가 실제로 받는 패킷 필드, 정적 데이터, 또는 그 둘에서 계산한 값(명시)으로만 만든다. 생존자는 살인마의 위치·방향을 절대 알 수 없고(살인마 캐릭터는 그려지지 않음), 살인마 화면은 Id를 전혀 쓰지 않는 익명 인스턴스(시야 안: 공통 캐릭터, 벽 뒤: Signal 마커)로 그려 가짜 Signal(디코이)과 진짜를 구별할 수 없게 한다. 카메라 변경으로 생긴 새 질문은 §11.1에 있다.
+
+**Changes in the camera revision (GDD §2 changed 2026-10-27: Survivors third-person orbit, Killer first person):**
+- **Survivor (§4):** new §4.10 camera rig, movement relative to camera yaw, wall pull-in, a framing check that keeps the character above every bottom-center block, readability rules (no state tint on the own character, tags clear the own silhouette, the prompted terminal's label is emphasised). Spectate (§4.5) is now an orbit around the spectated Survivor.
+- **Killer (§6, rewritten):** map-as-HUD replaced by a first-person view with a bottom-left cluster (intro, execution prompt, info, effect line, skill), in-view characters with a `signal` outline, through-wall Signal markers, edge indicators for off-screen Signals (6 nearest), Terminal and Exit world markers, and execution-grace guidance (GDD §3.3). The anonymous-blip rules (§6.3) now also govern facing and animation.
+- **Global:** input map (look/orbit), palette meanings, Killer intro copy, Packet afterimage effect line, connection band and data index updated. New open questions N1–N8 in §11.1.
+- **Fixes after the camera review (86/100):** the Killer terminal marker drops its percentage (M1, §11.1 N9); one derived edge-indicator placement rule with cluster keep-out and band offset, shared by both roles (M2); execution guidance mirrors the server's re-arm rule, where an in-grace touch is spent (M3); Killer cluster heights include borders (472 u worst case); marker keylines; occluded characters are not drawn; distance tags on in-view Survivors beyond 20 m; facing threshold 0.03 m; framing range corrected; Survivor camera row in §10.
 
 **Changes in attempt 3 (review of attempt 2: 84/100):**
 - **Killer map:** the different approach for this attempt is to **reduce what the Killer map derives** instead of patching each derivation.
@@ -69,12 +75,12 @@ One family with Hangul coverage and tabular figures: Pretendard (Latin fallback 
 | Token | Hex | Meaning (only use) |
 |---|---|---|
 | `bg` | `#101113` | screen background |
-| `panel` | `#1A1C1F` | panels; floor of the Killer map |
+| `panel` | `#1A1C1F` | panels; world-tag fills |
 | `line` | `#2C2F33` | dividers and secondary-button borders (decorative; the label identifies the button) |
 | `text` | `#E8E6E1` | text, primary button fill, neutral world markers |
 | `muted` | `#9A9890` | secondary text, disabled text, past/inactive markers, **text-field and meter outlines** |
-| `signal` | `#FFB020` | transmitting now: Signal state, Signal blips |
-| `danger` | `#E5484D` | threat the Killer poses to the viewer, and the Killer's own marker. **Non-text only** (bars, segments, rings, noise mask) |
+| `signal` | `#FFB020` | transmitting now: Signal state; in the Killer view, Signal Survivor outlines, markers and edge indicators |
+| `danger` | `#E5484D` | Killer-caused threat to a Survivor (threat noise, Lagging bar, Exit locked by the Killer); on the Killer HUD only the Traffic-overload slow bar. **Non-text only** (bars, segments, rings, noise mask) |
 | `ally` | `#3FB8AF` | Survivor-team information, **shown to Survivors only** |
 
 Contrast (WCAG 2.x, computed): on `panel` — text 13.69, muted 5.91, signal 9.34, ally 7.06, danger 4.36; on `bg` — text 15.15, muted 6.54, signal 10.33, ally 7.81, danger 4.83. Because `danger` is 4.36 on `panel`, it never carries text; every danger state pairs a `danger` mark with words in `text`. Non-text: `muted` vs `panel` 5.91 (≥ 3:1, used for every meaningful outline); `line` vs `panel` 1.27 (decorative only).
@@ -100,10 +106,10 @@ State changes are instant (≤ 1 frame); only the focus outline fades in, ≤ 10
 | Confirm / start editing a field | Enter, Space | A |
 | Back / stop editing | Esc | B |
 | Move | W A S D | left stick |
-| Look (Survivor) | mouse | right stick |
+| Look | Survivor: mouse orbits the third-person camera (360° yaw); Killer: mouse look (first person) | right stick, same |
 | Interact (hold) | E | X |
 | Skill | Q | RB |
-| Spectate next / previous (Eliminated) | E / Q | RB / LB |
+| Spectate next / previous (Eliminated) | E / Q (mouse orbits the spectate camera) | RB / LB (right stick orbits) |
 | Play menu | Esc | Start |
 
 **Gamepad text entry (character pad):** A on a focused field opens a pad anchored directly under the field (never screen center): 12 keys per row, 32×32 u keys, 4 u gaps. Address pad: `0–9 . :` + `Delete` + `Done`. Name pad: `A–Z a–z 0–9 space - _` in 6 rows + `Delete` + `Done`. D-pad moves, A types, X deletes, B or `Done` closes. Pad keys use the §0.5 option states (normal / hover / focused / pressed). Fields remember the last value, so a gamepad player rarely types.
@@ -185,17 +191,17 @@ The server simulates from MatchStart (no pre-match freeze — decided against fo
   - M `text`: skill name and effect, e.g. `Dummy packet — a fake Signal where you stand, 3 s`; up to 2 lines (the longest, Stealth relay, is 86 characters ≈ 851 u at M → 2 lines in 648 u) [4]
   - S `muted`, 2 lines: `Moving or hacking makes you Signal. Stand still to stay Silent.` / `Hack 3 terminals, then reach the Exit.` (number = `TerminalsRequired`; the second line is omitted until it is known)
   - Worst-case height: 12 + 34 + 4 + 2 × 23 + 4 + 2 × 18 + 12 = 148 ≤ 160.
-- **Killer:** a block 300×208 u in the left column directly above the effect line (§6.1); time stays visible. Inner width 276 u (≈ 33 S characters per line).
-  - L 600 `You are the Killer` [4]; M skill name (1 line; longest `Packet afterimage`, 17 characters ≈ 168 u) [4]; S `text` effect line from §8, max 3 lines [4]; S `muted`, max 3 lines: `Only Signal Survivors appear on your map. Catch every Survivor before one reaches the Exit.` (88 characters → 3 lines)
-  - Worst-case height: 12 + 34 + 4 + 23 + 4 + 3 × 18 + 4 + 3 × 18 + 12 = 201 ≤ 208. (The longest Killer effect line, Packet afterimage, is 65 characters → 2 lines.)
+- **Killer:** block 6.1e, 320×208 u, at the top of the bottom-left cluster (§6.1); the info and skill blocks stay visible. Inner width 296 u (≈ 35 S characters per line).
+  - L 600 `You are the Killer` [4]; M skill name (1 line; longest `Packet afterimage`, 17 characters ≈ 168 u) [4]; S `text` effect line from §8, max 3 lines [4]; S `muted`, max 3 lines: `Only Signal Survivors show, even through walls. Catch every Survivor before one reaches the Exit.` (97 characters → 3 lines at 35 per line: 32 / 35 / 28)
+  - Worst-case height: 12 + 34 + 4 + 23 + 4 + 3 × 18 + 4 + 3 × 18 + 12 = 201 ≤ 208. (The longest Killer effect line, Packet afterimage, is 60 characters → 2 lines.)
 
 Sound: `match_start` (one low tone, 400 ms).
 
 ---
 
-## 4. Survivor HUD (first person)
+## 4. Survivor HUD (third person)
 
-Zone rule (SLOP §8): one **bottom-center cluster**, plus screen-edge markers and world-anchored labels. No top bar, no corners.
+Zone rule (SLOP §8): one **bottom-center cluster**, plus screen-edge markers and world-anchored labels. No top bar, no corners. The character stands above the cluster (camera framing, §4.10).
 
 ### 4.0 Cluster layout
 Anchor bottom-center, 24 u above the bottom edge. Width 672 u, height 72 u, fill `panel`, 1 u border `line`. The prompt row sits 8 u above it (672×40 u), only when a prompt applies.
@@ -293,7 +299,7 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
 - **Escaped:** lasts until `S2C_GameResult`, which normally arrives in the same tick. The meter shows row 2.
 - **Eliminated:** plays the sound `eliminated` (falling tone, 600 ms). The meter is replaced by a spectate block of the same size.
   - Line 1, M: `Eliminated — spectating Mina`. Line 2, S `muted`: `[E] next · [Q] previous`.
-  - Camera: first person at the spectated Survivor's `X, Z, Yaw`, with a static eye height.
+  - Camera: the §4.10 orbit rig around the spectated Survivor's `X, Z`; their character faces their `Yaw`. The spectator orbits it with the mouse / right stick. Switching target cuts instantly and keeps the current camera yaw and pitch.
   - Order: slot order, skipping Survivors whose `Status` is Eliminated or Escaped. If none is left, line 1 reads `Eliminated — no Survivor left to spectate` and the camera stays.
   - The threat cue, skill and prompts are hidden. The info block stays.
 
@@ -306,7 +312,7 @@ Sources: Survivors' `X/Z`, `Status`; static Exit position; `ExitOpen`, `ExitLock
 | Normal Survivor (nearest 2) | a Lagging Survivor | chevron `ally` + `Mina · 12 m` | world tag `Mina · 12 m` |
 | Exit | Normal Survivors, once `ExitOpen = 1` | chevron `text` + `Exit · 34 m` (`Exit Locked · 34 m` while `ExitLocked = 1`) | world tag on the exit |
 
-Inset 24 u from the screen edge; markers on the bottom edge stop 8 u above the prompt row. At most 7 markers. No marker or element ever concerns the Killer.
+Placement and pointing follow the §6.2 edge-indicator rule (safe rectangle inset 24 u; keep-out = cluster, prompt row and, while shown, intro, expanded by 8 u). At most 7 markers. No marker or element ever concerns the Killer.
 
 ### 4.7 Exit (info block line 3)
 Sources: `ExitOpen`, `ExitLocked`; FirewallBlock `S2C_SkillEffect.Duration` (sent to everyone, X/Z = exit).
@@ -338,6 +344,21 @@ Distinctness (SLOP §6): each skill has its own icon depicting its effect, its n
 ### 4.9 Time left (info block line 1)
 Source: `S2C_WorldState.TimeLeft`. Format `m:ss`, M 600 tabular `text`. In the last 60 s a 4×18 u `text` bar appears left of the number (time pressure is not Killer-caused threat, so not `danger`). Sound `time_60` (single tone) once at 60 s.
 
+### 4.10 Camera and framing (third person, GDD §2 changed 2026-10-27)
+Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everything here is client-side presentation; the server sees only `C2S_MoveInput`.
+
+- **Rig:** an orbit camera around a look target 0.7 m above the own character's position. Boom 4.0 m. Yaw free 360°, driven by mouse / right stick only. Pitch −10° (looking up) to +60° (looking down), default +20°. Vertical FOV 50° (Hor+ on other aspect ratios). These values are the starting point (🔶, §11 N6).
+- **Movement:** the move vector is relative to camera yaw: W = away from the camera. The client rotates it to world space and sends it as `C2S_MoveInput.{DirX, DirZ}`. The character turns toward the movement direction at 720°/s; `C2S_MoveInput.Yaw` = the character's facing, not the camera's. Standing still keeps the last facing, so orbiting the camera never turns the character or makes it Signal. While own `Hacking` is set, the character faces the terminal (derived).
+- **Wall collision:** a 0.2 m sphere cast from the look target toward the camera against static walls. The boom shortens to the hit distance at once and eases back out over 150 ms when the wall clears. When the boom is shorter than 1.0 m, the own character is drawn with a 40 % screen-door dither so it never blocks the view.
+- **Framing check** (default pitch, full boom): camera height 0.7 + 4.0 × sin 20° = 2.07 m, horizontal distance 3.76 m. The feet project at 8.8° below center, which is **≈ 67 % of screen height** (600 u at 720p); the head (1.8 m) is at ≈ 19 %. The character therefore stands above every bottom-center block: the 3 s intro's top edge is 636 u (71 %), the prompt row's 756 u (84 %), the cluster's 804 u (89 %). Across the pitch range (−10° … +60°) the feet stay between ≈ 58 % and 69 % (523–622 u), still above the intro, prompt row and cluster; a shortened boom enlarges the character around the screen center.
+- **No reticle** and no aim marker: hacking and rescuing are range-based (1.5 m), and the prompt row (§4.3, §4.4) is chosen from the character's position, not from where the camera points.
+- **Readability against the character:**
+  - The own character has no outline, glow or tint for Signal / Silent. The meter is the only indicator of that state (one indicator per state, SLOP §8).
+  - Other Survivors are drawn as characters with no outline; the only on-character elements are the §4.6 world tags (Lagging, or the nearest Normal Survivors while you are Lagging).
+  - The terminal the prompt row refers to gets its world label (§4.3) at weight 600, so the prompt and the object it names are linked.
+  - World tags never draw over the own character's silhouette: a tag whose screen rectangle overlaps the own character's screen bounds moves up until it clears them.
+- **The Killer is never drawn.** The Survivor client never receives the Killer's position (§0.1), so there is no Killer model, shadow, footstep or marker, even when the camera can see around a corner the character cannot.
+
 ---
 
 ## 5. Survivor play menu
@@ -355,78 +376,133 @@ Focus: Resume → Leave match. Esc / B = Resume.
 
 ---
 
-## 6. Killer HUD (top-down)
+## 6. Killer HUD (first person)
 
-The map **is** the HUD (SLOP §8). The screen is the square map view (height-fitted, centered) plus one column in the left gutter. The right gutter holds only the play menu when it is open.
+GDD §2 (changed 2026-10-27): the Killer plays in first person with mouse look. Signal Survivors appear as characters when in line of sight and as through-wall Signal markers when occluded. Terminals and the Exit have world markers. A Silent Survivor is never sent to the Killer (masking rule 11), so nothing is drawn for them, even when they stand in front of the camera.
 
-Geometry: map square `900 / 1080 u`; gutters `350 / 420 u`. Left column: x 24, width 300, from y 24 to bottom − 24 (shifted down 72 u while the connection band shows, §9).
+### 6.0 Camera and zones
+- **Camera:** eye height 1.7 m. Yaw is free; pitch is −70° to +70°; horizontal FOV is 90° at 16:9, i.e. vertical 59°, Hor+ on other aspect ratios (🔶, §11 N6). Movement input is relative to the view yaw, and `C2S_MoveInput.Yaw` = view yaw. There is no Killer body or hands model in view (art decision, §11 N6). There is no crosshair: capture is proximity-based (1.2 m), so nothing needs aiming.
+- **Zones:**
+  1. One **bottom-left cluster** (SLOP §8: skill and cooldown bottom-left).
+  2. **World markers** anchored to world positions.
+  3. **Screen-edge indicators** for off-screen Signals.
 
-### 6.1 Left column
-From the top:
-| # | Element | Source | Content | Size |
+  There is no top bar, no right side and no center panel. Edge indicators never enter the cluster rectangle (they clamp to its top edge and its right edge).
+
+### 6.1 Bottom-left cluster
+Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and a 1 u `line` border, because the cluster sits over the 3D view. Stack, from the top. Info (6.1a) and Skill (6.1d) are always shown; the other blocks only when they apply. Every height below includes the 1 u border on both sides.
+
+| # | Block | Source | Content | Size |
 |---|---|---|---|---|
-| 6.1a | Time left | `TimeLeft` | label `Time left` (S `muted`) [4]; `9:42` (L tabular `text`); in the last 60 s a 4×28 u `text` bar left of it | [24] |
-| 6.1b | Terminals | `Terminals[].Progress`, `TerminalsRequired` | `Terminals 1 of 3` (M `text`); when done = needed − 1, a second line `One more opens the Exit.` (S `text`) | — |
+| 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
+| 6.1p | Prompt | §6.4 | execution guidance, 2 S lines | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more opens the Exit.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 70 ≤ 72 (line 3 budgeted at the M line height) [8] |
+| 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
+| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 320×72 |
 
-From the bottom:
-| # | Element | Source | Content | Size |
-|---|---|---|---|---|
-| 6.1d | Skill block | `MatchStart.SkillId`, the Killer's own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon (64 u) as in §4.8, the name (M 600) to the right, and a state line (S `muted`): `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 300×72 |
-| 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | above 6.1d, gap 8 |
-| 6.1e | Intro block | §3 | 300×208, above 6.1c while shown | gap 8 |
+Width checks:
+- Skill block text area: 320 − 8 − 64 − 8 − 8 = 232 u. The longest name, `Packet afterimage`, is ≈ 168 u, and the longest state line, `Passive — always on`, is ≈ 158 u.
+- Effect line: 282 + 4 + 4 = 290 ≤ 312.
 
-Skill block internals (300×72, padding 8, inner height 56): 64 u ring area as §4.8; to the right 300 − 8 − 64 − 8 − 8 = 212 u for the name (M 600, one line; longest `Packet afterimage` ≈ 168 u) and the state line (S, one line; longest `Passive — always on` ≈ 158 u). 23 + 18 = 41 ≤ 56.
-Effect line: longest `Slowed by traffic overload · 1.6 s` (34 characters ≈ 282 u at S) + 4 u bar + 4 u gap = 290 ≤ 300; drawn at S (one 18 u line).
-Column height check (720p): top stack 18 + 4 + 34 + 24 + 23 + 18 = 121 u; bottom stack 72 + 8 + 18 + 8 + 208 = 314 u; total 435 u ≤ 852 u (780 u with the connection band).
+Heights at 720p:
+- Worst case, with everything shown: 208 + 8 + 56 + 8 + 72 + 8 + 32 + 8 + 72 = 472 u ≤ 900 − 48.
+- The cluster's top edge sits at 900 − 24 − 472 = 404 u, below the screen center.
+- In normal play (intro, prompt and effect line hidden), the cluster is 72 + 8 + 72 = 152 u tall; 192 u with the effect line.
 
-### 6.2 Map layer
-Sources: Killer-bound `S2C_WorldState.Players` (Killer + Signal Survivors including Lagging, forced, afterimage, and decoys), `Terminals`, `ExitOpen`, `ExitLocked`, FirewallBlock effect; static map.
+### 6.2 World layer
+Sources: Killer-bound `S2C_WorldState.Players` (the Killer plus Signal Survivors, including Lagging, forced, afterimage and decoys), `Terminals`, `ExitOpen`, `ExitLocked`, FirewallBlock effect; static map (`FixedMap` walls, terminal and exit positions).
 
-| Element | Trigger | Rendering |
-|---|---|---|
-| Floor and walls | static | floor `panel`; walls fill `line`, 1 u outline `muted`; unlit flat materials for gameplay geometry |
-| Killer (self) | own entry (`Role = Killer`) | 20 u filled disc `danger` + a 10 u facing tick `text` from the Killer's own input direction |
-| Blip | anonymous blip (§6.3) with `Status = Normal` | 16 u filled disc `signal`. No name, number, facing or trail. |
-| Lagging blip | anonymous blip with `Status = Lagging` | 16 u disc `signal` + 1 u ring `text` at 24 u + label `Lagging` (S `text` on a `panel` tag). Decoys are never Lagging, so this is decoy-safe. |
-| (no capture marker) | — | `CaptureCount` is **not rendered**: a WhiteNoise decoy can re-borrow a different Survivor's Id mid-life, so the value is not stable on a decoy, and the marker would not change the Killer's action (a touch is the action either way). |
-| (no last-seen mark) | — | A vanished blip leaves nothing behind. Entries kept alive by the server's PacketAfterimage are ordinary blips (§6.3), so the skill's value comes from the server, and non-owners get no free afterimage. |
-| Terminal | `Terminals[]` | 14 u square outline `text`, label `40%` (S `muted`) under it; done: filled `muted`, no label. The square vs the blip disc fixes U4 follow-up 7. |
-| Exit | static position + `ExitOpen`, `ExitLocked` | 2 m ring. Label to the left of the ring, inside the map (fixes the U4 overlap): `Exit Locked` (`muted`, dashed ring) / `Exit Open` (`text`, solid `text` ring) / `Exit Locked · 4 s` (`text`; solid ring with a bar across, `text`; seconds from the Killer's own FirewallBlock `Duration`) |
+**Survivors.** Each anonymous blip (§6.3) is classified every frame, and the classification is *derived*:
+- **in view**: inside the camera frustum, and a ray from the camera to the blip's position at 1.2 m height hits no static wall;
+- **occluded**: inside the frustum, but the ray hits a wall;
+- **off-screen**: outside the frustum.
+
+The classification must hold for 100 ms before it switches, which prevents flicker at wall edges. Walls are treated as full height.
+
+| Class | Rendering |
+|---|---|
+| In view, `Status = Normal` | The **Survivor character**: one shared model and one shared neutral material for every Survivor in the Killer view, with no per-player color, cosmetic, name or number (§11 N1). The silhouette gets a 1 u `signal` screen-space outline, meaning "transmitting". Facing and animation follow §6.3 rule 5. Beyond 20 m, the distance tag `24 m` is also drawn under the character, so a distant in-view Survivor gets the same guidance as an occluded one. |
+| In view, `Status = Lagging` | The same character in the Lagging pose, with its animation stepped at 8 Hz (the GDD §3.3 stutter), plus a world tag above the head: `Lagging` (S `text` on a `panel` tag, with a 2 u `text` left bar). |
+| Occluded, Normal | The character model is **not drawn**. Instead a **Signal marker**: a 16 u filled `signal` diamond at the blip position, 1.2 m high, drawn on top of walls (screen-constant size). Under it, a distance tag `24 m` (S `text` on `panel`; distance derived from positions). |
+| Occluded, Lagging | The same diamond plus a 1 u `text` ring at 24 u; tag `Lagging · 24 m`. |
+| Off-screen | An **edge indicator**: a 16 u `signal` chevron placed and pointed by the rule below, with tag `24 m`. Lagging chevrons get a 1 u `text` ring. Only the 6 nearest are shown, so a White noise burst cannot fill the edges. |
+
+Decoys are classified and rendered by exactly the same rules (§6.3).
+
+**Marker contrast.** Every world-marker shape (diamond, ring, square, chevron) has a 1 u `bg` keyline around it, so it reads against bright and dark scene areas alike; tags have a `panel` fill. No glow (SLOP V3).
+
+**Edge-indicator placement** (*derived*, also used by §4.6):
+1. Transform the target point (blip at 1.2 m height) into camera space: `x` right, `y` up, `z` forward.
+2. Direction `d = normalize(x, y)` in screen space. This works for points behind the camera too (`z ≤ 0`), because camera-space `x` and `y` keep their sign. If `x = y = 0` (straight behind), use `d = (0, −1)` (bottom edge).
+3. The **safe rectangle** is the screen inset 24 u, with its top moved down to 56 u while the connection band (§9) shows.
+4. Cast a ray from the screen center along `d` and place the chevron where it meets the safe rectangle; the chevron points along `d`.
+5. **Keep-out:** the HUD cluster expanded by 8 u. A chevron that lands inside it slides along the safe rectangle's edge, away from the screen corner, until it clears: on the left edge it moves up, on the bottom edge it moves right (Killer); on the bottom edge it moves left or right, whichever is nearer (Survivor). Tags sit on the screen-center side of their chevron.
+6. On-screen markers (occluded diamonds, Terminal and Exit markers) whose projected point falls inside the keep-out are clamped to its nearest outside edge, the same way, so the cluster never hides a marker.
+
+**Terminals.**
+- An incomplete terminal gets a through-wall marker 1.5 m above it: a 14 u square outline in `text`, with the tag `Terminal 2` (S `muted` on `panel`; number = `Id + 1`).
+- **No progress percentage** in the Killer view. A blip standing at a terminal whose percentage never rises would expose a decoy, and a percentage that rises with no blip nearby would expose a Silent hacker under Stealth relay. The Killer sees only the done count (6.1a). Whether the Killer should receive `Progress` at all is §11 N9.
+- When the terminal is in view and within 8 m, only the tag is drawn, because its 3D model is visible.
+- A completed terminal gets no marker; its 3D model shows a done state (art).
+
+**Exit.** Always shown as a through-wall marker 2.5 m above the exit:
+- Not open: 16 u ring, 1 u dashed `muted`, tag `Exit Locked` (`muted`).
+- Open: solid `text` ring, tag `Exit Open` (`text`).
+- Locked by the Killer: solid ring with a bar across, tag `Exit Locked 4 s` (`text`; seconds from the Killer's own FirewallBlock `Duration`; with no effect received, e.g. after a reconnect: `Exit Locked`).
+
+**Draw order**, back to front: terminal and exit markers, Signal markers and edge indicators, then the cluster. Markers never use glow (SLOP V3). Only Survivors get the `signal` outline.
 
 ### 6.3 Anonymous blips (normative; decoy safety)
-Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borrow the Id of an absent Survivor (U2b rule 9). The server sets the `Afterimage` flag only on real Survivors. Therefore:
-1. **Read only `Role`, `Status`, `Flags.Signal`, `X`, `Z`** of Survivor entries. Never `Id`, `Yaw`, `StatusTimer`, `CaptureCount` or the `Afterimage` flag. Entries with `Afterimage` set are drawn exactly like every other blip. (They are amber although no longer transmitting: to the Killer an amber blip means "reported by the server", and making it truthful would expose decoys — §11 Q8.)
+Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borrow the Id of an absent Survivor (U2b rule 9). The server sets the `Afterimage` flag only on real Survivors. Per the 2026-10-27 decision (§11 Q8), U2c may replace Ids in the Killer view with per-snapshot indices. These rules work either way:
+1. **Read only `Role`, `Status`, `Flags.Signal`, `X`, `Z`** of Survivor entries. Never `Id`, `Yaw`, `StatusTimer`, `CaptureCount`, `Flags.Hacking`, `Flags.Rescuing`, `Flags.Stealthed` or the `Afterimage` flag. Entries with `Afterimage` set render exactly like the others; they get the `signal` outline although they are no longer transmitting, because to the Killer amber means "reported by the server" (§11 Q8).
 2. **Match by position, not by Id.** In each snapshot, the Survivor entries form an unordered set.
-   - The server sends them sorted by Id, so the client shuffles the received list before use. Distance ties are broken randomly. Nothing (spawn order, sound, z-order) follows the wire order.
+   - The client shuffles the received list. Distance ties are broken randomly. Nothing (spawn order, sound, draw order) follows the wire order.
    - Match greedily by nearest distance to the previous snapshot's blips, accepting only pairs within 0.4 m (2 × 4.0 m/s × 0.05 s).
-   - Matched pairs tween over one tick.
-   - Unmatched new entries appear in place.
-   - Unmatched old blips disappear with no trace.
+   - A matched pair keeps its character or marker instance, which tweens over one tick.
+   - An unmatched new entry spawns a new instance in place, with no spawn animation.
+   - An unmatched old blip despawns instantly, with no death or fade animation.
 
-   A borrowed Id that jumps across the map therefore looks exactly like one blip vanishing and another appearing.
-3. Status-change cues use matched pairs or the Killer's own position only (§6.4).
-4. No per-blip identity anywhere: no names, colors, numbers or sounds per entry.
+   A borrowed Id that jumps across the map therefore looks exactly like one Survivor vanishing and another appearing.
+3. Status-change cues use matched pairs or the Killer's own position only (§6.5).
+4. No per-instance identity anywhere: no names, colors, numbers, cosmetics or sounds per entry.
+5. **Facing and animation are derived only from matched position deltas.**
+   - Facing = the direction of the most recent matched displacement ≥ 0.03 m (below the slowest per-tick step, a Lagging Survivor's).
+   - An instance that has not moved since it spawned faces the nearest terminal (static data). This applies equally to real and fake entries.
+   - Animation: walk when the matched speed is > 0.5 m/s, otherwise idle; the Lagging pose when `Status = Lagging`.
+   - There is no hacking or rescuing animation, because those flags are unread (§11 N2).
 
-### 6.4 Killer sounds
+### 6.4 Execution guidance (GDD §3.3, execution grace added 2026-10-27)
+Rule (server, `GameServer.Rules.cs`): after a capture, the Lagging Survivor cannot be eliminated for 2 s; a touch during those 2 s is spent and does nothing; elimination needs the Killer to be out of contact (> `CaptureRadius` 1.2 m) at some tick and then touch them after the grace. The client mirrors this from what it observed, per matched Lagging instance:
+- `t0`: the moment the capture cue fired for that instance (§6.5). At `t0`, `armed = false`.
+- Each snapshot: if the Killer's own position is more than 1.2 m from the instance, `armed = true`; otherwise, if `now − t0 < 2 s`, `armed = false` (the in-grace touch is spent).
+
+Prompt block 6.1p (two S lines; line 1 S 600) is shown while a Lagging instance is within 4 m:
+
+| State | Trigger | Line 1 | Line 2 |
+|---|---|---|---|
+| Grace | `now − t0 < 2 s` | `Lagging Survivor` | `Wait 1.6 s, step back, touch again.` |
+| Step back | grace over, `armed` false | `Lagging Survivor` | `Step back 1.2 m, then touch again.` |
+| Ready | grace over and `armed` true, or no `t0` was observed | `Lagging Survivor` | `Touch again to eliminate.` |
+
+Line 2 is at most 35 characters (≈ 290 u), which fits the 302 u inner width (320 − 2 × 1 border − 2 × 8 padding). Decoys are never Lagging, so the prompt cannot expose one. The server decides; the prompt is guidance, and the 2 s grace is a static GDD value (§11 N5).
+
+### 6.5 Killer sounds
 | Cue | Trigger (all observable in the Killer view) |
 |---|---|
-| `blip_first` (soft ping, −12 dB) | the blip count goes from 0 to ≥ 1 after ≥ 2 s with none |
-| `capture_confirm` (hit) | a matched pair changes `Status` Normal → Lagging, **or** a new unmatched blip with `Status = Lagging` appears within 1.2 m of the Killer (the usual ambush: the Survivor was Silent until captured). Decoys are never Lagging. At most once per 0.5 s. |
-| `execute_confirm` (low hit) | a Lagging blip within 1.2 m of the Killer has no match in the next snapshot. Lagging Survivors are always visible, so this means Eliminated; decoys are never Lagging. |
+| `blip_first` (soft ping, −12 dB, non-positional) | The Signal count goes from 0 to ≥ 1 after ≥ 2 s with none. |
+| `capture_confirm` (hit) | Either a matched pair changes `Status` Normal → Lagging, or a new unmatched entry with `Status = Lagging` appears within 1.2 m of the Killer (the usual ambush). Decoys are never Lagging. At most once per 0.5 s. Sets `t0` (§6.4). |
+| `execute_confirm` (low hit) | A Lagging instance within 1.2 m of the Killer has no match in the next snapshot. Lagging Survivors are always visible, so this means Eliminated. |
 | `exit_open` | `ExitOpen` 0 → 1 |
 | `skill_use` / `skill_ready` | own effect / own `SkillCooldown` reaching 0 |
 | `time_60` | `TimeLeft` crosses 60 |
 
-There is no cue for capturing a Normal Survivor whose `CaptureCount` is already ≥ 1. That Survivor is eliminated and leaves the view in the same tick, which looks the same as going Silent (§11 Q7).
+Survivor characters make **no positional sound** in the Killer view: no footsteps and no breathing. Positional audio per instance would add nothing safe beyond the markers, and it would conflict with SLOP §8's minimal-feedback rule (§11 N3).
+There is no cue for eliminating a Normal Survivor whose `CaptureCount` is already ≥ 1, because that Survivor leaves the view in the same tick (§11 Q7, decided: not now).
 
-### 6.5 Killer play menu
-Esc / Start opens a 300×208 block in the **right gutter**, at x = gutter start + 24, y 24 (x 1274 + 300 = 1574 ≤ 1600 at 720p). Padding 12, inner width 276 u (≈ 33 S characters). It holds:
-- The skill name (M 600, one line).
-- The effect (§8; S, max 3 lines — the longest Killer effect is 65 characters, so 2 lines).
-- `Resume` (primary, focused) and `Leave match`, stacked as 276×40 u buttons with an 8 u gap. Two 160 u buttons do not fit side by side.
-
-Height: 12 + 23 + 4 + 3 × 18 + 12 + 40 + 8 + 40 + 12 = 205 ≤ 208.
-- Behaviour is the same as §5: one zero MoveInput, and the cursor is released.
+### 6.6 Killer play menu
+Esc / Start replaces the intro/prompt area at the top of the cluster with a 320×208 block, padding 12, inner width 296 u. It holds the skill name (M 600), the effect (§8; S, max 3 lines), then `Resume` (primary, focused) and `Leave match`, stacked as 296×40 u buttons with an 8 u gap.
+- Height: 12 + 23 + 4 + 3 × 18 + 12 + 40 + 8 + 40 + 12 = 205 ≤ 208.
+- Behaviour is the same as §5: one zero MoveInput, the cursor is released, and the match keeps running.
 - Focus: Resume → Leave match. Esc / B = Resume.
 - The HUD itself has no focusable elements.
 
@@ -459,7 +535,7 @@ Focus: 7.5 → 7.6. Initial 7.5. Esc / B = 7.5.
 |---|---|---|---|---|
 | Killer | 0 | Ping scanner | `Shows the nearest Survivor for 1.5 s.` | three concentric arcs from a point toward a small dot |
 | Killer | 1 | Overclock | `1.5× speed for 3 s, then 1 s unable to move.` | two right chevrons followed by a vertical stop bar |
-| Killer | 2 | Packet afterimage | `Passive: Survivors stay on your map 1 s after their Signal ends.` | a solid dot with two hollow dots trailing behind |
+| Killer | 2 | Packet afterimage | `Passive: Survivors stay visible 1 s after their Signal ends.` | a solid dot with two hollow dots trailing behind |
 | Killer | 3 | Firewall block | `Locks the open Exit for 5 s.` | a ring with a horizontal bar through it |
 | Survivor | 0 | Dummy packet | `A fake Signal where you stand, 3 s.` | a dashed-outline dot |
 | Survivor | 1 | Stealth relay | `You and Survivors within 5 m stay Silent for 2 s, even while moving.` | a dot inside a circle, a wave line crossed out |
@@ -477,7 +553,7 @@ Trigger: the socket closes, or no packet arrives for 3 s.
 
 Display:
 - A full-width band at the top, 48 u tall, `panel` fill, 1 u `line` bottom border, M `text` at x 24.
-- On the Killer screen the left column shifts down 72 u while the band shows. On the Survivor screen nothing else is at the top.
+- The band never overlaps a HUD block: the Survivor cluster and the Killer cluster are both bottom-anchored (worst-case Killer cluster top edge 404 u, below the band's 48 u).
 - Gameplay input is ignored while the band shows.
 - The 3D view keeps its last frame. There is no spinner; the text states the reason (SLOP §5).
 
@@ -506,9 +582,12 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
 | Exit | `S2C_WorldState.{ExitOpen, ExitLocked}`; FirewallBlock `S2C_SkillEffect.Duration` |
 | Skill state | own `S2C_SelfState.SkillCooldown` (v0.3) + own `S2C_SkillEffect.{CasterId, SkillId, Duration}` + static cooldowns as ring scale |
 | Time | `S2C_WorldState.TimeLeft` |
-| Killer blips | Killer-bound `PlayerState.{Role, Status, Flags.Signal, X, Z}` as a shuffled anonymous set |
+| Killer characters, Signal markers, edge indicators | Killer-bound `PlayerState.{Role, Status, Flags.Signal, X, Z}` as a shuffled anonymous set; occlusion derived from static walls; facing and animation from matched position deltas |
 | Killer effect line | own Overclock / Killer-bound TrafficOverload `S2C_SkillEffect.Duration` |
-| Spectate | Survivors' `PlayerState.{X, Z, Yaw, Status}` |
+| Spectate | Survivors' `PlayerState.{X, Z, Yaw, Status}` (orbit pivot and character facing) |
+| Survivor camera and movement | own `PlayerState.{X, Z, Yaw}`; static walls (boom collision); input → `C2S_MoveInput.{DirX, DirZ, Yaw}` (§4.10) |
+| Terminal and Exit markers (Killer) | `Terminals[].{Id, X, Z, Progress = 100}` (done only, no percentage), `ExitOpen`, `ExitLocked`, FirewallBlock `Duration`; static positions |
+| Execution guidance | derived from observed capture time and own position (§6.4); static 2 s grace |
 | Result | `S2C_GameResult.{WinnerRole, Reason, EscapedIds}` + the last WorldState |
 | Connection band | socket, `S2C_Pong`, `S2C_JoinResult.Result` |
 
@@ -532,7 +611,7 @@ The user decided every open question from the review loop. "Final" means the spe
 | Q4 | 3 s pre-match freeze. | **No, not now.** | The intro stays non-blocking (§3). |
 | Q5 | Skill cooldown on the wire. | **Yes.** A new own-only packet `S2C_SelfState { SkillCooldown, RescueProgress, InvulnerableLeft }`, planned for **U2c / protocol v0.3**. It goes only to the player it describes. It is never a `PlayerState` field, and the Killer never receives it about anyone else. | §4.8 and §6.1d read `SkillCooldown`; §4.1 shows `Protected` from `InvulnerableLeft`. The derived cooldown timer is removed. These elements depend on U2c; until it lands they cannot be built as specified. |
 | Q6 | Rescue progress on the wire. | **Yes**, the `RescueProgress` field of the Q5 packet. Semantics assumed here: own rescue (Lagging) or the rescue you are taking part in (rescuer), 0–1; U2c fixes the encoding. | §4.1 row 3 and §4.4 read `RescueProgress`; the derived estimate is removed. |
-| Q7 | Result stats and a Killer capture event. | **No, not now.** | The result shows terminals only (§7.4). There is no cue for eliminating a previously captured Normal Survivor (§6.4). |
+| Q7 | Result stats and a Killer capture event. | **No, not now.** | The result shows terminals only (§7.4). There is no cue for eliminating a previously captured Normal Survivor (§6.5). |
 | Q8 | Decoy detectability outside the UI. | **Under design, settled in U2c.** The user chose to evaluate shuffled per-snapshot indices instead of Ids in the Killer view, plus afterimage applied to decoys. | §6.3 keeps position-only matching. The Killer view **may stop carrying stable Ids**, so no Killer-side code may depend on `PlayerState.Id` of Survivor entries. §6.3 already forbids it. |
 | Q9 | Host role choice online. | **Final.** Shown online as `Host plays as` (host only). | §2.8 |
 | Q10 | Localization. | **Final.** English first with a string table; a Korean layout pass at 720p before Store screenshots. | All copy. |
@@ -541,3 +620,18 @@ The user decided every open question from the review loop. "Final" means the spe
 | Q13 | S text at 720p. | **Final.** S renders at ≥ 12 px physical; the panel-scale minimum stays 0.8. | §0.3 |
 | Q14 | Hosting from the game. | **Yes.** In-process `GameServer` + `TcpTransport` from the client. Expect a Windows Firewall prompt on the first host, and the Store package must declare the network-server capability (`privateNetworkClientServer`). | §1.7 |
 | Q15 | Panel scale above 1080p. | **Final.** The scale stays clamped at 1.0 for now. | §0.2 |
+
+### 11.1 Open questions from the camera change (2026-10-27)
+GDD §2 now gives Survivors a third-person orbit camera and the Killer a first-person view. These questions are new; until decided, the spec follows the choice marked "Spec now".
+
+| # | Question | Spec now | Needs |
+|---|---|---|---|
+| N1 | Survivor appearance in the Killer view. Any per-player look (cosmetic, color, build) would let the Killer tell instances apart and track a real Survivor against decoys. | One shared Survivor model and material in the Killer view, no names (§6.2). Survivors may see each other's looks. | Art / product decision; it constrains any future cosmetics. |
+| N2 | Hack and rescue animations in the Killer view. Decoys never carry `Hacking` / `Rescuing`, so animating those flags would mark every animated instance as real. | Flags unread; no hack or rescue animation; facing from position deltas only (§6.3 rule 5). | U2c: either decoys get the same flags, or the Killer view stays without these animations. |
+| N3 | Positional Survivor sound for the Killer (footsteps, breathing, as in Dead by Daylight). | None; only non-positional cues (§6.5). | Design decision; if wanted, it must be per-blip and identical for decoys. |
+| N4 | SLOP §8 "Role-specific HUD" and SLOP §6 still describe a first-person Survivor, a top-down Killer whose "map is the HUD", blip fade, and "frozen-ally" markers. | This spec follows GDD §2; the Killer's role-specific rules (skill bottom-left, Exit state on the Exit, only Signal Survivors) are kept. | User approval to amend those SLOP lines (this unit may not edit them). |
+| N5 | Execution grace guidance (§6.4) is derived from the capture the Killer observed; it is missing after a reconnect or when the capture cue was not observed. | Falls back to `Touch again to eliminate.`; the server decides. | Optional own-only Killer field in `S2C_SelfState` (U2c), e.g. grace left for the nearest Lagging target. |
+| N6 | Camera numbers: Survivor boom 4.0 m, pitch −10°…+60°, vertical FOV 50° (§4.10); Killer eye 1.7 m, pitch ±70°, horizontal FOV 90° (§6.0); no Killer hands model; no FOV / camera-sensitivity setting yet. | Values as written, marked 🔶. | Playtest tuning; an FOV and sensitivity setting before Store submission (motion comfort). |
+| N7 | Stationary decoys. A Dummy packet or White noise decoy never moves, while a real Signal Survivor usually does. This is visible in any camera; first person makes moving characters more salient. | The UI cannot hide it; spawn facing is equalised (§6.3 rule 5). | Part of the U2c decoy design (Q8): e.g. decoys that drift. |
+| N8 | Occlusion source. The Killer's in-view / occluded split uses static `FixedMap.Walls`, treated as full height (§6.2). Low cover or props would make it wrong. | Full-height walls only. | Map pipeline: an occlusion flag per wall if low cover is added. |
+| N9 | Terminal progress in the Killer view. The Killer receives `Terminals[].Progress` on the wire; shown as a percentage, it would expose decoys standing at a terminal (no progress) and Silent hacking (progress with no blip). | The Killer HUD shows no percentage, only done terminals and the done count (§6.2, 6.1a). | U2c: decide whether to send the Killer `Progress` at all, or only a done flag, since a modified client can read it. |
