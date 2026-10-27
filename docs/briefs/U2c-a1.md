@@ -31,9 +31,17 @@ Decision basis: three parallel design evaluations on 2026-10-27 (A: anonymous/sh
 - `RescueProgress` is 0–1 for a Lagging player being rescued; for a rescuer it is the progress of the target they are rescuing.
 - Shared change: new packet class, codec registration and round-trip tests. Unity and the harness compile it automatically. Unknown-packet handling in the harness decoder must tolerate it (coordinate with the harness owner).
 
+## 5b. Killer-view decisions from the HUD spec (user, 2026-10-27, N5/N9)
+- **N5:** the killer's own `S2C_SelfState` also carries `float ExecutionGraceLeft`. It is the grace left for the nearest Lagging survivor within 3 m, or 0 when there is none. It is never sent to survivors. Add the field to the packet in §5.
+- **N9:** in killer-bound WorldState, every `TerminalState.Progress` is quantised to 0 or 100 (done or not done). Survivors keep the real percentage. Exact progress would let a modified killer client locate a Stealthed or Silent hacker.
+- **N3 (client-side, for reference):** the killer will hear positional footsteps per Signal blip. Decoys therefore must move like real survivors (§3) so the derived sound is identical. No extra server field.
+
 ## 6. Carried from U2b QA (`docs/qa/U2b-qa-a2.md`)
 - The 2 s execution grace, the private RNG and the Seq reset were already done in U2b attempt 3.
 - **F6:** replace the probabilistic `EqualWireSeedsDoNotGiveEqualBotPaths` with a deterministic test: fix the private seed through the hook, vary only the wire seed, and assert a bit-identical trace over 3 matches with 7 bots.
+- **Bot/balance observations from U4b real-rules play:**
+  - **Short matches:** offline matches end in about 20 s because survivor bots finish the terminals and escape before the killer can act. Make survivor bots less perfect: reaction delays, pauses when ThreatLevel ≥ 1, and some cap on how many bots co-hack the same terminal. Report the median match length over seeded 1 human + 7 bot matches, both before and after; target at least 3 minutes with an idle human killer and with the killer bot.
+  - **Stall at 3/4:** online survivor bots stalled at 3 of 4 terminals. Diagnose with a seeded reproduction and fix. Likely causes: an unreachable terminal, a stale target, or a ThreatLevel hold that never releases.
 - **F7:** hidden draws must use a generator with at least 128-bit state, or `RandomNumberGenerator`, instead of 31-bit `System.Random`. A 31-bit state can be brute-forced in about 31 CPU-minutes.
 
 ## Acceptance (sketch — finalize when U2b merges)
