@@ -35,6 +35,7 @@ The implementer and the QA reviewer of the same unit must be different model fam
 
 ## Cost guards
 
-- Never fan out more than 2 concurrent agents without telling the user.
+- **Split by default (user decision 2026-10-27):** any independent piece (no shared files, no dependency) goes to a worker — subagent, side session, Codex, or QA — in parallel. Writers never share files.
+- Tell the user whenever more than 2 agents run concurrently.
 - If token use spikes unexpectedly, first check for unintended multi-agent spawning (subagents spawning subagents, `/loop`, workflows).
 - Context: auto-compact window is set to 450k in user settings; keep it in the 400k–750k range.
