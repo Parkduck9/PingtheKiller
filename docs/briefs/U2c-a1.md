@@ -1,6 +1,21 @@
 # Brief U2c — attempt 1: protocol v0.3 (SelfState) + decoy hardening + server RNG privacy
 
-Status: **queued** — starts after U2b is merged into main. Implementer: Claude Opus while Codex is out of credits; QA on a different model.
+Status: **active** (2026-10-27, main `2530684`: U2a, U2b, U3, U3b, U4, U4b and the HUD spec are all merged). Branch `claude/u2c-protocol` in the main checkout. Implementer: Claude Opus (quota fallback; Codex is out of credits). QA: Claude Sonnet. Do not commit; the orchestrator commits after PASS.
+
+**Owned files:**
+- `Shared/Runtime/**` (new `S2C_SelfState` packet, PacketId, codec registration; additive only, existing wire layouts unchanged). Add a `.meta` for every new Shared file, using the two-line sibling format.
+- `Server.Core/Runtime/**` and `Server/Program.cs`.
+- `Server.Tests/Core/**` and `Server.Tests/Shared*` round-trip tests, if that folder exists.
+- `docs/qa/U2c-impl-a1.md`.
+
+**Not owned:** `Client/`, `Tools/` and `Server.Tests/QA/**`. The parallel units U3c (harness) and U4c (client) own those. If a QA test asserts behaviour that U2c replaces (Id borrowing, sorted order, exact killer-view progress, the probabilistic seed test F6), list it in your report and do not edit it.
+
+**Reference:** `docs/ui/HUD_SPEC.md` (merged) is the client contract for SelfState, killer markers and footsteps.
+
+**Commands:**
+- `dotnet build PingTheKiller.sln -warnaserror --no-incremental`
+- `dotnet test PingTheKiller.sln`
+- Harness: 3 runs, each on fresh servers, with `Harness.dll --host 127.0.0.1 --port P --h6-port P+1 --threshold 100`. P runs `--sandbox` and P+1 runs a normal server, both with `--bots 0 --bind 127.0.0.1`. The current harness looks up the killer stream by Id in H3, so H3 and possibly H6 are expected to fail until U3c lands. Report the scores as they are, do not change `Tools/`, and say which checks failed and why.
 Decision basis: three parallel design evaluations on 2026-10-27 (A: anonymous/shuffled killer view, B: shared decoy lifecycle incl. afterimage, C: decoy motion and staggering). All three said "recommend with changes" and that none is sufficient alone. The orchestrator merged them into the design below. The user asked for this choice to be made by evaluation ("combine, pick one, or pick something better"), with a stated preference for A and B.
 
 ## 1. Killer view is anonymous (from A)
