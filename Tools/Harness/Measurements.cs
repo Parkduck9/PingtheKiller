@@ -52,10 +52,11 @@ public static class Measurements
         return evidence;
     }
 
-    public static PlayerState Self(ReceivedFrame frame, int id)
+    // Own entry by real Id; with role (the killer), entries of another role carrying the same Id are not the own entry.
+    public static PlayerState Self(ReceivedFrame frame, int id, byte? role = null)
     {
         var world = (S2C_WorldState)frame.Packet;
-        var matches = world.Players.Where(p => p.Id == id).ToArray();
+        var matches = world.Players.Where(p => p.Id == id && (role == null || p.Role == role)).ToArray();
         Check.Require(matches.Length == 1, $"WorldState tick={world.Tick} contains {matches.Length} entries for own player {id}.");
         var player = matches[0];
         Check.Require(float.IsFinite(player.X) && float.IsFinite(player.Z), $"Non-finite position for player {id}.");
@@ -69,17 +70,15 @@ public static class Measurements
         return bytes;
     }
 
-    public static void Masked(ReceivedFrame frame, int survivorId, PlayerState stopped)
+    // H3 raw scan of one killer-bound frame. Entries are matched by tick and position elsewhere (TickJoin), never by Id.
+    public static void Masked(ReceivedFrame frame, PlayerState stopped) => MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);
+
+    public static void MaskedBytes(byte[] raw, string what, PlayerState stopped)
     {
-        if (frame.Packet is S2C_WorldState world)
-            Check.Require(world.Players.All(p => p.Id != survivorId),
-                $"Silent survivor {survivorId} leaked as PlayerState at tick={world.Tick}.");
-        // Search each coordinate independently across the entire captured frame,
-        // including headers and non-WorldState packets, without re-encoding floats.
-        Check.Require(frame.Raw.AsSpan().IndexOf(FloatBytes(stopped.X)) < 0,
-            $"Silent survivor X={stopped.X:R} bytes leaked in {frame.Packet.Id}.");
-        Check.Require(frame.Raw.AsSpan().IndexOf(FloatBytes(stopped.Z)) < 0,
-            $"Silent survivor Z={stopped.Z:R} bytes leaked in {frame.Packet.Id}.");
+        // Search each coordinate independently across the entire captured frame, including headers,
+        // non-WorldState packets and skipped unknown-Id frames, without re-encoding floats.
+        Check.Require(raw.AsSpan().IndexOf(FloatBytes(stopped.X)) < 0, $"Silent survivor X={stopped.X:R} bytes leaked in {what}.");
+        Check.Require(raw.AsSpan().IndexOf(FloatBytes(stopped.Z)) < 0, $"Silent survivor Z={stopped.Z:R} bytes leaked in {what}.");
     }
 
     public static void KillerHidden(ReceivedFrame frame, int killerId)

@@ -22,17 +22,35 @@ internal sealed class LobbyServer : IAsyncDisposable
         public long LastMoving;
     }
 
-    private sealed class Peer(TcpClient tcp)
+    private sealed class Peer(TcpClient tcp, bool unknownFrames)
     {
         public TcpClient Tcp { get; } = tcp;
         public Channel<byte[]> Output { get; } = Channel.CreateUnbounded<byte[]>();
         public Player? Player;
         public int MoveInputs;
-        public void Send(IPacket packet) => Output.Writer.TryWrite(PacketCodec.Encode(packet));
+        public void Send(IPacket packet)
+        {
+            // UnknownFrames: a well-formed unknown-Id frame before every packet, plus a 0x10 (future v0.3 Id) one per world.
+            if (unknownFrames) Output.Writer.TryWrite(UnknownFrame(0x7E, 12, 0x7E));
+            Output.Writer.TryWrite(PacketCodec.Encode(packet));
+            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(UnknownFrame(0x10, 16, 0x10));
+        }
+    }
+
+    public static byte[] UnknownFrame(ushort id, int payloadLength, byte fill, byte[]? payload = null)
+    {
+        var frame = new byte[6 + payloadLength];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(frame, 2 + payloadLength);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(4), id);
+        frame.AsSpan(6).Fill(fill);
+        payload?.CopyTo(frame, 6);
+        return frame;
     }
 
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
-    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(25));
+    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(45));
+    private readonly Random shuffle = new(77);
+    private float botX = -20.123f, botZ = 15.456f;
     private readonly object sync = new();
     private readonly List<Player> players = new();
     private readonly List<Peer> peers = new();
@@ -56,6 +74,24 @@ internal sealed class LobbyServer : IAsyncDisposable
     public bool DisconnectFlood { get; init; }
     public int OppositeInputs { get; private set; }
 
+    // U2c killer view: survivor entries with Id 0, Yaw/CaptureCount/StatusTimer 0, Signal-only flags, shuffled per
+    // snapshot. This fake has no terminals, so progress quantisation is exercised by ScenarioServer only.
+    public bool AnonymousKillerView { get; init; }
+    // Id mode with borrowed Ids: each killer-view survivor entry carries ANOTHER survivor's real Id (needs PassingBot).
+    public bool RotateKillerViewIds { get; init; }
+    // A scripted, always-moving survivor bot (Id 10). Once survivor 2 has stood still for 0.3 s it walks back and forth
+    // right past it (closest pass about 0.2 m), so it is visible to the killer during the whole Silent window.
+    public bool PassingBot { get; init; }
+    public float MinBotDistanceWhileStill { get; private set; } = float.PositiveInfinity;
+    // Broken variants of the stopped survivor's killer-view entry: rounded to 0.01 m, or offset by (0.02, -0.03) m.
+    public bool LeakSilentRounded { get; init; }
+    public bool LeakSilentOffset { get; init; }
+    // Broken: an extra killer-view entry that matches no survivor while survivor 2 is still.
+    public bool ExtraEntry { get; init; }
+    public bool UnknownFrames { get; init; }
+    // Broken: the stopped survivor's X/Z inside an unknown-Id frame to the killer.
+    public bool LeakSilentInUnknown { get; init; }
+
     public LobbyServer()
     {
         listener.Start();
@@ -71,7 +107,7 @@ internal sealed class LobbyServer : IAsyncDisposable
             {
                 var tcp = await listener.AcceptTcpClientAsync(lifetime.Token);
                 tcp.NoDelay = true;
-                var peer = new Peer(tcp);
+                var peer = new Peer(tcp, UnknownFrames);
                 lock (sync)
                 {
                     peers.Add(peer);
@@ -218,16 +254,48 @@ internal sealed class LobbyServer : IAsyncDisposable
                         player.X += player.Dx * speed / 20;
                         player.Z += player.Dz * speed / 20;
                     }
+                    long now = Stopwatch.GetTimestamp();
+                    var mover = players.Count > 1 ? players[1] : null;
+                    bool still = mover is { LastMoving: not 0 } && ReceivedFrame.SecondsBetween(mover.LastMoving, now) > 0.3;
+                    if (PassingBot)
+                    {
+                        // Triangle walk of +-2 m at 0.2 m/tick; the closest pass is (0.0137, 0.2) m from survivor 2, never exact.
+                        int k = (int)(tick % 40);
+                        float offset = (k <= 20 ? k : 40 - k) * 0.2f - 2f + 0.0137f;
+                        (botX, botZ) = still ? (mover!.X + offset, mover.Z + 0.2f) : (-20.123f + offset, 15.456f);
+                        if (still) MinBotDistanceWhileStill = Math.Min(MinBotDistanceWhileStill,
+                            MathF.Sqrt((botX - mover!.X) * (botX - mover.X) + (botZ - mover.Z) * (botZ - mover.Z)));
+                    }
+                    bool leak = LeakSilent || LeakSilentRounded || LeakSilentOffset;
                     foreach (var recipient in players)
                     {
                         var world = new S2C_WorldState { Tick = tick, TimeLeft = 600 };
                         foreach (var player in players)
                         {
-                            bool signal = ReceivedFrame.SecondsBetween(player.LastMoving, Stopwatch.GetTimestamp()) < .15;
+                            bool signal = ReceivedFrame.SecondsBetween(player.LastMoving, now) < .15;
                             if (recipient.Id != 1 && player.Id == 1 && !LeakKiller) continue;
-                            if (recipient.Id == 1 && player.Id != 1 && !signal && !LeakSilent) continue;
-                            world.Players.Add(new PlayerState { Id = player.Id, Role = (byte)(player.Id == 1 ? 1 : 0),
-                                X = player.X, Z = player.Z, Flags = (byte)(signal ? 1 : 0) });
+                            if (recipient.Id == 1 && player.Id != 1 && !signal && !leak) continue;
+                            var state = new PlayerState { Id = player.Id, Role = (byte)(player.Id == 1 ? 1 : 0),
+                                X = player.X, Z = player.Z, Flags = (byte)(signal ? 1 : 0) };
+                            if (recipient.Id == 1 && player.Id != 1 && !signal)
+                            {
+                                if (LeakSilentRounded) (state.X, state.Z) = ((float)Math.Round(state.X, 2), (float)Math.Round(state.Z, 2));
+                                if (LeakSilentOffset) (state.X, state.Z) = (state.X + 0.02f, state.Z - 0.03f); // 0.036 m, no exact X or Z bytes
+                            }
+                            world.Players.Add(state);
+                        }
+                        if (PassingBot) world.Players.Add(new PlayerState { Id = 10, X = botX, Z = botZ, Flags = 1, Yaw = 1.25f });
+                        if (recipient.Id == 1)
+                        {
+                            if (ExtraEntry && still) world.Players.Add(new PlayerState { X = 3.21f, Z = -4.56f, Flags = 1 });
+                            KillerView(world);
+                            if (LeakSilentInUnknown && still)
+                            {
+                                var payload = new byte[8];
+                                System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(payload, mover!.X);
+                                System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(payload.AsSpan(4), mover.Z);
+                                recipient.Peer?.Output.Writer.TryWrite(UnknownFrame(0x7E, 8, 0, payload));
+                            }
                         }
                         recipient.Peer?.Send(world);
                     }
@@ -235,6 +303,32 @@ internal sealed class LobbyServer : IAsyncDisposable
             }
         }
         catch (OperationCanceledException) { }
+    }
+
+    private void KillerView(S2C_WorldState world)
+    {
+        var survivorIds = players.Where(p => p.Id != 1).Select(p => p.Id).Concat(PassingBot ? new[] { 10 } : Array.Empty<int>()).ToList();
+        for (int i = 0; i < world.Players.Count; i++)
+        {
+            var p = world.Players[i];
+            if (p.Role == (byte)Role.Killer) continue;
+            if (RotateKillerViewIds && survivorIds.IndexOf(p.Id) is int at and >= 0) p.Id = survivorIds[(at + 1) % survivorIds.Count];
+            if (AnonymousKillerView)
+            {
+                p.Id = 0;
+                p.Yaw = 0;
+                p.CaptureCount = 0;
+                p.StatusTimer = 0;
+                p.Flags &= (byte)PlayerFlags.Signal;
+            }
+            world.Players[i] = p;
+        }
+        if (!AnonymousKillerView) return;
+        for (int i = world.Players.Count - 1; i > 0; i--)
+        {
+            int j = shuffle.Next(i + 1);
+            (world.Players[i], world.Players[j]) = (world.Players[j], world.Players[i]);
+        }
     }
 
     public async ValueTask DisposeAsync()

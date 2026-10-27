@@ -17,9 +17,29 @@ public static class KillerLeakScan
 
     private readonly record struct Field(int Bits, bool Legitimate);
 
+    // SEAM (U2c protocol v0.3): S2C_SelfState carries only the recipient's own timers, so its float fields are tolerated
+    // coincidences, like F4. Resolved by name at run time so this compiles before Shared has the type; while it is absent,
+    // its frames (0x10) are unknown Ids and get the conservative raw scan in UnknownLeak instead.
+    public static readonly Type? SelfStateType = typeof(IPacket).Assembly.GetType("PingTheKiller.Shared.Packets.S2C_SelfState");
+
+    // An unknown-Id frame cannot be checked structurally: every 4-byte window at any alignment (header included) is
+    // compared with the killer X/Z bits and any match fails. Conservative on purpose.
+    public static string? UnknownLeak(UnknownFrame frame, IReadOnlySet<int> killerBits)
+    {
+        for (int i = 0; i + 4 <= frame.Raw.Length; i++)
+        {
+            int bits = BinaryPrimitives.ReadInt32LittleEndian(frame.Raw.AsSpan(i));
+            if (killerBits.Contains(bits))
+                return $"killer coordinate bytes in unknown packet 0x{frame.Id:X2} (update Shared): {BitConverter.Int32BitsToSingle(bits):R} " +
+                    $"at byte {i} of {frame.Raw.Length}.";
+        }
+        return null;
+    }
+
     // Returns failure evidence, or null. coincidences (optional) receives the count of each explained match.
+    // selfStateType overrides SelfStateType (tests only).
     public static string? Excess(ReceivedFrame frame, IReadOnlySet<int> killerBits, IReadOnlyCollection<int> survivorIds,
-        Action<int>? coincidences = null)
+        Action<int>? coincidences = null, Type? selfStateType = null)
     {
         byte[] encoded;
         try { encoded = PacketCodec.Encode(frame.Packet); }
@@ -28,7 +48,7 @@ public static class KillerLeakScan
             return $"unexplained bytes in survivor-bound frame {frame.Packet.Id}: {frame.Raw.Length} raw bytes do not re-encode " +
                 $"from the decoded packet ({encoded.Length} bytes); possible killer coordinate leak.";
         Dictionary<int, (int Count, int Allowed)>? found = null;
-        foreach (var field in Fields(frame.Packet, survivorIds))
+        foreach (var field in Fields(frame.Packet, survivorIds, selfStateType ?? SelfStateType))
         {
             if (!killerBits.Contains(field.Bits)) continue;
             found ??= new Dictionary<int, (int, int)>();
@@ -46,8 +66,31 @@ public static class KillerLeakScan
         return null;
     }
 
-    private static IEnumerable<Field> Fields(IPacket packet, IReadOnlyCollection<int> survivorIds)
+    // Own-timer packet fields by reflection: floats are legitimate, 4/8-byte integers are compared as usual, 1/2-byte
+    // fields cannot hold a 4-byte pattern. Null (raw-window fallback) for any other field type.
+    private static List<Field>? OwnTimerFields(IPacket packet)
     {
+        var fields = new List<Field>();
+        foreach (var info in packet.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            object? value = info.GetValue(packet);
+            switch (value)
+            {
+                case float f: fields.Add(new(Bits(f), true)); break;
+                case int n: fields.Add(new(n, false)); break;
+                case uint n: fields.Add(new((int)n, false)); break;
+                case long n: fields.Add(new((int)n, false)); fields.Add(new((int)(n >> 32), false)); break;
+                case ulong n: fields.Add(new((int)n, false)); fields.Add(new((int)(n >> 32), false)); break;
+                case byte or sbyte or bool or short or ushort: break;
+                default: return null;
+            }
+        }
+        return fields;
+    }
+
+    private static IEnumerable<Field> Fields(IPacket packet, IReadOnlyCollection<int> survivorIds, Type? selfStateType)
+    {
+        if (selfStateType != null && packet.GetType() == selfStateType && OwnTimerFields(packet) is { } own) return own;
         Field F(float value, bool legitimate = false) => new(Bits(value), legitimate);
         Field I(int value) => new(value, false);
         IEnumerable<Field> L(long value) => new[] { I((int)value), I((int)(value >> 32)) };

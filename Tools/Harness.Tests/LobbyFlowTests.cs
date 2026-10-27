@@ -5,10 +5,13 @@ namespace PingTheKiller.Harness.Tests;
 
 public sealed class LobbyFlowTests
 {
-    [Fact]
-    public async Task MatchChecksShareOneHostConfiguredMatchAndOnlyH5RebindsReservedSlot()
+    // H3, H4 and H5 must pass with today's killer view (real Ids) and with U2c's anonymous one (Id 0, shuffled).
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MatchChecksShareOneHostConfiguredMatchAndOnlyH5RebindsReservedSlot(bool anonymous)
     {
-        await using var server = new LobbyServer();
+        await using var server = new LobbyServer { AnonymousKillerView = anonymous };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         // H2's real-time p99 is a deployment performance check, not a deterministic
         // assertion about the test machine's scheduler. Its math is tested separately.
@@ -25,6 +28,10 @@ public sealed class LobbyFlowTests
         Assert.Equal(1, server.ReconnectRequests);
         Assert.Contains("500 inputs", report.Items.Single(i => i.Id == "H4").Evidence);
         Assert.Contains("achieved rate=", report.Items.Single(i => i.Id == "H4").Evidence);
+        string h3 = report.Items.Single(i => i.Id == "H3").Evidence;
+        Assert.Contains("attributed by tick+position (epsilon 0.05 m): 0 unexplained, 0 to stopped survivor 2", h3);
+        Assert.Contains("moving baseline: tick=", h3);
+        Assert.DoesNotContain("skipped unknown packets", h3);
     }
 
     [Theory]

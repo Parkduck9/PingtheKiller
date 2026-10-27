@@ -99,11 +99,19 @@ public sealed class Actor : IAsyncDisposable
         if (error != null) onFailure(error);
     }
 
-    public PlayerState Self(ReceivedFrame frame) => Measurements.Self(frame, Id);
+    // The killer's own entry is its real Id with Role Killer (U2c: survivor entries in its view carry no real Id).
+    public byte? OwnRole { get; set; }
+
+    public PlayerState Self(ReceivedFrame frame) => Measurements.Self(frame, Id, OwnRole);
 
     public S2C_WorldState Latest
     {
         get { lock (sync) return (S2C_WorldState)(world ?? throw new CheckFailure($"{Name}: no WorldState yet.")).Packet; }
+    }
+
+    public PlayerState LatestSelf
+    {
+        get { lock (sync) return Self(world ?? throw new CheckFailure($"{Name}: no WorldState yet.")); }
     }
 
     public List<ReceivedFrame> Frames() { lock (sync) return frames.ToList(); }
@@ -227,6 +235,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     {
         killerActor = await Actor.JoinAsync("killer", options, ct);
         Killer.Speed = GameConstants.KillerSpeed;
+        Killer.OwnRole = (byte)Role.Killer;
         var lobby = (S2C_LobbyState)(await Killer.Wire.ReadAsync<S2C_LobbyState>(ct)).Packet;
         Check.Require(lobby.Slots.Any(s => s.PlayerId == Killer.Id && s.IsHost != 0),
             "Harness must be the first human/host of a fresh lobby: start a dedicated server with --bots 0 WITHOUT --autostart for H6.");
@@ -463,13 +472,13 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             Check.Require(a.Status == (byte)PlayerStatus.Lagging,
                 $"A executed during the capturing contact (player {A.Id} has status {a.Status}) {hold.Elapsed.TotalSeconds:F2} s after capture; " +
                 "execution must require leaving and re-entering the capture radius.");
-            float distance = Vector2.Distance(Position(Entry(Killer.Latest, Killer.Id)!.Value), Position(a));
+            float distance = Vector2.Distance(Position(Killer.LatestSelf), Position(a));
             Check.Require(distance <= GameConstants.CaptureRadius, $"Killer lost contact during the hold: {distance:F2} m from A.");
             (nearest, farthest, held) = (Math.Min(nearest, distance), Math.Max(farthest, distance), held + 1);
         }
 
         step = "retreat";
-        var killerAt = Position(Entry(Killer.Latest, Killer.Id)!.Value);
+        var killerAt = Position(Killer.LatestSelf);
         var leave = Stopwatch.StartNew();
         long seen = 0;
         while (true)
@@ -511,7 +520,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         double contact = clock.Elapsed.TotalSeconds;
         var bState = Entry(A.Latest, B.Id);
         Check.Require(bState is { Status: (byte)PlayerStatus.Normal, CaptureCount: 0 }, $"B changed during rescue: {Describe(A.Latest)}.");
-        float killerToA = Vector2.Distance(Position(Entry(Killer.Latest, Killer.Id)!.Value), Position(A.Self(await UntilAsync(A, _ => true, options.Timeout, "A state", ct))));
+        float killerToA = Vector2.Distance(Position(Killer.LatestSelf), Position(A.Self(await UntilAsync(A, _ => true, options.Timeout, "A state", ct))));
         Check.Require(killerToA > GameConstants.RescueRadius + 1, $"Killer re-entered A's vicinity during the rescue: {killerToA:F2} m.");
         evidence.Add($"rescue: B within {Reach:F1} m of A, A Normal with CaptureCount=1 after {contact:F2} s, killer still {killerToA:F1} m away");
     }
@@ -589,9 +598,10 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     private void LeakScan()
     {
         step = "killer-coordinate leak scan";
-        int frames = 0, worlds = 0, coincidences = 0;
+        int frames = 0, worlds = 0, coincidences = 0, unknown = 0;
         long bytes = 0;
         foreach (var actor in new[] { A, B })
+        {
             foreach (var frame in actor.Frames())
             {
                 frames++;
@@ -600,8 +610,17 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
                 string? leak = KillerLeakScan.Excess(frame, killerBits, survivorIds, n => coincidences += n);
                 Check.Require(leak == null, $"{actor.Name}: {leak}");
             }
+            // Skipped unknown-Id frames (not decodable with this Shared): raw bytes at any alignment, any match fails.
+            foreach (var frame in actor.Wire.UnknownFramesSince(long.MinValue))
+            {
+                unknown++;
+                string? leak = KillerLeakScan.UnknownLeak(frame, killerBits);
+                Check.Require(leak == null, $"{actor.Name}: {leak}");
+            }
+        }
         evidence.Add($"leak scan: {killerBits.Count} distinct killer X/Z values vs {frames} survivor-bound frames ({bytes} bytes, any alignment): " +
-            $"0 excess, {coincidences} exact match(es) with legitimate fields; killer role/id absent in {worlds} survivor WorldStates");
+            $"0 excess, {coincidences} exact match(es) with legitimate fields; {unknown} unknown-Id frames raw-scanned, 0 matches; " +
+            $"killer role/id absent in {worlds} survivor WorldStates");
     }
 
     public async ValueTask DisposeAsync()

@@ -63,17 +63,21 @@ public sealed class MeasurementTests
     }
 
     [Fact]
-    public void MaskingDetectsIdAndEachCoordinateInAnyRawFrame()
+    // U3c: the raw scan no longer looks the survivor up by Id (killer-view entries are anonymous); entries are attributed
+    // by tick and position in KillerViewTests. An entry at the exact position is still caught by its bytes.
+    public void MaskingDetectsEachCoordinateInAnyRawFrame()
     {
         var stopped = new PlayerState { Id = 73, X = 7.12345f, Z = -8.45678f };
-        Measurements.Masked(Frame(1, 0), 73, stopped);
-        Assert.Throws<CheckFailure>(() => Measurements.Masked(Frame(1, 0, stopped), 73, stopped));
+        Measurements.Masked(Frame(1, 0), stopped);
+        Assert.Throws<CheckFailure>(() => Measurements.Masked(Frame(1, 0, stopped), stopped));
+        Assert.Throws<CheckFailure>(() => Measurements.Masked(Frame(1, 0, stopped with { Id = 0 }), stopped));
         foreach (float coordinate in new[] { stopped.X, stopped.Z })
         {
             var raw = new byte[19];
             Measurements.FloatBytes(coordinate).CopyTo(raw, 7);
             var leak = new ReceivedFrame(new S2C_Pong(), raw, 0);
-            Assert.Throws<CheckFailure>(() => Measurements.Masked(leak, 73, stopped));
+            Assert.Throws<CheckFailure>(() => Measurements.Masked(leak, stopped));
+            Assert.Throws<CheckFailure>(() => Measurements.MaskedBytes(raw, "unknown packet 0x7E", stopped));
         }
     }
 

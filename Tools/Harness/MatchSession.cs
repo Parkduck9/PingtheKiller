@@ -24,6 +24,7 @@ public sealed class MatchSession : IAsyncDisposable
     }
 
     public uint NextSequence() => ++sequence;
+    public TimeSpan Timeout => options.Timeout;
 
     public static async Task<S2C_JoinResult> JoinAsync(WireClient client, string nickname, ulong token, CancellationToken ct)
     {

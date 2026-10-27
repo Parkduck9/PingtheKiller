@@ -14,6 +14,8 @@ public sealed record Options
     // H6 needs a fresh lobby of its own; H2-H5 occupy the match of the --host/--port server.
     public string? H6Host { get; init; }
     public int? H6Port { get; init; }
+    // Run state, not a CLI option: skipped unknown-Id frames of every connection. HarnessRunner gives each run a fresh one.
+    public UnknownPackets Unknown { get; init; } = new();
 
     public Options ForH6() => this with { Host = H6Host ?? Host, Port = H6Port ?? Port };
 
