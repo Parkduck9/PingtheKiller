@@ -1,0 +1,53 @@
+using System.Globalization;
+
+namespace PingTheKiller.Harness;
+
+public sealed record Options
+{
+    public string Host { get; init; } = "127.0.0.1";
+    public int Port { get; init; } = 7777;
+    public string Report { get; init; } = "docs/qa/harness-latest.json";
+    public int Threshold { get; init; } = 90;
+    public TimeSpan Duration { get; init; } = TimeSpan.FromSeconds(60);
+    public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(5);
+    public IReadOnlySet<string> Only { get; init; } = new HashSet<string>(Scorer.Ids);
+
+    public static Options Parse(string[] args)
+    {
+        var result = new Options();
+        for (int i = 0; i < args.Length; i++)
+        {
+            string key = args[i];
+            if (++i == args.Length) throw new ArgumentException($"Missing value for {key}.");
+            string value = args[i];
+            result = key switch
+            {
+                "--host" when !string.IsNullOrWhiteSpace(value) => result with { Host = value },
+                "--port" when int.TryParse(value, out int n) && n is > 0 and <= 65535 => result with { Port = n },
+                "--report" when !string.IsNullOrWhiteSpace(value) => result with { Report = value },
+                "--threshold" when int.TryParse(value, out int n) && n is >= 0 and <= 100 => result with { Threshold = n },
+                "--duration" => result with { Duration = Seconds(value, key) },
+                "--timeout" => result with { Timeout = Seconds(value, key) },
+                "--only" => result with { Only = ParseOnly(value) },
+                _ => throw new ArgumentException($"Unknown option or invalid value: {key} {value}")
+            };
+        }
+        return result;
+    }
+
+    private static TimeSpan Seconds(string value, string key)
+    {
+        if (!double.TryParse(value, CultureInfo.InvariantCulture, out double seconds) ||
+            !double.IsFinite(seconds) || seconds < 0.1 || seconds > 3600)
+            throw new ArgumentException($"{key} must be between 0.1 and 3600 seconds.");
+        return TimeSpan.FromSeconds(seconds);
+    }
+
+    private static HashSet<string> ParseOnly(string value)
+    {
+        var ids = value.Split(',', StringSplitOptions.TrimEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (ids.Count == 0 || ids.Any(id => !Scorer.Ids.Contains(id.ToUpperInvariant())))
+            throw new ArgumentException("--only expects a comma-separated subset of H1,H2,H3,H4,H5,H6.");
+        return ids.Select(id => id.ToUpperInvariant()).ToHashSet();
+    }
+}
