@@ -1,0 +1,109 @@
+using PingTheKiller.Shared.Game;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace PingTheKiller.Client.UI
+{
+    // HUD_SPEC 4.8 / 6.1d: the 64 u skill area. A 56 u ring (3 u track `line`) around a 32 u icon drawn with 1 u lines
+    // (HUD_SPEC 8), and an outer 2 u arc at 64 u while the own effect is active. Ready = full ring `text`; Cooldown =
+    // remaining fraction in `muted`; Disabled = track only and a `muted` icon; Passive = no ring.
+    public sealed class SkillRing : VisualElement
+    {
+        public enum State : byte { Ready, Cooldown, Disabled, Passive }
+        private static readonly Color Line = new Color32(44, 47, 51, 255);
+        private static readonly Color Text = new Color32(232, 230, 225, 255);
+        private static readonly Color Muted = new Color32(154, 152, 144, 255);
+        private static readonly Color Signal = new Color32(255, 176, 32, 255);
+        private State state;
+        private byte skill;
+        private float cooldown = -1, active = -1;
+        private bool activeSignal;
+        public float Scale { get; set; } = 1;
+
+        public SkillRing()
+        {
+            pickingMode = PickingMode.Ignore;
+            style.width = 64; style.height = 64; style.flexShrink = 0;
+            generateVisualContent += Draw;
+        }
+
+        // cooldownFraction: 0..1 of the ring scale (Cooldown only). activeFraction: remaining 0..1 of the own effect, or
+        // negative when none. signalArc: the active arc is `signal` (a skill that makes its user Signal).
+        public void Set(byte skillId, State value, float cooldownFraction, float activeFraction, bool signalArc)
+        {
+            cooldownFraction = Quantize(cooldownFraction); activeFraction = Quantize(activeFraction);
+            if (skill == skillId && state == value && cooldown == cooldownFraction && active == activeFraction && activeSignal == signalArc) return;
+            skill = skillId; state = value; cooldown = cooldownFraction; active = activeFraction; activeSignal = signalArc;
+            MarkDirtyRepaint();
+        }
+
+        private static float Quantize(float value) => value < 0 ? -1 : Mathf.Round(Mathf.Clamp01(value) * 360) / 360;
+        private float Stroke(float units) => Mathf.Max(1, Mathf.Round(units * Scale)) / Scale;
+
+        private void Draw(MeshGenerationContext context)
+        {
+            Painter2D p = context.painter2D;
+            var c = new Vector2(32, 32);
+            p.lineCap = LineCap.Butt;
+            if (state != State.Passive)
+            {
+                float width = Stroke(3);
+                p.lineWidth = width; p.strokeColor = Line;
+                p.BeginPath(); p.Arc(c, 28 - width * .5f, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+                if (state == State.Ready)
+                {
+                    p.strokeColor = Text;
+                    p.BeginPath(); p.Arc(c, 28 - width * .5f, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+                }
+                else if (state == State.Cooldown && cooldown > 0)
+                {
+                    p.strokeColor = Muted;
+                    p.BeginPath(); p.Arc(c, 28 - width * .5f, Angle.Degrees(-90), Angle.Degrees(-90 + 360 * cooldown)); p.Stroke();
+                }
+            }
+            if (active > 0)
+            {
+                float width = Stroke(2);
+                p.lineWidth = width; p.strokeColor = activeSignal ? Signal : Text;
+                // Shrinks clockwise: the arc that is left ends at 12 o'clock.
+                p.BeginPath(); p.Arc(c, 32 - width * .5f, Angle.Degrees(-90 - 360 * active), Angle.Degrees(-90)); p.Stroke();
+            }
+            Icon(p, new Vector2(16, 16), state == State.Disabled ? Muted : Text);
+        }
+
+        // HUD_SPEC 8 icons in a 32 u box (origin = its top-left), 1 u lines.
+        private void Icon(Painter2D p, Vector2 o, Color color)
+        {
+            p.strokeColor = color; p.fillColor = color; p.lineWidth = Stroke(1);
+            p.lineCap = LineCap.Butt; p.lineJoin = LineJoin.Miter;
+            switch (skill)
+            {
+                case SkillIds.PingScanner: // three concentric arcs from a point toward a small dot
+                    for (int i = 0; i < 3; i++)
+                    {
+                        p.BeginPath(); p.Arc(o + new Vector2(6, 26), 7 + i * 6, Angle.Degrees(-80), Angle.Degrees(-10)); p.Stroke();
+                    }
+                    p.BeginPath(); p.Arc(o + new Vector2(6, 26), 1.5f, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
+                    p.BeginPath(); p.Arc(o + new Vector2(27, 5), 2, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
+                    break;
+                case SkillIds.Overclock: // two right chevrons followed by a vertical stop bar
+                    for (int i = 0; i < 2; i++)
+                    {
+                        float x = 5 + i * 8;
+                        p.BeginPath(); p.MoveTo(o + new Vector2(x, 8)); p.LineTo(o + new Vector2(x + 7, 16)); p.LineTo(o + new Vector2(x, 24)); p.Stroke();
+                    }
+                    p.BeginPath(); p.MoveTo(o + new Vector2(26, 7)); p.LineTo(o + new Vector2(26, 25)); p.Stroke();
+                    break;
+                case SkillIds.PacketAfterimage: // a solid dot with two hollow dots trailing behind
+                    p.BeginPath(); p.Arc(o + new Vector2(24, 16), 4, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
+                    p.BeginPath(); p.Arc(o + new Vector2(14, 16), 3, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 2.5f, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+                    break;
+                case SkillIds.FirewallBlock: // a ring with a horizontal bar through it
+                    p.BeginPath(); p.Arc(o + new Vector2(16, 16), 10, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+                    p.BeginPath(); p.MoveTo(o + new Vector2(2, 16)); p.LineTo(o + new Vector2(30, 16)); p.Stroke();
+                    break;
+            }
+        }
+    }
+}

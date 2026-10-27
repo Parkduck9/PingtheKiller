@@ -14,6 +14,8 @@ namespace PingTheKiller.Client.World
         }
         private readonly List<Frame> frames = new List<Frame>();
         public const double Delay = .1;
+        // Key for the Killer's own entry: found by Role, never by Id (HUD_SPEC 6.3; U2c may anonymise Survivor Ids).
+        public const int KillerKey = int.MinValue;
         public void Clear() => frames.Clear();
 
         public void Add(S2C_WorldState state, double time)
@@ -23,6 +25,7 @@ namespace PingTheKiller.Client.World
             if (frames.Count > 32) frames.RemoveAt(0);
         }
 
+        // id = a player Id (Survivor stream), or KillerKey for the entry whose Role is Killer.
         public bool Sample(int id, double now, out Vector3 position, out float yaw, out float alpha)
         {
             position = default; yaw = 0; alpha = 0;
@@ -54,7 +57,7 @@ namespace PingTheKiller.Client.World
         private static bool Find(S2C_WorldState state, int id, out PlayerState player)
         {
             foreach (PlayerState entry in state.Players)
-                if (entry.Id == id) { player = entry; return true; }
+                if (id == KillerKey ? entry.Role == (byte)Role.Killer : entry.Id == id) { player = entry; return true; }
             player = default;
             return false;
         }

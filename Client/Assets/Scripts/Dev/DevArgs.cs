@@ -5,6 +5,8 @@ using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Client.Dev
 {
+    public enum KillerLook : byte { None, Nearest, Away, Fixed, Occluded }
+
     // Dev capture flags (-ptk-*). Inert when none is present. Invalid or missing values disable that flag and add an error.
     public sealed class DevArgs
     {
@@ -23,9 +25,16 @@ namespace PingTheKiller.Client.Dev
         public bool Rematch { get; private set; }
         // Dev-only synthetic S2C_GameResult reason (GameEndReason), dispatched locally after the play shots; never sent.
         public byte? PreviewResult { get; private set; }
+        // Survivor camera yaw offset from the character facing, applied once at match start + 2 s (look-behind shot: 180).
+        public float? Orbit { get; private set; }
+        // Killer view aim: re-aims every 0.5 s toward the nearest blip, away from it, or to a fixed yaw.
+        public KillerLook Look { get; private set; }
+        public float LookYaw { get; private set; }
+        // Opens the play menu this many seconds into the first match (play-menu shot).
+        public float Menu { get; private set; }
         public List<string> Errors { get; } = new List<string>();
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
-            || Offline || PreviewResult.HasValue || Wander > 0 || Rematch;
+            || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -39,7 +48,8 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-offline") { result.Offline = true; continue; }
                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
-                    || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander";
+                    || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
+                    || flag == "-ptk-menu";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -73,6 +83,21 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-wander":
                     if (!Seconds(value, out float wander)) return false;
                     Wander = wander; return true;
+                case "-ptk-orbit":
+                    if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float orbit) || float.IsNaN(orbit) || float.IsInfinity(orbit)) return false;
+                    Orbit = orbit; return true;
+                case "-ptk-killer-look":
+                    switch (value.ToLowerInvariant())
+                    {
+                        case "nearest": Look = KillerLook.Nearest; return true;
+                        case "away": Look = KillerLook.Away; return true;
+                        case "occluded": Look = KillerLook.Occluded; return true; // keeps LookYaw from an earlier number as its fallback
+                    }
+                    if (!float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float yaw) || float.IsNaN(yaw) || float.IsInfinity(yaw)) return false;
+                    Look = KillerLook.Fixed; LookYaw = yaw; return true;
+                case "-ptk-menu":
+                    if (!Seconds(value, out float menu)) return false;
+                    Menu = menu; return true;
                 case "-ptk-shots":
                     Shots = value; return true;
                 case "-ptk-quit-after":

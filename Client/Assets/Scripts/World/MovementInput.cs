@@ -23,6 +23,11 @@ namespace PingTheKiller.Client.World
         }
 
         public bool TryCreate(bool held, float right, float forward, float yaw, double dt, out C2S_MoveInput packet)
+            => TryCreate(held, right, forward, yaw, yaw, dt, out packet);
+
+        // moveYaw rotates the keys into world space (the camera yaw); facingYaw is sent as C2S_MoveInput.Yaw. Survivor
+        // (HUD_SPEC 4.10): camera yaw and character facing. Killer (6.0): both are the view yaw.
+        public bool TryCreate(bool held, float right, float forward, float moveYaw, float facingYaw, double dt, out C2S_MoveInput packet)
         {
             packet = null;
             if (!(dt > 0) || double.IsInfinity(dt)) dt = 0;
@@ -42,8 +47,8 @@ namespace PingTheKiller.Client.World
             if (slot >= Interval) slot = 0; // a hitch skipped slots: drop them instead of bursting
             if (!held) zerosPending--;
             history[oldest] = clock; oldest = (oldest + 1) % history.Length;
-            Vector3 direction = held ? ClientMath.InputDirection(right, forward, yaw) : Vector3.zero;
-            packet = new C2S_MoveInput { DirX = direction.x, DirZ = direction.z, Yaw = yaw, Seq = ++sequence };
+            Vector3 direction = held ? ClientMath.InputDirection(right, forward, moveYaw) : Vector3.zero;
+            packet = new C2S_MoveInput { DirX = direction.x, DirZ = direction.z, Yaw = facingYaw, Seq = ++sequence };
             return true;
         }
 

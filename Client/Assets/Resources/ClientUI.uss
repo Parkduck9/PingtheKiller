@@ -113,3 +113,44 @@
     margin: 0; padding: 4px; font-size: 14px;
     translate: -50% -100%;
 }
+
+/* Killer HUD (HUD_SPEC 6.1): bottom-left cluster, 320 u wide, margin 24 u, blocks with panel fill and a 1 u line border
+   (the width is re-snapped to 1 physical px in code), corner radius 0. Type: S 14 / M 18 / L 28; S has a 12 px floor
+   at 720p (.s-floor sets 15 u at panel scale 0.8). */
+.root .killer-hud { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.root .markers { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.root .killer-cluster { position: absolute; left: 24px; bottom: 24px; width: 320px; flex-direction: column; }
+.root .kblock {
+    width: 320px; flex-shrink: 0; margin-bottom: 8px; border-radius: 0;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px;
+}
+.root .kblock.klast { margin-bottom: 0; }
+.root .kintro { height: 208px; padding: 12px; }
+.root .kmenu { height: 208px; padding: 12px; }
+.root .kprompt { height: 56px; padding: 8px; }
+.root .kinfo { height: 72px; padding: 0; padding-left: 8px; padding-right: 8px; }
+.root .keffect { height: 32px; padding: 4px; flex-direction: row; align-items: center; }
+.root .kskill { height: 72px; padding: 3px; padding-left: 8px; padding-right: 8px; flex-direction: row; align-items: center; }
+.root .kskill-text { margin-left: 8px; width: 232px; }
+.root .krow { flex-direction: row; align-items: center; height: 23px; }
+.root .unity-label.kl { font-size: 28px; height: 34px; margin: 0; margin-bottom: 4px; -unity-text-align: middle-left; }
+.root .unity-label.km { font-size: 18px; height: 23px; margin: 0; -unity-text-align: middle-left; }
+.root .unity-label.ks { font-size: 14px; min-height: 18px; margin: 0; -unity-text-align: middle-left; }
+.root.s-floor .unity-label.ks { font-size: 15px; }
+.root .unity-label.kline { height: 23px; }
+.root .unity-label.kgap { margin-bottom: 4px; }
+.root .unity-label.kbold { -unity-font-style: bold; }
+.root .unity-label.kmuted { color: #9A9890; }
+.root .unity-label.kwrap { white-space: normal; width: 296px; flex-shrink: 0; }
+.root .unity-label.kmenu-effect { margin-bottom: 12px; }
+.root .kbar { width: 4px; height: 18px; background-color: #E8E6E1; margin-right: 4px; flex-shrink: 0; }
+.root .kbar.danger { background-color: #E5484D; }
+.root .unity-button.kbutton { width: 296px; min-width: 0; height: 40px; margin: 0; margin-bottom: 8px; border-radius: 0; }
+.root .unity-button.kbutton.klast { margin-bottom: 0; }
+/* World tags: S text on a panel fill, 4 u padding; Lagging tags carry a 2 u text left bar. */
+.root .unity-label.tag {
+    position: absolute; margin: 0; padding: 4px; padding-top: 2px; padding-bottom: 2px;
+    background-color: #1A1C1F; color: #E8E6E1;
+}
+.root .unity-label.tag.tag-muted { color: #9A9890; }
+.root .unity-label.tag.tag-lagging { border-left-width: 2px; border-left-color: #E8E6E1; padding-left: 4px; }

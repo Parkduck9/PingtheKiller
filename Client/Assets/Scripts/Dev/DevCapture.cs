@@ -23,11 +23,17 @@ namespace PingTheKiller.Client.Dev
         private double backAt = -1, doneAt = -1;
         private bool menuShot, joined, configured, lobbyShot, started, play1, play4, previewShot, quitting, host, capturing;
         private bool restarted, position2, position5;
+        private double orbitAt = -1, aimAt = -1;
+        private bool menuWanted;
         private int participants, match;
         private Role role;
         private Wander wander;
         private bool located;
         private Vector3 position, positionAt2;
+        private Vector3 movedFrom;
+        private int movedLogged;
+        private int killerCounts = -1;
+        private double countsAt = -1;
         private byte localStatus;
         private string localHud;
         private byte[] progress = Array.Empty<byte>();
@@ -68,6 +74,65 @@ namespace PingTheKiller.Client.Dev
             return true;
         }
 
+        // -ptk-orbit: once at match start + 2 s, the orbit yaw becomes the character facing plus the offset.
+        public bool Orbit(float facing, out float yaw)
+        {
+            yaw = facing;
+            if (!args.Orbit.HasValue || role != Role.Survivor || orbitAt >= 0 || matchAt < 0 || Now - matchAt < 2 || !located) return false;
+            orbitAt = Now;
+            yaw = facing + args.Orbit.Value;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " orbit yaw=" + Stamp(Mathf.Repeat(yaw, 360)) + " facing=" + Stamp(facing));
+            return true;
+        }
+
+        // -ptk-killer-look occluded: the aim target is the nearest blip behind a wall; while there is none the view holds
+        // LookYaw (a number given in an earlier -ptk-killer-look, default 0), so a scripted walk can reach a wall first.
+        public bool AimOccluded => args.Look == KillerLook.Occluded;
+
+        // -ptk-killer-look: every 0.5 s the Killer view turns toward the nearest blip, away from it, or to a fixed yaw.
+        public bool Aim(bool hasTarget, Vector3 from, Vector3 target, out float yaw)
+        {
+            yaw = 0;
+            if (args.Look == KillerLook.None || role != Role.Killer || matchAt < 0 || (aimAt >= 0 && Now - aimAt < .5)) return false;
+            if (args.Look == KillerLook.Fixed || (args.Look == KillerLook.Occluded && !hasTarget)) yaw = args.LookYaw;
+            else
+            {
+                if (!hasTarget) return false;
+                yaw = Mathf.Atan2(target.x - from.x, target.z - from.z) * Mathf.Rad2Deg + (args.Look == KillerLook.Away ? 180 : 0); // nearest and occluded aim at the target
+            }
+            aimAt = Now;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " killer look " + args.Look + " yaw=" + Stamp(Mathf.Repeat(yaw, 360))
+                + (args.Look == KillerLook.Fixed || !hasTarget ? string.Empty : " from=" + Stamp(from.x) + "," + Stamp(from.z) + " blip=" + Stamp(target.x) + "," + Stamp(target.z)));
+            return true;
+        }
+
+        // -ptk-menu: true while the play menu should be open (from the given second of the first match, for 2 s).
+        public bool MenuChange(out bool open)
+        {
+            double t = Now - matchAt;
+            open = args.Menu > 0 && match == 1 && matchAt >= 0 && t >= args.Menu && t < args.Menu + 2;
+            if (open == menuWanted) return false;
+            menuWanted = open;
+            return true;
+        }
+
+        // Killer view counts this frame (from the tracker, never from entries): logged when they change, at most every 0.5 s.
+        // Event shots, one per frame and only while no capture is pending: the first frame with an in-view character; the first
+        // with a through-wall marker and no in-view character or chevron; the first with chevrons and no in-view character.
+        public void OnKillerFrame(int inView, int occluded, int edges)
+        {
+            int counts = inView * 10000 + occluded * 100 + edges;
+            if (counts != killerCounts && Now - countsAt >= .5)
+            {
+                killerCounts = counts; countsAt = Now;
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips inView=" + inView + " occluded=" + occluded + " edges=" + edges);
+            }
+            if (capturing || pending.Count > 0 || args.Shots == null) return;
+            if (inView > 0 && !taken.Contains("killer-inview.png")) EventShot("killer-inview.png", 0);
+            else if (occluded > 0 && inView == 0 && edges == 0 && !taken.Contains("killer-occluded.png")) EventShot("killer-occluded.png", 0);
+            else if (edges > 0 && inView == 0 && !taken.Contains("killer-offscreen.png")) EventShot("killer-offscreen.png", 0);
+        }
+
         // The local player's rendered position this frame (survivor: the interpolated own entry).
         public void Track(bool found, Vector3 value) { located = found; if (found) position = value; }
 
@@ -89,7 +154,7 @@ namespace PingTheKiller.Client.Dev
 
         public void OnMatchStart(Role value, byte skill)
         {
-            matchAt = Now; match++; role = value; wander = null; located = false;
+            matchAt = Now; match++; role = value; wander = null; located = false; orbitAt = aimAt = -1; menuWanted = false; movedLogged = 0; killerCounts = -1;
             laggingAt = resultAt = reopenedAt = backAt = -1; localStatus = 0; localHud = null; progress = Array.Empty<byte>(); exitState = -1;
             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
         }
@@ -120,6 +185,8 @@ namespace PingTheKiller.Client.Dev
             // World shots wait until the camera and avatars are placed (the first ~100 ms of a match render nothing yet).
             if (hacking && located) EventShot("hacking.png");
             if (state.ExitOpen != 0 && located) EventShot("exit-open.png");
+            // Survivor client only: the Killer client never reads a Survivor entry (its view logs blip counts from the tracker).
+            if (role != Role.Survivor) return;
             foreach (PlayerState player in state.Players)
             {
                 if (player.Id != localId) continue;
@@ -168,7 +235,12 @@ namespace PingTheKiller.Client.Dev
             {
                 if (!play1 && t >= matchAt + 1) { play1 = true; Shot("play-1s.png"); return; }
                 if (!play4 && t >= matchAt + 4) { play4 = true; Shot("play-4s.png"); return; }
+                if (role == Role.Survivor && !taken.Contains("survivor-3p.png") && t >= matchAt + 1.8 && taken.Add("survivor-3p.png")) { Shot("survivor-3p.png"); return; }
+                if (orbitAt >= 0 && !taken.Contains("survivor-behind.png") && t >= orbitAt + .6 && taken.Add("survivor-behind.png")) { Shot("survivor-behind.png"); return; }
+                if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
             }
+            // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.
+            if (match == 1 && matchAt >= 0 && resultAt < 0 && located && movedLogged < 2 && t >= matchAt + (movedLogged == 0 ? 1 : 5)) LogMoved(t - matchAt);
             // The countdown is only on screen while the match runs; a capture that ends the match leaves no lagging shot.
             if (laggingAt >= 0 && resultAt < 0 && t >= laggingAt + 1) EventShot("lagging.png");
             if (laggingAt >= 0 && resultAt >= 0 && !taken.Contains("lagging.png") && taken.Add("lagging.png (skipped)"))
@@ -191,6 +263,13 @@ namespace PingTheKiller.Client.Dev
                 quitting = true; Debug.Log(done ? "[DEV] script complete, quitting" : "[DEV] quit after " + args.QuitAfter + " s");
                 Application.Quit();
             }
+        }
+
+        private void LogMoved(double m)
+        {
+            if (movedLogged++ == 0) movedFrom = position;
+            float moved = Vector2.Distance(new Vector2(movedFrom.x, movedFrom.z), new Vector2(position.x, position.z));
+            Debug.Log("[DEV] t=" + Stamp(m) + " local position " + Stamp(position.x) + "," + Stamp(position.z) + " moved=" + Stamp(moved) + " m");
         }
 
         // After the first result: wait for the lobby, press Back to lobby, then Start; hold W in the second match.
@@ -229,11 +308,11 @@ namespace PingTheKiller.Client.Dev
         }
 
         // Each event shot is taken once, one frame after the event.
-        private void EventShot(string name)
+        private void EventShot(string name, int delayFrames = 1)
         {
             if (args.Shots == null || !taken.Add(name)) return;
             Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " event " + name); // match time, like the other [DEV] t= lines
-            Shot(name, 1);
+            Shot(name, delayFrames);
         }
 
         private void Shot(string name, int delayFrames = 0)

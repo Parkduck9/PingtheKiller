@@ -170,5 +170,55 @@ namespace PingTheKiller.Client.Tests
             Assert.That(args.Errors.Count, Is.EqualTo(1));
             Assert.That(args.Errors[0], Does.Contain("-ptk-fly"));
         }
+
+        [Test]
+        public void CameraCaptureFlagsParse()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-offline", "-ptk-orbit", "180", "-ptk-killer-look", "Nearest", "-ptk-menu", "5" });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.Orbit, Is.EqualTo(180f));
+            Assert.That(args.Look, Is.EqualTo(KillerLook.Nearest));
+            Assert.That(args.Menu, Is.EqualTo(5f));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-killer-look", "away" }).Look, Is.EqualTo(KillerLook.Away));
+            DevArgs occluded = DevArgs.Parse(new[] { "-ptk-killer-look", "Occluded" });
+            Assert.That(occluded.Errors, Is.Empty);
+            Assert.That(occluded.Look, Is.EqualTo(KillerLook.Occluded));
+            Assert.That(occluded.Active, Is.True);
+            DevArgs walk = DevArgs.Parse(new[] { "-ptk-killer-look", "70", "-ptk-killer-look", "occluded" });
+            Assert.That(walk.Look, Is.EqualTo(KillerLook.Occluded));
+            Assert.That(walk.LookYaw, Is.EqualTo(70f), "an earlier number is the yaw held until a blip is behind a wall");
+            DevArgs fixedYaw = DevArgs.Parse(new[] { "-ptk-killer-look", "-90" });
+            Assert.That(fixedYaw.Errors, Is.Empty, "a negative yaw is a value, not a flag");
+            Assert.That(fixedYaw.Look, Is.EqualTo(KillerLook.Fixed));
+            Assert.That(fixedYaw.LookYaw, Is.EqualTo(-90f));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-orbit", "-45" }).Orbit, Is.EqualTo(-45f));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-orbit", "0" }).Active, Is.True, "0 is a valid offset");
+        }
+
+        [TestCase("-ptk-orbit", "behind")]
+        [TestCase("-ptk-orbit", "NaN")]
+        [TestCase("-ptk-killer-look", "left")]
+        [TestCase("-ptk-killer-look", "Infinity")]
+        [TestCase("-ptk-menu", "0")]
+        [TestCase("-ptk-menu", "soon")]
+        public void InvalidCameraCaptureValuesAreReported(string flag, string value)
+        {
+            DevArgs args = DevArgs.Parse(new[] { flag, value });
+            Assert.That(args.Errors.Count, Is.EqualTo(1));
+            Assert.That(args.Errors[0], Does.Contain(flag));
+            Assert.That(args.Orbit, Is.Null);
+            Assert.That(args.Look, Is.EqualTo(KillerLook.None));
+            Assert.That(args.Menu, Is.EqualTo(0f));
+            Assert.That(args.Active, Is.False);
+        }
+
+        [Test]
+        public void CameraCaptureFlagsStayInertWhenAbsent()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "PingTheKiller.exe", "-ptk-offline" });
+            Assert.That(args.Orbit, Is.Null);
+            Assert.That(args.Look, Is.EqualTo(KillerLook.None));
+            Assert.That(args.Menu, Is.EqualTo(0f));
+        }
     }
 }
