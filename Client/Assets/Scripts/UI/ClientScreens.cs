@@ -103,7 +103,7 @@ namespace PingTheKiller.Client.UI
         {
             menu = Box(root, "screen");
             Text(menu, "Ping the Killer", "title");
-            Text(menu, "Run the server on this PC: dotnet run --project Server", "muted");
+            Text(menu, "Enter the IP and port of the host PC to join its lobby.", "muted");
             Text(menu, "Server IP:port", "field-label");
             address = new TextField { value = "127.0.0.1:7777", maxLength = 64 };
             address.AddToClassList("address"); menu.Add(address);
@@ -201,9 +201,10 @@ namespace PingTheKiller.Client.UI
             lobbyTitle.text = LobbyCopy.Title(isOffline);
             controlsTitle.text = isOffline ? "Match setup" : "Host controls";
             int bots = 0, humans = 0; bool host = false;
+            Slot[] ordered = LobbyCopy.DisplayOrder(state.Slots); // row numbers are display positions
             for (int i = 0; i < slots.Length; i++)
             {
-                Slot slot = state.Slots[i]; bool occupied = slot != null && slot.PlayerId != 0;
+                Slot slot = i < ordered.Length ? ordered[i] : null; bool occupied = slot != null && slot.PlayerId != 0;
                 slots[i].text = LobbyCopy.SlotText(slot, localId);
                 slotRows[i].EnableInClassList("empty", !occupied);
                 if (!occupied) continue;
@@ -269,6 +270,18 @@ namespace PingTheKiller.Client.UI
             bool focusBack = lobbyOpen && !back.enabledSelf;
             back.SetEnabled(lobbyOpen);
             if (focusBack) back.Focus(); else if (!lobbyOpen) resultLeave.Focus();
+        }
+        // Dev scripting presses the real buttons, so a disabled button stays disabled. Returns whether it was enabled.
+        public bool BackToLobbyEnabled => InResult && back.enabledSelf;
+        public bool PressBackToLobby()
+        {
+            if (!BackToLobbyEnabled) return false;
+            BackToLobby?.Invoke(); return true;
+        }
+        public bool PressStart()
+        {
+            if (lobby.style.display == DisplayStyle.None || !start.enabledSelf) return false;
+            StartMatch?.Invoke(); return true;
         }
         private void OnDestroy() { if (panel != null) Destroy(panel); }
     }

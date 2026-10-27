@@ -37,3 +37,52 @@ These need a live check against a U2b server:
 - beep audibility
 - gamepad navigation
 - a full rules play-through after U2b
+
+---
+
+# Round 2 (after merging main 5f83456 / U2b) — orchestrator judgement
+
+**Verdict: PASS.** Round 2 is a scope extension, not a retry. Implementer: Claude Opus subagent. QA: Claude Sonnet (`docs/qa/U4b-qa-a2.md`, 92/100, no blocker or major).
+
+Scope:
+- SkillIds constants
+- lighting: ambient and fill light added by script; pure-black pixels went from 850 to 0 in the survivor view and from 10698 to 0 in the killer view; the background stays `#101113`
+- lobby display order: host, then humans, then bots (a client-side sort; Server.Core order unchanged)
+- real-rules verification mode (`-ptk-wander`, `-ptk-rematch`, event-triggered shots)
+- QA cosmetic items
+
+## Gate (orchestrator runs)
+- 0 `error CS`
+- EditMode tests: all pass (count in the commit message), including QA round 2. The superseded TODO test was replaced by ruling.
+- `BuildWindows` succeeds.
+- Socket proof, re-run on the fresh build: `-ptk-offline -ptk-bots 6 -ptk-wander` gave **0 TCP / 0 UDP** at about 6 s and 11 s while the in-process match ran (`status player=4 Lagging reason=capture`).
+
+## Real-rules evidence (orchestrator read the player logs)
+- **Offline survivor:**
+  - local survivor captured at about 10 s;
+  - HUD `Lagging · 60 s`, then 59, 58 … matches the server `StatusTimer`;
+  - result `AllSurvivorsDown` → "Killer wins. No survivor is left in play.";
+  - Back to lobby disabled until `LobbyState` arrives, then enabled;
+  - second match: moved 11.62 m between seconds 2 and 5.
+- **Offline killer:** terminals completed, then `exit open` at about 16–22 s; HUD and ring show `Exit · Open`; result `SurvivorEscaped`, "Bot 6 reached the Exit."
+- **Online** (`--bind 127.0.0.1`, no firewall prompt): exit-open, escape, result, lobby return, and a rematch that moved 9.60 m.
+- Hacking runs at 1 %/0.1 s solo and 2× when co-hacking, which matches U2b.
+
+## Observations for the server/design owners (not U4b defects)
+1. **Matches are very short with bots.** Survivor spawns cluster about 21 m from the killer spawn.
+   - Killer bot vs 6 survivor bots: all Lagging, ending `AllSurvivorsDown`, in about 18 s. No survivor bot rescued anyone before the end.
+   - Human killer standing still: 6 bots hack in parallel, so the exit opens in about 20 s.
+   - This needs a GDD/U2b balance look (spawn spread, terminal distance, bot threat behaviour).
+2. **Online run 3:** survivor bots stayed at 3/4 terminals for the full 600 s, ending `TimeUp`. This may be a U2b bot-AI stall.
+3. **QA minors:**
+   - `Terminals 5/4` is reachable, because more terminals are placed than required. The display could clamp, or say `4/4 · Exit open`.
+   - A firewall-locked exit reads the same as a not-yet-open exit.
+
+## Follow-ups
+- U4c: camera redesign plus the U2c anonymous killer view. Camera-dependent code is isolated in `RoleCamera.Turn`, `DevCapture.Steer` with `Wander`, and `SceneLighting`.
+
+## Needs a human
+- audio
+- E/Q feel
+- gamepad navigation
+- playing a full match by hand

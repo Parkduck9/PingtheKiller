@@ -123,6 +123,46 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
+        public void WanderAndRematchParseAndCombineWithTheRunFlags()
+        {
+            DevArgs args = DevArgs.Parse(new[]
+            {
+                "PingTheKiller.exe", "-ptk-offline", "-ptk-bots", "6", "-ptk-role", "survivor", "-ptk-start", "-ptk-wander", "600",
+                "-ptk-rematch", "-ptk-hold-w", "3", "-ptk-shots", "shots", "-ptk-quit-after", "720"
+            });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.Wander, Is.EqualTo(600f));
+            Assert.That(args.Rematch, Is.True);
+            Assert.That(args.HoldW, Is.EqualTo(3f));
+            Assert.That(args.QuitAfter, Is.EqualTo(720f));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-rematch" }).Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "-ptk-wander", "1.5" }).Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "-ptk-rematch", "-ptk-start" }).Start, Is.True, "-ptk-rematch never swallows the next flag");
+        }
+
+        [TestCase("0")]
+        [TestCase("-5")]
+        [TestCase("NaN")]
+        [TestCase("Infinity")]
+        [TestCase("soon")]
+        [TestCase("-ptk-start")]
+        public void InvalidOrMissingWanderIsReported(string value)
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-wander", value });
+            Assert.That(args.Wander, Is.EqualTo(0f));
+            Assert.That(args.Errors.Count, Is.EqualTo(1));
+            Assert.That(args.Errors[0], Does.Contain("-ptk-wander"));
+        }
+
+        [Test]
+        public void WanderAndRematchStayInertWhenAbsent()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "PingTheKiller.exe", "-ptk-offline" });
+            Assert.That(args.Wander, Is.EqualTo(0f));
+            Assert.That(args.Rematch, Is.False);
+        }
+
+        [Test]
         public void UnknownFlagIsReportedAndIgnored()
         {
             DevArgs args = DevArgs.Parse(new[] { "-ptk-fly", "-ptk-bots", "3" });

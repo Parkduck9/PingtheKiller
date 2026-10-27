@@ -32,6 +32,8 @@ namespace PingTheKiller.Client.World
             Yaw = Mathf.Repeat(Yaw + delta.x, 360);
             pitch = Mathf.Clamp(pitch - delta.y, -85, 85);
         }
+        // Scripted yaw (dev wander autopilot); mouse look keeps adding to it.
+        public void Turn(float yaw) => Yaw = Mathf.Repeat(yaw, 360);
         public void Place(Vector3 localPosition)
         {
             if (role == Role.Killer)

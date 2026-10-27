@@ -7,11 +7,30 @@ namespace PingTheKiller.Client.UI
     // Pure play-readout copy (GDD 3.3-3.5, 4). Unit-tested; ClientScreens only displays the results.
     public static class HudCopy
     {
-        // Role-local skill IDs in GDD section 4 table order.
-        // TODO: switch to Shared SkillIds when U2b merges
-        private static readonly string[] KillerSkills = { "Ping Scanner", "Overclock", "Packet Afterimage", "Firewall Block" };
-        private static readonly string[] SurvivorSkills = { "Dummy Packet", "Stealth Relay", "Traffic Overload", "Emergency Restore", "White Noise" };
-        public const byte KillerPassiveSkill = 2;
+        // Role-local skill IDs come from Shared SkillIds; the names are the GDD section 4 names.
+        private static readonly string[] KillerSkills = KillerTable();
+        private static readonly string[] SurvivorSkills = SurvivorTable();
+
+        private static string[] KillerTable()
+        {
+            var table = new string[SkillIds.KillerSkillCount];
+            table[SkillIds.PingScanner] = "Ping Scanner";
+            table[SkillIds.Overclock] = "Overclock";
+            table[SkillIds.PacketAfterimage] = "Packet Afterimage";
+            table[SkillIds.FirewallBlock] = "Firewall Block";
+            return table;
+        }
+
+        private static string[] SurvivorTable()
+        {
+            var table = new string[SkillIds.SurvivorSkillCount];
+            table[SkillIds.DummyPacket] = "Dummy Packet";
+            table[SkillIds.StealthRelay] = "Stealth Relay";
+            table[SkillIds.TrafficOverload] = "Traffic Overload";
+            table[SkillIds.EmergencyRestore] = "Emergency Restore";
+            table[SkillIds.WhiteNoise] = "White Noise";
+            return table;
+        }
 
         public static string SkillName(Role role, byte skillId)
         {
@@ -19,7 +38,7 @@ namespace PingTheKiller.Client.UI
             return skillId < table.Length ? table[skillId] : "Skill " + skillId;
         }
 
-        public static bool IsPassive(Role role, byte skillId) => role == Role.Killer && skillId == KillerPassiveSkill;
+        public static bool IsPassive(Role role, byte skillId) => role == Role.Killer && skillId == SkillIds.PacketAfterimage;
 
         public static string SkillLine(Role role, byte skillId)
             => (IsPassive(role, skillId) ? "Passive · " : "Q · ") + SkillName(role, skillId);

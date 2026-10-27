@@ -18,7 +18,12 @@ namespace PingTheKiller.Client.World
             public byte Status;
         }
         private readonly Dictionary<int, Avatar> avatars = new Dictionary<int, Avatar>();
-        private readonly Dictionary<byte, GameObject> terminals = new Dictionary<byte, GameObject>();
+        private sealed class Terminal
+        {
+            public GameObject Root;
+            public Material Panel;
+        }
+        private readonly Dictionary<byte, Terminal> terminals = new Dictionary<byte, Terminal>();
         private readonly List<Material> materials = new List<Material>();
         private readonly SnapshotBuffer snapshots = new SnapshotBuffer();
         private readonly HashSet<byte> retained = new HashSet<byte>();
@@ -29,6 +34,9 @@ namespace PingTheKiller.Client.World
         private static readonly Color Killer = new Color32(229, 72, 77, 255);
         private static readonly Color Survivor = new Color32(63, 184, 175, 255);
         private static readonly Color Signal = new Color32(255, 176, 32, 255);
+        // Terminals: a square dark plinth with a muted panel on top, so from above they read as squares, not capsules.
+        private static readonly Color Plinth = new Color32(66, 70, 77, 255);
+        private static readonly Color PanelIdle = new Color32(154, 152, 144, 255);
 
         public void Initialize(int id, Role localRole)
         {
@@ -71,13 +79,13 @@ namespace PingTheKiller.Client.World
             foreach (TerminalState terminal in state.Terminals)
             {
                 retained.Add(terminal.Id);
-                if (!terminals.TryGetValue(terminal.Id, out GameObject item))
+                if (!terminals.TryGetValue(terminal.Id, out Terminal item))
                     terminals.Add(terminal.Id, item = MakeTerminal(terminal.Id, new Vector3(terminal.X, 0, terminal.Z)));
-                item.transform.position = new Vector3(terminal.X, .4f, terminal.Z);
-                item.GetComponent<Renderer>().sharedMaterial.color = terminal.Progress == 100 ? Survivor : new Color32(154, 152, 144, 255);
+                item.Root.transform.position = new Vector3(terminal.X, 0, terminal.Z);
+                item.Panel.color = terminal.Progress == 100 ? Survivor : PanelIdle; // done = team info (teal), never amber
             }
             foreach (var terminal in terminals)
-                if (!retained.Contains(terminal.Key)) { Destroy(terminal.Value); removed.Add(terminal.Key); }
+                if (!retained.Contains(terminal.Key)) { Destroy(terminal.Value.Root); removed.Add(terminal.Key); }
             foreach (byte id in removed) terminals.Remove(id);
             bool open = state.ExitOpen != 0 && state.ExitLocked == 0;
             exit.GetComponent<MeshRenderer>().sharedMaterial.color = open ? Survivor : new Color32(154, 152, 144, 255);
@@ -109,8 +117,17 @@ namespace PingTheKiller.Client.World
             return snapshots.Sample(localId, now, out position, out _, out _);
         }
 
-        private GameObject MakeTerminal(byte id, Vector3 position) => Primitive("Terminal " + id, PrimitiveType.Cylinder,
-            position + Vector3.up * .4f, new Vector3(.8f, .4f, .8f), new Color32(154, 152, 144, 255));
+        private Terminal MakeTerminal(byte id, Vector3 position)
+        {
+            var root = new GameObject("Terminal " + id);
+            root.transform.SetParent(transform, false);
+            root.transform.position = position;
+            GameObject plinth = Primitive("Plinth", PrimitiveType.Cube, position + Vector3.up * .45f, new Vector3(1.2f, .9f, 1.2f), Plinth);
+            GameObject panel = Primitive("Panel", PrimitiveType.Cube, position + Vector3.up * .93f, new Vector3(.8f, .06f, .8f), PanelIdle);
+            plinth.transform.SetParent(root.transform, true);
+            panel.transform.SetParent(root.transform, true);
+            return new Terminal { Root = root, Panel = panel.GetComponent<Renderer>().sharedMaterial };
+        }
 
         private Material MakeMaterial(Color color, bool transparent = false)
         {

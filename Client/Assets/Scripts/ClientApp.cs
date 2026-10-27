@@ -52,11 +52,7 @@ namespace PingTheKiller.Client
             view.backgroundColor = new Color32(16, 17, 19, 255);
             view.GetUniversalAdditionalCameraData();
             rig = new RoleCamera(view);
-            var lightObject = new GameObject("Map light", typeof(Light));
-            lightObject.transform.SetParent(transform, false);
-            lightObject.transform.rotation = Quaternion.Euler(55, -30, 0);
-            var light = lightObject.GetComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.5f;
-            RenderSettings.ambientLight = new Color(.45f, .45f, .45f);
+            SceneLighting.Apply(transform);
             if (EventSystem.current == null)
             {
                 var events = new GameObject("UI input", typeof(EventSystem), typeof(InputSystemUIInputModule));
@@ -75,7 +71,7 @@ namespace PingTheKiller.Client
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             if (devArgs.Active)
             {
-                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs);
+                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens);
                 dev.Join += value => { screens.Address = value; Join(value); };
                 dev.Offline += StartOffline;
                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
@@ -152,7 +148,7 @@ namespace PingTheKiller.Client
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
                     rig.Begin(role); screens.ShowPlay(role, HudCopy.SkillLine(role, skillId)); screens.SetSignal(false);
                     rig.Place(Vector3.zero);
-                    dev?.OnMatchStart();
+                    dev?.OnMatchStart(role, skillId);
                     break;
                 case S2C_WorldState state:
                     if (!playing || world == null) break;
@@ -174,6 +170,7 @@ namespace PingTheKiller.Client
                         }
                     }
                     teamLine = HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired, exitOpen);
+                    dev?.OnWorld(state, playerId);
                     break;
                 case S2C_SkillEffect effect:
                     // No visuals yet; accepted and ignored, logged once per skill.
@@ -192,8 +189,10 @@ namespace PingTheKiller.Client
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
             DestroyWorld();
-            screens.ShowResult(ResultCopy.Headline(result, lobby), ResultCopy.Outcome(result, playerId, role, localStatus), preview);
+            string headline = ResultCopy.Headline(result, lobby), outcome = ResultCopy.Outcome(result, playerId, role, localStatus);
+            screens.ShowResult(headline, outcome, preview);
             screens.SetResultLobby(false, link != null && link.IsOffline);
+            if (!preview) dev?.OnResult(result, headline, outcome);
         }
         // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server.
         private void Preview(S2C_GameResult result)
@@ -233,6 +232,13 @@ namespace PingTheKiller.Client
             }
             bool active = Application.isFocused && !releasedCursor;
             rig.Look(active);
+            bool located = world.LocalPosition(LinkClock.Now, out Vector3 position);
+            if (dev != null)
+            {
+                // Dev wander autopilot: it only turns the yaw; the forward hold below goes through MovementInput.
+                dev.Track(located, position);
+                if (survivor && dev.Steer(rig.Yaw, Time.unscaledDeltaTime, out float steered)) rig.Turn(steered);
+            }
             // Opposing keys still count as held. MovementInput owns the 30 Hz rate and the release zeros.
             bool keys = active && keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed || keyboard.sKey.isPressed || keyboard.dKey.isPressed);
             bool scripted = dev != null && dev.HoldForward; // dev capture: scripted W through the same 30 Hz path
@@ -246,7 +252,7 @@ namespace PingTheKiller.Client
                 link.Send(skill);
             world.Render(LinkClock.Now);
             // TODO: client-side prediction for the local survivor camera (it renders 100 ms in the past).
-            if (world.LocalPosition(LinkClock.Now, out Vector3 position) || role == Role.Killer) rig.Place(position);
+            if (located || role == Role.Killer) rig.Place(position);
             if (survivor) screens.SetSurvivorHud(statusLine, teamLine, hackingLine, releasedCursor);
             // Killer: above the ring on the map (screen-up is +z). Survivor: above the ring in the world.
             Vector3 anchor = survivor ? SharedMap.Exit + Vector3.up * 2.6f : SharedMap.Exit + Vector3.forward * (GameConstants.ExitRadius + .6f);
