@@ -28,13 +28,16 @@ public sealed class GoldenFrameTests
         {
             new S2C_WorldState
             {
-                Tick = 0x12345678, TimeLeft = 1f, ExitLocked = 1,
-                Players = new() { new() { Id = -2, Role = 1, Status = 2, X = 1f, Z = -0f, Yaw = -2f, Flags = 7 } }
+                Tick = 0x12345678, TimeLeft = 1f, ThreatLevel = 3, ExitOpen = 1, ExitLocked = 0, TerminalsRequired = 2,
+                Terminals = new() { new() { Id = 7, X = 2f, Z = -1f, Progress = 100 } },
+                Players = new() { new() { Id = -2, Role = 1, Status = 3, X = 1f, Z = -0f, Yaw = -2f, Flags = 31, StatusTimer = 0.5f, CaptureCount = 2 } }
             },
             new byte[]
             {
-                31, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 1, 1,
-                0xFE, 0xFF, 0xFF, 0xFF, 1, 2, 0, 0, 0x80, 0x3F, 0, 0, 0, 0x80, 0, 0, 0, 0xC0, 7
+                50, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 3, 1, 0, 2, 1,
+                7, 0, 0, 0, 0x40, 0, 0, 0x80, 0xBF, 100, 1,
+                0xFE, 0xFF, 0xFF, 0xFF, 1, 3, 0, 0, 0x80, 0x3F, 0, 0, 0, 0x80, 0, 0, 0, 0xC0, 31,
+                0, 0, 0, 0x3F, 2
             }
         };
         yield return new object[]
@@ -44,8 +47,8 @@ public sealed class GoldenFrameTests
         };
         yield return new object[]
         {
-            new S2C_GameResult { WinnerRole = 1, EscapedIds = new() { -1, 2147483647 } },
-            new byte[] { 12, 0, 0, 0, 7, 0, 1, 2, 255, 255, 255, 255, 255, 255, 255, 127 }
+            new S2C_GameResult { WinnerRole = 1, Reason = 2, EscapedIds = new() { -1, 2147483647 } },
+            new byte[] { 13, 0, 0, 0, 7, 0, 1, 2, 2, 255, 255, 255, 255, 255, 255, 255, 127 }
         };
         yield return new object[]
         {
@@ -56,6 +59,7 @@ public sealed class GoldenFrameTests
         {
             new S2C_LobbyState
             {
+                IsOffline = 1, HostRoleChoice = 255,
                 Slots = new Slot[]
                 {
                     new() { PlayerId = 1, Nickname = "", IsBot = 0, IsHost = 1 },
@@ -70,7 +74,7 @@ public sealed class GoldenFrameTests
             },
             new byte[]
             {
-                67, 0, 0, 0, 10, 0, 8,
+                69, 0, 0, 0, 10, 0, 1, 255, 8,
                 1, 0, 0, 0, 0, 0, 0, 1,
                 2, 0, 0, 0, 0, 0, 1, 0,
                 3, 0, 0, 0, 0, 0, 1, 0,
@@ -86,6 +90,21 @@ public sealed class GoldenFrameTests
         {
             new S2C_MatchStart { Role = 1, SkillId = 4, Seed = -2147483648 },
             new byte[] { 8, 0, 0, 0, 12, 0, 1, 4, 0, 0, 0, 128 }
+        };
+        yield return new object[]
+        {
+            new C2S_Interact { Active = 1 },
+            new byte[] { 0x03, 0x00, 0x00, 0x00, 0x0D, 0x00, 0x01 }
+        };
+        yield return new object[]
+        {
+            new C2S_SetBots { Count = 7 },
+            new byte[] { 3, 0, 0, 0, 14, 0, 7 }
+        };
+        yield return new object[]
+        {
+            new C2S_SetRole { RoleChoice = 255 },
+            new byte[] { 3, 0, 0, 0, 15, 0, 255 }
         };
     }
 

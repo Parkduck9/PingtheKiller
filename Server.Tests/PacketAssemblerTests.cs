@@ -213,15 +213,27 @@ public sealed class PacketAssemblerTests
         byte[] batch = Enumerable.Range(0, 5000).SelectMany(_ => A).ToArray();
         var assembler = new PacketAssembler(initialCapacity: 1);
         assembler.Append(batch);
-        Assert.Throws<InvalidOperationException>(() => assembler.Append(batch));
-        Assert.False(assembler.IsFaulted);
-        int count = 0;
-        while (assembler.TryRead(out _, out _) == AssembleResult.Packet)
-            count++;
-        Assert.Equal(5000, count);
+        Assert.Null(Record.Exception(() => assembler.Append(batch)));
+        Assert.True(assembler.IsFaulted);
+        Assert.Equal(AssembleResult.Malformed, assembler.TryRead(out ushort id, out var payload));
+        Assert.Equal(0, id);
+        Assert.True(payload.IsEmpty);
         assembler.Append(A);
-        ReadExpected(assembler, 8, A[6..]);
-        NeedMore(assembler);
+        assembler.Append(ReadOnlySpan<byte>.Empty);
+        Assert.Equal(AssembleResult.Malformed, assembler.TryRead(out _, out _));
+    }
+
+    [Fact]
+    public void SmallUndrainedChunksEventuallyFaultWithoutThrowing()
+    {
+        var assembler = new PacketAssembler(initialCapacity: 1);
+        Assert.Null(Record.Exception(() =>
+        {
+            for (int i = 0; i < 100000; i++)
+                assembler.Append(A);
+        }));
+        Assert.True(assembler.IsFaulted);
+        Assert.Equal(AssembleResult.Malformed, assembler.TryRead(out _, out _));
     }
 
     [Fact]

@@ -17,15 +17,26 @@ public sealed class PacketCodecTests
         yield return new object[] { new S2C_JoinResult { PlayerId = -2147483648, ReconnectToken = ulong.MaxValue, Result = 255 } };
         yield return new object[] { new C2S_MoveInput { DirX = float.MaxValue, DirZ = -0f, Yaw = -123.5f, Seq = 4294967295U } };
         yield return new object[] { new C2S_UseSkill { SkillId = 255 } };
-        yield return new object[] { new S2C_WorldState { Tick = 1234567890U, TimeLeft = 179.5f, ExitLocked = 1, Players = new() } };
+        yield return new object[] { new S2C_WorldState { Tick = 1234567890U, TimeLeft = 599.5f, ExitLocked = 1, TerminalsRequired = 4, Players = new(), Terminals = new() } };
         yield return new object[] { new S2C_WorldState
         {
-            Tick = uint.MaxValue, TimeLeft = -0f, ExitLocked = 0,
+            Tick = uint.MaxValue, TimeLeft = -0f, ThreatLevel = 3, ExitOpen = 1, ExitLocked = 0, TerminalsRequired = 3,
+            Terminals = new()
+            {
+                new() { Id = 0, X = float.MaxValue, Z = -0f, Progress = 0 },
+                new() { Id = 1, X = -1.5f, Z = 2f, Progress = 1 },
+                new() { Id = 2, X = 3f, Z = 4f, Progress = 25 },
+                new() { Id = 3, X = 5f, Z = 6f, Progress = 50 },
+                new() { Id = 4, X = 7f, Z = 8f, Progress = 75 },
+                new() { Id = 5, X = 9f, Z = 10f, Progress = 98 },
+                new() { Id = 6, X = 11f, Z = 12f, Progress = 99 },
+                new() { Id = 255, X = 13f, Z = 14f, Progress = 100 }
+            },
             Players = new()
             {
-                new() { Id = -2147483648, Role = 1, Status = 2, X = float.MaxValue, Z = -0f, Yaw = -180.5f, Flags = 7 },
-                new() { Id = 2147483647, Role = 0, Status = 1, X = -17.25f, Z = 5.5f, Yaw = 359.75f, Flags = 1 },
-                new() { Id = -3, Role = 0, Status = 0, X = 0f, Z = -4.5f, Yaw = 90f, Flags = 2 },
+                new() { Id = -2147483648, Role = 1, Status = 3, X = float.MaxValue, Z = -0f, Yaw = -180.5f, Flags = 31, StatusTimer = float.MaxValue, CaptureCount = 255 },
+                new() { Id = 2147483647, Role = 0, Status = 1, X = -17.25f, Z = 5.5f, Yaw = 359.75f, Flags = 9, StatusTimer = 59.5f, CaptureCount = 1 },
+                new() { Id = -3, Role = 0, Status = 0, X = 0f, Z = -4.5f, Yaw = 90f, Flags = 17, StatusTimer = -0f, CaptureCount = 2 },
                 new() { Id = 4, Role = 0, Status = 0, X = 1f, Z = 2f, Yaw = 3f, Flags = 4 },
                 new() { Id = 5, Role = 0, Status = 1, X = 4f, Z = 5f, Yaw = 6f, Flags = 0 },
                 new() { Id = 6, Role = 0, Status = 2, X = 7f, Z = 8f, Yaw = 9f, Flags = 3 },
@@ -34,12 +45,14 @@ public sealed class PacketCodecTests
             }
         } };
         yield return new object[] { new S2C_SkillEffect { CasterId = -123456789, SkillId = 9, X = -0f, Z = float.MaxValue, Duration = 12.5f } };
-        yield return new object[] { new S2C_GameResult { WinnerRole = 1, EscapedIds = new() } };
-        yield return new object[] { new S2C_GameResult { WinnerRole = 0, EscapedIds = new() { -2147483648, 2147483647, -3, 4, 5, 6, 7, 8 } } };
+        yield return new object[] { new S2C_GameResult { WinnerRole = 1, Reason = 1, EscapedIds = new() } };
+        yield return new object[] { new S2C_GameResult { WinnerRole = 1, Reason = 2, EscapedIds = new() } };
+        yield return new object[] { new S2C_GameResult { WinnerRole = 0, Reason = 0, EscapedIds = new() { -2147483648, 2147483647, -3, 4, 5, 6, 7, 8 } } };
         yield return new object[] { new C2S_Ping { Timestamp = long.MinValue } };
         yield return new object[] { new S2C_Pong { Timestamp = long.MaxValue } };
         yield return new object[] { new S2C_LobbyState
         {
+            IsOffline = 1, HostRoleChoice = 255,
             Slots = new Slot[]
             {
                 new() { PlayerId = -1, Nickname = "살인마", IsBot = 0, IsHost = 1 },
@@ -54,6 +67,11 @@ public sealed class PacketCodecTests
         } };
         yield return new object[] { new C2S_StartMatch() };
         yield return new object[] { new S2C_MatchStart { Role = 1, SkillId = 4, Seed = -2147483648 } };
+        yield return new object[] { new C2S_Interact { Active = 1 } };
+        yield return new object[] { new C2S_SetBots { Count = 7 } };
+        yield return new object[] { new C2S_SetRole { RoleChoice = 0 } };
+        yield return new object[] { new C2S_SetRole { RoleChoice = 1 } };
+        yield return new object[] { new C2S_SetRole { RoleChoice = 255 } };
     }
 
     [Theory]
@@ -118,7 +136,7 @@ public sealed class PacketCodecTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(13)]
+    [InlineData(16)]
     [InlineData(65535)]
     public void UnknownIdIsFormatError(ushort id) =>
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(id, Array.Empty<byte>()));
@@ -130,13 +148,14 @@ public sealed class PacketCodecTests
     [InlineData(1, new byte[] { 2, 0, 0xC0, 0xAF })]
     [InlineData(1, new byte[] { 3, 0, 0xED, 0xA0, 0x80 })]
     [InlineData(1, new byte[] { 1, 0, 0xE2 })]
-    [InlineData(5, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 })]
-    [InlineData(7, new byte[] { 0, 9 })]
-    [InlineData(10, new byte[] { 0 })]
-    [InlineData(10, new byte[] { 7 })]
-    [InlineData(10, new byte[] { 9 })]
-    [InlineData(10, new byte[] { 8, 0, 0, 0, 0, 49, 0 })]
-    [InlineData(10, new byte[] { 8, 0, 0, 0, 0, 1, 0, 0xFF })]
+    [InlineData(5, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 })] // Terminals
+    [InlineData(5, new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 })] // Players
+    [InlineData(7, new byte[] { 0, 0, 9 })]
+    [InlineData(10, new byte[] { 0, 0, 0 })]
+    [InlineData(10, new byte[] { 0, 0, 7 })]
+    [InlineData(10, new byte[] { 0, 0, 9 })]
+    [InlineData(10, new byte[] { 0, 0, 8, 0, 0, 0, 0, 49, 0 })]
+    [InlineData(10, new byte[] { 0, 0, 8, 0, 0, 0, 0, 1, 0, 0xFF })]
     public void InvalidStringOrCountIsFormatError(ushort id, byte[] payload) =>
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(id, payload));
 
@@ -148,12 +167,15 @@ public sealed class PacketCodecTests
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new C2S_Join { Nickname = "\uD800" }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new C2S_Join { Nickname = null! }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Players = new(new PlayerState[9]) }));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Terminals = new(new TerminalState[9]) }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_GameResult { EscapedIds = new(new int[9]) }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_LobbyState { Slots = new Slot[7] }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_LobbyState { Slots = new Slot[9] }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Players = null! }));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_WorldState { Terminals = null! }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_GameResult { EscapedIds = null! }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_LobbyState { Slots = null! }));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_LobbyState { Slots = new Slot[8] }));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(11, new byte[Protocol.MaxBodyLength]));
     }
 
@@ -163,11 +185,20 @@ public sealed class PacketCodecTests
         Assert.Equal(0, (byte)Role.Survivor);
         Assert.Equal(1, (byte)Role.Killer);
         Assert.Equal(0, (byte)PlayerStatus.Normal);
-        Assert.Equal(1, (byte)PlayerStatus.Frozen);
+        Assert.Equal(1, (byte)PlayerStatus.Lagging);
         Assert.Equal(2, (byte)PlayerStatus.Escaped);
+        Assert.Equal(3, (byte)PlayerStatus.Eliminated);
         Assert.Equal(0, (byte)PlayerFlags.None);
         Assert.Equal(1, (byte)PlayerFlags.Signal);
         Assert.Equal(2, (byte)PlayerFlags.Afterimage);
         Assert.Equal(4, (byte)PlayerFlags.Stealthed);
+        Assert.Equal(8, (byte)PlayerFlags.Hacking);
+        Assert.Equal(16, (byte)PlayerFlags.Rescuing);
+        Assert.Equal(0, (byte)RoleChoice.Survivor);
+        Assert.Equal(1, (byte)RoleChoice.Killer);
+        Assert.Equal(255, (byte)RoleChoice.Random);
+        Assert.Equal(0, (byte)GameEndReason.SurvivorEscaped);
+        Assert.Equal(1, (byte)GameEndReason.AllSurvivorsDown);
+        Assert.Equal(2, (byte)GameEndReason.TimeUp);
     }
 }

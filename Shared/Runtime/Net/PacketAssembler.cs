@@ -33,8 +33,11 @@ namespace PingTheKiller.Shared.Net
             int remaining = _writeOffset - _readOffset;
             long requiredLength = (long)remaining + data.Length;
             long limit = (long)Protocol.HeaderSize + _maxBodyLength + data.Length;
-            if (requiredLength > int.MaxValue)
-                throw new InvalidOperationException("Drain buffered packets before appending more data.");
+            if (requiredLength > int.MaxValue || requiredLength > limit)
+            {
+                IsFaulted = true;
+                return;
+            }
             // Compact only on Append: previously returned payloads must survive TryRead.
             if (_readOffset > _buffer.Length / 2 || data.Length > _buffer.Length - _writeOffset)
             {
@@ -43,11 +46,11 @@ namespace PingTheKiller.Shared.Net
                 _writeOffset = remaining;
             }
 
-            int required = checked(_writeOffset + data.Length);
+            // If compaction was unnecessary, the sum already fits in the buffer.
+            // Otherwise it equals requiredLength, which was range-checked above.
+            int required = _writeOffset + data.Length;
             if (required > _buffer.Length)
             {
-                if (requiredLength > limit)
-                    throw new InvalidOperationException("Drain buffered packets before appending more data.");
                 long capacity = _buffer.Length;
                 while (capacity < required)
                     capacity = Math.Min(capacity * 2, limit);

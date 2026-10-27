@@ -1,0 +1,89 @@
+using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Net;
+using PingTheKiller.Shared.Packets;
+using Xunit;
+
+namespace PingTheKiller.Tests;
+
+public sealed class ProtocolV02Tests
+{
+    public static IEnumerable<object[]> ByteFields()
+    {
+        var world = new S2C_WorldState
+        {
+            Players = new() { new PlayerState() }
+        };
+        yield return new object[] { world, 8, new byte[] { 0, 1, 2, 3 } }; // ThreatLevel
+        yield return new object[] { world, 18, new byte[] { 0, 1 } }; // Player.Role
+        yield return new object[] { world, 19, new byte[] { 0, 1, 2, 3 } }; // Player.Status
+        yield return new object[] { world, 32, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
+        yield return new object[]
+        {
+            new S2C_WorldState { Terminals = new() { new TerminalState() } },
+            22, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() // Progress
+        };
+        yield return new object[] { new S2C_GameResult(), 0, new byte[] { 0, 1 } }; // WinnerRole
+        yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2 } }; // Reason
+        yield return new object[] { new S2C_LobbyState(), 1, new byte[] { 0, 1, 255 } }; // HostRoleChoice
+        yield return new object[] { new S2C_MatchStart(), 0, new byte[] { 0, 1 } }; // Role
+        yield return new object[] { new C2S_Interact(), 0, new byte[] { 0, 1 } };
+        yield return new object[] { new C2S_SetBots(), 0, new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 } };
+        yield return new object[] { new C2S_SetRole(), 0, new byte[] { 0, 1, 255 } };
+    }
+
+    [Theory]
+    [MemberData(nameof(ByteFields))]
+    public void DecodeAcceptsOnlyDefinedEnumAndBoundedByteValues(IPacket packet, int offset, byte[] allowed)
+    {
+        byte[] payload = PacketCodec.Encode(packet)[6..];
+        for (int value = 0; value <= 255; value++)
+        {
+            payload[offset] = (byte)value;
+            if (allowed.Contains((byte)value))
+                Assert.Equal(payload, PacketCodec.Encode(PacketCodec.Decode((ushort)packet.Id, payload))[6..]);
+            else
+                Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)packet.Id, payload));
+        }
+    }
+
+    public static IEnumerable<object[]> DefaultPackets() => typeof(IPacket).Assembly.GetTypes()
+        .Where(t => !t.IsAbstract && typeof(IPacket).IsAssignableFrom(t))
+        .Select(t => new object[] { (IPacket)Activator.CreateInstance(t)! });
+
+    [Theory]
+    [MemberData(nameof(DefaultPackets))]
+    public void EveryDefaultPacketEncodesAndDecodes(IPacket packet)
+    {
+        byte[] frame = PacketCodec.Encode(packet);
+        IPacket decoded = PacketCodec.Decode((ushort)packet.Id, frame.AsSpan(6));
+        Assert.Equivalent(packet, decoded, strict: true);
+        Assert.Equal(frame, PacketCodec.Encode(decoded));
+    }
+
+    [Fact]
+    public void DefaultPacketCoverageIncludesAllFifteenIds()
+    {
+        var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
+        Assert.Equal(15, packets.Length);
+        Assert.Equal(Enumerable.Range(1, 15).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
+    }
+
+    [Fact]
+    public void DefaultLobbySlotsAreInitializedAndIndependentlyOwned()
+    {
+        var lobby = new S2C_LobbyState();
+        var other = new S2C_LobbyState();
+        Assert.Equal(8, lobby.Slots.Length);
+        for (int i = 0; i < 8; i++)
+        {
+            Assert.NotNull(lobby.Slots[i]);
+            Assert.Equal(string.Empty, lobby.Slots[i].Nickname);
+            Assert.NotSame(lobby.Slots[i], other.Slots[i]);
+            for (int j = 0; j < i; j++)
+                Assert.NotSame(lobby.Slots[i], lobby.Slots[j]);
+        }
+        lobby.Slots[0].Nickname = "changed";
+        Assert.All(lobby.Slots.Skip(1), slot => Assert.Equal(string.Empty, slot.Nickname));
+        Assert.All(other.Slots, slot => Assert.Equal(string.Empty, slot.Nickname));
+    }
+}

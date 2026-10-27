@@ -413,7 +413,8 @@ public sealed class U1AdversarialTests
     public void InvalidUtf8_InsideLobbySlotNickname_ThrowsPacketFormatException()
     {
         // 8 slots; slot 3 has nickname bytes "C3 28". Slot layout: int id, ushort len, bytes, byte bot, byte host.
-        var parts = new List<byte[]> { new byte[] { 8 } };
+        // v0.2 layout: byte IsOffline, byte HostRoleChoice, byte slotCount, then slots.
+        var parts = new List<byte[]> { new byte[] { 0, 0, 8 } };
         for (int i = 0; i < 8; i++)
         {
             byte[] nick = i == 3 ? Hex("C328") : new[] { (byte)('a' + i) };
@@ -429,7 +430,9 @@ public sealed class U1AdversarialTests
 
     private static byte[] LobbyPayload(byte declaredCount, int slotsPresent)
     {
-        var parts = new List<byte[]> { new[] { declaredCount } };
+        // v0.2 (docs/briefs/U1b-a1.md section 4): byte IsOffline, byte HostRoleChoice, Slot[8].
+        // IsOffline = 1, HostRoleChoice = 255 (Random) so the control test can assert both header bytes.
+        var parts = new List<byte[]> { new byte[] { 1, 255 }, new[] { declaredCount } };
         for (int i = 0; i < slotsPresent; i++)
         {
             parts.Add(Le32(i + 1));                              // PlayerId = i + 1
@@ -443,6 +446,8 @@ public sealed class U1AdversarialTests
     public void LobbyState_ExactlyEightSlots_IsAccepted_Control()
     {
         var l = Assert.IsType<S2C_LobbyState>(PacketCodec.Decode(0x000A, LobbyPayload(8, 8)));
+        Assert.Equal((byte)1, l.IsOffline);
+        Assert.Equal((byte)255, l.HostRoleChoice);
         Assert.Equal(8, l.Slots.Length);
         Assert.Equal(1, l.Slots[0].PlayerId);
         Assert.Equal("a", l.Slots[0].Nickname);
@@ -496,11 +501,15 @@ public sealed class U1AdversarialTests
 
     private static byte[] WorldPayload(byte declaredCount, int playersPresent)
     {
+        // v0.2 (docs/briefs/U1b-a1.md sections 2-4):
+        // uint Tick, float TimeLeft, byte ThreatLevel, byte ExitOpen, byte ExitLocked, byte TerminalsRequired,
+        // byte terminalCount + terminals, byte playerCount + players (24 bytes each).
         var parts = new List<byte[]>
         {
             Hex("0D0C0B0A"),   // Tick = 0x0A0B0C0D
             Hex("0000C03F"),   // TimeLeft = 1.5f  (0x3FC00000)
-            new byte[] { 1 },  // ExitLocked
+            new byte[] { 0, 0, 1, 2 },  // ThreatLevel 0, ExitOpen 0, ExitLocked 1, TerminalsRequired 2
+            new byte[] { 0 },  // zero terminals
             new[] { declaredCount },
         };
         for (int i = 0; i < playersPresent; i++)
@@ -511,6 +520,8 @@ public sealed class U1AdversarialTests
             parts.Add(Hex("00000040"));              // Z = 2f
             parts.Add(Hex("00000000"));              // Yaw = 0f
             parts.Add(new byte[] { 0 });             // Flags
+            parts.Add(Hex("00000000"));              // StatusTimer = 0f
+            parts.Add(new byte[] { 0 });             // CaptureCount
         }
         return Concat(parts.ToArray());
     }
@@ -521,7 +532,11 @@ public sealed class U1AdversarialTests
         var w = Assert.IsType<S2C_WorldState>(PacketCodec.Decode(0x0005, WorldPayload(8, 8)));
         Assert.Equal(0x0A0B0C0Du, w.Tick);
         Assert.Equal(1.5f, w.TimeLeft);
+        Assert.Equal((byte)0, w.ThreatLevel);
+        Assert.Equal((byte)0, w.ExitOpen);
         Assert.Equal((byte)1, w.ExitLocked);
+        Assert.Equal((byte)2, w.TerminalsRequired);
+        Assert.Empty(w.Terminals);
         Assert.Equal(8, w.Players.Count);
         Assert.Equal(8, w.Players[7].Id);
         Assert.Equal((byte)1, w.Players[7].Role);
@@ -564,7 +579,8 @@ public sealed class U1AdversarialTests
     [Fact]
     public void GameResult_NineEscapedIds_IsRejected()
     {
-        var parts = new List<byte[]> { new byte[] { 1 }, new byte[] { 9 } };
+        // v0.2: byte WinnerRole (1 = Killer), byte Reason (2 = TimeUp), byte count (9 -> too many), ids.
+        var parts = new List<byte[]> { new byte[] { 1 }, new byte[] { 2 }, new byte[] { 9 } };
         for (int i = 0; i < 9; i++) parts.Add(Le32(i));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0007, Concat(parts.ToArray())));
     }
@@ -730,7 +746,7 @@ public sealed class U1AdversarialTests
 
     [Theory]
     [InlineData(0x0000)]
-    [InlineData(0x000D)]
+    [InlineData(0x0010)]   // first id past v0.2's 0x000F (0x000D is now C2S_Interact)
     [InlineData(0x0100)]
     [InlineData(0xFFFF)]
     public void UnknownPacketIds_AreRejectedWithPacketFormatException(int id)
@@ -741,7 +757,7 @@ public sealed class U1AdversarialTests
     [Fact]
     public void Decode_EmptyPayloadForNonEmptyPacket_IsFormatErrorNotOtherException()
     {
-        for (ushort id = 1; id <= 0x0C; id++)
+        for (ushort id = 1; id <= 0x0F; id++)
         {
             if (id == 0x0B) continue; // StartMatch is legitimately empty
             Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(id, Array.Empty<byte>()));

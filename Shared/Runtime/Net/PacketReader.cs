@@ -28,6 +28,13 @@ namespace PingTheKiller.Shared.Net
         }
 
         public byte ReadByte() => Take(1)[0];
+        public byte ReadByte(byte maxValue)
+        {
+            byte value = ReadByte();
+            if (value > maxValue)
+                throw new PacketFormatException("Byte value is outside its allowed range.");
+            return value;
+        }
         public ushort ReadUInt16() => BinaryPrimitives.ReadUInt16LittleEndian(Take(2));
         public int ReadInt32() => BinaryPrimitives.ReadInt32LittleEndian(Take(4));
         public uint ReadUInt32() => BinaryPrimitives.ReadUInt32LittleEndian(Take(4));

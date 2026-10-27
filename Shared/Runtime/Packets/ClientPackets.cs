@@ -1,4 +1,5 @@
 using PingTheKiller.Shared.Net;
+using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Shared.Packets
 {
@@ -63,5 +64,29 @@ namespace PingTheKiller.Shared.Packets
         public PacketId Id => PacketId.C2S_StartMatch;
         public void Write(PacketWriter w) { }
         public static C2S_StartMatch Read(ref PacketReader r) => new C2S_StartMatch();
+    }
+
+    public sealed class C2S_Interact : IPacket
+    {
+        public byte Active;
+        public PacketId Id => PacketId.C2S_Interact;
+        public void Write(PacketWriter w) => w.WriteByte(Active);
+        public static C2S_Interact Read(ref PacketReader r) => new C2S_Interact { Active = r.ReadByte(1) };
+    }
+
+    public sealed class C2S_SetBots : IPacket
+    {
+        public byte Count;
+        public PacketId Id => PacketId.C2S_SetBots;
+        public void Write(PacketWriter w) => w.WriteByte(Count);
+        public static C2S_SetBots Read(ref PacketReader r) => new C2S_SetBots { Count = r.ReadByte(7) };
+    }
+
+    public sealed class C2S_SetRole : IPacket
+    {
+        public byte RoleChoice;
+        public PacketId Id => PacketId.C2S_SetRole;
+        public void Write(PacketWriter w) => w.WriteByte(RoleChoice);
+        public static C2S_SetRole Read(ref PacketReader r) => new C2S_SetRole { RoleChoice = GameWireValues.ReadRoleChoice(ref r) };
     }
 }

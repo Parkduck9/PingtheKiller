@@ -28,7 +28,11 @@ namespace PingTheKiller.Shared.Packets
     {
         public uint Tick;
         public float TimeLeft;
+        public byte ThreatLevel;
+        public byte ExitOpen;
         public byte ExitLocked;
+        public byte TerminalsRequired;
+        public List<TerminalState> Terminals = new List<TerminalState>();
         public List<PlayerState> Players = new List<PlayerState>();
         public PacketId Id => PacketId.S2C_WorldState;
 
@@ -36,9 +40,17 @@ namespace PingTheKiller.Shared.Packets
         {
             if (Players == null)
                 throw new PacketFormatException("Players cannot be null.");
+            if (Terminals == null)
+                throw new PacketFormatException("Terminals cannot be null.");
             w.WriteUInt32(Tick);
             w.WriteSingle(TimeLeft);
+            w.WriteByte(ThreatLevel);
+            w.WriteByte(ExitOpen);
             w.WriteByte(ExitLocked);
+            w.WriteByte(TerminalsRequired);
+            w.WriteCount(Terminals.Count, Protocol.MaxTerminals);
+            for (int i = 0; i < Terminals.Count; i++)
+                Terminals[i].Write(w);
             w.WriteCount(Players.Count, Protocol.MaxPlayers);
             for (int i = 0; i < Players.Count; i++)
                 Players[i].Write(w);
@@ -48,8 +60,13 @@ namespace PingTheKiller.Shared.Packets
         {
             var packet = new S2C_WorldState
             {
-                Tick = r.ReadUInt32(), TimeLeft = r.ReadSingle(), ExitLocked = r.ReadByte()
+                Tick = r.ReadUInt32(), TimeLeft = r.ReadSingle(), ThreatLevel = r.ReadByte(3),
+                ExitOpen = r.ReadByte(), ExitLocked = r.ReadByte(), TerminalsRequired = r.ReadByte()
             };
+            int terminals = r.ReadCount(Protocol.MaxTerminals);
+            packet.Terminals = new List<TerminalState>(terminals);
+            for (int i = 0; i < terminals; i++)
+                packet.Terminals.Add(TerminalState.Read(ref r));
             int count = r.ReadCount(Protocol.MaxPlayers);
             packet.Players = new List<PlayerState>(count);
             for (int i = 0; i < count; i++)
@@ -86,6 +103,7 @@ namespace PingTheKiller.Shared.Packets
     public sealed class S2C_GameResult : IPacket
     {
         public byte WinnerRole;
+        public byte Reason;
         public List<int> EscapedIds = new List<int>();
         public PacketId Id => PacketId.S2C_GameResult;
 
@@ -94,6 +112,7 @@ namespace PingTheKiller.Shared.Packets
             if (EscapedIds == null)
                 throw new PacketFormatException("Escaped IDs cannot be null.");
             w.WriteByte(WinnerRole);
+            w.WriteByte(Reason);
             w.WriteCount(EscapedIds.Count, Protocol.MaxEscapedIds);
             for (int i = 0; i < EscapedIds.Count; i++)
                 w.WriteInt32(EscapedIds[i]);
@@ -101,7 +120,7 @@ namespace PingTheKiller.Shared.Packets
 
         public static S2C_GameResult Read(ref PacketReader r)
         {
-            var packet = new S2C_GameResult { WinnerRole = r.ReadByte() };
+            var packet = new S2C_GameResult { WinnerRole = GameWireValues.ReadRole(ref r), Reason = GameWireValues.ReadReason(ref r) };
             int count = r.ReadCount(Protocol.MaxEscapedIds);
             packet.EscapedIds = new List<int>(count);
             for (int i = 0; i < count; i++)
@@ -120,22 +139,41 @@ namespace PingTheKiller.Shared.Packets
 
     public sealed class S2C_LobbyState : IPacket
     {
-        public Slot[] Slots = new Slot[Protocol.LobbySlotCount];
+        public byte IsOffline;
+        public byte HostRoleChoice;
+        public Slot[] Slots = CreateSlots();
         public PacketId Id => PacketId.S2C_LobbyState;
+
+        private static Slot[] CreateSlots()
+        {
+            var slots = new Slot[Protocol.LobbySlotCount];
+            for (int i = 0; i < slots.Length; i++)
+                slots[i] = new Slot();
+            return slots;
+        }
 
         public void Write(PacketWriter w)
         {
             if (Slots == null)
                 throw new PacketFormatException("Slots cannot be null.");
+            w.WriteByte(IsOffline);
+            w.WriteByte(HostRoleChoice);
             w.WriteCount(Slots.Length, Protocol.LobbySlotCount, exact: true);
             for (int i = 0; i < Slots.Length; i++)
+            {
+                if (Slots[i] == null)
+                    throw new PacketFormatException("Slots cannot contain null entries.");
                 Slots[i].Write(w);
+            }
         }
 
         public static S2C_LobbyState Read(ref PacketReader r)
         {
+            var packet = new S2C_LobbyState
+            {
+                IsOffline = r.ReadByte(), HostRoleChoice = GameWireValues.ReadRoleChoice(ref r)
+            };
             int count = r.ReadCount(Protocol.LobbySlotCount, exact: true);
-            var packet = new S2C_LobbyState { Slots = new Slot[count] };
             for (int i = 0; i < count; i++)
                 packet.Slots[i] = Slot.Read(ref r);
             return packet;
@@ -158,7 +196,7 @@ namespace PingTheKiller.Shared.Packets
 
         public static S2C_MatchStart Read(ref PacketReader r) => new S2C_MatchStart
         {
-            Role = r.ReadByte(), SkillId = r.ReadByte(), Seed = r.ReadInt32()
+            Role = GameWireValues.ReadRole(ref r), SkillId = r.ReadByte(), Seed = r.ReadInt32()
         };
     }
 }

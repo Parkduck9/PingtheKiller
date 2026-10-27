@@ -7,6 +7,7 @@ namespace PingTheKiller.Shared
         public const int MaxBodyLength = 16384;
         public const int MaxNicknameBytes = 48;
         public const int MaxPlayers = 8;
+        public const int MaxTerminals = 8;
         public const int LobbySlotCount = 8;
         public const int MaxEscapedIds = 8;
     }
