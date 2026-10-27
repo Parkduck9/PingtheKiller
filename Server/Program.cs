@@ -1,3 +1,4 @@
+using System.Net;
 using System.Runtime.InteropServices;
 using PingTheKiller.ServerCore;
 using PingTheKiller.ServerCore.Transport;
@@ -5,10 +6,22 @@ using PingTheKiller.ServerCore.Transport;
 int port = 7777;
 int bots = 0;
 bool autostart = false;
+bool sandbox = false;
+IPAddress bind = IPAddress.Any;
 for (int i = 0; i < args.Length; ++i)
 {
     string arg = args[i];
     if (arg == "--autostart") autostart = true;
+    else if (arg == "--sandbox") sandbox = true;
+    else if (arg == "--bind")
+    {
+        if (++i >= args.Length || !IPAddress.TryParse(args[i], out var address))
+        {
+            Console.Error.WriteLine($"Invalid --bind address '{(i < args.Length ? args[i] : "")}': expected an IPv4 or IPv6 address such as 127.0.0.1.");
+            return Usage();
+        }
+        bind = address;
+    }
     else if ((arg == "--port" || arg == "--bots") && ++i < args.Length && int.TryParse(args[i], out int value))
     {
         if (arg == "--port" && value >= 0 && value <= 65535) port = value;
@@ -26,8 +39,8 @@ PosixSignalRegistration? sigterm = null;
 try { sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; shutdown.Set(); }); }
 catch (PlatformNotSupportedException) { Console.WriteLine("SIGTERM handler not supported on this platform"); }
 
-using var game = new GameServer(new ServerOptions { BotCount = bots, AutoStart = autostart });
-using var transport = new TcpTransport(port);
+using var game = new GameServer(new ServerOptions { BotCount = bots, AutoStart = autostart, Sandbox = sandbox });
+using var transport = new TcpTransport(port, bind);
 game.Log += Console.WriteLine;
 transport.Log += Console.WriteLine;
 transport.ConnectionAccepted += game.AddConnection;
@@ -36,7 +49,7 @@ try
 {
     transport.Start();
     game.Start();
-    Console.WriteLine($"listening port={transport.Port} bots={bots}");
+    Console.WriteLine($"listening address={transport.Address} port={transport.Port} bots={bots}{(sandbox ? " sandbox=U2a-rules-only" : "")}");
     shutdown.Wait();
     Console.WriteLine("shutting down");
 }
@@ -57,6 +70,6 @@ return exitCode;
 
 static int Usage()
 {
-    Console.Error.WriteLine("Usage: Server [--port 0..65535] [--bots 0..8] [--autostart (requires >=2 bots)]");
+    Console.Error.WriteLine("Usage: Server [--port 0..65535] [--bots 0..8] [--bind <ip>, default 0.0.0.0] [--autostart (requires >=2 bots)] [--sandbox (network QA: U2a rules only, no match end before 600 s)]");
     return 2;
 }

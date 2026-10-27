@@ -11,6 +11,20 @@ public sealed record Options
     public TimeSpan Duration { get; init; } = TimeSpan.FromSeconds(60);
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(5);
     public IReadOnlySet<string> Only { get; init; } = new HashSet<string>(Scorer.Ids);
+    // H6 needs a fresh lobby of its own; H2-H5 occupy the match of the --host/--port server.
+    public string? H6Host { get; init; }
+    public int? H6Port { get; init; }
+
+    public Options ForH6() => this with { Host = H6Host ?? Host, Port = H6Port ?? Port };
+
+    // Failure evidence when H6 would share the H2-H5 server (decided without network I/O), otherwise null.
+    public string? H6Conflict()
+    {
+        if (!Only.Contains("H6") || !Only.Any(id => id is "H2" or "H3" or "H4" or "H5")) return null;
+        bool sameServer = H6Port == null ||
+            (H6Port == Port && string.Equals(H6Host ?? Host, Host, StringComparison.OrdinalIgnoreCase));
+        return sameServer ? ScenarioCheck.NeedsOwnServer : null;
+    }
 
     public static Options Parse(string[] args)
     {
@@ -29,6 +43,8 @@ public sealed record Options
                 "--duration" => result with { Duration = Seconds(value, key) },
                 "--timeout" => result with { Timeout = Seconds(value, key) },
                 "--only" => result with { Only = ParseOnly(value) },
+                "--h6-host" when !string.IsNullOrWhiteSpace(value) => result with { H6Host = value },
+                "--h6-port" when int.TryParse(value, out int n) && n is > 0 and <= 65535 => result with { H6Port = n },
                 _ => throw new ArgumentException($"Unknown option or invalid value: {key} {value}")
             };
         }
