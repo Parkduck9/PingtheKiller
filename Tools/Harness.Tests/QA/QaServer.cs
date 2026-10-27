@@ -185,7 +185,13 @@ internal sealed class QaServer : IAsyncDisposable
                         int len = BitConverter.ToInt32(buffer, off);
                         if (len < 2 || off + 4 + len > count) break;
                         ushort nid = BitConverter.ToUInt16(buffer, off + 4);
-                        var naive = PacketCodec.Decode(nid, buffer.AsSpan(off + 6, len - 2));
+                        // A read that starts mid-frame yields garbage "frames"; whether one of them passes the
+                        // length test and then fails to decode depends on TCP segmentation (scheduler timing).
+                        // The naive server discards the rest of such a read like any other partial data; letting
+                        // the exception escape faulted this connection task and failed the test in DisposeAsync.
+                        IPacket naive;
+                        try { naive = PacketCodec.Decode(nid, buffer.AsSpan(off + 6, len - 2)); }
+                        catch (PacketFormatException) { break; }
                         lock (sync) Handle(peer, naive);
                         off += 4 + len;
                         if (f.OneFramePerRead) break;
