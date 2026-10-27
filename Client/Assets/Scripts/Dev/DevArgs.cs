@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using PingTheKiller.Client.Net;
+using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Client.Dev
 {
@@ -15,8 +16,12 @@ namespace PingTheKiller.Client.Dev
         public float HoldW { get; private set; }
         public string Shots { get; private set; }
         public float QuitAfter { get; private set; }
+        public bool Offline { get; private set; }
+        // Dev-only synthetic S2C_GameResult reason (GameEndReason), dispatched locally after the play shots; never sent.
+        public byte? PreviewResult { get; private set; }
         public List<string> Errors { get; } = new List<string>();
-        public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0;
+        public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
+            || Offline || PreviewResult.HasValue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -27,8 +32,9 @@ namespace PingTheKiller.Client.Dev
                 string flag = args[i];
                 if (flag == null || !flag.StartsWith(Prefix)) continue;
                 if (flag == "-ptk-start") { result.Start = true; continue; }
+                if (flag == "-ptk-offline") { result.Offline = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
-                    || flag == "-ptk-shots" || flag == "-ptk-quit-after";
+                    || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -64,6 +70,14 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-quit-after":
                     if (!Seconds(value, out float quit)) return false;
                     QuitAfter = quit; return true;
+                case "-ptk-preview-result":
+                    switch (value.ToLowerInvariant())
+                    {
+                        case "survivorescaped": PreviewResult = (byte)GameEndReason.SurvivorEscaped; return true;
+                        case "allsurvivorsdown": PreviewResult = (byte)GameEndReason.AllSurvivorsDown; return true;
+                        case "timeup": PreviewResult = (byte)GameEndReason.TimeUp; return true;
+                        default: return false;
+                    }
             }
             return false;
         }

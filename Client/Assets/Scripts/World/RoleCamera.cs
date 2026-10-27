@@ -36,7 +36,7 @@ namespace PingTheKiller.Client.World
         {
             if (role == Role.Killer)
             {
-                camera.transform.SetPositionAndRotation(MapSource.Center + Vector3.up * 35, Quaternion.Euler(90, 0, 0));
+                camera.transform.SetPositionAndRotation(SharedMap.Center + Vector3.up * 35, Quaternion.Euler(90, 0, 0));
                 camera.fieldOfView = 2 * Mathf.Atan(34 / (35 * Mathf.Min(1, camera.aspect))) * Mathf.Rad2Deg;
             }
             else

@@ -7,15 +7,19 @@ using UnityEngine;
 
 namespace PingTheKiller.Client.Dev
 {
-    // Scripted run for screenshot QA: menu shot, join, host setup, lobby shot, start, scripted W, play shots, quit.
+    // Scripted run for screenshot QA: menu shot, join or offline, host setup, lobby shot, start, scripted W, play shots,
+    // optional synthetic result preview + shot, quit.
     // Times are realtime seconds from the first frame; only created when DevArgs.Active.
     public sealed class DevCapture : MonoBehaviour
     {
         private DevArgs args;
-        private double origin = -1, lobbyAt = -1, matchAt = -1;
-        private bool menuShot, joined, configured, lobbyShot, started, play1, play4, quitting, host, capturing;
+        private double origin = -1, lobbyAt = -1, matchAt = -1, previewAt = -1;
+        private bool menuShot, joined, configured, lobbyShot, started, play1, play4, previewShot, quitting, host, capturing;
         private int participants;
         public event Action<string> Join;
+        public event Action Offline;
+        // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
+        public event Action<S2C_GameResult> PreviewResult;
         public event Action<IPacket> HostSend;
 
         public void Initialize(DevArgs value)
@@ -58,7 +62,11 @@ namespace PingTheKiller.Client.Dev
             double t = Now;
             bool shots = args.Shots != null;
             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
-            if (args.Join != null && !joined && (!shots || menuShot)) { joined = true; Join?.Invoke(args.Join); }
+            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot))
+            {
+                joined = true;
+                if (args.Offline) Offline?.Invoke(); else Join?.Invoke(args.Join);
+            }
             if (lobbyAt >= 0 && matchAt < 0)
             {
                 if (shots && !lobbyShot && t >= lobbyAt + 1) { lobbyShot = true; Shot("lobby.png"); return; }
@@ -71,6 +79,15 @@ namespace PingTheKiller.Client.Dev
             {
                 if (!play1 && t >= matchAt + 1) { play1 = true; Shot("play-1s.png"); return; }
                 if (!play4 && t >= matchAt + 4) { play4 = true; Shot("play-4s.png"); return; }
+            }
+            if (matchAt >= 0 && args.PreviewResult.HasValue && previewAt < 0 && t >= matchAt + 5 && (!shots || play4))
+            {
+                previewAt = t;
+                PreviewResult?.Invoke(new S2C_GameResult { WinnerRole = (byte)(args.PreviewResult == (byte)GameEndReason.SurvivorEscaped ? Role.Survivor : Role.Killer), Reason = args.PreviewResult.Value });
+            }
+            if (previewAt >= 0 && shots && !previewShot && t >= previewAt + 1)
+            {
+                previewShot = true; Shot("result-preview-" + ((GameEndReason)args.PreviewResult.Value).ToString().ToLowerInvariant() + ".png"); return;
             }
             if (args.QuitAfter > 0 && !quitting && t >= args.QuitAfter)
             {

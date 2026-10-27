@@ -7,35 +7,46 @@ using UnityEngine.UIElements;
 
 namespace PingTheKiller.Client.UI
 {
-    // State list before layout: menu = endpoint/validation/connecting; lobby = eight slots,
-    // host permissions/bot count/role; play = recipient's Signal state or Exit lock, plus RTT.
+    // State list before layout: menu = endpoint/validation/connecting, Offline; lobby = eight slots, host permissions,
+    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, team terminals + Exit, hacking %,
+    // skill, cursor hint; killer: skill (Exit state lives on the exit in the world); result = winner + reason, own
+    // outcome, lobby reopened or not; dev line (F3) = RTT online / offline marker.
     // Layout rule: every label is one line (nowrap, see ClientUI.uss); only .message wraps, at a fixed width.
     public sealed class ClientScreens : MonoBehaviour
     {
-        // Sizes in USS are 1080p pixels. Below 1080p the panel scales down, but not under MinScale,
-        // so 14 px text stays at least 11 px at 1280x720 (the layout still fits at 1280x720).
+        // Sizes in USS are 1080p pixels. The panel follows min(w/1920, h/1080) clamped to [MinScale, MaxScale]:
+        // 14 px text stays at least 11 px at 1280x720, and large screens scale up instead of shrinking the UI.
         public const float MinScale = .8f;
-        private VisualElement root, menu, lobby, play, hud;
-        private Label message, lobbyMessage, debug, signal, exit;
+        public const float MaxScale = 2f;
+        private VisualElement root, menu, lobby, result, play, survivorHud, killerHud;
+        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, signal, status, team, hacking, survivorSkill, cursorHint, killerSkill, exit;
+        private Label resultHeadline, resultOutcome, resultPreview, resultMessage;
         private readonly Label[] slots = new Label[Protocol.LobbySlotCount];
+        private readonly VisualElement[] slotRows = new VisualElement[Protocol.LobbySlotCount];
         private TextField address;
-        private Button join, cancel, minus, plus, start;
+        private Button join, cancel, offline, minus, plus, start, back, resultLeave;
         private Label botCount, roleChoice;
         private readonly Button[] roleButtons = new Button[3];
         private PanelSettings panel;
         private Vector2Int scaledFor;
-        private double shownRtt;
-        private int shownHint;
         public event Action<string> Join;
+        public event Action Offline;
         public event Action Leave;
         public event Action<int> ChangeBots;
         public event Action<byte> ChangeRole;
         public event Action StartMatch;
+        public event Action BackToLobby;
         public string Address { get => address.value; set => address.value = value; }
         public bool Playing { get; private set; }
+        public bool InResult { get; private set; }
+        public bool DevVisible
+        {
+            get => dev.style.display == DisplayStyle.Flex;
+            set => dev.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+        }
 
         public static float PanelScale(int width, int height)
-            => Mathf.Clamp(Mathf.Min(width / 1920f, height / 1080f), MinScale, 1);
+            => Mathf.Clamp(Mathf.Min(width / 1920f, height / 1080f), MinScale, MaxScale);
 
         private void Awake()
         {
@@ -51,7 +62,8 @@ namespace PingTheKiller.Client.UI
             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
-            BuildMenu(); BuildLobby(); BuildPlay();
+            BuildMenu(); BuildLobby(); BuildResult(); BuildPlay();
+            dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
             root.Query<TextElement>().ForEach(element => element.style.unityFontDefinition = FontDefinition.FromFont(font));
             ShowMenu(string.Empty);
         }
@@ -80,6 +92,13 @@ namespace PingTheKiller.Client.UI
         {
             var box = new VisualElement(); box.AddToClassList(style); parent.Add(box); return box;
         }
+        private static void Show(VisualElement element, bool visible) => element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+        private static void SetText(Label label, string value)
+        {
+            bool visible = !string.IsNullOrEmpty(value);
+            Show(label, visible);
+            if (visible && label.text != value) label.text = value;
+        }
         private void BuildMenu()
         {
             menu = Box(root, "screen");
@@ -96,18 +115,23 @@ namespace PingTheKiller.Client.UI
                 if (evt.keyCode == KeyCode.Return && join.enabledSelf) { Join?.Invoke(address.value); evt.StopPropagation(); }
             });
             cancel = Action(actions, "Cancel connection", () => Leave?.Invoke());
-            var offline = Action(menu, "Offline", () => { }); offline.SetEnabled(false);
-            Text(menu, "Offline mode arrives in U4b", "note");
+            offline = Action(menu, "Offline", () => Offline?.Invoke());
+            Text(menu, "Play against bots on this PC. No network needed.", "note");
         }
         private void BuildLobby()
         {
             lobby = Box(root, "screen");
-            Text(lobby, "Lobby", "title");
+            lobbyTitle = Text(lobby, "Lobby", "title");
             var columns = Box(lobby, "columns");
             var roster = Box(columns, "roster");
-            for (int i = 0; i < slots.Length; i++) slots[i] = Text(roster, (i + 1) + "   Empty", "slot");
+            for (int i = 0; i < slots.Length; i++)
+            {
+                slotRows[i] = Box(roster, "slot");
+                Text(slotRows[i], (i + 1).ToString(), "slot-number");
+                slots[i] = Text(slotRows[i], "Empty", "slot-name");
+            }
             var controls = Box(columns, "controls");
-            Text(controls, "Host controls", "section");
+            controlsTitle = Text(controls, "Host controls", "section");
             var botActions = Box(controls, "row");
             botCount = Text(botActions, "Bots: 0");
             minus = Action(botActions, "− bot", () => ChangeBots?.Invoke(-1));
@@ -121,21 +145,41 @@ namespace PingTheKiller.Client.UI
             start = Action(actions, "Start", () => StartMatch?.Invoke(), true);
             Action(actions, "Leave", () => Leave?.Invoke());
         }
+        private void BuildResult()
+        {
+            result = Box(root, "screen");
+            Text(result, "Match result", "title");
+            resultHeadline = Text(result, string.Empty, "headline");
+            resultOutcome = Text(result, string.Empty, "outcome");
+            resultPreview = Text(result, "Preview: synthetic result from a dev flag, not sent by a server.", "note");
+            resultMessage = Text(result, string.Empty, "message");
+            var actions = Box(result, "row");
+            back = Action(actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
+            resultLeave = Action(actions, "Leave", () => Leave?.Invoke());
+        }
         private void BuildPlay()
         {
             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
-            hud = Box(play, "hud"); hud.pickingMode = PickingMode.Ignore;
-            signal = Text(hud, string.Empty, "signal");
-            debug = Text(hud, string.Empty, "debug");
-            exit = Text(play, "Exit · Locked", "exit");
+            survivorHud = Box(play, "hud"); survivorHud.AddToClassList("survivor-hud"); survivorHud.pickingMode = PickingMode.Ignore;
+            signal = Text(survivorHud, string.Empty, "signal");
+            status = Text(survivorHud, string.Empty, "status");
+            team = Text(survivorHud, string.Empty, "readout");
+            hacking = Text(survivorHud, string.Empty, "readout");
+            survivorSkill = Text(survivorHud, string.Empty, "readout");
+            cursorHint = Text(survivorHud, "Click to resume mouse look", "hint");
+            killerHud = Box(play, "hud"); killerHud.AddToClassList("killer-hud"); killerHud.pickingMode = PickingMode.Ignore;
+            killerSkill = Text(killerHud, string.Empty, "skill");
+            exit = Text(play, HudCopy.ExitLabel(false), "exit");
         }
         private void Phase(VisualElement visible)
         {
-            menu.style.display = visible == menu ? DisplayStyle.Flex : DisplayStyle.None;
-            lobby.style.display = visible == lobby ? DisplayStyle.Flex : DisplayStyle.None;
-            play.style.display = visible == play ? DisplayStyle.Flex : DisplayStyle.None;
+            Show(menu, visible == menu);
+            Show(lobby, visible == lobby);
+            Show(result, visible == result);
+            Show(play, visible == play);
             root.EnableInClassList("in-game", visible == play);
             Playing = visible == play;
+            InResult = visible == result;
         }
         public void ShowMenu(string notice)
         {
@@ -144,8 +188,8 @@ namespace PingTheKiller.Client.UI
         }
         public void SetConnecting(bool value)
         {
-            join.SetEnabled(!value); address.SetEnabled(!value);
-            cancel.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value);
+            Show(cancel, value);
             if (value) { message.text = "Connecting to " + address.value + "…"; cancel.Focus(); }
         }
         public void Error(string notice) => message.text = notice;
@@ -153,21 +197,23 @@ namespace PingTheKiller.Client.UI
         {
             bool entering = lobby.style.display == DisplayStyle.None;
             Phase(lobby);
+            bool isOffline = state.IsOffline != 0;
+            lobbyTitle.text = LobbyCopy.Title(isOffline);
+            controlsTitle.text = isOffline ? "Match setup" : "Host controls";
             int bots = 0, humans = 0; bool host = false;
             for (int i = 0; i < slots.Length; i++)
             {
-                Slot slot = state.Slots[i]; bool occupied = slot.PlayerId != 0;
-                slots[i].text = (i + 1) + "   " + (occupied ? slot.Nickname + (slot.IsBot != 0 ? " · bot" : " · player")
-                    + (slot.IsHost != 0 ? " · host" : "") + (slot.PlayerId == localId ? " · you" : "") : "Empty");
-                slots[i].EnableInClassList("empty", !occupied);
+                Slot slot = state.Slots[i]; bool occupied = slot != null && slot.PlayerId != 0;
+                slots[i].text = LobbyCopy.SlotText(slot, localId);
+                slotRows[i].EnableInClassList("empty", !occupied);
                 if (!occupied) continue;
                 if (slot.IsBot != 0) bots++; else humans++;
                 if (slot.PlayerId == localId && slot.IsHost != 0) host = true;
             }
             botCount.text = "Bots: " + bots;
             minus.SetEnabled(host && bots > Math.Max(0, 2 - humans));
-            plus.SetEnabled(host && bots + humans < 8);
-            roleChoice.text = "Host role: " + (state.HostRoleChoice == 255 ? "Random" : ((Role)state.HostRoleChoice).ToString());
+            plus.SetEnabled(host && bots + humans < Protocol.MaxPlayers);
+            roleChoice.text = LobbyCopy.RoleLine(state.HostRoleChoice, isOffline);
             for (int i = 0; i < roleButtons.Length; i++)
             {
                 roleButtons[i].SetEnabled(host);
@@ -177,13 +223,14 @@ namespace PingTheKiller.Client.UI
             lobbyMessage.text = host ? (bots + humans >= 2 ? "Choose a role, then start the match." : "Add a bot or wait for another player.") : "Waiting for the host to start.";
             if (entering) { if (start.enabledSelf) start.Focus(); else lobby.Query<Button>().ToList().Find(button => button.enabledSelf)?.Focus(); }
         }
-        public void ShowPlay(Role role)
+        public void ShowPlay(Role role, string skillLine)
         {
             Phase(play);
-            hud.EnableInClassList("survivor-hud", role == Role.Survivor);
-            hud.EnableInClassList("killer-hud", role == Role.Killer);
-            signal.style.display = role == Role.Survivor ? DisplayStyle.Flex : DisplayStyle.None;
-            exit.style.display = DisplayStyle.None;
+            Show(survivorHud, role == Role.Survivor);
+            Show(killerHud, role == Role.Killer);
+            survivorSkill.text = killerSkill.text = skillLine;
+            SetText(status, null); SetText(team, null); SetText(hacking, null); Show(cursorHint, false);
+            Show(exit, false);
             root.focusController?.focusedElement?.Blur();
         }
         public void SetSignal(bool transmitting)
@@ -191,24 +238,37 @@ namespace PingTheKiller.Client.UI
             signal.text = transmitting ? "Signal" : "Silent";
             signal.EnableInClassList("transmitting", transmitting);
         }
-        // The killer's cursor is never locked, so only the survivor gets a cursor hint.
-        public void SetDebug(double rtt, bool survivor, bool releasedCursor)
+        // Null or empty hides a line. The cursor hint shows only while the survivor's cursor is released.
+        public void SetSurvivorHud(string statusLine, string teamLine, string hackingLine, bool cursorReleased)
         {
-            double rounded = rtt < 0 ? -1 : Math.Round(rtt);
-            int hint = survivor ? (releasedCursor ? 2 : 1) : 0;
-            if (rounded == shownRtt && hint == shownHint && debug.text.Length > 0) return;
-            shownRtt = rounded; shownHint = hint;
-            debug.text = (rounded < 0 ? "RTT: waiting" : "RTT: " + rounded + " ms")
-                + (hint == 2 ? " · Click to resume mouse look" : hint == 1 ? " · Esc: release cursor" : string.Empty);
+            SetText(status, statusLine); SetText(team, teamLine); SetText(hacking, hackingLine);
+            Show(cursorHint, cursorReleased);
         }
-        public void SetExit(Camera camera, bool open)
+        public void SetDev(string text) { if (dev.text != text) dev.text = text; }
+        // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.
+        public void SetExit(Camera camera, Vector3 anchor, bool open)
         {
-            Vector3 screen = camera.WorldToScreenPoint(World.MapSource.Exit);
+            Vector3 screen = camera.WorldToScreenPoint(anchor);
             bool visible = screen.z > 0 && screen.x >= 0 && screen.x <= Screen.width && screen.y >= 0 && screen.y <= Screen.height;
-            exit.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            exit.text = open ? "Exit" : "Exit · Locked";
+            Show(exit, visible);
+            exit.text = HudCopy.ExitLabel(open);
             exit.style.left = screen.x / Screen.width * root.resolvedStyle.width;
             exit.style.top = (1 - screen.y / Screen.height) * root.resolvedStyle.height;
+        }
+        public void ShowResult(string headline, string outcome, bool preview)
+        {
+            Phase(result);
+            resultHeadline.text = headline;
+            resultOutcome.text = outcome;
+            Show(resultPreview, preview);
+            root.focusController?.focusedElement?.Blur();
+        }
+        public void SetResultLobby(bool lobbyOpen, bool isOffline)
+        {
+            resultMessage.text = ResultCopy.LobbyLine(lobbyOpen, isOffline);
+            bool focusBack = lobbyOpen && !back.enabledSelf;
+            back.SetEnabled(lobbyOpen);
+            if (focusBack) back.Focus(); else if (!lobbyOpen) resultLeave.Focus();
         }
         private void OnDestroy() { if (panel != null) Destroy(panel); }
     }

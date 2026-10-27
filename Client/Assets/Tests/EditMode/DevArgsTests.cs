@@ -71,6 +71,58 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
+        public void OfflineFlagNeedsNoValueAndCombinesWithTheCaptureFlags()
+        {
+            DevArgs args = DevArgs.Parse(new[]
+            {
+                "PingTheKiller.exe", "-ptk-offline", "-ptk-bots", "7", "-ptk-role", "survivor", "-ptk-start", "-ptk-hold-w", "3",
+                "-ptk-shots", "shots", "-ptk-quit-after", "12", "-ptk-preview-result", "TimeUp"
+            });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.Offline, Is.True);
+            Assert.That(args.Join, Is.Null);
+            Assert.That(args.Bots, Is.EqualTo(7));
+            Assert.That(args.RoleChoice, Is.EqualTo((byte)RoleChoice.Survivor));
+            Assert.That(args.Start, Is.True);
+            Assert.That(args.HoldW, Is.EqualTo(3f));
+            Assert.That(args.QuitAfter, Is.EqualTo(12f));
+            Assert.That(args.PreviewResult, Is.EqualTo((byte)GameEndReason.TimeUp));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-offline" }).Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "-ptk-offline", "-ptk-start" }).Start, Is.True, "-ptk-offline never swallows the next flag");
+        }
+
+        [TestCase("SurvivorEscaped", GameEndReason.SurvivorEscaped)]
+        [TestCase("allsurvivorsdown", GameEndReason.AllSurvivorsDown)]
+        [TestCase("TIMEUP", GameEndReason.TimeUp)]
+        public void PreviewResultNamesMapToGameEndReason(string value, GameEndReason expected)
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-preview-result", value });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.Active, Is.True);
+            Assert.That(args.PreviewResult, Is.EqualTo((byte)expected));
+        }
+
+        [TestCase("Draw")]
+        [TestCase("0")]
+        [TestCase("-ptk-start")]
+        public void InvalidOrMissingPreviewResultIsReported(string value)
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-preview-result", value });
+            Assert.That(args.PreviewResult.HasValue, Is.False);
+            Assert.That(args.Errors.Count, Is.EqualTo(1));
+            Assert.That(args.Errors[0], Does.Contain("-ptk-preview-result"));
+        }
+
+        [Test]
+        public void NewFlagsStayInertWhenAbsent()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "PingTheKiller.exe", "-screen-width", "1280" });
+            Assert.That(args.Offline, Is.False);
+            Assert.That(args.PreviewResult.HasValue, Is.False);
+            Assert.That(args.Active, Is.False);
+        }
+
+        [Test]
         public void UnknownFlagIsReportedAndIgnored()
         {
             DevArgs args = DevArgs.Parse(new[] { "-ptk-fly", "-ptk-bots", "3" });
