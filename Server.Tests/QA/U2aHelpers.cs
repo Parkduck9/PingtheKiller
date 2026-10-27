@@ -55,9 +55,14 @@ internal sealed class QaPeer : IDisposable
 
 internal sealed class QaFixture : IDisposable
 {
-    internal QaFixture(int bots = 0, bool autostart = false, int seed = 1234)
+    // seed = private-RNG test hook; csprng = true leaves it unset (production behaviour); matchSeed fixes the cosmetic wire seed.
+    internal QaFixture(int bots = 0, bool autostart = false, int seed = 1234, bool sandbox = false, int? matchSeed = null, bool csprng = false)
     {
-        Server = new GameServer(new ServerOptions { IsOffline = true, Seed = seed, BotCount = bots, AutoStart = autostart });
+        Server = new GameServer(new ServerOptions
+        {
+            IsOffline = true, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
+            MatchSeedForTests = matchSeed
+        });
         Transport = new InMemoryTransport();
         Transport.ConnectionAccepted += Server.AddConnection;
         Transport.Start();

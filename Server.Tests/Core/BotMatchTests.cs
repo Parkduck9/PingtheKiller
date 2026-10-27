@@ -1,0 +1,53 @@
+using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
+using Xunit;
+
+namespace PingTheKiller.Tests.Core;
+
+public sealed class BotMatchTests
+{
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void OneHumanAndSevenBotsAlwaysEndWithExactlyOneGameResult(int seed)
+    {
+        using var f = new CoreFixture(seed: seed);
+        var human = f.Join("Human");
+        human.Send(new C2S_SetBots { Count = 7 });
+        human.Send(new C2S_StartMatch());
+        f.Tick();
+        Assert.Single(human.All<S2C_MatchStart>());
+        int ticks = 0, worlds = 0;
+        S2C_GameResult? result = null;
+        while (result == null && ticks <= 12001)
+        {
+            f.Tick();
+            ++ticks;
+            human.Drain();
+            foreach (var packet in human.Packets)
+            {
+                if (packet is S2C_GameResult r) result = r;
+                if (packet is not S2C_WorldState world) continue;
+                ++worlds;
+                Assert.Equal(world.Players.Count, world.Players.Select(p => p.Id).Distinct().Count());
+                Assert.All(world.Players, p => Assert.True(float.IsFinite(p.X) && float.IsFinite(p.Z) && float.IsFinite(p.Yaw) &&
+                    float.IsFinite(p.StatusTimer) && f.Server.Map.CanStand(p.X, p.Z)));
+            }
+            human.Packets.Clear();
+        }
+        Assert.NotNull(result);
+        Assert.True(ticks <= 12000, "the match must end by the 600 s time limit");
+        if (result.WinnerRole == (byte)Role.Survivor) Assert.NotEmpty(result.EscapedIds);
+        else Assert.Empty(result.EscapedIds);
+        // After the end only lobby traffic follows, and no second result.
+        f.Tick();
+        f.Tick();
+        Assert.Empty(human.All<S2C_GameResult>());
+        Assert.Empty(human.All<S2C_WorldState>());
+        Assert.True(worlds >= ticks);
+    }
+}
