@@ -65,6 +65,7 @@ namespace PingTheKiller.ServerCore
             player.InputTimes.Clear();
             player.DirX = player.DirZ = 0;
             player.LastSignal = double.NegativeInfinity;
+            player.Interacting = false;
             SendJoin(connection, player);
             if (_matchStarted) SendMatchStart(player);
             WriteLog($"join player={player.Id} reconnect=false");
@@ -151,6 +152,7 @@ namespace PingTheKiller.ServerCore
         private void StartMatch()
         {
             if (_matchStarted || _players.Count < 2) return;
+            ReseedForMatch();
             int killer = _random.Next(_players.Count);
             int host = _players.FindIndex(p => p.IsHost);
             if (host >= 0 && _hostChoice == RoleChoice.Killer) killer = host;
@@ -163,25 +165,25 @@ namespace PingTheKiller.ServerCore
             {
                 var player = _players[i];
                 player.Role = i == killer ? Role.Killer : Role.Survivor;
-                // Role-local IDs follow GDD table order: killer 0..3, survivor 0..4.
-                player.Skill = (byte)_random.Next(player.Role == Role.Killer ? 4 : 5);
+                // Role-local IDs follow GDD table order (SkillIds): killer 0..3, survivor 0..4.
+                player.Skill = (byte)_random.Next(SkillCount(player.Role));
                 // Slot zero is reserved for the killer; survivor slots remain unique.
                 int spawn = i == killer ? 0 : (i < killer ? i + 1 : i);
                 player.X = Map.SpawnPoints[spawn].X;
                 player.Z = Map.SpawnPoints[spawn].Z;
-                player.DirX = player.DirZ = 0;
-                player.LastSignal = double.NegativeInfinity;
+                player.ResetForMatch(_now);
                 SendMatchStart(player);
             }
             _terminals = Map.CreateTerminals(_players.Count - 1, out _terminalsRequired);
+            ResetMatchRules(_players[killer]);
             _matchTime = 0;
             _matchStarted = true;
-            WriteLog($"match start players={_players.Count} killer={_players[killer].Id} seed={_seed}");
+            WriteLog($"match start players={_players.Count} killer={_players[killer].Id} matchSeed={_matchSeed}");
         }
         private void SendMatchStart(Player player)
         {
             if (player.ConnectionId != null && _connections.TryGetValue(player.ConnectionId, out var binding))
-                Send(binding.Connection, new S2C_MatchStart { Role = (byte)player.Role, SkillId = player.Skill, Seed = _seed });
+                Send(binding.Connection, new S2C_MatchStart { Role = (byte)player.Role, SkillId = player.Skill, Seed = _matchSeed });
         }
         private void ExpireDisconnected()
         {

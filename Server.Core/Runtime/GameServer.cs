@@ -38,9 +38,12 @@ namespace PingTheKiller.ServerCore
         private readonly object _tickGate = new object();
         private readonly object _lifecycleGate = new object();
         private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
-        private readonly bool _offline, _autoStart;
-        private readonly int _initialBots, _seed;
-        private readonly Random _random;
+        private readonly bool _offline, _autoStart, _sandbox;
+        private readonly int _initialBots;
+        private readonly int? _privateSeedHook, _matchSeedHook;
+        // Private gameplay randomness; its seed never leaves the server (see ReseedForMatch).
+        private Random _random;
+        private int _matchSeed;
         private Thread _thread;
         private int _running, _nextId = 1;
         private bool _initialized, _matchStarted;
@@ -56,9 +59,26 @@ namespace PingTheKiller.ServerCore
             options = options ?? new ServerOptions();
             _offline = options.IsOffline;
             _autoStart = options.AutoStart;
+            _sandbox = options.Sandbox;
             _initialBots = Math.Max(0, Math.Min(Protocol.MaxPlayers, options.BotCount));
-            _seed = options.Seed ?? RandomNumberGeneratorSeed();
-            _random = new Random(_seed);
+            _privateSeedHook = options.Seed;
+            _matchSeedHook = options.MatchSeedForTests;
+            int seed = _privateSeedHook ?? RandomNumberGeneratorSeed();
+            _random = new Random(seed);
+            // Decoy Id borrowing has its own stream so masking never perturbs bot or skill randomness.
+            _decoyRandom = new Random(unchecked(seed * 7919 + 17));
+        }
+
+        // Without the test hook every match gets fresh CSPRNG-seeded streams; the cosmetic MatchStart.Seed is drawn
+        // independently, so no client can replay killer/skill assignment, bot decisions or decoy placement.
+        private void ReseedForMatch()
+        {
+            if (_privateSeedHook == null)
+            {
+                _random = new Random(RandomNumberGeneratorSeed());
+                _decoyRandom = new Random(RandomNumberGeneratorSeed());
+            }
+            _matchSeed = _matchSeedHook ?? RandomNumberGeneratorSeed();
         }
         public FixedMap Map { get; } = new FixedMap();
         public event Action<string> Log;
@@ -207,27 +227,23 @@ namespace PingTheKiller.ServerCore
                 {
                     UpdateBots();
                 }
-                // Movement and recipient masking must evaluate the same instant.
+                // Movement, rules and recipient masking evaluate the same instant.
+                double start = _now;
                 _now += dt;
                 if (_matchStarted)
                 {
-                    foreach (var player in _players)
-                    {
-                        // A held direction lives only as long as the Signal hold of the last non-zero input, evaluated
-                        // with the same _now as BroadcastWorld: a player that moves this tick is always Signal (visible).
-                        // Clients must therefore resend MoveInput (>= 10 Hz) while a key is held.
-                        if (!player.IsSignal(_now)) { player.DirX = player.DirZ = 0; continue; }
-                        float speed = player.Role == Role.Killer ? GameConstants.KillerSpeed : GameConstants.SurvivorSpeed;
-                        var position = Map.Move(player.X, player.Z, player.DirX * speed * dt, player.DirZ * speed * dt);
-                        player.X = position.X;
-                        player.Z = position.Z;
-                    }
+                    MovePlayers(start, dt);
                     _matchTime += dt;
+                    RunRules(dt);
                 }
                 ++_tick;
                 ExpireDisconnected();
                 ExpireUnjoined();
-                if (_matchStarted) BroadcastWorld();
+                if (_matchStarted)
+                {
+                    BroadcastWorld();
+                    if (_result != null) FinishMatch();
+                }
             }
         }
 
@@ -282,6 +298,7 @@ namespace PingTheKiller.ServerCore
             player.DisconnectedAt = _now;
             player.DirX = player.DirZ = 0;
             player.LastSignal = double.NegativeInfinity;
+            player.Interacting = false;
             WriteLog($"leave player={player.Id}");
             BroadcastLobby();
         }
@@ -296,14 +313,27 @@ namespace PingTheKiller.ServerCore
             if (packet is C2S_Join join) { Join(connection, join); return; }
             var player = FindByConnection(connection.RemoteId);
             if (player == null) return;
-            if (packet is C2S_MoveInput move && _matchStarted) { ApplyMove(player, move); return; }
+            // Semantically invalid values are ignored; only wire-format violations close a connection.
+            if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
+            if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
+            if (packet is C2S_UseSkill skill) { if (_matchStarted) RequestSkill(player, skill.SkillId); return; }
             if (!_matchStarted && player.IsHost)
             {
-                if (packet is C2S_SetBots bots) { SetBotCount(bots.Count, true); BroadcastLobby(); }
-                else if (packet is C2S_SetRole role) { _hostChoice = (RoleChoice)role.RoleChoice; BroadcastLobby(); }
+                if (packet is C2S_SetBots bots)
+                {
+                    if (bots.Count > Protocol.MaxPlayers - 1) return;
+                    SetBotCount(bots.Count, true);
+                    BroadcastLobby();
+                }
+                else if (packet is C2S_SetRole role)
+                {
+                    var choice = (RoleChoice)role.RoleChoice;
+                    if (choice != RoleChoice.Survivor && choice != RoleChoice.Killer && choice != RoleChoice.Random) return;
+                    _hostChoice = choice;
+                    BroadcastLobby();
+                }
                 else if (packet is C2S_StartMatch) StartMatch();
             }
-            // TODO U2b: C2S_Interact / C2S_UseSkill, capture/rescue, objectives and results.
         }
         private void Send(IConnection connection, IPacket packet)
         {

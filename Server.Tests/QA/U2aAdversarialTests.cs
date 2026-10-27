@@ -121,7 +121,11 @@ public sealed class U2aAdversarialTests
     [Fact]
     public void KillerHidden_MovingHumanKiller_NoSurvivorFrameContainsEntryOrCoordinateBytes_ThreatMatchesBands()
     {
-        using var f = new QaFixture(seed: 4242);
+        // U2b migration: under the U2b rules a bot's Traffic Overload halves the killer's speed, so the "threat level
+        // should vary" sanity check legitimately fails. The invariant protected here (no killer coordinates in any survivor
+        // frame, threat bands from the true distance) is U2a core behaviour, so this runs in sandbox mode, which keeps the
+        // exact U2a rules. The same leak/threat invariants under the full U2b rules are covered by U2bAdversarialTests.
+        using var f = new QaFixture(seed: 4242, sandbox: true);
         var killer = f.Join("K");
         var s1 = f.Join("S1");
         var s2 = f.Join("S2");

@@ -82,7 +82,8 @@ public sealed class LobbyTests
         f.Tick();
         var a = host.Last<S2C_MatchStart>();
         var b = guest.Last<S2C_MatchStart>();
-        Assert.Equal(1234, a.Seed);
+        // The wire seed is cosmetic and independent of the private gameplay seed (1234).
+        Assert.NotEqual(1234, a.Seed);
         Assert.Equal(a.Seed, b.Seed);
         Assert.NotEqual(a.Role, b.Role);
         if (choice != RoleChoice.Random) Assert.Equal((byte)choice, a.Role);

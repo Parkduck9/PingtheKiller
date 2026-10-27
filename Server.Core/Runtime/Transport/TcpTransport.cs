@@ -20,6 +20,7 @@ namespace PingTheKiller.ServerCore.Transport
             _listener = new TcpListener(address ?? IPAddress.Any, port);
         }
         public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
+        public IPAddress Address => ((IPEndPoint)_listener.LocalEndpoint).Address;
         public event Action<IConnection> ConnectionAccepted;
         public event Action<string> Log;
         public void Start()
