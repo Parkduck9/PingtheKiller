@@ -1,0 +1,21 @@
+{
+  "extraKnownMarketplaces": {
+    "dotnet-agent-skills": {
+      "source": { "source": "github", "repo": "dotnet/skills" }
+    },
+    "unity-agent-plugin": {
+      "source": { "source": "github", "repo": "Unity-Technologies/unity-agent-plugin" }
+    },
+    "win-dev-skills": {
+      "source": { "source": "github", "repo": "microsoft/win-dev-skills" }
+    }
+  },
+  "enabledPlugins": {
+    "dotnet-test@dotnet-agent-skills": true,
+    "unity@unity-agent-plugin": true,
+    "csharp-lsp@claude-plugins-official": true,
+    "winappcli@win-dev-skills": true,
+    "hookify@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  }
+}

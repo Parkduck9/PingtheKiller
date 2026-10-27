@@ -1,0 +1,35 @@
+# Unity (Client/)
+Client/[Ll]ibrary/
+Client/[Tt]emp/
+Client/[Oo]bj/
+Client/[Bb]uild/
+Client/[Bb]uilds/
+Client/[Ll]ogs/
+Client/[Uu]ser[Ss]ettings/
+Client/[Mm]emoryCaptures/
+Client/*.csproj
+Client/*.sln
+Client/*.slnx
+Client/*.user
+Client/*.pidb
+Client/*.booproj
+Client/*.unityproj
+Client/.vs/
+Client/.idea/
+Client/sysinfo.txt
+Client/crashlytics-build.properties
+
+# .NET
+**/bin/
+**/obj/
+*.user
+.vs/
+TestResults/
+
+# Claude / hookify local rules
+.claude/settings.local.json
+.claude/*.local.md
+
+# QA artifacts that are regenerated
+docs/qa/*.xml
+docs/qa/screenshots/
