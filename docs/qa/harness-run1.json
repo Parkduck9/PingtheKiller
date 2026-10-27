@@ -1,0 +1,54 @@
+{
+  "total": 90,
+  "gatesPassed": true,
+  "items": [
+    {
+      "id": "H1",
+      "score": 25,
+      "max": 25,
+      "gate": true,
+      "passed": true,
+      "evidence": "10000/10000 ordered timestamps; zero disconnects; seed=20794; chunks=1..1500 bytes; final Ping/Pong barrier passed."
+    },
+    {
+      "id": "H2",
+      "score": 20,
+      "max": 20,
+      "gate": false,
+      "passed": true,
+      "evidence": "2 humans \u002B 6 bots, 60.00 s; client0: n=1201, arrival p99=63.327 ms, observed tick-period p99=63.327 ms; client1: n=1201, arrival p99=63.328 ms, observed tick-period p99=63.328 ms; Tick strictly increasing, gaps \u003C=2. Tick period is inferred from TCP reception, not server CPU duration."
+    },
+    {
+      "id": "H3",
+      "score": 20,
+      "max": 20,
+      "gate": true,
+      "passed": true,
+      "evidence": "3.1 s Silent capture: 63 raw killer frames/63 worlds; survivorId=3 omitted, X=11.471207/Z=27.893585 byte occurrences=0; killerId=1 absent in 64 survivor worlds; moving Signal baseline verified."
+    },
+    {
+      "id": "H4",
+      "score": 15,
+      "max": 15,
+      "gate": true,
+      "passed": true,
+      "evidence": "Length=0: disconnected/control pong OK; Length=1: disconnected/control pong OK; Length=-1: disconnected/control pong OK; Length=2147483647: disconnected/control pong OK; Length=16385: disconnected/control pong OK; unknown ID: disconnected/control pong OK; NaN, direction=forward: 27 worlds, max=0.0000 m/s, role=0, NaN input sent, socket retained, control pong OK; 100,100, direction=forward: 27 worlds, max=4.0000 m/s, role=0, 20 inputs in 0.951 s, socket retained, control pong OK; 500/s, direction=forward: 27 worlds, max=4.0000 m/s, role=0, 500 inputs in 0.966 s, achieved rate=517.7/s, socket retained, control pong OK"
+    },
+    {
+      "id": "H5",
+      "score": 10,
+      "max": 10,
+      "gate": false,
+      "passed": true,
+      "evidence": "Socket dropped; token rejoined in 48.2 ms; same PlayerId=3, position=(16.641083,30.863453), role/status/capture count preserved."
+    },
+    {
+      "id": "H6",
+      "score": 0,
+      "max": 10,
+      "gate": false,
+      "passed": false,
+      "evidence": "skipped (needs U2b)"
+    }
+  ]
+}
