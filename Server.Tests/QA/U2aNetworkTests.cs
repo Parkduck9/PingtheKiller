@@ -335,7 +335,12 @@ public sealed class U2aNetworkTests
                                     if (w.Tick < lastTick) violations.Enqueue("tick went backwards");
                                     lastTick = w.Tick;
                                     worlds.Add((id, w.Tick));
-                                    if (w.Players.Select(x => x.Id).Distinct().Count() != w.Players.Count) violations.Enqueue("duplicate player in world");
+                                    // U2c migration: killer-bound survivor entries are anonymous (Id 0 by design); every entry that
+                                    // carries an Id (the killer's own, all survivor-bound entries) must still be unique, and an
+                                    // Id-less entry may only be a survivor blip.
+                                    var identified = w.Players.Where(x => x.Id != 0).Select(x => x.Id).ToList();
+                                    if (identified.Distinct().Count() != identified.Count) violations.Enqueue("duplicate player in world");
+                                    if (w.Players.Any(x => x.Id == 0 && x.Role != (byte)Role.Survivor)) violations.Enqueue("anonymous non-survivor entry");
                                     foreach (var pl in w.Players)
                                         if (float.IsNaN(pl.X) || pl.X < 0 || pl.X > 60 || pl.Z < 0 || pl.Z > 60) violations.Enqueue("position out of bounds");
                                     break;

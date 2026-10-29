@@ -44,6 +44,28 @@ namespace PingTheKiller.ServerCore
         internal float BotLastX, BotLastZ;
         internal double BotDetourUntil;
         internal float BotDetourX, BotDetourZ;
+        // Survivor bot plan (GameServer.Bots): current mode, reaction timer, burst pacing, threat hold, terminal claim.
+        internal byte BotMode;
+        internal double BotThinkAt, BotBurstUntil, BotBraveUntil;
+        internal double BotThreatSince = double.NegativeInfinity;
+        internal int BotClaim = -1, BotAvoid = -1;
+        internal float BotGoalX, BotGoalZ, BotGoalStop;
+        internal bool BotGoalHack, BotRelocating;
+        // The last S2C_SelfState sent to this player's connection; null forces the next one.
+        internal PingTheKiller.Shared.Packets.S2C_SelfState SelfSent;
+        internal double SelfSentAt = double.NegativeInfinity;
+        internal float BotHideX, BotHideZ;
+
+        internal void ResetBotPlan()
+        {
+            BotTarget = -1;
+            BotPauseUntil = BotWalkUntil = BotDetourUntil = 0;
+            BotMode = 0;
+            BotThinkAt = BotBurstUntil = BotBraveUntil = 0;
+            BotThreatSince = double.NegativeInfinity;
+            BotClaim = BotAvoid = -1;
+            BotGoalHack = BotRelocating = false;
+        }
 
         // The latest non-zero MoveInput keeps the direction alive for SignalHoldSeconds.
         internal bool InputHeld(double now) => now - LastSignal < GameConstants.SignalHoldSeconds - 0.0000001;
@@ -66,8 +88,8 @@ namespace PingTheKiller.ServerCore
             Seq = 0;
             InputTimes.Clear();
             ExecutionGraceUntil = 0;
-            BotTarget = -1;
-            BotPauseUntil = BotWalkUntil = BotDetourUntil = 0;
+            SelfSent = null;
+            ResetBotPlan();
             HasLastSeen = false;
             BotLastX = X;
             BotLastZ = Z;

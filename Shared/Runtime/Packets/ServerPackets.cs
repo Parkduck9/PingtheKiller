@@ -51,7 +51,7 @@ namespace PingTheKiller.Shared.Packets
             w.WriteCount(Terminals.Count, Protocol.MaxTerminals);
             for (int i = 0; i < Terminals.Count; i++)
                 Terminals[i].Write(w);
-            w.WriteCount(Players.Count, Protocol.MaxPlayers);
+            w.WriteCount(Players.Count, Protocol.MaxWorldEntries);
             for (int i = 0; i < Players.Count; i++)
                 Players[i].Write(w);
         }
@@ -67,7 +67,7 @@ namespace PingTheKiller.Shared.Packets
             packet.Terminals = new List<TerminalState>(terminals);
             for (int i = 0; i < terminals; i++)
                 packet.Terminals.Add(TerminalState.Read(ref r));
-            int count = r.ReadCount(Protocol.MaxPlayers);
+            int count = r.ReadCount(Protocol.MaxWorldEntries);
             packet.Players = new List<PlayerState>(count);
             for (int i = 0; i < count; i++)
                 packet.Players.Add(PlayerState.Read(ref r));
@@ -197,6 +197,34 @@ namespace PingTheKiller.Shared.Packets
         public static S2C_MatchStart Read(ref PacketReader r) => new S2C_MatchStart
         {
             Role = GameWireValues.ReadRole(ref r), SkillId = r.ReadByte(), Seed = r.ReadInt32()
+        };
+    }
+
+    // Protocol v0.3: sent every tick only to the player it describes, never about another player.
+    public sealed class S2C_SelfState : IPacket
+    {
+        // Seconds until the own skill is ready; 0 when ready.
+        public float SkillCooldown;
+        // 0..1: the own rescue while Lagging, or the rescue of the ally this survivor is rescuing.
+        public float RescueProgress;
+        // Seconds of post-rescue capture immunity left.
+        public float InvulnerableLeft;
+        // Killer only: grace left for the nearest Lagging survivor within 3 m, else 0. Always 0 for survivors.
+        public float ExecutionGraceLeft;
+        public PacketId Id => PacketId.S2C_SelfState;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteSingle(SkillCooldown);
+            w.WriteSingle(RescueProgress);
+            w.WriteSingle(InvulnerableLeft);
+            w.WriteSingle(ExecutionGraceLeft);
+        }
+
+        public static S2C_SelfState Read(ref PacketReader r) => new S2C_SelfState
+        {
+            SkillCooldown = r.ReadSingle(), RescueProgress = r.ReadSingle(),
+            InvulnerableLeft = r.ReadSingle(), ExecutionGraceLeft = r.ReadSingle()
         };
     }
 }

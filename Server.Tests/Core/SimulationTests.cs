@@ -137,19 +137,19 @@ public sealed class SimulationTests
     [Fact]
     public void SilentSurvivorAndItsCoordinateBytesAreAbsentFromKillerFrame()
     {
-        using var f = new CoreFixture();
-        var (killer, survivor) = f.StartPair();
-        Assert.DoesNotContain(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id);
+        var (fixture, killer, survivor) = CoreFixture.PairWithoutAfterimage();
+        using var f = fixture;
+        Assert.False(KillerTruth.Has(f.Server, killer.Last<S2C_WorldState>(), survivor.Id));
         survivor.Send(new C2S_MoveInput { DirX = 0.6f, DirZ = 0.8f, Seq = 1 });
         f.Tick();
-        Assert.Contains(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id);
+        Assert.True(KillerTruth.Has(f.Server, killer.Last<S2C_WorldState>(), survivor.Id));
         survivor.Send(new C2S_MoveInput { Seq = 2 });
         f.Tick();
-        Assert.Contains(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id);
+        Assert.True(KillerTruth.Has(f.Server, killer.Last<S2C_WorldState>(), survivor.Id));
         f.Tick();
         f.Tick();
         var world = killer.Last<S2C_WorldState>();
-        Assert.DoesNotContain(world.Players, p => p.Id == survivor.Id);
+        Assert.False(KillerTruth.Has(f.Server, world, survivor.Id));
         Assert.Contains(world.Players, p => p.Id == killer.Id);
         byte[] frame = PacketCodec.Encode(world);
         var hidden = survivor.Self();
@@ -157,7 +157,7 @@ public sealed class SimulationTests
         Assert.Equal(-1, frame.AsSpan().IndexOf(BitConverter.GetBytes(hidden.Z)));
         survivor.Send(new C2S_MoveInput { DirX = 1, Seq = 3 });
         f.Tick();
-        Assert.Contains(killer.Last<S2C_WorldState>().Players, p => p.Id == survivor.Id);
+        Assert.True(KillerTruth.Has(f.Server, killer.Last<S2C_WorldState>(), survivor.Id));
     }
 
     [Fact]

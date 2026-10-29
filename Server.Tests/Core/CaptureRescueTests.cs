@@ -31,7 +31,9 @@ public sealed class CaptureRescueTests
         Assert.NotNull(seen);
         Assert.Equal((byte)PlayerStatus.Lagging, seen.Value.Status);
         Assert.Equal((byte)PlayerFlags.Signal, seen.Value.Flags);
-        Assert.Equal(1, seen.Value.CaptureCount);
+        // The killer view is anonymous (U2c): no capture count or timer, only the Lagging status.
+        Assert.Equal(0, seen.Value.CaptureCount);
+        Assert.Equal(0f, seen.Value.StatusTimer);
         // 1.0 m/s: twenty ticks move one metre.
         float z = m.Truth(m[0]).Z;
         for (int i = 0; i < 20; i++) { m[0].Move(0, 1); m.Tick(); }

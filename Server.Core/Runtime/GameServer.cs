@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Threading;
 using PingTheKiller.ServerCore.Map;
@@ -10,6 +11,9 @@ using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Net;
 using PingTheKiller.Shared.Packets;
+
+// Ground-truth inspection (killer-view labels, phantoms) for the server tests; never reachable through the protocol.
+[assembly: InternalsVisibleTo("Server.Tests")]
 
 namespace PingTheKiller.ServerCore
 {
@@ -41,8 +45,10 @@ namespace PingTheKiller.ServerCore
         private readonly bool _offline, _autoStart, _sandbox;
         private readonly int _initialBots;
         private readonly int? _privateSeedHook, _matchSeedHook;
-        // Private gameplay randomness; its seed never leaves the server (see ReseedForMatch).
-        private Random _random;
+        // Private gameplay randomness (256-bit state each); nothing about it leaves the server (see ReseedForMatch).
+        // _random: killer/skill assignment and bots; _decoyRandom: phantom placement and motion; _shuffleRandom:
+        // killer-view entry order. Separate streams keep each one deterministic regardless of the others' draw counts.
+        private Random _random, _decoyRandom, _shuffleRandom;
         private int _matchSeed;
         private Thread _thread;
         private int _running, _nextId = 1;
@@ -63,24 +69,35 @@ namespace PingTheKiller.ServerCore
             _initialBots = Math.Max(0, Math.Min(Protocol.MaxPlayers, options.BotCount));
             _privateSeedHook = options.Seed;
             _matchSeedHook = options.MatchSeedForTests;
-            int seed = _privateSeedHook ?? RandomNumberGeneratorSeed();
-            _random = new Random(seed);
-            // Decoy Id borrowing has its own stream so masking never perturbs bot or skill randomness.
-            _decoyRandom = new Random(unchecked(seed * 7919 + 17));
+            Nav = new NavGrid(Map);
+            SeedPrivateStreams();
+        }
+
+        private void SeedPrivateStreams()
+        {
+            if (_privateSeedHook is int seed)
+            {
+                _random = PrivateRandom.FromSeed(seed, 0);
+                _decoyRandom = PrivateRandom.FromSeed(seed, 1);
+                _shuffleRandom = PrivateRandom.FromSeed(seed, 2);
+            }
+            else
+            {
+                _random = PrivateRandom.FromCsprng();
+                _decoyRandom = PrivateRandom.FromCsprng();
+                _shuffleRandom = PrivateRandom.FromCsprng();
+            }
         }
 
         // Without the test hook every match gets fresh CSPRNG-seeded streams; the cosmetic MatchStart.Seed is drawn
-        // independently, so no client can replay killer/skill assignment, bot decisions or decoy placement.
+        // independently, so no client can replay killer/skill assignment, bot decisions, phantoms or view order.
         private void ReseedForMatch()
         {
-            if (_privateSeedHook == null)
-            {
-                _random = new Random(RandomNumberGeneratorSeed());
-                _decoyRandom = new Random(RandomNumberGeneratorSeed());
-            }
+            if (_privateSeedHook == null) SeedPrivateStreams();
             _matchSeed = _matchSeedHook ?? RandomNumberGeneratorSeed();
         }
         public FixedMap Map { get; } = new FixedMap();
+        internal NavGrid Nav { get; }
         public event Action<string> Log;
 
         public void AddConnection(IConnection connection)

@@ -76,6 +76,19 @@ internal sealed class CoreFixture : IDisposable
         Tick();
         return (killer, survivor);
     }
+    // StartPair on the first private seed whose killer skill is not the passive Packet Afterimage, for tests that
+    // expect a stopped survivor to leave the killer frame at once.
+    internal static (CoreFixture f, Peer killer, Peer survivor) PairWithoutAfterimage()
+    {
+        for (int seed = 1; ; seed++)
+        {
+            var f = new CoreFixture(seed: seed);
+            var (killer, survivor) = f.StartPair();
+            if (killer.Last<S2C_MatchStart>().SkillId != SkillIds.PacketAfterimage) return (f, killer, survivor);
+            f.Dispose();
+        }
+    }
+
     public void Dispose()
     {
         foreach (var peer in _peers) peer.Dispose();

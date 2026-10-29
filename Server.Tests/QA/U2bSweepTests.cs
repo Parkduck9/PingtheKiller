@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using PingTheKiller.ServerCore;
 using PingTheKiller.ServerCore.Map;
 using PingTheKiller.ServerCore.Transport;
+using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Net;
 using PingTheKiller.Shared.Packets;
@@ -19,19 +20,6 @@ public sealed class U2bSweepTests
     public U2bSweepTests(ITestOutputHelper output) { _out = output; }
 
     private static readonly FixedMap Map = new();
-
-    // ------------------------------------------------------------------ tracking statistics (QA brief task 4)
-
-    internal sealed class TrackStats
-    {
-        internal int KillerSignalFrames, DecoyFrames, DecoyRuns, DecoyRunsRevealedAtStart, DecoyRunsRevealedAtEnd, DecoyRunsRevealed;
-        internal int JumpEvents, JumpIntoDecoy, JumpOutOfDecoy, UnexplainedJumps, IdSwapSamePosition;
-        internal int StationaryRunsDecoy, StationaryRunsReal, DummyRuns;
-        internal int DummyDecoyRuns, DummyDecoyRevealed, NoiseDecoyRuns, NoiseDecoyRevealed;
-        internal List<string> Unexplained = new();
-    }
-    private sealed class Obs { internal int Tick; internal float X, Z; internal bool Decoy; }
-    private sealed class RunInfo { internal bool RevealedIn, RevealedOut, IsDummy; }
 
     [Fact]
     public void LeakDetector_SelfCheck_FindsAPlantedCoordinatePair_AndNothingInACleanFrame()
@@ -60,43 +48,26 @@ public sealed class U2bSweepTests
         return frame.AsSpan().IndexOf(needle) >= 0;
     }
 
+    // U2c migration. The attempt-2 sweep identified killer-frame entries by Id, tracked Ids across frames (the F3 decoy
+    // Id-tracking measurement) and required ascending Ids. All of that is gone with the anonymous killer view. What the sweep
+    // protects is unchanged: no true position of a hidden survivor, no dead survivor, no survivor-only field and no private
+    // value may reach a killer-bound frame; Signal and Lagging survivors are shown faithfully. Entries are now matched to
+    // survivors with the server's ground-truth labels (GameServer.KillerViewSources, index-aligned with the frame), and the
+    // byte-level search for hidden positions is unchanged.
     private sealed class Sweep
     {
         internal SweepStats St = new();
-        internal TrackStats Tr = new();
-        private readonly Dictionary<int, Obs> _last = new();
-        private readonly Dictionary<int, RunInfo> _runs = new();
-        private readonly Dictionary<int, RunInfo> _pendingOut = new();
-        private readonly Dictionary<int, (int Tick, uint X, uint Z, int Len, bool Decoy, bool Counted)> _still = new();
-        private List<(int Id, int X, int Z)> _prevPositions = new();
+        internal byte KillerSkill;
+        internal int FramesAligned;
         private readonly Dictionary<int, (float X, float Z, int Until)> _dummies = new();
         private readonly Dictionary<int, (float X, float Z, int Tick)> _lastReal = new();
-        private int _tick;
 
-        internal void ResetMatch()
-        {
-            _last.Clear(); _runs.Clear(); _pendingOut.Clear(); _still.Clear(); _prevPositions.Clear(); _dummies.Clear(); _lastReal.Clear();
-        }
-
-        internal void Finish()
-        {
-            foreach (var r in _pendingOut.Values) Finalize(r);
-            foreach (var r in _runs.Values) Finalize(r);
-            _pendingOut.Clear(); _runs.Clear();
-        }
-        private void Finalize(RunInfo r)
-        {
-            if (r.IsDummy) { Tr.DummyDecoyRuns++; if (r.RevealedIn || r.RevealedOut) Tr.DummyDecoyRevealed++; }
-            else { Tr.NoiseDecoyRuns++; if (r.RevealedIn || r.RevealedOut) Tr.NoiseDecoyRevealed++; }
-            if (r.RevealedIn || r.RevealedOut) Tr.DecoyRunsRevealed++;
-            if (r.RevealedIn) Tr.DecoyRunsRevealedAtStart++;
-            if (r.RevealedOut) Tr.DecoyRunsRevealedAtEnd++;
-        }
+        internal void ResetMatch() { _dummies.Clear(); _lastReal.Clear(); }
 
         // Processes one tick's worth of packets for both humans. Returns true when a GameResult was seen.
-        internal bool Tick(int tick, List<IPacket> kp, List<IPacket> sp, int kId, int sId, ref bool resultK, ref bool resultS)
+        internal bool Tick(int tick, List<IPacket> kp, List<IPacket> sp, int kId, int sId, ref bool resultK, ref bool resultS,
+            IReadOnlyList<GameServer.KillerViewSource> src)
         {
-            _tick = tick;
             string ctx = " [tick " + tick + "]";
             var kw = kp.OfType<S2C_WorldState>().LastOrDefault();
             var sw = sp.OfType<S2C_WorldState>().LastOrDefault();
@@ -114,20 +85,18 @@ public sealed class U2bSweepTests
             {
                 if (e.CasterId == kId)
                 {
-                    // killer skills: survivor-bound copy must be (0,0) or the exit position
                     bool zero = e.X == 0 && e.Z == 0;
                     bool exit = e.X == Map.Exit.X && e.Z == Map.Exit.Z;
                     if (!zero && !exit) St.Violation($"survivor-bound killer effect {e.SkillId} carries ({e.X},{e.Z})" + ctx);
                 }
-                else if (e.SkillId == SkillIds.DummyPacket)
-                {
-                    _dummies[e.CasterId] = (e.X, e.Z, tick + 62);
-                    Tr.DummyRuns++;
-                    St.SurvivorSkillsCast.Add(e.SkillId);
-                }
+                else if (e.SkillId == SkillIds.DummyPacket) { _dummies[e.CasterId] = (e.X, e.Z, tick + 85); /* 3 s dummy + 1 s afterimage tail + slack */ St.SurvivorSkillsCast.Add(e.SkillId); }
                 else St.SurvivorSkillsCast.Add(e.SkillId);
             }
-            foreach (var e in kp.OfType<S2C_SkillEffect>()) St.KillerEffectsSeen.Add(e.SkillId);
+            foreach (var e in kp.OfType<S2C_SkillEffect>())
+            {
+                St.KillerEffectsSeen.Add(e.SkillId);
+                if (e.CasterId != 0 && e.CasterId != kId) St.Violation($"killer-bound SkillEffect carries survivor id {e.CasterId}" + ctx);
+            }
             foreach (var id in _dummies.Where(d => d.Value.Until < tick).Select(d => d.Key).ToList()) _dummies.Remove(id);
 
             // ---- ThreatLevel comes from the true killer distance (the only thing a survivor may learn about the killer)
@@ -150,7 +119,7 @@ public sealed class U2bSweepTests
                 foreach (float f in new[] { kself.X, kself.Z })
                 {
                     if (!QaWire.ContainsFloat(bytes, f)) continue;
-                    if (legit.Contains(Bits(f)) || pkt is S2C_SkillEffect se && (Bits(se.Duration) == Bits(f) || se.X == f || se.Z == f && false)) { St.ByteCoincidences++; continue; }
+                    if (legit.Contains(Bits(f)) || pkt is S2C_SkillEffect se && (Bits(se.Duration) == Bits(f) || se.X == f)) { St.ByteCoincidences++; continue; }
                     St.Violation("killer coordinate " + f + " bytes in survivor-bound " + pkt.GetType().Name + ctx);
                 }
                 if (pkt is S2C_WorldState w)
@@ -160,186 +129,116 @@ public sealed class U2bSweepTests
                 }
             }
 
-            // ---- B. killer-bound frames: truth comparison
+            // ---- B1. killer-bound frame structure: anonymous, signal-only, capped, quantised terminals
+            int killerEntries = 0;
+            foreach (var p in kw.Players)
+            {
+                if (p.Role == (byte)Role.Killer) { killerEntries++; if (p.Id != kId) St.Violation("killer entry with a foreign id" + ctx); continue; }
+                if (p.Role != (byte)Role.Survivor || p.Id != 0 || p.Yaw != 0 || p.StatusTimer != 0 || p.CaptureCount != 0 ||
+                    p.Flags != (byte)PlayerFlags.Signal || (p.Status != (byte)PlayerStatus.Normal && p.Status != (byte)PlayerStatus.Lagging))
+                    St.Violation($"killer-bound survivor entry is not anonymous/Signal-only: id={p.Id} yaw={p.Yaw} timer={p.StatusTimer} cc={p.CaptureCount} flags={p.Flags} status={p.Status}" + ctx);
+            }
+            if (killerEntries != 1) St.Violation("killer frame has " + killerEntries + " killer entries" + ctx);
+            if (kw.Players.Count > Protocol.MaxWorldEntries) St.Violation("killer frame exceeds the entry cap" + ctx);
+            foreach (var t in kw.Terminals) if (t.Progress != 0 && t.Progress != 100) St.Violation("killer-bound terminal progress " + t.Progress + ctx);
+
             var killerBytes = kp.Select(PacketCodec.Encode).ToList();
             var kLegit = new HashSet<int> { Bits(kw.TimeLeft) };
             foreach (var t in kw.Terminals) { kLegit.Add(Bits(t.X)); kLegit.Add(Bits(t.Z)); }
             foreach (var p in kw.Players) { kLegit.Add(Bits(p.StatusTimer)); kLegit.Add(Bits(p.Yaw)); }
             kLegit.Add(Bits(kself.X)); kLegit.Add(Bits(kself.Z)); kLegit.Add(Bits(Map.Exit.X)); kLegit.Add(Bits(Map.Exit.Z));
             foreach (var e in kp.OfType<S2C_SkillEffect>()) { kLegit.Add(Bits(e.X)); kLegit.Add(Bits(e.Z)); kLegit.Add(Bits(e.Duration)); }
+            // U2c: the killer's own S2C_SelfState floats (cooldown 5.0 s equals the spawn x coordinate 5.0 bit for bit)
+            foreach (var s in kp.OfType<S2C_SelfState>()) { kLegit.Add(Bits(s.SkillCooldown)); kLegit.Add(Bits(s.RescueProgress)); kLegit.Add(Bits(s.InvulnerableLeft)); kLegit.Add(Bits(s.ExecutionGraceLeft)); }
 
-            var seenIds = new HashSet<int>();
-            int prevId = int.MinValue;
-            foreach (var p in kw.Players)
+            // ---- B2. ground-truth alignment (index-aligned labels; the match-end tick clears them after the last frame)
+            bool aligned = src.Count == kw.Players.Count;
+            if (!aligned && !(resultK || resultS)) St.Violation($"killer view labels out of step ({src.Count} vs {kw.Players.Count})" + ctx);
+            var shownReal = new Dictionary<int, (PlayerState E, bool After)>();
+            if (aligned)
             {
-                if (p.Id <= prevId) St.Violation("killer frame ids not strictly increasing (order/duplicate tell)" + ctx);
-                prevId = p.Id;
-                if (!seenIds.Add(p.Id)) St.Violation("duplicate id " + p.Id + ctx);
+                FramesAligned++;
+                for (int i = 0; i < src.Count; i++)
+                {
+                    var e = kw.Players[i];
+                    var s = src[i];
+                    if (e.Role == (byte)Role.Killer) { if (s.Phantom || s.Label != kId) St.Violation("killer entry mislabelled" + ctx); continue; }
+                    if (s.Afterimage && KillerSkill != SkillIds.PacketAfterimage) St.Violation("afterimage entry although the killer has no Packet Afterimage" + ctx);
+                    if (s.Phantom)
+                    {
+                        St.DecoyEntries++;
+                        if (s.Afterimage) St.AfterimageEntries++;
+                        if (e.Status != (byte)PlayerStatus.Normal) St.Violation("phantom with Status " + e.Status + ctx);
+                        if (!Map.CanStand(e.X, e.Z)) St.Violation($"phantom inside a wall at ({e.X},{e.Z})" + ctx);
+                    }
+                    else if (!shownReal.TryAdd(s.Label, (e, s.Afterimage))) St.Violation("real survivor " + s.Label + " shown twice" + ctx);
+                }
             }
-            var decoyNow = new HashSet<int>();
             foreach (var t in sw.Players)
             {
                 if (t.Role != (byte)Role.Survivor) continue;
                 bool truthSignal = (t.Flags & (byte)PlayerFlags.Signal) != 0;
-                bool? entryExists = kw.Players.Any(p => p.Id == t.Id);
-                var entry = kw.Players.FirstOrDefault(p => p.Id == t.Id);
+                bool shown = shownReal.TryGetValue(t.Id, out var sh);
                 if (t.Status == (byte)PlayerStatus.Eliminated || t.Status == (byte)PlayerStatus.Escaped)
                 {
-                    if (entryExists == true) St.Violation($"dead/escaped survivor {t.Id} present in killer frame" + ctx);
+                    if (aligned && shown) St.Violation($"dead/escaped survivor {t.Id} present in killer frame" + ctx);
                     continue;
                 }
                 if (t.Status == (byte)PlayerStatus.Lagging)
                 {
-                    if (entryExists != true || entry.Status != (byte)PlayerStatus.Lagging || entry.Flags != (byte)PlayerFlags.Signal ||
-                        entry.X != t.X || entry.Z != t.Z || entry.StatusTimer != t.StatusTimer)
+                    if (aligned && (!shown || sh.After || sh.E.Status != (byte)PlayerStatus.Lagging || sh.E.X != t.X || sh.E.Z != t.Z))
                         St.Violation($"Lagging survivor {t.Id} not shown faithfully to the killer" + ctx);
                     else { St.RealSignalEntries++; _lastReal[t.Id] = (t.X, t.Z, tick); }
-                    Observe(tick, entry, false, kw);
                     continue;
                 }
                 if (truthSignal)
                 {
-                    if (entryExists != true || entry.Flags != (byte)PlayerFlags.Signal || entry.Status != 0 || entry.X != t.X || entry.Z != t.Z)
-                        St.Violation($"Signal survivor {t.Id} not shown faithfully (flags={(entryExists == true ? entry.Flags.ToString() : "absent")})" + ctx);
-                    else
-                    {
-                        St.RealSignalEntries++;
-                        _lastReal[t.Id] = (t.X, t.Z, tick);
-                        Observe(tick, entry, false, kw);
-                    }
-                    if (entryExists == true && entry.CaptureCount != t.CaptureCount) St.Violation("CaptureCount mismatch (real)" + ctx);
+                    if (aligned && (!shown || sh.After || sh.E.Status != 0 || sh.E.X != t.X || sh.E.Z != t.Z))
+                        St.Violation($"Signal survivor {t.Id} not shown faithfully (shown={shown})" + ctx);
+                    else { St.RealSignalEntries++; _lastReal[t.Id] = (t.X, t.Z, tick); }
                     continue;
                 }
                 // ---- absent (Silent) survivor
                 St.AbsentChecks++;
-                bool isAfter = entryExists == true && (entry.Flags & (byte)PlayerFlags.Afterimage) != 0;
-                bool isDecoy = entryExists == true && !isAfter;
+                bool isAfter = aligned && shown;
                 if (isAfter)
                 {
                     St.AfterimageEntries++;
-                    if (entry.Flags != (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage)) St.Violation("afterimage flags" + ctx);
-                    // exclusion 1: an afterimage sits at the last position the killer legitimately saw
-                    if (!_lastReal.TryGetValue(t.Id, out var lr) || lr.X != entry.X || lr.Z != entry.Z || tick - lr.Tick > 22)
+                    if (!sh.After) St.Violation($"Silent survivor {t.Id} shown without being an afterimage" + ctx);
+                    // an afterimage sits at the last position the killer legitimately saw, for at most 1 s
+                    else if (!_lastReal.TryGetValue(t.Id, out var lr) || lr.X != sh.E.X || lr.Z != sh.E.Z || tick - lr.Tick > 22)
                         St.Violation($"afterimage of {t.Id} is not at the last seen position or lasts > 1 s" + ctx);
                 }
-                else if (isDecoy)
-                {
-                    St.DecoyEntries++;
-                    decoyNow.Add(t.Id);
-                    if (entry.Flags != (byte)PlayerFlags.Signal || entry.Status != 0 || entry.Role != (byte)Role.Survivor || entry.StatusTimer != 0)
-                        St.Violation($"decoy {t.Id} field pattern differs from a real Signal (flags {entry.Flags}, status {entry.Status})" + ctx);
-                    if (entry.CaptureCount != t.CaptureCount) St.Violation("decoy CaptureCount differs from the borrowed owner" + ctx);
-                    if (!Map.CanStand(entry.X, entry.Z)) St.Violation($"decoy inside a wall at ({entry.X},{entry.Z})" + ctx);
-                    if (!float.IsFinite(entry.Yaw)) St.Violation("decoy yaw not finite" + ctx);
-                    Observe(tick, entry, true, kw);
-                }
-                if (!isDecoy && !isAfter) _last.Remove(-1);
                 // the true position of an absent survivor must not be anywhere in the killer-bound frames
-                bool dummyExempt = _dummies.TryGetValue(t.Id, out var dm) && dm.X == t.X && dm.Z == t.Z;   // exclusion 2
-                bool afterExempt = isAfter && entry.X == t.X && entry.Z == t.Z;                              // exclusion 1 (stationary since)
-                if (!dummyExempt && !afterExempt)
+                bool dummyExempt = _dummies.TryGetValue(t.Id, out var dm) && dm.X == t.X && dm.Z == t.Z;       // the Dummy is born at the caster
+                bool afterExempt = isAfter && sh.E.X == t.X && sh.E.Z == t.Z;                                  // stationary since the last Signal
+                if (dummyExempt || afterExempt) continue;
+                foreach (var b in killerBytes)
                 {
-                    foreach (var b in killerBytes)
+                    if (ContainsPair(b, t.X, t.Z))
                     {
-                        if (ContainsPair(b, t.X, t.Z)) St.Violation($"true (X,Z) of silent survivor {t.Id} in a killer-bound frame; entry={(entryExists == true ? entry.X + "," + entry.Z + " flags" + entry.Flags : "none")} dummy={(_dummies.TryGetValue(t.Id, out var dq) ? dq.X + "," + dq.Z + " until " + dq.Until : "none")} lastReal={(_lastReal.TryGetValue(t.Id, out var lq) ? lq.X + "," + lq.Z + " @" + lq.Tick : "none")}" + ctx);
-                        foreach (float f in new[] { t.X, t.Z })
-                            if (QaWire.ContainsFloat(b, f))
-                            {
-                                // exclusion 3: the same single coordinate legitimately repeats when the caster slid along a wall after casting
-                                bool sameAxisAsOwnDecoy = (_dummies.TryGetValue(t.Id, out var dd) && (Bits(dd.X) == Bits(f) || Bits(dd.Z) == Bits(f))) ||
-                                    (isAfter && (Bits(entry.X) == Bits(f) || Bits(entry.Z) == Bits(f)));
-                                bool otherEntryHasIt = kw.Players.Any(o => o.Id != t.Id && (Bits(o.X) == Bits(f) || Bits(o.Z) == Bits(f))); // spawn points share X/Z values
-                                if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt) St.ByteCoincidences++;
-                                else St.Violation($"coordinate {f} of silent survivor {t.Id} found in a killer-bound frame; carriers: " + string.Join(",", kw.Players.SelectMany(p => new[] { (p.X == f ? "X" : "") + (p.Z == f ? "Z" : "") + (p.Yaw == f ? "Yaw" : "") + (p.StatusTimer == f ? "T" : "") }.Where(s => s != "").Select(s => p.Id + ":" + s + ":flags" + p.Flags))) + " truthPos=(" + t.X + "," + t.Z + ")" + ctx);
-                            }
+                        var carriers = new List<string>();
+                        for (int q = 0; q < kw.Players.Count; q++)
+                            if (kw.Players[q].X == t.X && kw.Players[q].Z == t.Z)
+                                carriers.Add(aligned ? $"label={src[q].Label} phantom={src[q].Phantom} afterimage={src[q].Afterimage} role={kw.Players[q].Role}" : "unaligned");
+                        St.Violation($"true (X,Z) of silent survivor {t.Id} in a killer-bound frame; carriers: {string.Join(";", carriers)}; dummy={(_dummies.TryGetValue(t.Id, out var dq) ? dq.X + "," + dq.Z + " until " + dq.Until : "none")}" + ctx);
                     }
-                }
-                if (!isDecoy) EndDecoyRun(t.Id);
-            }
-            // ids present in the killer frame that are not survivors of this match
-            foreach (var p in kw.Players)
-                if (p.Id != kId && !sw.Players.Any(s => s.Id == p.Id)) St.Violation("killer frame carries unknown id " + p.Id + ctx);
-
-            // ---- id-swap at identical position + stationary-signal measurements (client-side view only)
-            var positions = kw.Players.Where(p => p.Id != kId).Select(p => (p.Id, Bits(p.X), Bits(p.Z))).ToList();
-            foreach (var cur in positions)
-                if (_prevPositions.Any(pp => pp.X == cur.Item2 && pp.Z == cur.Item3 && pp.Id != cur.Id)) Tr.IdSwapSamePosition++;
-            _prevPositions = positions;
-            foreach (var p in kw.Players)
-            {
-                if (p.Id == kId) continue;
-                bool decoy = decoyNow.Contains(p.Id);
-                if (p.Status != 0 || p.Flags != (byte)PlayerFlags.Signal) { _still.Remove(p.Id); continue; }
-                uint xb = (uint)Bits(p.X), zb = (uint)Bits(p.Z);
-                if (_still.TryGetValue(p.Id, out var s) && s.X == xb && s.Z == zb)
-                {
-                    int len = s.Len + 1;
-                    bool counted = s.Counted;
-                    if (len >= 3 && !counted)
-                    {
-                        bool nearTerminal = kw.Terminals.Any(t => QaRig.Dist(t.X, t.Z, p.X, p.Z) <= 1.7f);
-                        bool nearLagging = kw.Players.Any(o => o.Status == (byte)PlayerStatus.Lagging && QaRig.Dist(o.X, o.Z, p.X, p.Z) <= 1.7f);
-                        if (!nearTerminal && !nearLagging)
+                    foreach (float f in new[] { t.X, t.Z })
+                        if (QaWire.ContainsFloat(b, f))
                         {
-                            if (decoy) Tr.StationaryRunsDecoy++; else Tr.StationaryRunsReal++;
+                            // a single coordinate legitimately repeats when the caster slid along a wall after casting, an afterimage
+                            // keeps one axis, or spawn points share an axis value
+                            bool sameAxisAsOwnDecoy = (_dummies.TryGetValue(t.Id, out var dd) && (Bits(dd.X) == Bits(f) || Bits(dd.Z) == Bits(f))) ||
+                                (isAfter && (Bits(sh.E.X) == Bits(f) || Bits(sh.E.Z) == Bits(f)));
+                            bool otherEntryHasIt = kw.Players.Any(o => Bits(o.X) == Bits(f) || Bits(o.Z) == Bits(f));
+                            if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt) St.ByteCoincidences++;
+                            else St.Violation($"coordinate {f} of silent survivor {t.Id} found in a killer-bound frame; truthPos=({t.X},{t.Z})" + ctx);
                         }
-                        counted = true;
-                    }
-                    _still[p.Id] = (tick, xb, zb, len, decoy, counted);
                 }
-                else _still[p.Id] = (tick, xb, zb, 1, decoy, false);
             }
             return resultK || resultS;
         }
-
-        private void EndDecoyRun(int id)
-        {
-            if (_runs.TryGetValue(id, out var r)) { _runs.Remove(id); if (_pendingOut.TryGetValue(id, out var old)) Finalize(old); _pendingOut[id] = r; }
-        }
-
-        // The modified-client attack: remember every Id's last non-afterimage observation; a jump faster than a survivor can run
-        // (4 m/s) proves that one of the two observations is fake.
-        private void Observe(int tick, PlayerState e, bool decoy, S2C_WorldState kw)
-        {
-            if (decoy) Tr.DecoyFrames++; else Tr.KillerSignalFrames++;
-            bool jump = false;
-            if (_last.TryGetValue(e.Id, out var last))
-            {
-                float dist = QaRig.Dist(e.X, e.Z, last.X, last.Z);
-                float bound = GameConstants.SurvivorSpeed * (tick - last.Tick) / GameConstants.TickRate + 0.25f;
-                jump = dist > bound;
-                if (jump)
-                {
-                    Tr.JumpEvents++;
-                    if (decoy) Tr.JumpIntoDecoy++;
-                    else if (last.Decoy) Tr.JumpOutOfDecoy++;
-                    else { Tr.UnexplainedJumps++; if (Tr.Unexplained.Count < 5) Tr.Unexplained.Add($"id {e.Id} tick {tick}: {dist} > {bound}"); }
-                }
-            }
-            if (decoy)
-            {
-                if (!_runs.TryGetValue(e.Id, out var run))
-                {
-                    run = new RunInfo { IsDummy = _dummies.ContainsKey(e.Id) };
-                    _runs[e.Id] = run;
-                    Tr.DecoyRuns++;
-                    if (jump) run.RevealedIn = true;
-                }
-            }
-            else
-            {
-                if (_pendingOut.TryGetValue(e.Id, out var pending))
-                {
-                    if (jump && _last.TryGetValue(e.Id, out var l2) && l2.Decoy) pending.RevealedOut = true;
-                    Finalize(pending);
-                    _pendingOut.Remove(e.Id);
-                }
-                if (_runs.TryGetValue(e.Id, out var cur)) { _runs.Remove(e.Id); Finalize(cur); }
-            }
-            _last[e.Id] = new Obs { Tick = tick, X = e.X, Z = e.Z, Decoy = decoy };
-        }
     }
-
     private sealed class Driver
     {
         private readonly Random _rng;
@@ -418,7 +317,8 @@ public sealed class U2bSweepTests
             sw.St.Matches++;
             bool rk = false, rs = false;
             tick++;
-            sw.Tick(tick, kp, sp, kId, sId, ref rk, ref rs); // the start tick already carries WorldState and bot skill casts
+            sw.KillerSkill = ks.SkillId;
+            sw.Tick(tick, kp, sp, kId, sId, ref rk, ref rs, f.Server.KillerViewSources.ToList()); // the start tick already carries WorldState and bot skill casts
             S2C_WorldState? lastK = kp.OfType<S2C_WorldState>().LastOrDefault(), lastS = sp.OfType<S2C_WorldState>().LastOrDefault();
             bool ended = false;
             for (int i = 0; i < maxTicksPerMatch && !ended; i++)
@@ -431,9 +331,8 @@ public sealed class U2bSweepTests
                 sp = QaWire.Take(survivor);
                 lastK = kp.OfType<S2C_WorldState>().LastOrDefault() ?? lastK;
                 lastS = sp.OfType<S2C_WorldState>().LastOrDefault() ?? lastS;
-                ended = sw.Tick(tick, kp, sp, kId, sId, ref rk, ref rs);
+                ended = sw.Tick(tick, kp, sp, kId, sId, ref rk, ref rs, f.Server.KillerViewSources.ToList());
             }
-            sw.Finish();
             if (!ended) { sw.St.Violation("match did not end within " + maxTicksPerMatch + " ticks (seed " + seed + ")"); return; }
             string reason = "";
             // drain the tail: result must be exactly one per human; afterwards the lobby is re-broadcast and no WorldState follows
@@ -457,20 +356,16 @@ public sealed class U2bSweepTests
         var logs = new List<string>();
         for (int seed = 1; seed <= 14; seed++) RunSweep(seed, 3, 12100, sweep, logs);
         var st = sweep.St;
-        var tr = sweep.Tr;
         _out.WriteLine($"matches={st.Matches} killerFrames={st.KillerFrames} absentChecks={st.AbsentChecks} decoyEntries={st.DecoyEntries} afterimage={st.AfterimageEntries} realSignal={st.RealSignalEntries} byteCoincidences={st.ByteCoincidences}");
         _out.WriteLine("killer skills " + string.Join(",", st.KillerSkills.OrderBy(x => x)) + " survivor effects seen " + string.Join(",", st.SurvivorSkillsCast.OrderBy(x => x)) + " killer effects " + string.Join(",", st.KillerEffectsSeen.OrderBy(x => x)));
-        _out.WriteLine($"TRACK decoyFrames={tr.DecoyFrames} decoyRuns={tr.DecoyRuns} revealed={tr.DecoyRunsRevealed} (atStart={tr.DecoyRunsRevealedAtStart} atEnd={tr.DecoyRunsRevealedAtEnd}) jumpEvents={tr.JumpEvents} intoDecoy={tr.JumpIntoDecoy} outOfDecoy={tr.JumpOutOfDecoy} unexplained={tr.UnexplainedJumps} idSwapSamePos={tr.IdSwapSamePosition} stationaryRuns decoy={tr.StationaryRunsDecoy} real={tr.StationaryRunsReal} dummyCasts={tr.DummyRuns}");
-        _out.WriteLine($"TRACK-BY-TYPE dummyRuns={tr.DummyDecoyRuns} revealed={tr.DummyDecoyRevealed}; whiteNoiseRuns={tr.NoiseDecoyRuns} revealed={tr.NoiseDecoyRevealed}");
         foreach (var v in st.Violations.Take(25)) _out.WriteLine("VIOLATION " + v);
         Assert.True(st.Violations.Count == 0, string.Join(" | ", st.Violations.Take(6)));
         Assert.DoesNotContain(logs, l => l.StartsWith("tick error") || l.StartsWith("send error"));
-        Assert.True(tr.Unexplained.Count == 0, string.Join(" | ", tr.Unexplained));
         Assert.True(st.AbsentChecks > 15000, "absent checks " + st.AbsentChecks);
         Assert.True(st.DecoyEntries > 150, "decoy entries " + st.DecoyEntries);
         Assert.True(st.AfterimageEntries > 20, "afterimage entries " + st.AfterimageEntries);
         Assert.Equal(new byte[] { 0, 1, 2, 3 }, st.KillerSkills.OrderBy(x => x));
-        Assert.Superset(new HashSet<byte> { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise }, st.SurvivorSkillsCast.Where(x => x != 0 || tr.DummyRuns > 0).ToHashSet());
+        Assert.Superset(new HashSet<byte> { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise }, st.SurvivorSkillsCast.ToHashSet());
     }
 
     // ------------------------------------------------------------------ 600 s stability, 1 human + 7 bots, 10 seeds
@@ -635,87 +530,74 @@ public sealed class U2bSweepTests
 
     // ------------------------------------------------------------------ the public match seed vs hidden randomness
 
-    // The attack of attempt 1 (finding F4), kept: a modified killer client replays System.Random(wireSeed) the way the
-    // server consumed its own stream (killer index, one skill draw per player, then each White Noise point x, z, yaw).
-    // Returns (predicted points, observed decoy positions). In the vulnerable attempt-1 build every observed point was predicted.
-    private static (List<(float X, float Z)> Predicted, List<(float X, float Z)> Observed) AttackWhiteNoise(QaRig r, int seed)
-    {
-        r.SetSkill(r.S[0], SkillIds.WhiteNoise);
-        r.Place(r.K, 5, 5);
-        for (int i = 0; i < 3; i++) r.Place(r.S[i], 40 + 4 * i, 55);
-        r.Tick(3);
-        Assert.Single(r.KW.Players);
-        // --- the attacker: only public data (wire seed, player count, host role choice = Killer)
-        var rnd = new Random(seed);
-        rnd.Next(4);                                   // StartMatch: killer index draw (consumed even when the host chose Killer)
-        for (int i = 0; i < 4; i++) rnd.Next(i == 0 ? SkillIds.KillerSkillCount : SkillIds.SurvivorSkillCount);
-        var predicted = new List<(float X, float Z)>();
-        const float margin = FixedMap.PlayerRadius + 0.1f;
-        for (int point = 0; point < SkillIds.WhiteNoiseSignalCount; point++)
-        {
-            for (int attempt = 0; attempt < 64; attempt++)
-            {
-                float x = margin + (float)(rnd.NextDouble() * (FixedMap.Size - 2 * margin));
-                float z = margin + (float)(rnd.NextDouble() * (FixedMap.Size - 2 * margin));
-                if (!Map.CanStand(x, z)) continue;
-                predicted.Add((x, z));
-                rnd.NextDouble(); // yaw
-                break;
-            }
-        }
-        r.Use(r.S[0], SkillIds.WhiteNoise);
-        r.Tick();
-        var observed = r.KW.Players.Where(p => p.Id != r.K.Id).Select(p => (p.X, p.Z)).ToList();
-        return (predicted, observed);
-    }
-
+    // U2c migration. The attempt-3 attack replayed System.Random(wireSeed) the way the old server consumed its stream and
+    // compared predicted White Noise points with the observed decoys. The server now draws from xoshiro256** streams
+    // (PrivateRandom), White Noise points are staggered walkers and nothing is shown by Id, so a point-by-point prediction no
+    // longer exists. The invariant the three tests protected is "no hidden server draw is a function of MatchStart.Seed";
+    // it is now tested one level lower and stronger: the server's actual random streams are searched for, at any offset,
+    // inside streams generated from the wire seed (and simple functions of it) by the server's own generator.
     [Fact]
-    public void Seed_AttackControl_WhenTheHookMakesPrivateSeedEqualTheWireSeed_TheAttackStillPredictsEveryDecoy()
+    public void Seed_AttackControl_WhenTheHookMakesPrivateSeedEqualTheWireSeed_TheStreamReplayStillFindsEveryStream()
     {
-        // Positive control: proves the attack code is correct. Only the test hooks (private seed == wire seed) recreate the
+        // Positive control: proves the replay code is correct. Only the test hooks (private seed == wire seed) recreate the
         // old coupling; the production path cannot be configured this way.
         using var r = new QaRig(3, seed: 424242, matchSeed: 424242);
         Assert.Equal(424242, r.K.Last<S2C_MatchStart>().Seed);
-        var (predicted, observed) = AttackWhiteNoise(r, 424242);
-        Assert.InRange(observed.Count, 2, 3);
-        foreach (var o in observed) Assert.Contains(o, predicted);
+        r.Tick(5);
+        string[] fields = { "_random", "_decoyRandom", "_shuffleRandom" };
+        for (int stream = 0; stream < 3; stream++)
+        {
+            var observed = SeedAttack.Draw(Spy.Server<object>(r.Server, fields[stream]), 8);
+            Assert.True(SeedAttack.Contains(424242, stream, observed, 20000), "replay must find " + fields[stream]);
+            // ... and only with the right stream index
+            Assert.False(SeedAttack.Contains(424242, stream + 3, observed, 20000));
+        }
     }
 
     [Fact]
-    public void Seed_FixedInAttempt3_ReplayingTheWireSeedNeverPredictsAnyWhiteNoiseDecoy_ManyMatches()
+    public void Seed_FixedInAttempt3_ReplayingTheWireSeedNeverFindsAnyPrivateStream_ManyServers()
     {
         // Production seeding (no hooks except the cosmetic wire seed, fixed here so the attacker's input is known).
-        int hits = 0, observedTotal = 0, matches = 0;
+        int checks = 0;
         for (int i = 0; i < 12; i++)
         {
             int wire = 424242 + i * 7919;
             using var r = new QaRig(3, matchSeed: wire, csprng: true);
             Assert.Equal(wire, r.K.Last<S2C_MatchStart>().Seed);
-            var (predicted, observed) = AttackWhiteNoise(r, wire);
-            Assert.InRange(observed.Count, 2, 3);
-            observedTotal += observed.Count;
-            hits += observed.Count(o => predicted.Contains(o));
-            ++matches;
+            r.Tick(5);
+            foreach (string field in new[] { "_random", "_decoyRandom", "_shuffleRandom" })
+            {
+                var observed = SeedAttack.Draw(Spy.Server<object>(r.Server, field), 8);
+                foreach (int candidate in SeedAttack.Derived(wire))
+                    for (int stream = 0; stream < 6; stream++)
+                    {
+                        Assert.False(SeedAttack.Contains(candidate, stream, observed, 4000), $"{field} is a replay of the wire seed {wire} (candidate {candidate}, stream {stream})");
+                        checks++;
+                    }
+            }
         }
-        _out.WriteLine($"attack on {matches} fresh servers: {hits} of {observedTotal} decoy points predicted");
-        Assert.Equal(0, hits);
+        _out.WriteLine(checks + " stream/candidate pairs checked, no hit");
     }
 
     [Fact]
-    public void Seed_FixedInAttempt3_AttackerKnowingEveryDecoyPlacementRuleStillMissesOnSecondAndThirdMatch()
+    public void Seed_FixedInAttempt3_NoPrivateStreamIsAReplayOfTheWireSeedOnSecondAndThirdMatch()
     {
-        // Same attack in match 2 and 3 of one server (the old code reseeded from the same constant seed every match).
+        // Same search in match 2 and 3 of one server (the old code reseeded from the same constant seed every match).
         using var r = new QaRig(3, matchSeed: 31337, csprng: true);
         for (int match = 1; match <= 3; match++)
         {
             if (match > 1) r.NextMatch();
             Assert.Equal(31337, r.K.Last<S2C_MatchStart>().Seed);
-            var (predicted, observed) = AttackWhiteNoise(r, 31337);
-            Assert.InRange(observed.Count, 2, 3);
-            Assert.DoesNotContain(observed, o => predicted.Contains(o));
+            r.Tick(5);
+            foreach (string field in new[] { "_random", "_decoyRandom", "_shuffleRandom" })
+            {
+                var observed = SeedAttack.Draw(Spy.Server<object>(r.Server, field), 8);
+                foreach (int candidate in SeedAttack.Derived(31337))
+                    for (int stream = 0; stream < 6; stream++)
+                        Assert.False(SeedAttack.Contains(candidate, stream, observed, 4000), $"{field} replays the wire seed in match {match}");
+            }
         }
     }
-
     [Theory]
     [InlineData(SkillIds.DummyPacket)]
     [InlineData(SkillIds.StealthRelay)]
@@ -767,26 +649,27 @@ public sealed class U2bSweepTests
     public void Disconnect_SurvivorLeavesMidHack_ProgressKept_ReconnectWithTokenResumesOnlyAfterANewInteract()
     {
         using var r = new QaRig(2, seed: 4);
+        // U2c migration: the killer view quantises progress, and S0 (whose frames r.SW would read) disconnects; S1 is the observer.
         ulong token = r.S[0].Last<S2C_JoinResult>().ReconnectToken;
         int id = r.S[0].Id;
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         r.Tick(40);
-        int progress = r.KW.Terminals[0].Progress;
+        int progress = r.S[1].World().Terminals[0].Progress;
         Assert.InRange(progress, 19, 21);
         r.S[0].Connection.Close();
         r.Tick(20);
-        Assert.Equal(progress, r.KW.Terminals[0].Progress); // nothing hacks without its owner
+        Assert.Equal(progress, r.S[1].World().Terminals[0].Progress); // nothing hacks without its owner
         var back = r.F.Connect();
         back.Send(new C2S_Join { Nickname = "S0", ReconnectToken = token });
         r.Tick();
         Assert.Equal(id, back.Last<S2C_JoinResult>().PlayerId);
         Assert.True(back.Has<S2C_MatchStart>());
         r.Tick(20);
-        Assert.Equal(progress, r.KW.Terminals[0].Progress); // the hold did not survive the disconnect
+        Assert.Equal(progress, r.S[1].World().Terminals[0].Progress); // the hold did not survive the disconnect
         back.Send(new C2S_Interact { Active = 1 });
         r.Tick(20);
-        Assert.InRange(r.KW.Terminals[0].Progress - progress, 9, 11);
+        Assert.InRange(r.S[1].World().Terminals[0].Progress - progress, 9, 11);
     }
     // ------------------------------------------------------------------ thread races between the loop thread and transport callbacks
 
