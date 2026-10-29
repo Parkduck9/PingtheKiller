@@ -43,6 +43,7 @@ namespace PingTheKiller.Shared.Net
                 case PacketId.C2S_Interact: packet = C2S_Interact.Read(ref reader); break;
                 case PacketId.C2S_SetBots: packet = C2S_SetBots.Read(ref reader); break;
                 case PacketId.C2S_SetRole: packet = C2S_SetRole.Read(ref reader); break;
+                case PacketId.S2C_SelfState: packet = S2C_SelfState.Read(ref reader); break;
                 default: throw new PacketFormatException("Unknown packet ID.");
             }
             reader.EnsureEnd();

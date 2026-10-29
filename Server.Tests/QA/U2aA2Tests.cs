@@ -55,7 +55,10 @@ internal sealed class Watch
         foreach (var p in of[0].Players.Where(p => p.Role == (byte)Role.Survivor))
         {
             bool moved = _prev.TryGetValue(p.Id, out var prev) && (prev.X != p.X || prev.Z != p.Z);
-            var entry = kf[0].Players.Where(k => k.Id == p.Id).Cast<PlayerState?>().FirstOrDefault();
+            // U2c migration: killer-bound survivor entries are anonymous (Id 0), so an entry is matched to a survivor by
+            // its position (the same invariant: a survivor that moved must be on the killer frame at its new position).
+            var entry = kf[0].Players.Where(k => k.Role == (byte)Role.Survivor && Math.Abs(k.X - p.X) < 1e-4f && Math.Abs(k.Z - p.Z) < 1e-4f)
+                .Cast<PlayerState?>().FirstOrDefault();
             bool visible = entry.HasValue;
             bool signal = visible && (entry!.Value.Flags & (byte)PlayerFlags.Signal) != 0;
             bool exempt = U2bRules && (p.Status == (byte)PlayerStatus.Eliminated || p.Status == (byte)PlayerStatus.Escaped ||
@@ -132,6 +135,9 @@ public sealed class U2aA2Tests
     {
         var f = new QaFixture(seed: seed);
         var (killer, survivor) = f.StartPair();
+        // U2c migration: the random killer skill changed with the new private RNG. A Packet Afterimage killer would keep
+        // a frozen entry for a stopped survivor and mask the "absent when silent" assertions, so neutralise the skill.
+        Spy.Set(Spy.Player(f.Server, killer.Id), "Skill", (byte)255);
         return (f, killer, survivor, new Watch(f, killer, survivor));
     }
 

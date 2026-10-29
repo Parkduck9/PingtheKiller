@@ -16,6 +16,7 @@ namespace PingTheKiller.Shared.Packets
         S2C_MatchStart = 0x000C,
         C2S_Interact = 0x000D,
         C2S_SetBots = 0x000E,
-        C2S_SetRole = 0x000F
+        C2S_SetRole = 0x000F,
+        S2C_SelfState = 0x0010
     }
 }

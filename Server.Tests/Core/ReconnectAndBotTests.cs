@@ -19,7 +19,7 @@ public sealed class ReconnectAndBotTests
         survivor.Dispose();
         f.Tick();
         for (int i = 0; i < 99; i++) f.Tick();
-        Assert.DoesNotContain(killer.Last<S2C_WorldState>().Players, p => p.Id == identity.PlayerId);
+        Assert.False(KillerTruth.Has(f.Server, killer.Last<S2C_WorldState>(), identity.PlayerId));
         var restored = f.Join("Changed name", identity.ReconnectToken);
         Assert.Equal(identity.PlayerId, restored.Id);
         Assert.Equal(identity.ReconnectToken, restored.Last<S2C_JoinResult>().ReconnectToken);
@@ -46,12 +46,12 @@ public sealed class ReconnectAndBotTests
         Assert.Equal(0, killer.Last<S2C_LobbyState>().Slots.Single(p => p.PlayerId == identity.PlayerId).IsBot);
         f.Tick();
         Assert.Equal(1, killer.Last<S2C_LobbyState>().Slots.Single(p => p.PlayerId == identity.PlayerId).IsBot);
-        // The bot may open with Stealth Relay (hidden for 2 s), so wait for its first visible frame.
+        // The bot opens with a Silent pause of up to 8 s (and may cast Stealth Relay), so wait for its first visible frame.
         PlayerState? bot = null;
-        for (int i = 0; i < 60 && bot == null; i++)
+        for (int i = 0; i < 400 && bot == null; i++)
         {
             f.Tick();
-            bot = killer.Last<S2C_WorldState>().Players.Where(p => p.Id == identity.PlayerId).Select(p => (PlayerState?)p).SingleOrDefault();
+            bot = KillerTruth.Entry(f.Server, killer.Last<S2C_WorldState>(), identity.PlayerId);
         }
         Assert.NotNull(bot);
         Assert.True(bot.Value.X != before.X || bot.Value.Z != before.Z);
@@ -99,24 +99,32 @@ public sealed class ReconnectAndBotTests
         int botId = host.Last<S2C_LobbyState>().Slots.Single(s => s.IsBot != 0).PlayerId;
         PlayerState? previous = null;
         int previousTick = 0;
-        for (int i = 0; i < 200; ++i)
+        var truthBefore = f.Server.PlayerSnapshot().Single(p => p.Id == botId);
+        bool hacked = false;
+        // The bot pauses Silently between bursts (opening pause up to 8 s), so allow it up to 30 s to start hacking.
+        for (int i = 0; i < 600 && !hacked; ++i)
         {
             f.Tick();
             var world = host.Last<S2C_WorldState>();
-            var state = world.Players.Where(s => s.Id == botId).Select(s => (PlayerState?)s).SingleOrDefault();
+            var truth = f.Server.PlayerSnapshot().Single(p => p.Id == botId);
+            // Same movement rules as humans: at most 4 m/s per tick, and never moving while absent from the killer frame.
+            Assert.InRange(MathF.Sqrt((truth.X - truthBefore.X) * (truth.X - truthBefore.X) + (truth.Z - truthBefore.Z) * (truth.Z - truthBefore.Z)), 0, 0.201f);
+            var state = KillerTruth.Entry(f.Server, world, botId);
+            truthBefore = truth;
+            hacked = truth.Hacking;
             if (!state.HasValue) continue;
             if (previous.HasValue)
             {
-                // Same movement rules as humans: at most 4 m/s between visible frames.
                 float dx = state.Value.X - previous.Value.X, dz = state.Value.Z - previous.Value.Z;
                 Assert.InRange(MathF.Sqrt(dx * dx + dz * dz), 0, 0.201f * (world.Tick - previousTick));
             }
             previous = state;
             previousTick = (int)world.Tick;
         }
-        // Spawn (5,26): the nearest terminal is #0 at (10,25); after 10 s the bot stands there holding Interact.
-        var final = host.Last<S2C_WorldState>();
-        Assert.InRange(final.Terminals[0].Progress, 50, 99);
+        // Spawn (5,26): the nearest terminal is #0 at (10,25); the bot walks there and hacks it.
+        Assert.True(hacked, "the bot never started hacking");
+        var final = f.Server.PlayerSnapshot().Single(p => p.Id == botId);
+        Assert.True(MathF.Sqrt((final.X - 10) * (final.X - 10) + (final.Z - 25) * (final.Z - 25)) <= GameConstants.TerminalRadius);
         Assert.NotNull(previous);
         Assert.InRange(MathF.Sqrt(MathF.Pow(previous.Value.X - 10, 2) + MathF.Pow(previous.Value.Z - 25, 2)), 0, GameConstants.TerminalRadius);
     }

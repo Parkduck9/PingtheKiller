@@ -79,11 +79,7 @@ namespace PingTheKiller.ServerCore
             switch (caster.Skill)
             {
                 case SkillIds.DummyPacket:
-                    _decoys.Add(new Decoy
-                    {
-                        IsDummy = true, CasterId = caster.Id, X = caster.X, Z = caster.Z, Yaw = caster.Yaw,
-                        Until = _now + SkillIds.DummyPacketSeconds
-                    });
+                    CastDummy(caster);
                     SendSurvivorEffect(caster, SkillIds.DummyPacket, caster.X, caster.Z, SkillIds.DummyPacketSeconds);
                     return true;
                 case SkillIds.StealthRelay:
@@ -98,8 +94,9 @@ namespace PingTheKiller.ServerCore
                     if (_killer != null)
                     {
                         _killer.SlowedUntil = Max(_killer.SlowedUntil, _now + SkillIds.TrafficOverloadSeconds);
-                        // The killer finds the caster through its forced Signal; the effect carries no position.
-                        SendEffect(_killer, caster, SkillIds.TrafficOverload, 0, 0, SkillIds.TrafficOverloadSeconds);
+                        // The killer finds the caster through its forced Signal; the effect carries no position and,
+                        // like every killer-bound packet, no survivor Id.
+                        SendEffect(_killer, 0, SkillIds.TrafficOverload, 0, 0, SkillIds.TrafficOverloadSeconds);
                     }
                     SendSurvivorEffect(caster, SkillIds.TrafficOverload, caster.X, caster.Z, SkillIds.TrafficOverloadSeconds);
                     return true;
@@ -120,33 +117,12 @@ namespace PingTheKiller.ServerCore
                     return true;
                 }
                 case SkillIds.WhiteNoise:
-                    for (int i = 0; i < SkillIds.WhiteNoiseSignalCount; i++)
-                    {
-                        if (!TryRandomWalkablePoint(out float x, out float z)) continue;
-                        _decoys.Add(new Decoy
-                        {
-                            X = x, Z = z, Yaw = (float)(_random.NextDouble() * 360),
-                            Until = _now + SkillIds.WhiteNoiseSeconds
-                        });
-                    }
+                    CastWhiteNoise();
                     SendSurvivorEffect(caster, SkillIds.WhiteNoise, caster.X, caster.Z, SkillIds.WhiteNoiseSeconds);
                     return true;
                 default:
                     return false;
             }
-        }
-
-        private bool TryRandomWalkablePoint(out float x, out float z)
-        {
-            const float margin = FixedMap.PlayerRadius + 0.1f;
-            for (int attempt = 0; attempt < 64; attempt++)
-            {
-                x = margin + (float)(_random.NextDouble() * (FixedMap.Size - 2 * margin));
-                z = margin + (float)(_random.NextDouble() * (FixedMap.Size - 2 * margin));
-                if (Map.CanStand(x, z)) return true;
-            }
-            x = z = 0;
-            return false;
         }
 
         private static double Max(double a, double b) => a > b ? a : b;
@@ -158,10 +134,13 @@ namespace PingTheKiller.ServerCore
                 if (player.Role == Role.Survivor) SendEffect(player, caster, skillId, x, z, duration);
         }
 
-        private void SendEffect(Player recipient, Player caster, byte skillId, float x, float z, float duration)
+        private void SendEffect(Player recipient, Player caster, byte skillId, float x, float z, float duration) =>
+            SendEffect(recipient, caster.Id, skillId, x, z, duration);
+
+        private void SendEffect(Player recipient, int casterId, byte skillId, float x, float z, float duration)
         {
             if (recipient.ConnectionId == null || !_connections.TryGetValue(recipient.ConnectionId, out var binding)) return;
-            Send(binding.Connection, new S2C_SkillEffect { CasterId = caster.Id, SkillId = skillId, X = x, Z = z, Duration = duration });
+            Send(binding.Connection, new S2C_SkillEffect { CasterId = casterId, SkillId = skillId, X = x, Z = z, Duration = duration });
         }
     }
 }

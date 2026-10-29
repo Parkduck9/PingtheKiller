@@ -29,14 +29,59 @@ public sealed class MatchSeedAndRestartTests
         return (wire, path);
     }
 
-    [Fact]
-    public void EqualWireSeedsDoNotGiveEqualBotPaths()
+    // Every packet one idle human receives over three full matches with seven bots (MatchStart without its cosmetic
+    // Seed), plus the server's ground truth (players and phantoms) every 10 ticks, hashed.
+    private static string Trace(int privateSeed, int wireSeed)
+    {
+        using var f = new CoreFixture(seed: privateSeed, matchSeed: wireSeed);
+        var human = f.Join("Human");
+        human.Send(new C2S_SetBots { Count = 7 });
+        human.Packets.Clear(); // the JoinResult carries a CSPRNG reconnect token
+        using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        for (int match = 0; match < 3; match++)
+        {
+            human.Send(new C2S_StartMatch());
+            bool ended = false;
+            for (int tick = 0; tick < 12100 && !ended; tick++)
+            {
+                f.Tick();
+                human.Drain();
+                foreach (var packet in human.Packets)
+                {
+                    if (packet is S2C_MatchStart start) { Assert.Equal(wireSeed, start.Seed); start.Seed = 0; }
+                    if (packet is S2C_GameResult) ended = true;
+                    sha.AppendData(PingTheKiller.Shared.Net.PacketCodec.Encode(packet));
+                }
+                human.Packets.Clear();
+                if (tick % 10 != 0) continue;
+                foreach (var p in f.Server.PlayerSnapshot()) sha.AppendData(System.Text.Encoding.UTF8.GetBytes($"{p.Id}:{p.Role}:{p.Status}:{p.X:R}:{p.Z:R};"));
+                foreach (var p in f.Server.PhantomSnapshot()) sha.AppendData(System.Text.Encoding.UTF8.GetBytes($"{p.Serial}:{p.X:R}:{p.Z:R}:{p.Visible};"));
+            }
+            Assert.True(ended, "match did not end");
+        }
+        return Convert.ToHexString(sha.GetHashAndReset());
+    }
+
+    // Not a test any more (probabilistic: two production servers may collide on the little that 10 s of play reveal);
+    // FixedPrivateSeedGivesABitIdenticalThreeMatchTraceForEveryWireSeed replaces it. Kept because
+    // U2bA2Tests.Measure_ImplementerTest_EqualWireSeedsDoNotGiveEqualBotPaths_FailureRateOver300Runs calls it.
+    internal void EqualWireSeedsDoNotGiveEqualBotPaths()
     {
         var a = BotPaths(0, matchSeed: 5, csprng: true);
         var b = BotPaths(0, matchSeed: 5, csprng: true);
         Assert.Equal(5, a.wireSeed);
         Assert.Equal(a.wireSeed, b.wireSeed);
         Assert.NotEqual(a.path, b.path);
+    }
+
+    [Fact]
+    public void FixedPrivateSeedGivesABitIdenticalThreeMatchTraceForEveryWireSeed()
+    {
+        string baseline = Trace(21, 1);
+        Assert.Equal(baseline, Trace(21, 1));
+        foreach (int wire in new[] { 2, 21, -1, int.MinValue, int.MaxValue }) Assert.Equal(baseline, Trace(21, wire));
+        // Not vacuous: the private seed does change the trace.
+        Assert.NotEqual(baseline, Trace(22, 1));
     }
 
     [Fact]
@@ -65,9 +110,9 @@ public sealed class MatchSeedAndRestartTests
         Assert.Equal(matchSeed, a.Last<S2C_MatchStart>().Seed);
         f.Tick();
         a.Send(new C2S_UseSkill { SkillId = SkillIds.WhiteNoise });
-        f.Tick();
+        for (int i = 0; i <= 10; i++) f.Tick(); // all five points have spawned 0.5 s after the cast
         var decoys = killer.Last<S2C_WorldState>().Players.Where(p => p.Role == (byte)Role.Survivor).Select(p => (p.X, p.Z)).ToList();
-        Assert.Equal(2, decoys.Count);
+        Assert.Equal(5, decoys.Count);
         return decoys.OrderBy(p => p.X).ToList();
     }
 

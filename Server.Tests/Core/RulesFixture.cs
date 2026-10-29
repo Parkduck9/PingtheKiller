@@ -1,3 +1,4 @@
+using PingTheKiller.ServerCore;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 using Xunit;
@@ -10,6 +11,31 @@ internal static class PeerExtensions
     {
         peer.Drain();
         return peer.Packets.OfType<T>().ToList();
+    }
+}
+
+// The killer view is anonymous (Id 0, shuffled). Tests identify entries through the server's ground-truth labels,
+// which are index-aligned with the latest killer-bound WorldState.
+internal static class KillerTruth
+{
+    internal static int? Index(GameServer server, S2C_WorldState world, int id, bool phantom = false)
+    {
+        var sources = server.KillerViewSources;
+        Assert.Equal(sources.Count, world.Players.Count);
+        for (int i = 0; i < sources.Count; i++)
+            if (sources[i].Phantom == phantom && sources[i].Label == id) return i;
+        return null;
+    }
+    internal static PlayerState? Entry(GameServer server, S2C_WorldState world, int id) =>
+        Index(server, world, id) is int i ? world.Players[i] : null;
+    internal static bool Has(GameServer server, S2C_WorldState world, int id) => Index(server, world, id) != null;
+    internal static bool IsAfterimage(GameServer server, S2C_WorldState world, int id) =>
+        Index(server, world, id) is int i && server.KillerViewSources[i].Afterimage;
+    internal static List<PlayerState> Phantoms(GameServer server, S2C_WorldState world)
+    {
+        var sources = server.KillerViewSources;
+        Assert.Equal(sources.Count, world.Players.Count);
+        return world.Players.Where((p, i) => sources[i].Phantom).ToList();
     }
 }
 
@@ -92,7 +118,10 @@ internal sealed class RulesMatch : IDisposable
         foreach (var player in world.Players) if (player.Id == id) return player;
         return null;
     }
-    internal PlayerState? KillerSees(Peer survivor) => Entry(Killer.Last<S2C_WorldState>(), survivor.Id);
+    internal PlayerState? KillerSees(Peer survivor) => KillerTruth.Entry(F.Server, Killer.Last<S2C_WorldState>(), survivor.Id);
+    internal PlayerState? KillerEntry(S2C_WorldState world, int id) => KillerTruth.Entry(F.Server, world, id);
+    internal bool KillerSeesAfterimage(Peer survivor) => KillerTruth.IsAfterimage(F.Server, Killer.Last<S2C_WorldState>(), survivor.Id);
+    internal List<PlayerState> KillerPhantoms() => KillerTruth.Phantoms(F.Server, Killer.Last<S2C_WorldState>());
     internal PlayerState Truth(Peer survivor) => Entry(Survivors[0].Last<S2C_WorldState>(), survivor.Id)!.Value;
 
     internal static float Distance(PlayerState a, float x, float z) => MathF.Sqrt((a.X - x) * (a.X - x) + (a.Z - z) * (a.Z - z));

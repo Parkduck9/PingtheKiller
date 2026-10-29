@@ -7,96 +7,73 @@ namespace PingTheKiller.Tests.Core;
 
 public sealed class DecoyAndLeakTests
 {
-    private static void AssertLooksLikeRealSignal(PlayerState decoy, PlayerState real, byte captureCount)
+    private static void AssertAnonymous(PlayerState entry)
     {
-        Assert.Equal(real.Role, decoy.Role);
-        Assert.Equal(real.Status, decoy.Status);
-        Assert.Equal(real.Flags, decoy.Flags);
-        Assert.Equal((byte)PlayerFlags.Signal, decoy.Flags);
-        Assert.Equal(real.StatusTimer, decoy.StatusTimer);
-        Assert.Equal(captureCount, decoy.CaptureCount);
-        Assert.True(float.IsFinite(decoy.Yaw) && float.IsFinite(decoy.X) && float.IsFinite(decoy.Z));
-        var w1 = new PacketWriter();
-        var w2 = new PacketWriter();
-        decoy.Write(w1);
-        real.Write(w2);
-        Assert.Equal(w2.WrittenSpan.Length, w1.WrittenSpan.Length);
-    }
-
-    private static void AssertNoDuplicateIds(Peer peer)
-    {
-        foreach (var world in peer.All<S2C_WorldState>())
-            Assert.Equal(world.Players.Count, world.Players.Select(p => p.Id).Distinct().Count());
+        Assert.Equal(0, entry.Id);
+        Assert.Equal((byte)Role.Survivor, entry.Role);
+        Assert.Equal(0f, entry.Yaw);
+        Assert.Equal((byte)PlayerFlags.Signal, entry.Flags);
+        Assert.Equal(0f, entry.StatusTimer);
+        Assert.Equal(0, entry.CaptureCount);
+        Assert.True(float.IsFinite(entry.X) && float.IsFinite(entry.Z));
     }
 
     [Fact]
-    public void DummyPacketDecoyIsShapedLikeARealSignalAndCopiesTheBorrowedCaptureCount()
+    public void DummyAndRealSignalEntriesAreByteForByteTheSameShapeAndCarryNoIdentity()
     {
         using var m = RulesMatch.Start(2, SkillIds.PingScanner, SkillIds.DummyPacket);
         var (a, b) = (m[0], m[1]);
-        // Survivor 0 is captured and rescued so its CaptureCount is 1.
+        // Survivor 0 is captured and rescued so its CaptureCount is 1; the killer must not learn it.
         m.WalkTo(m.Killer, 5, 25, GameConstants.KillerSpeed);
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         m.Tick(60);
         Assert.Equal((byte)PlayerStatus.Normal, m.Truth(a).Status);
-        m.WalkTo(a, 5, 30, GameConstants.SurvivorSpeed); // away while still invulnerable
+        Assert.Equal(1, m.Truth(a).CaptureCount);
+        m.WalkTo(a, 5, 30, GameConstants.SurvivorSpeed);
         m.WalkTo(b, 10, 26, GameConstants.SurvivorSpeed);
         m.Tick(5);
         Use(a, SkillIds.DummyPacket);
-        m.Tick();
-        m.WalkTo(a, 7, 30, GameConstants.SurvivorSpeed);
-        m.Tick(5);
-        b.Move(1, 0); // survivor 1 becomes a real Signal entry in the same frame
+        a.Move(0, 1); // the caster stays Signal: real entry and dummy side by side
+        b.Move(1, 0);
         m.Tick();
         var world = m.Killer.Last<S2C_WorldState>();
-        var decoy = RulesMatch.Entry(world, a.Id)!.Value;
-        var real = RulesMatch.Entry(world, b.Id)!.Value;
-        Assert.Equal(5f, decoy.X);
-        Assert.Equal(30f, decoy.Z);
-        Assert.Equal(1, m.Truth(a).CaptureCount);
-        AssertLooksLikeRealSignal(decoy, real, m.Truth(a).CaptureCount);
+        var decoy = Assert.Single(m.KillerPhantoms());
+        var realA = m.KillerSees(a)!.Value;
+        var realB = m.KillerSees(b)!.Value;
+        foreach (var entry in new[] { decoy, realA, realB }) AssertAnonymous(entry);
+        var frames = new[] { decoy, realA, realB }.Select(e => { var w = new PacketWriter(); e.Write(w); return w.WrittenSpan.ToArray(); }).ToList();
+        // Apart from the coordinates (bytes 6..13) the three entries are identical on the wire.
+        foreach (var bytes in frames) Assert.Equal(frames[0].Take(6).Concat(frames[0].Skip(14)), bytes.Take(6).Concat(bytes.Skip(14)));
+        Assert.Equal(4, world.Players.Count);
         Assert.DoesNotContain(m.Killer.All<S2C_SkillEffect>(), e => e.SkillId == SkillIds.DummyPacket);
-        AssertNoDuplicateIds(m.Killer);
-        AssertNoDuplicateIds(a);
     }
 
     [Fact]
-    public void WhiteNoiseDecoysBorrowOnlyAbsentIdsAndNeverDuplicateAnId()
+    public void WhiteNoiseNeedsNoAbsentSurvivorsAndNeverDuplicatesOrHidesARealSignal()
     {
-        using var m = RulesMatch.Start(3, SkillIds.PingScanner, SkillIds.WhiteNoise);
-        var (a, b, c) = (m[0], m[1], m[2]);
+        // Killer + two Signal survivors + five points fill the eight WorldState entries exactly.
+        using var m = RulesMatch.Start(2, SkillIds.PingScanner, SkillIds.WhiteNoise);
+        var (a, b) = (m[0], m[1]);
         m.Tick(25);
         Use(a, SkillIds.WhiteNoise);
-        b.Move(1, 0);
-        m.Tick(); // frame 0: survivor 1 is a real Signal; survivors 0 and 2 are absent
-        var world = m.Killer.Last<S2C_WorldState>();
-        var real = RulesMatch.Entry(world, b.Id)!.Value;
-        Assert.Equal(m.Truth(b).X, real.X);
-        var decoys = world.Players.Where(p => p.Role == (byte)Role.Survivor && p.Id != b.Id).ToList();
-        Assert.Equal(new[] { a.Id, c.Id }, decoys.Select(p => p.Id).OrderBy(id => id));
-        foreach (var decoy in decoys)
+        for (int frame = 0; frame < 30; frame++)
         {
-            AssertLooksLikeRealSignal(decoy, real, 0);
-            var truth = m.Truth(m.Survivors.Single(s => s.Id == decoy.Id));
-            Assert.False(decoy.X == truth.X && decoy.Z == truth.Z);
-        }
-        // When survivor 1 stops, a third point may borrow its Id; a moving survivor's Id is never borrowed.
-        for (int frame = 1; frame < 30; frame++)
-        {
-            if (frame >= 20) c.Move(0, 1);
+            a.Move(0, 1);
+            b.Move(1, 0);
             m.Tick();
-            var now = m.Killer.Last<S2C_WorldState>();
-            if (frame >= 20)
+            var world = m.Killer.Last<S2C_WorldState>();
+            // Both survivors are Signal, yet every noise point still shows once spawned (no Id budget any more).
+            foreach (var peer in new[] { a, b })
             {
-                var cEntry = RulesMatch.Entry(now, c.Id);
-                Assert.NotNull(cEntry);
-                Assert.Equal(m.Truth(c).Z, cEntry.Value.Z);
+                var seen = m.KillerSees(peer)!.Value;
+                Assert.Equal(m.Truth(peer).X, seen.X);
+                Assert.Equal(m.Truth(peer).Z, seen.Z);
             }
+            if (frame >= 10) Assert.Equal(5, m.KillerPhantoms().Count);
+            Assert.All(world.Players.Where(p => p.Role == (byte)Role.Survivor), AssertAnonymous);
         }
         Assert.DoesNotContain(m.Killer.All<S2C_SkillEffect>(), e => e.SkillId == SkillIds.WhiteNoise);
-        AssertNoDuplicateIds(m.Killer);
     }
-
     private static void Use(Peer peer, byte skill) => peer.Send(new C2S_UseSkill { SkillId = skill });
 
     private sealed class SweepStats
@@ -151,7 +128,7 @@ public sealed class DecoyAndLeakTests
                 survivorSkill = survivor.Last<S2C_MatchStart>().SkillId;
                 stats.KillerSkills.Add(killerSkill);
                 dummies.Clear();
-                Check(killer, killerId, survivor, tick, dummies, stats);
+                Check(f, killer, killerId, survivor, tick, dummies, stats);
                 started = true;
                 continue;
             }
@@ -166,7 +143,7 @@ public sealed class DecoyAndLeakTests
             f.Tick();
             killer.Drain();
             survivor.Drain();
-            Check(killer, killerId, survivor, tick, dummies, stats);
+            Check(f, killer, killerId, survivor, tick, dummies, stats);
             if (survivor.Packets.OfType<S2C_GameResult>().Any()) started = false;
         }
     }
@@ -217,7 +194,7 @@ public sealed class DecoyAndLeakTests
         return count;
     }
 
-    private static void Check(Peer killer, int killerId, Peer survivor, int tick, List<(float X, float Z, int Until)> dummies, SweepStats stats)
+    private static void Check(CoreFixture f, Peer killer, int killerId, Peer survivor, int tick, List<(float X, float Z, int Until)> dummies, SweepStats stats)
     {
         var kWorld = killer.Packets.OfType<S2C_WorldState>().SingleOrDefault();
         var sWorld = survivor.Packets.OfType<S2C_WorldState>().SingleOrDefault();
@@ -234,7 +211,7 @@ public sealed class DecoyAndLeakTests
         dummies.RemoveAll(d => d.Until <= tick);
 
         var killerSelf = kWorld.Players.Single(p => p.Id == killerId);
-        Assert.Equal(kWorld.Players.Count, kWorld.Players.Select(p => p.Id).Distinct().Count());
+        Assert.All(kWorld.Players.Where(p => p.Role != (byte)Role.Killer), AssertAnonymous);
         Assert.Equal(sWorld.Players.Count, sWorld.Players.Select(p => p.Id).Distinct().Count());
 
         // Survivor-bound frames: never the killer entry, never the killer's coordinate bytes.
@@ -270,11 +247,25 @@ public sealed class DecoyAndLeakTests
         var truth = sWorld.Players.ToDictionary(p => p.Id);
         var absent = sWorld.Players.Where(p => p.Status == (byte)PlayerStatus.Normal && (p.Flags & (byte)PlayerFlags.Signal) == 0).ToList();
         var leftover = new List<PlayerState>();
-        foreach (var entry in kWorld.Players)
+        var sources = f.Server.KillerViewSources;
+        if (sources.Count == 0 && killer.Packets.OfType<S2C_GameResult>().Any()) return; // final frame, match already reset
+        Assert.Equal(sources.Count, kWorld.Players.Count);
+        var dummySerials = f.Server.PhantomSnapshot().Where(p => p.IsDummy).Select(p => p.Serial).ToHashSet();
+        for (int i = 0; i < kWorld.Players.Count; i++)
         {
-            if (entry.Id == killerId) continue;
+            var entry = kWorld.Players[i];
+            if (entry.Role == (byte)Role.Killer) { Assert.Equal(killerId, entry.Id); continue; }
             Assert.Equal((byte)Role.Survivor, entry.Role);
-            var t = truth[entry.Id];
+            if (sources[i].Phantom)
+            {
+                stats.DecoyEntries++;
+                // A Dummy Packet track starts at the caster's true position (GDD residual) and may keep one of its
+                // coordinates while it walks; only White Noise points must never echo an absent survivor.
+                if (dummySerials.Contains(sources[i].Label)) continue;
+                leftover.Add(entry);
+                continue;
+            }
+            var t = truth[sources[i].Label];
             Assert.NotEqual((byte)PlayerStatus.Escaped, entry.Status);
             Assert.NotEqual((byte)PlayerStatus.Eliminated, entry.Status);
             if ((t.Flags & (byte)PlayerFlags.Signal) != 0 || t.Status == (byte)PlayerStatus.Lagging)
@@ -282,18 +273,17 @@ public sealed class DecoyAndLeakTests
                 Assert.True(Same(entry.X, t.X) && Same(entry.Z, t.Z) && entry.Status == t.Status, $"tick {tick}: visible entry {entry.Id} not at its true position");
                 continue;
             }
-            if ((entry.Flags & (byte)PlayerFlags.Afterimage) != 0) { stats.AfterimageEntries++; continue; }
-            stats.DecoyEntries++;
-            Assert.Equal((byte)PlayerFlags.Signal, entry.Flags);
-            Assert.Equal(t.CaptureCount, entry.CaptureCount);
-            if (dummies.Any(d => Same(d.X, entry.X) && Same(d.Z, entry.Z))) continue;
-            leftover.Add(entry);
+            Assert.True(sources[i].Afterimage, $"tick {tick}: entry {sources[i].Label} shown although neither Signal nor afterimage");
+            stats.AfterimageEntries++;
         }
         var sanitized = new S2C_WorldState { Tick = kWorld.Tick, TimeLeft = kWorld.TimeLeft, ExitOpen = kWorld.ExitOpen, Players = leftover };
         byte[] killerBytes = PacketCodec.Encode(sanitized);
         foreach (var s in absent)
         {
             stats.AbsentChecks++;
+            // White Noise walks segments between public landmarks, so a point can share an exact landmark coordinate
+            // (x = 10 on the spawn-to-spawn segment) with a survivor standing on that landmark; that reveals nothing.
+            if (Landmark(s.X) || Landmark(s.Z)) continue;
             Assert.True(killerBytes.AsSpan().IndexOf(BitConverter.GetBytes(s.X)) < 0, $"tick {tick}: absent survivor {s.Id} X {s.X:R} leaked");
             Assert.True(killerBytes.AsSpan().IndexOf(BitConverter.GetBytes(s.Z)) < 0, $"tick {tick}: absent survivor {s.Id} Z {s.Z:R} leaked");
         }
@@ -305,4 +295,12 @@ public sealed class DecoyAndLeakTests
     }
 
     private static bool Same(float a, float b) => BitConverter.SingleToInt32Bits(a) == BitConverter.SingleToInt32Bits(b);
+
+    private static readonly float[] LandmarkCoordinates = LandmarkValues();
+    private static float[] LandmarkValues()
+    {
+        var map = new PingTheKiller.ServerCore.Map.FixedMap();
+        return map.TerminalPositions.Concat(map.SpawnPoints).Append(map.Exit).SelectMany(p => new[] { p.X, p.Z }).Distinct().ToArray();
+    }
+    private static bool Landmark(float value) => LandmarkCoordinates.Any(c => Same(c, value));
 }

@@ -96,12 +96,15 @@ public sealed class SkillTests
         m.WalkTo(m[0], 5, 27, GameConstants.SurvivorSpeed);
         var last = m.KillerSees(m[0])!.Value;
         Assert.Equal((byte)PlayerFlags.Signal, last.Flags);
-        int signal = CountWhile(m, () => m.KillerSees(m[0])?.Flags == (byte)PlayerFlags.Signal);
+        int signal = CountWhile(m, () => m.KillerSees(m[0]) != null && !m.KillerSeesAfterimage(m[0]));
         Assert.InRange(signal, 1, 3); // the 0.15 s input hold
         int afterimage = 0;
         while (m.KillerSees(m[0]) is { } entry && afterimage < 100)
         {
-            Assert.Equal((byte)(PlayerFlags.Signal | PlayerFlags.Afterimage), entry.Flags);
+            // The killer frame no longer marks afterimages: the entry looks exactly like a live Signal.
+            Assert.True(m.KillerSeesAfterimage(m[0]));
+            Assert.Equal((byte)PlayerFlags.Signal, entry.Flags);
+            Assert.Equal(0, entry.Id);
             Assert.Equal(last.X, entry.X);
             Assert.Equal(last.Z, entry.Z);
             m.Tick();
@@ -113,42 +116,48 @@ public sealed class SkillTests
     }
 
     [Fact]
-    public void DummyPacketShowsAFakeSignalAtTheCastPositionForThreeSecondsOnlyWhileTheCasterIsAbsent()
+    public void DummyPacketShowsAWalkingFakeSignalFromTheCastPositionForThreeSecondsEvenWhileTheCasterIsSignal()
     {
         using var m = RulesMatch.Start(2, SkillIds.PingScanner, SkillIds.DummyPacket);
         var a = m[0];
         m.Tick(25);
         Use(a, SkillIds.DummyPacket);
         m.Tick(); // frame 0
-        var decoy = m.KillerSees(a);
-        Assert.NotNull(decoy);
-        Assert.Equal(5f, decoy.Value.X);
-        Assert.Equal(26f, decoy.Value.Z);
+        var decoy = Assert.Single(m.KillerPhantoms());
+        Assert.Equal(5f, decoy.X);
+        Assert.Equal(26f, decoy.Z);
+        Assert.Null(m.KillerSees(a));
         Assert.Empty(m.Killer.All<S2C_SkillEffect>());
         foreach (var survivor in m.Survivors)
             AssertEffect(Assert.Single(survivor.All<S2C_SkillEffect>()), a.Id, SkillIds.DummyPacket, 5, 26, 3);
-        // While the caster is Signal its real entry is the only one with its Id.
-        for (int i = 0; i < 10; i++)
+        // The caster walking (Signal) and the dummy are two separate anonymous entries.
+        var previous = decoy;
+        for (int frame = 1; frame <= 10; frame++)
         {
             a.Move(0, 1);
             m.Tick();
-            var world = m.Killer.Last<S2C_WorldState>();
-            Assert.Single(world.Players, p => p.Id == a.Id);
-            Assert.Equal(m.Truth(a).Z, RulesMatch.Entry(world, a.Id)!.Value.Z);
+            Assert.NotNull(m.KillerSees(a));
+            var now = Assert.Single(m.KillerPhantoms());
+            Assert.InRange(RulesMatch.Distance(now, previous.X, previous.Z), 0, GameConstants.SurvivorSpeed / GameConstants.TickRate + 1e-4f);
+            previous = now;
         }
         a.Move(0, 0);
-        m.Tick(10); // frame 20: the caster is Silent at (5,28) and the dummy is back at (5,26)
-        var back = m.KillerSees(a)!.Value;
-        Assert.Equal(26f, back.Z);
-        Assert.InRange(m.Truth(a).Z, 27.99f, 28.01f);
-        m.Tick(39); // frame 59: last dummy frame
-        Assert.NotNull(m.KillerSees(a));
-        m.Tick();
-        Assert.Null(m.KillerSees(a));
+        // (5,26) is 5.1 m from terminal 0 at (10,25): the dummy walks there and stands within 1 m of it ("hacking"),
+        // pausing Silently like a bot when its 2-5 s burst ends. It never outlives the 3 s skill.
+        bool arrived = false;
+        for (int frame = 11; frame < 60; frame++)
+        {
+            m.Tick();
+            if (m.KillerPhantoms() is not { Count: 1 } shown) { Assert.Empty(m.KillerPhantoms()); continue; }
+            if (RulesMatch.Distance(shown[0], 10, 25) <= 1.0f) { arrived = true; Assert.True(RulesMatch.Distance(shown[0], 10, 25) >= 0.75f); }
+        }
+        Assert.True(arrived);
+        m.Tick(); // frame 60: cast + 3 s
+        Assert.Empty(m.KillerPhantoms());
         // Cooldown 15 s.
         Use(a, SkillIds.DummyPacket);
         m.Tick();
-        Assert.Null(m.KillerSees(a));
+        Assert.Empty(m.KillerPhantoms());
         Assert.Single(a.All<S2C_SkillEffect>());
     }
 
@@ -218,8 +227,9 @@ public sealed class SkillTests
         m.Killer.Move(1, 0);
         m.Tick(); // frame 0: both skills execute after movement
         Assert.NotNull(m.KillerSees(a));
-        AssertEffect(m.Killer.All<S2C_SkillEffect>().Single(e => e.SkillId == SkillIds.TrafficOverload && e.CasterId == a.Id),
-            a.Id, SkillIds.TrafficOverload, 0, 0, 2);
+        // The killer copy carries neither the caster's position nor its Id.
+        AssertEffect(m.Killer.All<S2C_SkillEffect>().Single(e => e.SkillId == SkillIds.TrafficOverload),
+            0, SkillIds.TrafficOverload, 0, 0, 2);
         foreach (var survivor in m.Survivors)
             AssertEffect(Assert.Single(survivor.All<S2C_SkillEffect>()), a.Id, SkillIds.TrafficOverload, 5, 26, 2);
         float x = m.Killer.Self().X;
@@ -264,34 +274,41 @@ public sealed class SkillTests
         Assert.Equal((byte)PlayerStatus.Eliminated, m.Truth(b).Status);
     }
 
-    [Fact]
-    public void WhiteNoiseShowsFiveFakeSignalsAtWalkablePointsEachKeepingOneBorrowedId()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(5)]
+    public void WhiteNoiseShowsFiveAnonymousFakeSignalsStaggeredOverHalfASecondUntilOnePointFiveSeconds(int survivors)
     {
-        using var m = RulesMatch.Start(5, SkillIds.PingScanner, SkillIds.WhiteNoise);
+        using var m = RulesMatch.Start(survivors, SkillIds.PingScanner, SkillIds.WhiteNoise);
         var map = new FixedMap();
         m.Tick(25);
         Use(m[0], SkillIds.WhiteNoise);
         m.Tick(); // frame 0
-        var first = m.Killer.Last<S2C_WorldState>().Players.Where(p => p.Role == (byte)Role.Survivor).ToList();
-        Assert.Equal(5, first.Count);
-        Assert.Equal(5, first.Select(p => p.Id).Distinct().Count());
-        foreach (var decoy in first)
-        {
-            Assert.True(map.CanStand(decoy.X, decoy.Z));
-            Assert.Equal((byte)PlayerFlags.Signal, decoy.Flags);
-            var truth = m.Truth(m.Survivors.Single(s => s.Id == decoy.Id));
-            Assert.False(decoy.X == truth.X && decoy.Z == truth.Z);
-        }
         Assert.Empty(m.Killer.All<S2C_SkillEffect>());
         foreach (var survivor in m.Survivors)
             AssertEffect(Assert.Single(survivor.All<S2C_SkillEffect>()), m[0].Id, SkillIds.WhiteNoise, 5, 26, 1.5f);
-        for (int frame = 1; frame < 30; frame++)
+        var counts = new List<int>();
+        for (int frame = 0; frame < 30; frame++)
         {
-            m.Tick();
-            var now = m.Killer.Last<S2C_WorldState>().Players.Where(p => p.Role == (byte)Role.Survivor).ToList();
-            Assert.Equal(first.Select(p => (p.Id, p.X, p.Z)), now.Select(p => (p.Id, p.X, p.Z)));
+            if (frame > 0) m.Tick();
+            var world = m.Killer.Last<S2C_WorldState>();
+            // Every survivor is Silent: all survivor-shaped entries are the noise points.
+            var entries = world.Players.Where(p => p.Role == (byte)Role.Survivor).ToList();
+            Assert.Equal(entries.Count, m.KillerPhantoms().Count);
+            foreach (var decoy in entries)
+            {
+                Assert.True(map.CanStand(decoy.X, decoy.Z));
+                Assert.Equal((byte)PlayerFlags.Signal, decoy.Flags);
+                Assert.Equal(0, decoy.Id);
+                Assert.Equal(0, decoy.Yaw);
+                Assert.Equal(0, decoy.CaptureCount);
+            }
+            counts.Add(entries.Count);
         }
-        m.Tick();
+        // Staggered spawns over at most 0.5 s (frames 0..10), then all five until the shared expiry.
+        Assert.All(counts.Skip(10), c => Assert.Equal(5, c));
+        Assert.True(counts.Zip(counts.Skip(1)).All(p => p.Second >= p.First));
+        m.Tick(); // frame 30: cast + 1.5 s
         Assert.DoesNotContain(m.Killer.Last<S2C_WorldState>().Players, p => p.Role == (byte)Role.Survivor);
     }
 

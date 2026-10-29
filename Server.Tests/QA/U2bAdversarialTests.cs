@@ -28,8 +28,12 @@ public sealed class U2bAdversarialTests
         Assert.InRange(t.StatusTimer, 59.9f, 60.0f);
         var seen = r.KillerSees(r.S[0])!.Value;
         Assert.Equal((byte)PlayerFlags.Signal, seen.Flags);
-        Assert.True(Is(seen, PlayerStatus.Lagging));
-        Assert.Equal(1, seen.CaptureCount);
+        Assert.True(Is(seen, PlayerStatus.Lagging)); // Lagging stays visible to the killer (GDD 3.3)
+        // U2c migration: the killer view is anonymous, so the survivor-side truth keeps CaptureCount 1 and the 60 s timer
+        // (asserted above) while the killer-bound entry shows neither.
+        Assert.Equal(0, seen.CaptureCount);
+        Assert.Equal(0f, seen.StatusTimer);
+        Assert.Equal(0, seen.Id);
         Assert.Equal(0, r.Truth(r.S[1]).CaptureCount);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Normal));
 
@@ -68,7 +72,7 @@ public sealed class U2bAdversarialTests
         r.Interact(r.S[0], true);
         r.Use(r.S[0], SkillIds.DummyPacket);
         r.Tick(40);
-        Assert.Equal(0, r.KW.Terminals[0].Progress);
+        Assert.Equal(0, r.SW.Terminals[0].Progress);
         Assert.Empty(r.S[1].Since<S2C_SkillEffect>(0));
         float x0 = r.Truth(r.S[0]).X;
         for (int i = 0; i < 20; i++) { r.S[0].Move(1, 0); r.Tick(); }
@@ -261,7 +265,7 @@ public sealed class U2bAdversarialTests
         for (int n = 1; n <= 230; n++)
         {
             r.Tick();
-            int progress = r.KW.Terminals[0].Progress;
+            int progress = r.SW.Terminals[0].Progress;
             Assert.Equal(progress, r.SW.Terminals[0].Progress); // same value for both roles
             Assert.True(progress >= prev, "progress must never fall");
             if (progress == 100 && complete < 0) complete = n;
@@ -272,10 +276,13 @@ public sealed class U2bAdversarialTests
                 Assert.NotNull(seen);
                 Assert.Equal((byte)PlayerFlags.Signal, seen!.Value.Flags);
                 Assert.NotEqual(0, r.Truth(r.S[0]).Flags & (byte)PlayerFlags.Hacking);
+                // U2c (N9): the killer only learns done / not done, never the percentage.
+                Assert.Equal(0, r.KW.Terminals[0].Progress);
             }
             prev = progress;
         }
         Assert.InRange(complete, 199, 202);
+        Assert.Equal(100, r.KW.Terminals[0].Progress);
         Assert.Null(r.KillerSees(r.S[0])); // nothing left to hack, not moving: Silent again
         Assert.Equal(0, r.Truth(r.S[0]).Flags & (byte)PlayerFlags.Hacking);
     }
@@ -296,7 +303,7 @@ public sealed class U2bAdversarialTests
             r.Interact(r.S[i], true);
         }
         int n = 0;
-        while (r.KW.Terminals[0].Progress < 100 && n < 400) { r.Tick(); n++; }
+        while (r.SW.Terminals[0].Progress < 100 && n < 400) { r.Tick(); n++; }
         Assert.InRange(n, expectedTicks - 1, expectedTicks + 1);
     }
 
@@ -307,17 +314,17 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         r.Tick(80); // 4 s
-        Assert.InRange((int)r.KW.Terminals[0].Progress, 39, 41);
+        Assert.InRange((int)r.SW.Terminals[0].Progress, 39, 41);
         r.Interact(r.S[0], false);
         r.Tick(30);
-        Assert.InRange((int)r.KW.Terminals[0].Progress, 39, 41);
+        Assert.InRange((int)r.SW.Terminals[0].Progress, 39, 41);
         r.Place(r.S[0], 30, 30); // wander off for 5 s
         r.Tick(100);
         Assert.InRange((int)r.SW.Terminals[0].Progress, 39, 41);
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         int n = 0;
-        while (r.KW.Terminals[0].Progress < 100 && n < 300) { r.Tick(); n++; }
+        while (r.SW.Terminals[0].Progress < 100 && n < 300) { r.Tick(); n++; }
         Assert.InRange(n, 118, 122); // the remaining 6 s
     }
 
@@ -330,7 +337,7 @@ public sealed class U2bAdversarialTests
         r.Interact(r.S[0], true);
         r.Interact(r.S[1], true);
         r.Tick(20); // 2 hackers: 2 s of progress = 20 %
-        Assert.InRange((int)r.KW.Terminals[0].Progress, 19, 21);
+        Assert.InRange((int)r.SW.Terminals[0].Progress, 19, 21);
         r.Place(r.K, 11.7f, 25.6f); // 1.1 m from S1, 1.7 m from S0
         r.Tick();
         r.Place(r.K, 5, 5);
@@ -341,15 +348,15 @@ public sealed class U2bAdversarialTests
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
         r.Tick(4);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Normal));
-        int atRescue = r.KW.Terminals[0].Progress;
+        int atRescue = r.SW.Terminals[0].Progress;
         Assert.InRange(atRescue, 49, 53); // 20 % + ~3 s at 1x
         r.Tick(20);
-        Assert.InRange(r.KW.Terminals[0].Progress - atRescue, 9, 11); // S1 does NOT hack again until it presses Interact
+        Assert.InRange(r.SW.Terminals[0].Progress - atRescue, 9, 11); // S1 does NOT hack again until it presses Interact
         r.Interact(r.S[1], true);
         r.Tick(1);
-        int resumed = r.KW.Terminals[0].Progress;
+        int resumed = r.SW.Terminals[0].Progress;
         r.Tick(20);
-        Assert.InRange(r.KW.Terminals[0].Progress - resumed, 19, 21);
+        Assert.InRange(r.SW.Terminals[0].Progress - resumed, 19, 21);
     }
 
     [Fact]
@@ -361,10 +368,10 @@ public sealed class U2bAdversarialTests
         r.Interact(r.S[0], true);
         r.Interact(r.S[1], true);
         r.Tick(40);
-        Assert.Equal(0, r.KW.Terminals[0].Progress);
+        Assert.Equal(0, r.SW.Terminals[0].Progress);
         r.Place(r.S[0], 10, 26.5f); // exactly 1.5 m
         r.Tick(40);
-        Assert.True(r.KW.Terminals[0].Progress > 0);
+        Assert.True(r.SW.Terminals[0].Progress > 0);
     }
 
     [Theory]
