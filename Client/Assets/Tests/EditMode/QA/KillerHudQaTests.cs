@@ -508,7 +508,7 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheSelfStateSeamStartsUnavailableCleansWhatItIsFedAndResets()
         {
             var holder = new SelfStateHolder();
-            Assert.That(holder.Available, Is.False, "S2C_SelfState does not exist in Shared yet");
+            Assert.That(holder.Available, Is.False, "nothing is available before the first packet of a match");
             Assert.That(holder.ExecutionGraceLeft, Is.EqualTo(0f));
             holder.Feed(float.NaN, 5f, -3f, float.PositiveInfinity);
             Assert.That(holder.Available, Is.True);
@@ -523,18 +523,26 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(seam.Available, Is.False);
         }
 
+        // Orchestrator ruling (U4d-qa-a1): the U4c stub test is superseded. U4d removes the "// U2c: feed from S2C_SelfState" stub on
+        // purpose, and S2C_SelfState now reaches the holder through exactly one pump path.
         [Test]
-        public void ThereIsExactlyOneMarkedAdapterPointForTheFutureSelfStatePacket()
+        public void NoSelfStateStubRemainsAndTheSelfStatePacketIsHandledByExactlyOnePumpPathThatFeedsTheHolder()
         {
             string selfState = QaPaths.ReadScript("World/SelfState.cs");
-            Assert.That(selfState, Does.Contain("// U2c: feed from S2C_SelfState"));
-            int feeds = 0;
+            Assert.That(selfState, Does.Not.Contain("U2c: feed from S2C_SelfState"), "the adapter stub is gone");
+            int stubs = 0, feeds = 0, pumpCases = 0;
             foreach (string path in QaPaths.AllScripts())
             {
+                string raw = File.ReadAllText(path);
+                if (raw.Contains("U2c: feed from S2C_SelfState")) stubs++;
                 if (Path.GetFileName(path) == "SelfState.cs") continue;
-                feeds += Regex.Matches(QaSource.StripComments(File.ReadAllText(path)), @"\.Feed\(").Count;
+                string code = QaSource.StripComments(raw);
+                feeds += Regex.Matches(code, @"\.Feed\(").Count;
+                pumpCases += Regex.Matches(code, @"\b(case|is)\s+S2C_SelfState\b").Count;
             }
-            Assert.That(feeds, Is.EqualTo(0), "nothing feeds the holder until S2C_SelfState exists in Shared");
+            Assert.That(stubs, Is.EqualTo(0), "no stub marker in any script");
+            Assert.That(pumpCases, Is.EqualTo(1), "S2C_SelfState is handled in exactly one pump path");
+            Assert.That(feeds, Is.EqualTo(1), "and that path is the only thing that feeds the holder");
         }
 
         // ---- 6. terminal and exit markers (code read: the placement lives inside a MonoBehaviour that needs the whole scene) -----

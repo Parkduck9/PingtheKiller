@@ -152,7 +152,8 @@ namespace PingTheKiller.Client.UI
             if (line != null && promptLine.text != line) promptLine.text = line;
         }
 
-        // 6.1d. selfState = null or unavailable: no cooldown ring, Ready/Passive/After the Exit opens only (pending U2c).
+        // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready / Passive /
+        // After the Exit opens only.
         public void SetSkill(byte skillId, bool exitOpen, ISelfState self, float activeFraction)
         {
             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;

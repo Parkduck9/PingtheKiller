@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 using UnityEngine;
@@ -40,17 +42,32 @@ namespace PingTheKiller.Client.Dev
         private int exitState = -1;
         private readonly HashSet<string> taken = new HashSet<string>();
         private readonly Queue<KeyValuePair<string, int>> pending = new Queue<KeyValuePair<string, int>>();
+        // SelfState evidence and the U4d event shots (cooldown, rescue, grace, crowd).
+        private ISelfState self;
+        private int skillPresses, selfLogged, maxTracked;
+        private double nextSkillPress = -1, cooldownSeenAt = -1, countdownLogAt = -1;
+        private bool skillUsed;
+        private ExecutionPrompt loggedPrompt;
+        // -ptk-chase / -ptk-rescue steering (dev only; the routes come from Server.Core's NavGrid over the shared map).
+        private NavGrid nav;
+        private int chaseTerminal;
+        private double chaseLogAt = -1;
+        private readonly List<Vector3> terminalPoints = new List<Vector3>();
+        private bool rescueFound;
+        private byte threatLevel;
+        private Vector3 rescueAt;
         public event Action<string> Join;
         public event Action Offline;
         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
         public event Action<S2C_GameResult> PreviewResult;
         public event Action<IPacket> HostSend;
 
-        public void Initialize(DevArgs value, ClientScreens ui = null)
+        public void Initialize(DevArgs value, ClientScreens ui = null, ISelfState selfState = null)
         {
-            args = value; screens = ui;
+            args = value; screens = ui; self = selfState;
             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
+            if (args.Chase > 0 || args.Rescue) nav = new NavGrid(SharedMap.Map);
         }
 
         private bool Wandering => match == 1 && role == Role.Survivor && args.Wander > 0 && InWindow(args.Wander);
@@ -61,17 +78,58 @@ namespace PingTheKiller.Client.Dev
             return t >= 2 && t < 2 + seconds;
         }
 
-        // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds.
-        public bool HoldForward => Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+        private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0;
+        // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
+        private const float RescueStop = 1f;
+        // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
+        private bool RescueWalk => role == Role.Survivor && args.Rescue && rescueFound && threatLevel <= 1 && located && resultAt < 0 && localStatus == (byte)PlayerStatus.Normal
+            && new Vector2(rescueAt.x - position.x, rescueAt.z - position.z).magnitude > RescueStop;
 
-        // Wander steering: the yaw to use this frame (from the last tracked local position), or false when not wandering.
+        // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
+        // -ptk-chase and -ptk-rescue walk through the same path.
+        public bool HoldForward => RescueWalk || Chasing || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+
+        // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
         public bool Steer(float currentYaw, float dt, out float yaw)
         {
             yaw = currentYaw;
+            if (RescueWalk) return Route(rescueAt, out yaw);
             if (!Wandering || !located) return false;
             if (wander == null) wander = new Wander(currentYaw);
             yaw = wander.Next(SharedMap.Map, position.x, position.z, dt);
             return true;
+        }
+
+        // The yaw of the NavGrid route from the local position toward a goal (false at the goal).
+        private bool Route(Vector3 goal, out float yaw)
+        {
+            yaw = 0;
+            if (nav == null || !nav.Steer(position.x, position.z, goal.x, goal.z, out float dx, out float dz)) return false;
+            yaw = Mathf.Atan2(dx, dz) * Mathf.Rad2Deg;
+            return true;
+        }
+
+        // -ptk-skill-at: true on the frames the own skill should be pressed. The first press is at the given match second;
+        // while no cooldown starts (rejected, e.g. Emergency restore without a target) it presses again each second.
+        public bool PressSkill()
+        {
+            if (args.SkillAt <= 0 || matchAt < 0 || resultAt >= 0 || skillUsed || skillPresses >= DevArgs.SkillTries) return false;
+            if (self != null && self.Available && self.SkillCooldown > 0) { skillUsed = true; return false; }
+            double t = Now - matchAt;
+            if (t < args.SkillAt || (nextSkillPress >= 0 && Now < nextSkillPress)) return false;
+            skillPresses++; nextSkillPress = Now + 1;
+            Debug.Log("[DEV] t=" + Stamp(t) + " skill press " + skillPresses + " (scripted Q)");
+            return true;
+        }
+
+        // Every S2C_SelfState packet: the first, then any that carries a non-zero value (capped), with the countdown.
+        public void OnSelfState(float skillCooldown, float rescueProgress, float invulnerableLeft, float executionGraceLeft, int received)
+        {
+            bool interesting = received == 1 || skillCooldown > 0 || rescueProgress > 0 || invulnerableLeft > 0 || executionGraceLeft > 0;
+            if (!interesting || selfLogged >= 300) return;
+            selfLogged++;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " selfstate #" + received + " skillCooldown=" + Stamp(skillCooldown) + " rescue=" + Stamp(rescueProgress)
+                + " invulnerable=" + Stamp(invulnerableLeft) + " grace=" + Stamp(executionGraceLeft));
         }
 
         // -ptk-orbit: once at match start + 2 s, the orbit yaw becomes the character facing plus the offset.
@@ -93,6 +151,7 @@ namespace PingTheKiller.Client.Dev
         public bool Aim(bool hasTarget, Vector3 from, Vector3 target, out float yaw)
         {
             yaw = 0;
+            if (Chasing) return Chase(hasTarget, target, out yaw);
             if (args.Look == KillerLook.None || role != Role.Killer || matchAt < 0 || (aimAt >= 0 && Now - aimAt < .5)) return false;
             if (args.Look == KillerLook.Fixed || (args.Look == KillerLook.Occluded && !hasTarget)) yaw = args.LookYaw;
             else
@@ -104,6 +163,27 @@ namespace PingTheKiller.Client.Dev
             Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " killer look " + args.Look + " yaw=" + Stamp(Mathf.Repeat(yaw, 360))
                 + (args.Look == KillerLook.Fixed || !hasTarget ? string.Empty : " from=" + Stamp(from.x) + "," + Stamp(from.z) + " blip=" + Stamp(target.x) + "," + Stamp(target.z)));
             return true;
+        }
+
+        // -ptk-chase: every frame, the route toward the nearest tracked instance; with none, toward the terminals in turn
+        // (Survivors work there). Logged at most once a second.
+        private bool Chase(bool hasTarget, Vector3 target, out float yaw)
+        {
+            Vector3 goal = target;
+            if (!hasTarget)
+            {
+                if (terminalPoints.Count == 0) { yaw = 0; return false; }
+                goal = terminalPoints[chaseTerminal % terminalPoints.Count];
+                if (new Vector2(goal.x - position.x, goal.z - position.z).magnitude < 2) { chaseTerminal++; goal = terminalPoints[chaseTerminal % terminalPoints.Count]; }
+            }
+            bool routed = Route(goal, out yaw);
+            if (routed && Now - chaseLogAt >= 1)
+            {
+                chaseLogAt = Now;
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " chase " + (hasTarget ? "blip" : "terminal") + " from=" + Stamp(position.x) + "," + Stamp(position.z)
+                    + " to=" + Stamp(goal.x) + "," + Stamp(goal.z) + " yaw=" + Stamp(Mathf.Repeat(yaw, 360)));
+            }
+            return routed;
         }
 
         // -ptk-menu: true while the play menu should be open (from the given second of the first match, for 2 s).
@@ -119,19 +199,36 @@ namespace PingTheKiller.Client.Dev
         // Killer view counts this frame (from the tracker, never from entries): logged when they change, at most every 0.5 s.
         // Event shots, one per frame and only while no capture is pending: the first frame with an in-view character; the first
         // with a through-wall marker and no in-view character or chevron; the first with chevrons and no in-view character.
-        public void OnKillerFrame(int inView, int occluded, int edges)
+        // tracked = instances in the tracker (Signal, Lagging and decoys alike); prompt = the execution guidance shown.
+        // killer-crowd: the first frame with at least CrowdCount instances tracked at once.
+        public const int CrowdCount = 6;
+        public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, ExecutionPrompt prompt = ExecutionPrompt.None)
         {
-            int counts = inView * 10000 + occluded * 100 + edges;
+            int counts = tracked * 1000000 + inView * 10000 + occluded * 100 + edges;
             if (counts != killerCounts && Now - countsAt >= .5)
             {
                 killerCounts = counts; countsAt = Now;
-                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips inView=" + inView + " occluded=" + occluded + " edges=" + edges);
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips inView=" + inView + " occluded=" + occluded + " edges=" + edges + " tracked=" + tracked);
+            }
+            if (tracked > maxTracked)
+            {
+                maxTracked = tracked;
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips tracked max=" + tracked);
+            }
+            if (prompt != loggedPrompt)
+            {
+                loggedPrompt = prompt;
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " execution prompt=" + prompt + " grace=" + Stamp(self != null ? self.ExecutionGraceLeft : 0));
             }
             if (capturing || pending.Count > 0 || args.Shots == null) return;
+            if (tracked >= CrowdCount && !taken.Contains("killer-crowd.png")) { EventShot("killer-crowd.png", 0); return; }
             if (inView > 0 && !taken.Contains("killer-inview.png")) EventShot("killer-inview.png", 0);
             else if (occluded > 0 && inView == 0 && edges == 0 && !taken.Contains("killer-occluded.png")) EventShot("killer-occluded.png", 0);
             else if (edges > 0 && inView == 0 && !taken.Contains("killer-offscreen.png")) EventShot("killer-offscreen.png", 0);
         }
+
+        // -ptk-rescue (Survivor client): the nearest Lagging ally from the Survivor HUD's own data, or found = false.
+        public void RescueTarget(bool found, Vector3 at) { rescueFound = found; rescueAt = at; }
 
         // The local player's rendered position this frame (survivor: the interpolated own entry).
         public void Track(bool found, Vector3 value) { located = found; if (found) position = value; }
@@ -156,6 +253,8 @@ namespace PingTheKiller.Client.Dev
         {
             matchAt = Now; match++; role = value; wander = null; located = false; orbitAt = aimAt = -1; menuWanted = false; movedLogged = 0; killerCounts = -1;
             laggingAt = resultAt = reopenedAt = backAt = -1; localStatus = 0; localHud = null; progress = Array.Empty<byte>(); exitState = -1;
+            skillPresses = 0; skillUsed = false; nextSkillPress = cooldownSeenAt = countdownLogAt = chaseLogAt = -1; maxTracked = 0;
+            loggedPrompt = ExecutionPrompt.None; chaseTerminal = 0; terminalPoints.Clear(); rescueFound = false;
             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
         }
 
@@ -165,6 +264,11 @@ namespace PingTheKiller.Client.Dev
             double t = Now - matchAt;
             bool hacking = false, changed = progress.Length != state.Terminals.Count;
             if (changed) progress = new byte[state.Terminals.Count];
+            if (terminalPoints.Count != state.Terminals.Count)
+            {
+                terminalPoints.Clear();
+                foreach (TerminalState terminal in state.Terminals) terminalPoints.Add(new Vector3(terminal.X, 0, terminal.Z));
+            }
             for (int i = 0; i < state.Terminals.Count; i++)
             {
                 byte value = state.Terminals[i].Progress;
@@ -183,6 +287,7 @@ namespace PingTheKiller.Client.Dev
                 Debug.Log(line.ToString());
             }
             // World shots wait until the camera and avatars are placed (the first ~100 ms of a match render nothing yet).
+            threatLevel = state.ThreatLevel;
             if (hacking && located) EventShot("hacking.png");
             if (state.ExitOpen != 0 && located) EventShot("exit-open.png");
             // Survivor client only: the Killer client never reads a Survivor entry (its view logs blip counts from the tracker).
@@ -239,6 +344,7 @@ namespace PingTheKiller.Client.Dev
                 if (orbitAt >= 0 && !taken.Contains("survivor-behind.png") && t >= orbitAt + .6 && taken.Add("survivor-behind.png")) { Shot("survivor-behind.png"); return; }
                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
             }
+            if (SelfShots(t)) return;
             // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.
             if (match == 1 && matchAt >= 0 && resultAt < 0 && located && movedLogged < 2 && t >= matchAt + (movedLogged == 0 ? 1 : 5)) LogMoved(t - matchAt);
             // The countdown is only on screen while the match runs; a capture that ends the match leaves no lagging shot.
@@ -263,6 +369,45 @@ namespace PingTheKiller.Client.Dev
                 quitting = true; Debug.Log(done ? "[DEV] script complete, quitting" : "[DEV] quit after " + args.QuitAfter + " s");
                 Application.Quit();
             }
+        }
+
+        // The local SelfState countdown (logged each second while the cooldown runs) and the SelfState event shots, each
+        // taken once while the match runs: survivor-cooldown 1.5 s into a cooldown, survivor-rescue once the rescue bar is
+        // at least RescueShotProgress (own rescue or as rescuer), killer-grace while ExecutionGraceLeft > 0.
+        public const float RescueShotProgress = .2f;
+        private bool SelfShots(double t)
+        {
+            if (self == null || !self.Available || matchAt < 0 || resultAt >= 0) return false;
+            double m = t - matchAt;
+            if (self.SkillCooldown > 0)
+            {
+                if (cooldownSeenAt < 0) cooldownSeenAt = t;
+                if (countdownLogAt < 0 || t - countdownLogAt >= 1)
+                {
+                    countdownLogAt = t;
+                    Debug.Log("[DEV] t=" + Stamp(m) + " cooldown local=" + Stamp(self.SkillCooldown) + " (counting down between packets)");
+                }
+            }
+            else if (cooldownSeenAt >= 0)
+            {
+                cooldownSeenAt = countdownLogAt = -1;
+                Debug.Log("[DEV] t=" + Stamp(m) + " cooldown local=0.00 (ready)");
+            }
+            if (args.Shots == null || !located) return false;
+            if (role == Role.Survivor && cooldownSeenAt >= 0 && t >= cooldownSeenAt + 1.5 && !taken.Contains("survivor-cooldown.png"))
+            {
+                EventShot("survivor-cooldown.png"); return true;
+            }
+            if (role == Role.Survivor && self.RescueProgress >= RescueShotProgress && !taken.Contains("survivor-rescue.png"))
+            {
+                Debug.Log("[DEV] t=" + Stamp(m) + " rescue progress=" + Stamp(self.RescueProgress) + " invulnerable=" + Stamp(self.InvulnerableLeft));
+                EventShot("survivor-rescue.png"); return true;
+            }
+            if (role == Role.Killer && self.ExecutionGraceLeft > 0 && !taken.Contains("killer-grace.png"))
+            {
+                EventShot("killer-grace.png"); return true;
+            }
+            return false;
         }
 
         private void LogMoved(double m)

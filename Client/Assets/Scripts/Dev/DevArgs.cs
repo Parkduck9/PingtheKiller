@@ -32,9 +32,19 @@ namespace PingTheKiller.Client.Dev
         public float LookYaw { get; private set; }
         // Opens the play menu this many seconds into the first match (play-menu shot).
         public float Menu { get; private set; }
+        // Uses the own skill once at this match second (retried each second until the server starts a cooldown, at most
+        // SkillTries presses): the cooldown shots.
+        public float SkillAt { get; private set; }
+        public const int SkillTries = 6;
+        // Killer chase: for this many seconds from match second 2, hold W and steer (NavGrid route) toward the nearest
+        // tracked instance, Lagging or Signal; with none in sight it walks the terminals. Makes captures happen for the grace shot.
+        public float Chase { get; private set; }
+        // Survivor rescue: whenever an ally is Lagging, walk to it and stay in rescue range (the rescue shot).
+        public bool Rescue { get; private set; }
         public List<string> Errors { get; } = new List<string>();
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
-            || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0;
+            || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
+            || SkillAt > 0 || Chase > 0 || Rescue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -47,9 +57,10 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-start") { result.Start = true; continue; }
                 if (flag == "-ptk-offline") { result.Offline = true; continue; }
                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
+                if (flag == "-ptk-rescue") { result.Rescue = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
-                    || flag == "-ptk-menu";
+                    || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -98,6 +109,12 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-menu":
                     if (!Seconds(value, out float menu)) return false;
                     Menu = menu; return true;
+                case "-ptk-skill-at":
+                    if (!Seconds(value, out float skillAt)) return false;
+                    SkillAt = skillAt; return true;
+                case "-ptk-chase":
+                    if (!Seconds(value, out float chase)) return false;
+                    Chase = chase; return true;
                 case "-ptk-shots":
                     Shots = value; return true;
                 case "-ptk-quit-after":

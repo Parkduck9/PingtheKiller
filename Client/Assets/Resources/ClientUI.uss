@@ -89,18 +89,6 @@
 .root .actions { flex-direction: row; margin-top: 12px; }
 
 .root .play { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
-.root .hud { position: absolute; bottom: 24px; background-color: #101113; padding: 12px; padding-left: 16px; padding-right: 16px; }
-.root .survivor-hud { left: 50%; translate: -50% 0; width: 480px; align-items: center; }
-.root .killer-hud { left: 24px; align-items: flex-start; }
-.root .signal {
-    font-size: 18px; margin-bottom: 8px; padding-bottom: 4px;
-    border-bottom-width: 4px; border-bottom-color: #9A9890;
-}
-.root .signal.transmitting { color: #FFB020; border-bottom-color: #FFB020; }
-.root .status { font-size: 18px; margin-bottom: 8px; }
-.root .readout { font-size: 14px; margin-bottom: 4px; }
-.root .hint { font-size: 14px; color: #9A9890; margin-top: 4px; margin-bottom: 0; }
-.root .skill { font-size: 18px; margin-bottom: 0; }
 .root .headline { -unity-font-style: bold; margin-top: 16px; margin-bottom: 8px; }
 .root .outcome { margin-bottom: 16px; }
 /* Dev line (F3, default off): top-left, small, above every screen. */
@@ -113,6 +101,41 @@
     margin: 0; padding: 4px; font-size: 14px;
     translate: -50% -100%;
 }
+
+/* Survivor HUD (HUD_SPEC 4.0): one bottom-center cluster, 672x72 u, 24 u above the bottom edge, panel fill and a 1 u line
+   border (re-snapped to 1 physical px in code); blocks [8] skill 168 [8] meter 304 [8] info 168 [8] (the outer 8 u gaps
+   include the 1 u border, hence 7 u of padding). Prompt row 672x40 u, 8 u above the cluster. Text classes km / ks / kbold /
+   kmuted / krow / kbar are shared with the Killer HUD. ally = Survivor-team information, Survivor client only. */
+.root .survivor-hud { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.root .scluster {
+    position: absolute; bottom: 24px; left: 50%; translate: -50% 0; width: 672px; height: 72px;
+    flex-direction: row; align-items: center; padding: 0; padding-left: 7px; padding-right: 7px;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .sskill { width: 168px; height: 70px; flex-shrink: 0; flex-direction: row; align-items: center; padding-left: 8px; padding-right: 8px; }
+.root .sskill-text { margin-left: 8px; width: 80px; }
+.root .unity-label.sname { white-space: normal; width: 80px; max-height: 36px; overflow: hidden; }
+.root .unity-label.ring-count {
+    position: absolute; left: 0; top: 0; width: 64px; height: 64px; margin: 0; padding: 0;
+    font-size: 18px; color: #E8E6E1; -unity-text-align: middle-center;
+}
+.root .smeter { width: 304px; height: 70px; flex-shrink: 0; margin-left: 8px; padding: 4px; padding-left: 8px; padding-right: 8px; }
+.root .srow-a { flex-direction: row; justify-content: space-between; align-items: center; height: 24px; }
+.root .unity-label.ssignal { color: #FFB020; }
+.root .smeter-track { width: 288px; height: 16px; margin-top: 4px; border-color: #9A9890; border-width: 1px; border-radius: 0; }
+.root .smeter-track.ally-outline { border-color: #3FB8AF; }
+.root .sfill { height: 100%; width: 0; }
+.root .sfill.fill-ally, .root .kbar.fill-ally { background-color: #3FB8AF; }
+.root .sfill.fill-danger { background-color: #E5484D; }
+.root .sfill.fill-signal { background-color: #FFB020; }
+.root .sfill.fill-text { background-color: #E8E6E1; }
+.root .sinfo { width: 168px; height: 70px; flex-shrink: 0; margin-left: 8px; padding-left: 8px; padding-right: 8px; justify-content: center; }
+.root .sprompt {
+    position: absolute; bottom: 104px; left: 50%; translate: -50% 0; width: 672px; height: 40px;
+    padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .sprompt-track { width: 656px; height: 4px; margin-top: 2px; }
 
 /* Killer HUD (HUD_SPEC 6.1): bottom-left cluster, 320 u wide, margin 24 u, blocks with panel fill and a 1 u line border
    (the width is re-snapped to 1 physical px in code), corner radius 0. Type: S 14 / M 18 / L 28; S has a 12 px floor

@@ -67,7 +67,7 @@ namespace PingTheKiller.Client.Killer
         public static string Recovering(float left) => "Recovering " + Dot + " " + Seconds1(left);
         public static string Slowed(float left) => "Slowed by traffic overload " + Dot + " " + Seconds1(left);
 
-        // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown when available, else null (pending).
+        // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.
         public static string SkillState(byte skillId, bool exitOpen, float? cooldown)
         {
             if (skillId == SkillIds.PacketAfterimage) return Passive;

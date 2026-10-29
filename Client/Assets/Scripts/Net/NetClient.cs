@@ -131,8 +131,9 @@ namespace PingTheKiller.Client.Net
             catch (Exception exception) { Stop(ConnectionMessages.Describe(LinkFailure.Lost, endpointText), exception.GetBaseException().ToString()); }
         }
 
-        private static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
-            or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart;
+        // Every S2C_ packet the client accepts from the socket (protocol v0.3 adds S2C_SelfState); a C2S_ id disconnects.
+        public static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
+            or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart or PacketId.S2C_SelfState;
 
         private static void Write(NetworkStream stream, IPacket packet)
         {

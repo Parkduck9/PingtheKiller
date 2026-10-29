@@ -48,7 +48,10 @@ namespace PingTheKiller.Client.Killer
 
         public void OnOwnEffect() => Pending.Add(KillerCue.SkillUse);
 
-        // S2C_SelfState.SkillCooldown (only once it exists): the cue plays when it reaches 0.
+        // The SelfState clock's ready edge (SelfStateHolder.TakeSkillReady): the own cooldown reached 0, once per cooldown.
+        public void OnSkillReady() => Pending.Add(KillerCue.SkillReady);
+
+        // The same rule over sampled values (a cooldown seen going from above 0 to 0).
         public void OnCooldown(float cooldown)
         {
             if (cooldownKnown && lastCooldown > 0 && cooldown <= 0) Pending.Add(KillerCue.SkillReady);

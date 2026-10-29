@@ -56,12 +56,14 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void WithoutSelfStateThePromptIsHiddenButTheArmedFlagStillTracks()
+        public void BeforeTheFirstSelfStateOfAMatchThePromptWaitsButTheArmedFlagStillTracks()
         {
             var guide = new ExecutionGuidance();
             Assert.That(guide.Update(3, 2f, false, 0), Is.EqualTo(ExecutionPrompt.None));
             Assert.That(guide.Armed, Is.True);
-            Assert.That(new SelfStateHolder().Available, Is.False, "S2C_SelfState does not exist yet (pending U2c)");
+            Assert.That(guide.Display(0), Is.EqualTo(ExecutionPrompt.None));
+            Assert.That(new SelfStateHolder().Available, Is.False, "nothing received yet");
+            Assert.That(guide.Update(3, 2f, true, 0), Is.EqualTo(ExecutionPrompt.Ready), "the first SelfState shows the prompt at once");
         }
 
         [Test]
@@ -158,7 +160,8 @@ namespace PingTheKiller.Client.Tests
             rules.OnTrackerEvent(BlipEventKind.ExecuteConfirm);
             rules.OnOwnEffect();
             rules.OnCooldown(3); rules.OnCooldown(0);
-            Assert.That(rules.Pending, Is.EqualTo(new[] { KillerCue.CaptureConfirm, KillerCue.ExecuteConfirm, KillerCue.SkillUse, KillerCue.SkillReady }));
+            rules.OnSkillReady();
+            Assert.That(rules.Pending, Is.EqualTo(new[] { KillerCue.CaptureConfirm, KillerCue.ExecuteConfirm, KillerCue.SkillUse, KillerCue.SkillReady, KillerCue.SkillReady }));
         }
 
         [Test]

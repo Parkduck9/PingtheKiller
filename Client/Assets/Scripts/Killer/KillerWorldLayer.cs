@@ -35,7 +35,8 @@ namespace PingTheKiller.Client.Killer
         private ISelfState self;
         private Material body, visor, outline;
         private S2C_WorldState last;
-        private int playerId;
+        private int playerId, lastTarget = -1;
+        private float lastDistance = float.PositiveInfinity;
         private byte skillId;
         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
         private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
@@ -75,10 +76,23 @@ namespace PingTheKiller.Client.Killer
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
             cueRules.OnWorld(state.TimeLeft, state.ExitOpen != 0);
             cueRules.OnSignalCount(scene.Blips.Count, now);
-            if (self.Available) cueRules.OnCooldown(self.SkillCooldown);
-            int target = scene.NearestLagging(out float distance);
-            guidance.Update(target, distance, self.Available, self.ExecutionGraceLeft);
+            lastTarget = scene.NearestLagging(out lastDistance);
+            guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
         }
+
+        // A SelfState arrives after the WorldState of its tick: re-run the guidance for that snapshot with the fresh grace,
+        // so a capture shows Grace at once instead of one snapshot of Step back.
+        public void OnSelfState()
+        {
+            if (scene != null) guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
+        }
+
+        // The own cooldown reached 0 (the SelfState clock's ready edge, once per cooldown).
+        public void OnSkillReady() => cueRules.OnSkillReady();
+
+        // Instances tracked in the last snapshot (dev log and the crowd shot; counted by the tracker, never from entries).
+        public int Tracked => scene == null ? 0 : scene.Blips.Count;
+        public ExecutionPrompt Prompt => guidance.Prompt;
 
         // Own effects (CasterId = own id) drive the active arc, the Overclock line and the Exit lock seconds; the
         // Killer-bound TrafficOverload drives the slowed line. Only these fields are read.
@@ -147,7 +161,7 @@ namespace PingTheKiller.Client.Killer
             else if (now < overclockEnd + SkillIds.OverclockRecoverySeconds) hud.SetEffect(KillerHudCopy.Recovering((float)(overclockEnd + SkillIds.OverclockRecoverySeconds - now)), false);
             else hud.SetEffect(null, false);
             float grace = self.Available ? self.ExecutionGraceLeft : 0;
-            hud.SetPrompt(menuOpen ? ExecutionPrompt.None : guidance.Prompt, grace);
+            hud.SetPrompt(menuOpen ? ExecutionPrompt.None : guidance.Display(grace), grace);
         }
 
         private static int HudDone(S2C_WorldState state)

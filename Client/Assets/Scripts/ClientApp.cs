@@ -34,6 +34,12 @@ namespace PingTheKiller.Client
         private readonly CharacterFacing facing = new CharacterFacing();
         private readonly SelfStateHolder selfState = new SelfStateHolder();
         private readonly HashSet<byte> loggedEffects = new HashSet<byte>();
+        // Survivor HUD inputs (HUD_SPEC 4): the own entry, the other Survivors, Survivor-bound effect timing.
+        private OwnEntry own;
+        private readonly List<Mate> mates = new List<Mate>();
+        private readonly SurvivorEffects effects = new SurvivorEffects();
+        private AudioSource cueSource;
+        private AudioClip readyClip;
         private Role role;
         private byte skillId;
         private PlayerStatus localStatus;
@@ -42,7 +48,6 @@ namespace PingTheKiller.Client
         private double joinDeadline;
         private S2C_LobbyState lobby;
         private S2C_WorldState lastWorld;
-        private string statusLine, teamLine, hackingLine;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -66,6 +71,12 @@ namespace PingTheKiller.Client
                 events.transform.SetParent(transform, false);
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
+            // Survivor skill_ready (HUD_SPEC 4.8): the same soft tick the Killer hears (6.5), 2D, one shot per cooldown.
+            cueSource = gameObject.AddComponent<AudioSource>();
+            cueSource.playOnAwake = false; cueSource.spatialBlend = 0;
+            float[] tick = KillerCueSynth.Build(KillerCue.SkillReady, KillerAudio.Rate);
+            readyClip = AudioClip.Create("cue skill_ready", tick.Length, 1, KillerAudio.Rate, false);
+            readyClip.SetData(tick, 0);
             screens = gameObject.AddComponent<ClientScreens>();
             threat = gameObject.AddComponent<ThreatAudio>();
             screens.Join += Join;
@@ -81,7 +92,7 @@ namespace PingTheKiller.Client
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             if (devArgs.Active)
             {
-                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens);
+                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState);
                 dev.Join += value => { screens.Address = value; Join(value); };
                 dev.Offline += StartOffline;
                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
@@ -153,12 +164,12 @@ namespace PingTheKiller.Client
                     joinDeadline = 0;
                     DestroyWorld();
                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
-                    statusLine = teamLine = hackingLine = null; hackingTerminal = null;
+                    hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
                     selfState.Reset(); facing.Reset(0);
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
-                    rig.Begin(role); screens.ShowPlay(role, HudCopy.SkillLine(role, skillId)); screens.SetSignal(false);
+                    rig.Begin(role); screens.ShowPlay(role, skillId);
                     if (role == Role.Killer)
                     {
                         killerLayer = map.AddComponent<KillerWorldLayer>();
@@ -179,25 +190,36 @@ namespace PingTheKiller.Client
                         if (role == Role.Killer ? player.Role != (byte)Role.Killer : player.Id != playerId) continue;
                         localStatus = (PlayerStatus)player.Status;
                         if (role == Role.Killer) break;
-                        screens.SetSignal((player.Flags & (byte)PlayerFlags.Signal) != 0);
-                        statusLine = HudCopy.StatusLine(localStatus, player.StatusTimer);
-                        hackingLine = null; hackingTerminal = null;
-                        if ((player.Flags & (byte)PlayerFlags.Hacking) != 0)
+                        byte flags = player.Flags;
+                        own = new OwnEntry
+                        {
+                            Status = localStatus, X = player.X, Z = player.Z, StatusTimer = player.StatusTimer, CaptureCount = player.CaptureCount,
+                            Signal = (flags & (byte)PlayerFlags.Signal) != 0, Hacking = (flags & (byte)PlayerFlags.Hacking) != 0,
+                            Rescuing = (flags & (byte)PlayerFlags.Rescuing) != 0, Stealthed = (flags & (byte)PlayerFlags.Stealthed) != 0
+                        };
+                        hackingTerminal = null;
+                        if (own.Hacking)
                         {
                             int nearest = HudCopy.NearestTerminal(state.Terminals, player.X, player.Z);
-                            if (nearest >= 0)
-                            {
-                                hackingLine = HudCopy.HackingLine(state.Terminals[nearest].Progress);
-                                hackingTerminal = new Vector3(state.Terminals[nearest].X, 0, state.Terminals[nearest].Z);
-                            }
+                            if (nearest >= 0) hackingTerminal = new Vector3(state.Terminals[nearest].X, 0, state.Terminals[nearest].Z);
                         }
                     }
-                    teamLine = HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired, exitOpen);
+                    if (role == Role.Survivor) CollectMates(state);
                     dev?.OnWorld(state, playerId);
+                    break;
+                case S2C_SelfState self:
+                    // Own-only (HUD_SPEC 11 Q5/Q6/N5). Only inside a match: Available starts with the first packet after MatchStart.
+                    if (!playing) break;
+                    selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, received.Time);
+                    killerLayer?.OnSelfState();
+                    if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
+                    dev?.OnSelfState(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, selfState.Received);
                     break;
                 case S2C_SkillEffect effect:
                     killerLayer?.OnEffect(effect, received.Time);
-                    if (loggedEffects.Add(effect.SkillId)) Debug.Log("[net] SkillEffect skill=" + effect.SkillId + (role == Role.Killer ? " (killer HUD)" : " (no survivor visuals yet)"));
+                    if (role == Role.Survivor && playing)
+                        effects.Accept(effect.CasterId, effect.SkillId, effect.Duration, received.Time, playerId, IsSurvivorEntry(effect.CasterId));
+                    if (loggedEffects.Add(effect.SkillId)) Debug.Log("[net] SkillEffect skill=" + effect.SkillId + (role == Role.Killer ? " (killer HUD)" : " (survivor HUD)"));
                     break;
                 case S2C_GameResult result:
                     EndMatch(result, false);
@@ -207,7 +229,7 @@ namespace PingTheKiller.Client
         private void EndMatch(S2C_GameResult result, bool preview)
         {
             bool wasPlaying = playing;
-            playing = false; joinDeadline = 0; menuOpen = false;
+            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset();
             rig.SetCursor(false); threat.SetLevel(0);
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
@@ -259,6 +281,13 @@ namespace PingTheKiller.Client
             bool survivor = role == Role.Survivor;
             double now = LinkClock.Now;
             float dt = Time.unscaledDeltaTime;
+            // SelfState timers count down by real time between packets; the ready edge plays skill_ready once per cooldown.
+            selfState.Advance(now);
+            if (selfState.TakeSkillReady())
+            {
+                if (survivor) cueSource.PlayOneShot(readyClip); else killerLayer?.OnSkillReady();
+                Debug.Log("[net] skill_ready (own cooldown reached 0)");
+            }
             // Survivor: Esc releases the cursor (click resumes). Killer: Esc opens or closes the play menu.
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
@@ -273,6 +302,11 @@ namespace PingTheKiller.Client
             rig.Look(active);
             bool located = world.LocalPosition(now, out Vector3 position);
             if (dev != null) dev.Track(located, position);
+            if (dev != null && survivor)
+            {
+                int ally = SurvivorReadout.NearestLagging(own, mates, float.MaxValue, out _);
+                dev.RescueTarget(ally >= 0, ally >= 0 ? new Vector3(mates[ally].X, 0, mates[ally].Z) : default);
+            }
             if (dev != null && dev.MenuChange(out bool devMenu)) SetMenu(devMenu);
             // Dev seams (wander, -ptk-orbit, -ptk-killer-look) only return a yaw; the one Turn below applies it.
             Vector3 aim = default;
@@ -293,7 +327,8 @@ namespace PingTheKiller.Client
             if (movement.TryCreate(held, right, forward, rig.Yaw, facingYaw, dt, out C2S_MoveInput input)) link.Send(input);
             // Hold E (survivors): one press edge and one release edge; losing focus or the cursor counts as release.
             if (survivor && interact.TryCreate(active && keyboard != null && keyboard.eKey.isPressed, out C2S_Interact use)) link.Send(use);
-            if (active && SkillInput.TryCreate(keyboard != null && keyboard.qKey.wasPressedThisFrame, role, skillId, localStatus, out C2S_UseSkill skill))
+            bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+            if (SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill))
                 link.Send(skill);
             // TODO: client-side prediction for the local camera (it renders 100 ms in the past).
             if (located) rig.Place(position, dt);
@@ -301,14 +336,48 @@ namespace PingTheKiller.Client
             world.Render(now);
             if (survivor)
             {
-                screens.SetSurvivorHud(statusLine, teamLine, hackingLine, releasedCursor);
+                UpdateSurvivorHud(now);
                 screens.SetExit(view, SharedMap.Exit + Vector3.up * 2.6f, exitOpen);
             }
             else if (killerLayer != null && located)
             {
                 killerLayer.Render(rig.Pose, now, dt, menuOpen);
-                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges);
+                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt);
             }
+        }
+        // Survivor client only (HUD_SPEC 0.1: Survivors receive every Survivor): the others, for rescue and co-hacking prompts.
+        private void CollectMates(S2C_WorldState state)
+        {
+            mates.Clear();
+            foreach (PlayerState mate in state.Players)
+                if (mate.Role == (byte)Role.Survivor && mate.Id != playerId)
+                    mates.Add(new Mate { Id = mate.Id, X = mate.X, Z = mate.Z, Status = (PlayerStatus)mate.Status, Hacking = (mate.Flags & (byte)PlayerFlags.Hacking) != 0 });
+        }
+        // Survivor client only: whether an effect's caster is a Survivor of the last snapshot (skill ids are role-local).
+        private bool IsSurvivorEntry(int casterId)
+        {
+            if (casterId == playerId) return true;
+            foreach (Mate mate in mates) if (mate.Id == casterId) return true;
+            return false;
+        }
+        // Lobby nickname for a player id (prompts ellipsize it).
+        private string NameOf(int id)
+        {
+            if (lobby != null) foreach (Slot slot in lobby.Slots) if (slot.PlayerId == id && slot.PlayerId != 0) return slot.Nickname;
+            return null;
+        }
+        // HUD_SPEC 4.0-4.9, every frame from the last snapshot, the SelfState clock and the effect timing.
+        private void UpdateSurvivorHud(double now)
+        {
+            if (lastWorld == null) return;
+            SurvivorHud hud = screens.Survivor;
+            bool restore = SurvivorReadout.RestoreHasTarget(own, mates);
+            float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
+            hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now)));
+            hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired,
+                SurvivorReadout.Exit(lastWorld.ExitOpen, lastWorld.ExitLocked), effects.Locked(now));
+            hud.SetSkill(skillId, SurvivorReadout.SkillState(skillId, own.Status, cooldown, restore), cooldown, effects.OwnActive(now), skillId == SkillIds.TrafficOverload);
+            hud.SetPrompt(SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));
         }
         private void OnApplicationFocus(bool focused)
         {
@@ -338,11 +407,11 @@ namespace PingTheKiller.Client
         private void Disconnect(string notice)
         {
             Release();
-            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false;
+            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset();
             threat.SetLevel(0); rig.SetCursor(false);
             DestroyWorld();
             screens.ShowMenu(notice);
         }
-        private void OnDestroy() { link?.Dispose(); Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+        private void OnDestroy() { link?.Dispose(); if (readyClip != null) Destroy(readyClip); Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
     }
 }

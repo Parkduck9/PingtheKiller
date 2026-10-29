@@ -220,5 +220,39 @@ namespace PingTheKiller.Client.Tests
             Assert.That(args.Look, Is.EqualTo(KillerLook.None));
             Assert.That(args.Menu, Is.EqualTo(0f));
         }
+
+        // U4d: -ptk-skill-at <s>, -ptk-chase <s>, -ptk-rescue. Inert when absent; invalid values add an error and stay off.
+        [Test]
+        public void TheSelfStateShotFlagsParseAndStayInertWhenAbsent()
+        {
+            DevArgs none = DevArgs.Parse(new[] { "PingTheKiller.exe", "-ptk-offline" });
+            Assert.That(none.SkillAt, Is.EqualTo(0f));
+            Assert.That(none.Chase, Is.EqualTo(0f));
+            Assert.That(none.Rescue, Is.False);
+            Assert.That(DevArgs.Parse(new[] { "PingTheKiller.exe" }).Active, Is.False);
+
+            DevArgs a = DevArgs.Parse(new[] { "x", "-ptk-skill-at", "3.5", "-ptk-chase", "120", "-ptk-rescue" });
+            Assert.That(a.Errors, Is.Empty);
+            Assert.That(a.SkillAt, Is.EqualTo(3.5f));
+            Assert.That(a.Chase, Is.EqualTo(120f));
+            Assert.That(a.Rescue, Is.True);
+            Assert.That(a.Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-rescue" }).Active, Is.True, "the rescue flag alone activates the dev component");
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-skill-at", "2" }).Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-chase", "2" }).Active, Is.True);
+
+            foreach (string bad in new[] { "0", "-1", "NaN", "Infinity", "soon" })
+            {
+                DevArgs b = DevArgs.Parse(new[] { "x", "-ptk-skill-at", bad, "-ptk-chase", bad });
+                Assert.That(b.SkillAt, Is.EqualTo(0f), bad);
+                Assert.That(b.Chase, Is.EqualTo(0f), bad);
+                Assert.That(b.Errors.Count, Is.EqualTo(2), bad);
+                Assert.That(b.Active, Is.False, bad);
+            }
+            DevArgs missing = DevArgs.Parse(new[] { "x", "-ptk-skill-at", "-ptk-rescue" });
+            Assert.That(missing.SkillAt, Is.EqualTo(0f));
+            Assert.That(missing.Rescue, Is.True, "a flag never swallows the next -ptk- flag as its value");
+            Assert.That(missing.Errors, Has.Count.EqualTo(1));
+        }
     }
 }

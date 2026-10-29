@@ -20,8 +20,8 @@ namespace PingTheKiller.Client.UI
         public const float MaxScale = 1f;
         // HUD_SPEC 0.3: S text renders at max(14 u x scale, 12 px).
         public const float SmallText = 14, SmallFloorPixels = 12;
-        private VisualElement root, menu, lobby, result, play, survivorHud;
-        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, signal, status, team, hacking, survivorSkill, cursorHint, exit;
+        private VisualElement root, menu, lobby, result, play;
+        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, exit;
         private Label resultHeadline, resultOutcome, resultPreview, resultMessage;
         private readonly Label[] slots = new Label[Protocol.LobbySlotCount];
         private readonly VisualElement[] slotRows = new VisualElement[Protocol.LobbySlotCount];
@@ -42,6 +42,7 @@ namespace PingTheKiller.Client.UI
         public bool Playing { get; private set; }
         public bool InResult { get; private set; }
         public KillerHud Killer { get; private set; }
+        public SurvivorHud Survivor { get; private set; }
         public bool DevVisible
         {
             get => dev.style.display == DisplayStyle.Flex;
@@ -82,6 +83,7 @@ namespace PingTheKiller.Client.UI
             panel.scale = PanelScale(size.x, size.y);
             root?.EnableInClassList("s-floor", SmallSize(panel.scale) > SmallText + .01f);
             Killer?.SetScale(panel.scale);
+            Survivor?.SetScale(panel.scale);
         }
         private void Update() => ApplyScale();
 
@@ -169,13 +171,7 @@ namespace PingTheKiller.Client.UI
         private void BuildPlay(Font font)
         {
             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
-            survivorHud = Box(play, "hud"); survivorHud.AddToClassList("survivor-hud"); survivorHud.pickingMode = PickingMode.Ignore;
-            signal = Text(survivorHud, string.Empty, "signal");
-            status = Text(survivorHud, string.Empty, "status");
-            team = Text(survivorHud, string.Empty, "readout");
-            hacking = Text(survivorHud, string.Empty, "readout");
-            survivorSkill = Text(survivorHud, string.Empty, "readout");
-            cursorHint = Text(survivorHud, "Click to resume mouse look", "hint");
+            Survivor = new SurvivorHud(play, font);
             Killer = new KillerHud(play, font);
             exit = Text(play, HudCopy.ExitLabel(false), "exit");
         }
@@ -232,26 +228,15 @@ namespace PingTheKiller.Client.UI
             lobbyMessage.text = host ? (bots + humans >= 2 ? "Choose a role, then start the match." : "Add a bot or wait for another player.") : "Waiting for the host to start.";
             if (entering) { if (start.enabledSelf) start.Focus(); else lobby.Query<Button>().ToList().Find(button => button.enabledSelf)?.Focus(); }
         }
-        public void ShowPlay(Role role, string skillLine)
+        // The Survivor cluster (HUD_SPEC 4.0) or the Killer cluster (6.1); ClientApp feeds the shown one every frame.
+        public void ShowPlay(Role role, byte skillId)
         {
             Phase(play);
-            Show(survivorHud, role == Role.Survivor);
+            Survivor.SetVisible(role == Role.Survivor);
+            if (role == Role.Survivor) Survivor.Begin(skillId);
             Killer.SetVisible(role == Role.Killer);
-            survivorSkill.text = skillLine;
-            SetText(status, null); SetText(team, null); SetText(hacking, null); Show(cursorHint, false);
             Show(exit, false);
             root.focusController?.focusedElement?.Blur();
-        }
-        public void SetSignal(bool transmitting)
-        {
-            signal.text = transmitting ? "Signal" : "Silent";
-            signal.EnableInClassList("transmitting", transmitting);
-        }
-        // Null or empty hides a line. The cursor hint shows only while the survivor's cursor is released.
-        public void SetSurvivorHud(string statusLine, string teamLine, string hackingLine, bool cursorReleased)
-        {
-            SetText(status, statusLine); SetText(team, teamLine); SetText(hacking, hackingLine);
-            Show(cursorHint, cursorReleased);
         }
         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
         // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.
