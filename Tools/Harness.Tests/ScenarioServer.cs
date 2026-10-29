@@ -48,7 +48,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
         {
             if (unknownFrames) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x7E, 12, 0x7E));
             Output.Writer.TryWrite(PacketCodec.Encode(packet));
-            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x10, 16, 0x10));
+            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x11, 16, 0x11));
         }
     }
 
@@ -79,7 +79,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
     // U2c killer view: survivor entries with Id 0, Yaw/CaptureCount/StatusTimer 0, Signal-only flags, shuffled per
     // snapshot; terminal Progress quantised to 0 or 100. The killer's own entry keeps its real Id.
     public bool AnonymousKillerView { get; init; }
-    // A well-formed unknown-Id frame (0x7E) before every packet and a 0x10 one (future v0.3 Id) after every world.
+    // A well-formed unknown-Id frame (0x7E) before every packet and a 0x11 one (future Id) after every world.
     public bool UnknownFrames { get; init; }
     public int AnonymousWorldsSent { get; private set; }
     private readonly Random shuffle = new(4243);

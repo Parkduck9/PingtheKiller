@@ -56,8 +56,8 @@ internal sealed class PingServer : IAsyncDisposable
                         Array.Resize(ref pong, pong.Length + 1);
                         BinaryPrimitives.WriteInt32LittleEndian(pong, pong.Length - 4);
                     }
-                    // Unknown-Id frames (0x7E, and 0x10 = a future v0.3 Id) interleaved before every pong, fragmented the same way.
-                    if (unknownFrames) pong = LobbyServer.UnknownFrame(0x7E, 12, 0x7E).Concat(LobbyServer.UnknownFrame(0x10, 16, 0x10)).Concat(pong).ToArray();
+                    // Unknown-Id frames (0x7E, and 0x11 = a future Id) interleaved before every pong, fragmented the same way.
+                    if (unknownFrames) pong = LobbyServer.UnknownFrame(0x7E, 12, 0x7E).Concat(LobbyServer.UnknownFrame(0x11, 16, 0x11)).Concat(pong).ToArray();
                     // Deliberately fragment responses too, exercising the harness assembler.
                     await stream.WriteAsync(pong.AsMemory(0, 3), lifetime.Token);
                     await stream.WriteAsync(pong.AsMemory(3), lifetime.Token);

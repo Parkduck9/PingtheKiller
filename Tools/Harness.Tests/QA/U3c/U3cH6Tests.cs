@@ -148,9 +148,9 @@ public abstract class U3cH6UnknownFrameLeak(ushort id, int xOffset, int zOffset,
     }
 }
 
-public sealed class U3cH6UnknownFutureIdKillerXOddOffsetTests() : U3cH6UnknownFrameLeak(0x10, 3, -1, false);
+public sealed class U3cH6UnknownFutureIdKillerXOddOffsetTests() : U3cH6UnknownFrameLeak(0x11, 3, -1, false);
 public sealed class U3cH6UnknownIdKillerZOddOffsetTests() : U3cH6UnknownFrameLeak(0x7E, -1, 17, false);
-public sealed class U3cH6UnknownKillerCoordinatesSentToTheKillerOnlyTests() : U3cH6UnknownFrameLeak(0x10, 0, 4, true, toKillerInstead: true);
+public sealed class U3cH6UnknownKillerCoordinatesSentToTheKillerOnlyTests() : U3cH6UnknownFrameLeak(0x11, 0, 4, true, toKillerInstead: true);
 
 public sealed class U3cH6AnonymousViewWithUnknownFramesTests
 {
@@ -160,7 +160,7 @@ public sealed class U3cH6AnonymousViewWithUnknownFramesTests
         await using var server = new ScenarioServer { AnonymousKillerView = true, UnknownFrames = true, ExecutionGrace = true };
         var h6 = await U3cH6.RunAsync(server.Port, "anon/H6-unknown-frames");
         Assert.True(h6.Passed, h6.Evidence);
-        Assert.Contains("skipped unknown packets: id=0x10 ×", h6.Evidence);
+        Assert.Contains("skipped unknown packets: id=0x11 ×", h6.Evidence);
         Assert.Contains("id=0x7E ×", h6.Evidence);
     }
 }

@@ -40,7 +40,7 @@ public abstract class ScenarioPassTest(bool grace, bool anonymous = false, bool 
         Assert.Equal(anonymous, server.AnonymousWorldsSent > 0);
         if (unknown)
         {
-            Assert.Contains("skipped unknown packets: id=0x10 ×", h6.Evidence);
+            Assert.Contains("skipped unknown packets: id=0x11 ×", h6.Evidence);
             Assert.Contains("id=0x7E ×", h6.Evidence);
             Assert.DoesNotContain(" 0 unknown-Id frames raw-scanned", h6.Evidence);
         }

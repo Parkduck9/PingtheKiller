@@ -49,8 +49,8 @@ public sealed class U3cWireClientUnknownTests
 
     public static TheoryData<ushort, int> UnknownShapes => new()
     {
-        { 0x0000, 0 }, { 0x0010, 0 }, { 0x0010, 16 }, { 0x0011, 4 }, { 0x00FF, 1 }, { 0x7E7E, 100 }, { 0xFFFF, 0 },
-        { 0x0010, 16384 - 2 }, // the largest legal frame (Length = 16384)
+        { 0x0000, 0 }, { 0x0011, 0 }, { 0x0011, 16 }, { 0x0011, 4 }, { 0x00FF, 1 }, { 0x7E7E, 100 }, { 0xFFFF, 0 },
+        { 0x0011, 16384 - 2 }, // the largest legal frame (Length = 16384)
     };
 
     [Theory]
@@ -92,14 +92,14 @@ public sealed class U3cWireClientUnknownTests
         {
             var bad = BadKnown(kind);
             if (kind == "worldstate-trailing") BinaryPrimitives.WriteInt32LittleEndian(bad, bad.Length - 4); // keep the frame length valid
-            await s.WriteAsync(Frames.Unknown(0x7E).Concat(Frames.Pong(1)).Concat(Frames.Unknown(0x10)).Concat(bad).Concat(Frames.Pong(2)).ToArray(), ct);
+            await s.WriteAsync(Frames.Unknown(0x7E).Concat(Frames.Pong(1)).Concat(Frames.Unknown(0x11)).Concat(bad).Concat(Frames.Pong(2)).ToArray(), ct);
         });
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await using var client = await Connect(server, deadline.Token);
         Assert.Equal(1, ((S2C_Pong)(await client.ReadAsync<S2C_Pong>(deadline.Token)).Packet).Timestamp);
         var error = await Assert.ThrowsAsync<IOException>(() => client.ReadAsync(deadline.Token));
         Assert.IsType<PacketFormatException>(error.InnerException);
-        Assert.Equal(new Dictionary<ushort, int> { [0x7E] = 1, [0x10] = 1 }, client.UnknownCounts()); // the pong after the fault is never read
+        Assert.Equal(new Dictionary<ushort, int> { [0x7E] = 1, [0x11] = 1 }, client.UnknownCounts()); // the pong after the fault is never read
     }
 
     [Theory]
@@ -112,28 +112,28 @@ public sealed class U3cWireClientUnknownTests
     {
         await using var server = new QaRawServer(async (s, ct) =>
         {
-            await s.WriteAsync(Frames.Unknown(0x10).Concat(Frames.Header(length)).Concat(Frames.Pong(2)).ToArray(), ct);
+            await s.WriteAsync(Frames.Unknown(0x11).Concat(Frames.Header(length)).Concat(Frames.Pong(2)).ToArray(), ct);
         });
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await using var client = await Connect(server, deadline.Token);
         var error = await Assert.ThrowsAsync<IOException>(() => client.ReadAsync(deadline.Token));
         Assert.IsType<PacketFormatException>(error.InnerException);
         Assert.Contains("Invalid frame length", error.InnerException!.Message);
-        Assert.Equal(new Dictionary<ushort, int> { [0x10] = 1 }, client.UnknownCounts());
+        Assert.Equal(new Dictionary<ushort, int> { [0x11] = 1 }, client.UnknownCounts());
     }
 
     [Fact]
     public async Task UnknownFrameBodiesAreNeverInterpretedEvenWhenTheyLookLikeAWorldStatePayload()
     {
-        // Same payload bytes as a valid WorldState, under the future Id 0x10: skipped, no S2C_WorldState is ever delivered.
+        // Same payload bytes as a valid WorldState, under the future Id 0x11: skipped, no S2C_WorldState is ever delivered.
         var world = PacketCodec.Encode(new S2C_WorldState { Tick = 9, Players = { new() { Id = 5, X = 1, Z = 2 } } });
         var disguised = world.ToArray();
-        BinaryPrimitives.WriteUInt16LittleEndian(disguised.AsSpan(4), 0x10);
+        BinaryPrimitives.WriteUInt16LittleEndian(disguised.AsSpan(4), 0x11);
         await using var server = new QaRawServer(async (s, ct) => await s.WriteAsync(disguised.Concat(Frames.Pong(3)).ToArray(), ct));
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         await using var client = await Connect(server, deadline.Token);
         Assert.IsType<S2C_Pong>((await client.ReadAsync(deadline.Token)).Packet);
-        Assert.Equal(new Dictionary<ushort, int> { [0x10] = 1 }, client.UnknownCounts());
+        Assert.Equal(new Dictionary<ushort, int> { [0x11] = 1 }, client.UnknownCounts());
     }
 
     // LIMIT (informational): the raw store keeps at most MaxKeptUnknownFrames per connection. Reading the frames afterwards
@@ -144,7 +144,7 @@ public sealed class U3cWireClientUnknownTests
         const int count = WireClient.MaxKeptUnknownFrames + 500;
         await using var server = new QaRawServer(async (s, ct) =>
         {
-            var one = Frames.Unknown(0x10, 4);
+            var one = Frames.Unknown(0x11, 4);
             var batch = new byte[one.Length * 1000];
             for (int i = 0; i < 1000; i++) one.CopyTo(batch, i * one.Length);
             for (int i = 0; i < count / 1000 + 1; i++) await s.WriteAsync(batch, ct);
@@ -153,7 +153,7 @@ public sealed class U3cWireClientUnknownTests
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await using var client = await Connect(server, deadline.Token);
         Assert.Equal(11, ((S2C_Pong)(await client.ReadAsync<S2C_Pong>(deadline.Token)).Packet).Timestamp);
-        Assert.True(client.UnknownCounts()[0x10] >= count);
+        Assert.True(client.UnknownCounts()[0x11] >= count);
         Assert.Throws<CheckFailure>(() => client.UnknownFramesSince(long.MinValue));
     }
 }
@@ -178,7 +178,7 @@ public abstract class U3cFullRunWithUnknownFrames(bool anonymous)
         foreach (var item in report.Items.Where(i => i.Id != "H1"))
         {
             Assert.Contains("skipped unknown packets: ", item.Evidence);
-            Assert.Contains("id=0x10 ×", item.Evidence);
+            Assert.Contains("id=0x11 ×", item.Evidence);
             Assert.Contains("id=0x7E ×", item.Evidence);
         }
         Assert.Equal(anonymous, scenario.AnonymousWorldsSent > 0);
@@ -203,7 +203,7 @@ public sealed class U3cUnknownEvidenceTests
         U3cRun.Dump($"{(anonymous ? "anon" : "id")}/unknown-frames+offset-leak", h3);
         Assert.False(h3.Passed);
         Assert.Contains("leaked in the killer view", h3.Evidence);
-        Assert.Contains("skipped unknown packets: id=0x10 ×", h3.Evidence);
+        Assert.Contains("skipped unknown packets: id=0x11 ×", h3.Evidence);
         Assert.Contains("id=0x7E ×", h3.Evidence);
     }
 
@@ -212,7 +212,7 @@ public sealed class U3cUnknownEvidenceTests
     [InlineData(true)]
     public async Task AnUnknownFrameWithAHeaderLikeBodyDoesNotCountAsAKillerWorld(bool anonymous)
     {
-        // The unknown frames of LobbyServer carry 0x7E/0x10 fill bytes only; H3 must report them as raw-scanned unknown frames
+        // The unknown frames of LobbyServer carry 0x7E/0x11 fill bytes only; H3 must report them as raw-scanned unknown frames
         // and still join exactly the real WorldStates.
         await using var server = new LobbyServer { UnknownFrames = true, AnonymousKillerView = anonymous };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));

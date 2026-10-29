@@ -30,10 +30,10 @@ internal sealed class LobbyServer : IAsyncDisposable
         public int MoveInputs;
         public void Send(IPacket packet)
         {
-            // UnknownFrames: a well-formed unknown-Id frame before every packet, plus a 0x10 (future v0.3 Id) one per world.
+            // UnknownFrames: a well-formed unknown-Id frame before every packet, plus a 0x11 (future Id) one per world.
             if (unknownFrames) Output.Writer.TryWrite(UnknownFrame(0x7E, 12, 0x7E));
             Output.Writer.TryWrite(PacketCodec.Encode(packet));
-            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(UnknownFrame(0x10, 16, 0x10));
+            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(UnknownFrame(0x11, 16, 0x11));
         }
     }
 
