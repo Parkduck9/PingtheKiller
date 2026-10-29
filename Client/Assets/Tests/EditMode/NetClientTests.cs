@@ -79,6 +79,45 @@ namespace PingTheKiller.Client.Tests
             finally { listener.Stop(); }
         }
 
+        // U4d: the socket whitelist must follow the protocol. Every S2C_ id is accepted, every C2S_ id is not.
+        [Test]
+        public void EveryServerPacketIdIsAcceptedAndNoClientPacketIdIs()
+        {
+            foreach (PacketId id in (PacketId[])Enum.GetValues(typeof(PacketId)))
+            {
+                bool server = id.ToString().StartsWith("S2C_", StringComparison.Ordinal);
+                Assert.That(NetClient.IsServerPacket(id), Is.EqualTo(server), id.ToString());
+            }
+        }
+
+        // U4d regression: S2C_SelfState from a real socket reaches the pump and keeps the link up (it used to disconnect
+        // with "Unexpected client packet from server").
+        [Test]
+        public void SelfStateOverTheSocketIsDeliveredWithoutDisconnecting()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+            try
+            {
+                using var client = new NetClient();
+                string notice = null; client.Disconnected += value => notice = value;
+                S2C_SelfState received = null;
+                client.PacketReceived += item => { if (item.Packet is S2C_SelfState self) received = self; };
+                client.Connect((IPEndPoint)listener.LocalEndpoint);
+                Assert.That(SpinWait.SpinUntil(() => listener.Pending(), 3000), Is.True);
+                using TcpClient peer = listener.AcceptTcpClient();
+                byte[] frame = PacketCodec.Encode(new S2C_SelfState { SkillCooldown = 12.5f, RescueProgress = .25f, InvulnerableLeft = 1.5f, ExecutionGraceLeft = 2 });
+                peer.GetStream().Write(frame, 0, frame.Length);
+                PumpUntil(client, () => received != null || notice != null);
+                Assert.That(notice, Is.Null);
+                Assert.That(received.SkillCooldown, Is.EqualTo(12.5f));
+                Assert.That(received.RescueProgress, Is.EqualTo(.25f));
+                Assert.That(received.InvulnerableLeft, Is.EqualTo(1.5f));
+                Assert.That(received.ExecutionGraceLeft, Is.EqualTo(2f));
+                Assert.That(client.IsConnected, Is.True);
+            }
+            finally { listener.Stop(); }
+        }
+
         private static void PumpUntil(NetClient client, Func<bool> condition)
         {
             var timer = Stopwatch.StartNew();

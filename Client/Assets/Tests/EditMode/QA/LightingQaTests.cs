@@ -172,8 +172,11 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(cube.Groups[1].Value, Is.EqualTo(cube.Groups[3].Value), "x equals z, so the terminal is square seen from above");
         }
 
+        // U4c QA a1, orchestrator ruling 2: HUD_SPEC 0.4 says `ally` is "shown to Survivors only", so this test no longer binds
+        // a completed terminal to the team teal for every role. It covers the Survivor client (done = ally teal, never Signal
+        // amber) and the muted idle colours; the Killer-client side is KillerColourRolesQaTests.
         [Test]
-        public void TerminalColoursAreMutedAndNeverAmberAndDoneIsTheTeamTealNotSignalAmber()
+        public void TerminalColoursAreMutedAndNeverAmberAndDoneIsTheTeamTealOnTheSurvivorClientNotSignalAmber()
         {
             string world = Code("World/WorldView.cs");
             foreach (string name in new[] { "Plinth", "PanelIdle" })
@@ -188,7 +191,11 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(brightness, Is.GreaterThan(0.25f), name + " is readable against the floor (26,28,31)");
             }
             string accept = QaSource.MethodText(world, "void Accept(");
-            Assert.That(accept, Does.Match(@"Panel\.color\s*=\s*terminal\.Progress == 100 \? Survivor : PanelIdle"), "done is the team tint");
+            Assert.That(accept, Does.Match(@"Panel\.color\s*=[^;]*terminal\.Progress == 100[^;]*\bSurvivor\b[^;]*PanelIdle"),
+                "on the Survivor client done is the team tint (the statement may also branch on the role)");
+            Match ally = Regex.Match(world, @"Color\s+Survivor\s*=\s*new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*255\s*\)");
+            Assert.That(ally.Success, Is.True, "the Survivor colour literal");
+            Assert.That(ally.Groups[1].Value + "," + ally.Groups[2].Value + "," + ally.Groups[3].Value, Is.EqualTo("63,184,175"), "`ally` #3FB8AF");
             Assert.That(accept, Does.Not.Contain("Signal"), "terminals never use the Signal colour");
         }
 

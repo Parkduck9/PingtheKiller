@@ -7,13 +7,16 @@ using UnityEngine.Rendering;
 
 namespace PingTheKiller.Client.World
 {
+    // The static map plus, on a Survivor client, the Survivor characters (Id-based SnapshotBuffer interpolation).
+    // The Killer client draws no character here: it has no body, and Survivors reach it only as anonymous blips
+    // (Killer/KillerWorldLayer). Its own position is read by Role.
     public sealed class WorldView : MonoBehaviour
     {
         private sealed class Avatar
         {
-            public GameObject Body;
+            public GameObject Root;
+            public Renderer Body;
             public Material Material;
-            public GameObject Marker;
             public Color Tint;
             public byte Status;
         }
@@ -31,12 +34,16 @@ namespace PingTheKiller.Client.World
         private GameObject exit;
         private int localId;
         private Role role;
+        private float localFacing;
+        private bool localDither;
+        private Material ditherMaterial;
         private static readonly Color Killer = new Color32(229, 72, 77, 255);
         private static readonly Color Survivor = new Color32(63, 184, 175, 255);
         private static readonly Color Signal = new Color32(255, 176, 32, 255);
         // Terminals: a square dark plinth with a muted panel on top, so from above they read as squares, not capsules.
         private static readonly Color Plinth = new Color32(66, 70, 77, 255);
         private static readonly Color PanelIdle = new Color32(154, 152, 144, 255);
+        private static readonly Color Neutral = new Color32(232, 230, 225, 255); // `text`: the Killer's done terminal and open Exit
 
         public void Initialize(int id, Role localRole)
         {
@@ -47,7 +54,7 @@ namespace PingTheKiller.Client.World
             foreach (Wall wall in map.Walls)
             {
                 SharedMap.WallBox(wall, out Vector3 center, out Vector3 size);
-                Primitive("Wall", PrimitiveType.Cube, center + Vector3.up * 1.5f, size + Vector3.up * 3, new Color32(80, 83, 87, 255));
+                Primitive("Wall", PrimitiveType.Cube, center + Vector3.up * MapGeometry.WallHeight * .5f, size + Vector3.up * MapGeometry.WallHeight, new Color32(80, 83, 87, 255));
             }
             // Initial terminals are replaced by the first authoritative terminal list.
             for (byte i = 0; i < map.TerminalPositions.Count; i++)
@@ -61,6 +68,7 @@ namespace PingTheKiller.Client.World
             foreach (PlayerState player in state.Players)
             {
                 if (role == Role.Survivor && player.Role == (byte)Role.Killer) continue;
+                if (role == Role.Killer) break; // the Killer view never builds a character from an entry (no Ids, no body)
                 if (avatars.TryGetValue(player.Id, out Avatar known))
                 {
                     // Status is the latest authoritative value; it is not interpolated.
@@ -68,11 +76,17 @@ namespace PingTheKiller.Client.World
                     continue;
                 }
                 Color tint = player.Role == (byte)Role.Killer ? Killer : Survivor;
-                GameObject body = Primitive("Player " + player.Id, PrimitiveType.Capsule, new Vector3(player.X, 1, player.Z), Vector3.one, tint, true);
-                var avatar = new Avatar { Body = body, Material = body.GetComponent<Renderer>().sharedMaterial, Tint = tint, Status = player.Status };
-                if (player.Id == localId)
-                    avatar.Marker = Ring("Local player", new Vector3(player.X, .05f, player.Z), .7f, .08f, new Color32(232, 230, 225, 255));
-                body.SetActive(false);
+                var root = new GameObject("Player " + player.Id);
+                root.transform.SetParent(transform, false);
+                GameObject body = Primitive("Body", PrimitiveType.Capsule, Vector3.zero, CharacterLook.BodyScale, tint, true);
+                body.transform.SetParent(root.transform, false);
+                body.transform.localPosition = Vector3.up * CharacterLook.Height * .5f;
+                GameObject visor = Primitive("Visor", PrimitiveType.Cube, Vector3.zero, CharacterLook.VisorScale, CharacterLook.Visor);
+                visor.transform.SetParent(root.transform, false);
+                visor.transform.localPosition = CharacterLook.VisorOffset;
+                var renderer = body.GetComponent<Renderer>();
+                var avatar = new Avatar { Root = root, Body = renderer, Material = renderer.sharedMaterial, Tint = tint, Status = player.Status };
+                root.SetActive(false);
                 avatars.Add(player.Id, avatar);
             }
             retained.Clear(); removed.Clear();
@@ -82,13 +96,20 @@ namespace PingTheKiller.Client.World
                 if (!terminals.TryGetValue(terminal.Id, out Terminal item))
                     terminals.Add(terminal.Id, item = MakeTerminal(terminal.Id, new Vector3(terminal.X, 0, terminal.Z)));
                 item.Root.transform.position = new Vector3(terminal.X, 0, terminal.Z);
-                item.Panel.color = terminal.Progress == 100 ? Survivor : PanelIdle; // done = team info (teal), never amber
+                item.Panel.color = terminal.Progress == 100 ? (role == Role.Survivor ? Survivor : Neutral) : PanelIdle; // done: team teal for Survivors, `text` for the Killer (HUD_SPEC 0.4)
             }
             foreach (var terminal in terminals)
                 if (!retained.Contains(terminal.Key)) { Destroy(terminal.Value.Root); removed.Add(terminal.Key); }
             foreach (byte id in removed) terminals.Remove(id);
             bool open = state.ExitOpen != 0 && state.ExitLocked == 0;
-            exit.GetComponent<MeshRenderer>().sharedMaterial.color = open ? Survivor : new Color32(154, 152, 144, 255);
+            exit.GetComponent<MeshRenderer>().sharedMaterial.color = open ? (role == Role.Survivor ? Survivor : Neutral) : new Color32(154, 152, 144, 255); // Q11: ally ring for Survivors, text ring for the Killer
+        }
+
+        // Survivor view: the own character faces the local facing (HUD_SPEC 4.10) and is dithered while the boom is short.
+        public void SetLocalLook(float facing, bool dither)
+        {
+            localFacing = facing; localDither = dither;
+            if (dither && ditherMaterial == null) ditherMaterial = CharacterLook.Dither(Survivor, .4f);
         }
 
         public void Render(double now)
@@ -96,25 +117,25 @@ namespace PingTheKiller.Client.World
             foreach (var entry in avatars)
             {
                 Avatar avatar = entry.Value;
+                bool own = entry.Key == localId;
                 bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha)
                     && avatar.Status != (byte)PlayerStatus.Escaped && avatar.Status != (byte)PlayerStatus.Eliminated;
-                avatar.Body.SetActive(visible && !(role == Role.Survivor && entry.Key == localId));
-                avatar.Body.transform.SetPositionAndRotation(position, Quaternion.Euler(0, yaw, 0));
-                // Survivor view: Lagging allies use the Signal amber so the team can find them to rescue (team info).
-                Color color = role == Role.Survivor && avatar.Status == (byte)PlayerStatus.Lagging ? Signal : avatar.Tint;
+                avatar.Root.SetActive(visible);
+                avatar.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, own ? localFacing : yaw, 0));
+                // Lagging Survivors use the Signal amber so the team can find them to rescue (team info). The own
+                // character carries no state tint (HUD_SPEC 4.10: the meter is the only indicator).
+                Color color = !own && avatar.Status == (byte)PlayerStatus.Lagging ? Signal : avatar.Tint;
                 color.a = alpha;
                 avatar.Material.color = color;
-                if (avatar.Marker != null)
-                {
-                    avatar.Marker.SetActive(visible && role == Role.Killer);
-                    avatar.Marker.transform.position = new Vector3(position.x, .05f, position.z);
-                }
+                Material wanted = own && localDither && ditherMaterial != null ? ditherMaterial : avatar.Material;
+                if (avatar.Body.sharedMaterial != wanted) avatar.Body.sharedMaterial = wanted;
             }
         }
 
+        // Survivor: the own entry by Id. Killer: the own entry by Role (HUD_SPEC 6.2).
         public bool LocalPosition(double now, out Vector3 position)
         {
-            return snapshots.Sample(localId, now, out position, out _, out _);
+            return snapshots.Sample(role == Role.Killer ? SnapshotBuffer.KillerKey : localId, now, out position, out _, out _);
         }
 
         private Terminal MakeTerminal(byte id, Vector3 position)
@@ -187,8 +208,9 @@ namespace PingTheKiller.Client.World
         private void OnDestroy()
         {
             foreach (Material material in materials) Destroy(material);
+            if (ditherMaterial != null) Destroy(ditherMaterial);
             foreach (MeshFilter filter in GetComponentsInChildren<MeshFilter>(true))
-                if (filter.sharedMesh != null && (filter.name == "Exit" || filter.name == "Local player")) Destroy(filter.sharedMesh);
+                if (filter.sharedMesh != null && filter.name == "Exit") Destroy(filter.sharedMesh);
         }
     }
 }

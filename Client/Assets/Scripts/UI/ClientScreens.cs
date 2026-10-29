@@ -14,12 +14,14 @@ namespace PingTheKiller.Client.UI
     // Layout rule: every label is one line (nowrap, see ClientUI.uss); only .message wraps, at a fixed width.
     public sealed class ClientScreens : MonoBehaviour
     {
-        // Sizes in USS are 1080p pixels. The panel follows min(w/1920, h/1080) clamped to [MinScale, MaxScale]:
-        // 14 px text stays at least 11 px at 1280x720, and large screens scale up instead of shrinking the UI.
+        // Sizes in USS are logical units (1080p pixels). The panel follows min(w/1920, h/1080) clamped to [MinScale,
+        // MaxScale] (HUD_SPEC 0.2 and Q15): the logical canvas is 1920x1080 at 1080p and 1600x900 at 720p.
         public const float MinScale = .8f;
-        public const float MaxScale = 2f;
-        private VisualElement root, menu, lobby, result, play, survivorHud, killerHud;
-        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, signal, status, team, hacking, survivorSkill, cursorHint, killerSkill, exit;
+        public const float MaxScale = 1f;
+        // HUD_SPEC 0.3: S text renders at max(14 u x scale, 12 px).
+        public const float SmallText = 14, SmallFloorPixels = 12;
+        private VisualElement root, menu, lobby, result, play;
+        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, exit;
         private Label resultHeadline, resultOutcome, resultPreview, resultMessage;
         private readonly Label[] slots = new Label[Protocol.LobbySlotCount];
         private readonly VisualElement[] slotRows = new VisualElement[Protocol.LobbySlotCount];
@@ -39,6 +41,8 @@ namespace PingTheKiller.Client.UI
         public string Address { get => address.value; set => address.value = value; }
         public bool Playing { get; private set; }
         public bool InResult { get; private set; }
+        public KillerHud Killer { get; private set; }
+        public SurvivorHud Survivor { get; private set; }
         public bool DevVisible
         {
             get => dev.style.display == DisplayStyle.Flex;
@@ -47,6 +51,9 @@ namespace PingTheKiller.Client.UI
 
         public static float PanelScale(int width, int height)
             => Mathf.Clamp(Mathf.Min(width / 1920f, height / 1080f), MinScale, MaxScale);
+
+        // The S size in logical units at a panel scale: 15 u at 0.8, so it renders at 12 px.
+        public static float SmallSize(float scale) => Mathf.Max(SmallText, SmallFloorPixels / Mathf.Max(.01f, scale));
 
         private void Awake()
         {
@@ -62,10 +69,11 @@ namespace PingTheKiller.Client.UI
             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
-            BuildMenu(); BuildLobby(); BuildResult(); BuildPlay();
+            BuildMenu(); BuildLobby(); BuildResult(); BuildPlay(font);
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
             root.Query<TextElement>().ForEach(element => element.style.unityFontDefinition = FontDefinition.FromFont(font));
             ShowMenu(string.Empty);
+            scaledFor = default; ApplyScale();
         }
         private void ApplyScale()
         {
@@ -73,6 +81,9 @@ namespace PingTheKiller.Client.UI
             if (size == scaledFor) return;
             scaledFor = size;
             panel.scale = PanelScale(size.x, size.y);
+            root?.EnableInClassList("s-floor", SmallSize(panel.scale) > SmallText + .01f);
+            Killer?.SetScale(panel.scale);
+            Survivor?.SetScale(panel.scale);
         }
         private void Update() => ApplyScale();
 
@@ -157,18 +168,11 @@ namespace PingTheKiller.Client.UI
             back = Action(actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
             resultLeave = Action(actions, "Leave", () => Leave?.Invoke());
         }
-        private void BuildPlay()
+        private void BuildPlay(Font font)
         {
             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
-            survivorHud = Box(play, "hud"); survivorHud.AddToClassList("survivor-hud"); survivorHud.pickingMode = PickingMode.Ignore;
-            signal = Text(survivorHud, string.Empty, "signal");
-            status = Text(survivorHud, string.Empty, "status");
-            team = Text(survivorHud, string.Empty, "readout");
-            hacking = Text(survivorHud, string.Empty, "readout");
-            survivorSkill = Text(survivorHud, string.Empty, "readout");
-            cursorHint = Text(survivorHud, "Click to resume mouse look", "hint");
-            killerHud = Box(play, "hud"); killerHud.AddToClassList("killer-hud"); killerHud.pickingMode = PickingMode.Ignore;
-            killerSkill = Text(killerHud, string.Empty, "skill");
+            Survivor = new SurvivorHud(play, font);
+            Killer = new KillerHud(play, font);
             exit = Text(play, HudCopy.ExitLabel(false), "exit");
         }
         private void Phase(VisualElement visible)
@@ -224,26 +228,15 @@ namespace PingTheKiller.Client.UI
             lobbyMessage.text = host ? (bots + humans >= 2 ? "Choose a role, then start the match." : "Add a bot or wait for another player.") : "Waiting for the host to start.";
             if (entering) { if (start.enabledSelf) start.Focus(); else lobby.Query<Button>().ToList().Find(button => button.enabledSelf)?.Focus(); }
         }
-        public void ShowPlay(Role role, string skillLine)
+        // The Survivor cluster (HUD_SPEC 4.0) or the Killer cluster (6.1); ClientApp feeds the shown one every frame.
+        public void ShowPlay(Role role, byte skillId)
         {
             Phase(play);
-            Show(survivorHud, role == Role.Survivor);
-            Show(killerHud, role == Role.Killer);
-            survivorSkill.text = killerSkill.text = skillLine;
-            SetText(status, null); SetText(team, null); SetText(hacking, null); Show(cursorHint, false);
+            Survivor.SetVisible(role == Role.Survivor);
+            if (role == Role.Survivor) Survivor.Begin(skillId);
+            Killer.SetVisible(role == Role.Killer);
             Show(exit, false);
             root.focusController?.focusedElement?.Blur();
-        }
-        public void SetSignal(bool transmitting)
-        {
-            signal.text = transmitting ? "Signal" : "Silent";
-            signal.EnableInClassList("transmitting", transmitting);
-        }
-        // Null or empty hides a line. The cursor hint shows only while the survivor's cursor is released.
-        public void SetSurvivorHud(string statusLine, string teamLine, string hackingLine, bool cursorReleased)
-        {
-            SetText(status, statusLine); SetText(team, teamLine); SetText(hacking, hackingLine);
-            Show(cursorHint, cursorReleased);
         }
         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
         // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.
