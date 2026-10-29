@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 using PingTheKiller.Shared.Net;
@@ -40,17 +41,64 @@ public static class MatchChecks
 
     public static async Task<string> MaskingAsync(MatchSession session, CancellationToken ct)
     {
+        // Killer-bound survivor entries may be anonymous (U2c: Id 0, shuffled). Every one is attributed by tick and
+        // position to the survivor whose true position (the survivor client's own stream holds every survivor, bots
+        // included) at the same tick is nearest, within KillerView.Epsilon. The killer stream is never searched by Id.
+        int killerId = session.KillerIdentity.PlayerId, survivorId = session.SurvivorIdentity.PlayerId;
         // Establish nontrivial coordinate bytes and positive evidence that the killer
         // can see this survivor while moving, before testing omission while Silent.
         long movingStart = Stopwatch.GetTimestamp();
         var moving = SendMovingAsync(session.Survivor, session, 0.613f, 0.789f,
             TimeSpan.FromSeconds(0.65), 20, ct);
-        var signalTask = session.Killer.ReadAsync<S2C_WorldState>(ct, world =>
-            world.Players.Any(p => p.Id == session.SurvivorIdentity.PlayerId &&
-                (p.Flags & (byte)PlayerFlags.Signal) != 0));
-        await Task.WhenAll(moving, signalTask);
-        var signal = await signalTask;
-        Check.Require(signal.ReceivedAt >= movingStart, "Signal baseline was stale.");
+        var baseline = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var movingJoin = new TickJoin(killerId, (world, attributions, _) =>
+        {
+            foreach (var a in attributions)
+                if (a.Nearest.Contains(survivorId) && (a.Entry.Flags & (byte)PlayerFlags.Signal) != 0)
+                    baseline.TrySetResult($"tick={world.Tick} Signal entry attributed to survivor {survivorId} by tick+position ({a.Distance:F3} m)");
+        });
+        using (var reading = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        {
+            reading.CancelAfter(TimeSpan.FromSeconds(0.65) + session.Timeout);
+            async Task FeedAsync(WireClient client, Action<ReceivedFrame> add)
+            {
+                try
+                {
+                    while (!baseline.Task.IsCompleted)
+                    {
+                        var frame = await client.ReadAsync<S2C_WorldState>(reading.Token);
+                        if (frame.ReceivedAt >= movingStart) add(frame);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    reading.Cancel(); // stop the other stream at once; this failure is the result
+                    throw;
+                }
+            }
+            var feeding = Task.WhenAll(
+                FeedAsync(session.Killer, frame => movingJoin.AddKiller((S2C_WorldState)frame.Packet)),
+                FeedAsync(session.Survivor, frame =>
+                {
+                    Measurements.KillerHidden(frame, killerId);
+                    movingJoin.AddTruth((S2C_WorldState)frame.Packet);
+                }));
+            await Task.WhenAny(baseline.Task, feeding);
+            reading.Cancel();
+            try { await feeding; }
+            catch (Exception) when (feeding.Exception?.InnerExceptions.FirstOrDefault(e => e is not OperationCanceledException) is { } failure)
+            {
+                ExceptionDispatchInfo.Throw(failure);
+            }
+            catch (OperationCanceledException) when (baseline.Task.IsCompleted) { }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new CheckFailure($"Moving baseline missing: no killer-view Signal entry was attributed by tick+position to moving survivor " +
+                    $"{survivorId} within {(TimeSpan.FromSeconds(0.65) + session.Timeout).TotalSeconds:F2} s ({movingJoin.Joined} ticks joined).");
+            }
+        }
+        await moving;
+        string baselineEvidence = await baseline.Task;
         await session.Survivor.SendAsync(new C2S_MoveInput { Seq = session.NextSequence() }, ct);
         long settled = After(Stopwatch.GetTimestamp(), TimeSpan.FromSeconds(GameConstants.SignalHoldSeconds + 0.25));
         ReceivedFrame stoppedFrame;
@@ -59,11 +107,37 @@ public static class MatchChecks
             stoppedFrame = await session.Survivor.ReadAsync<S2C_WorldState>(ct);
             Measurements.KillerHidden(stoppedFrame, session.KillerIdentity.PlayerId);
         } while (stoppedFrame.ReceivedAt < settled);
-        var stopped = Measurements.Self(stoppedFrame, session.SurvivorIdentity.PlayerId);
+        var stopped = Measurements.Self(stoppedFrame, survivorId);
         Check.Require((stopped.Flags & (byte)PlayerFlags.Signal) == 0, "Survivor remained Signal after zero input and grace period.");
-        Measurements.KillerHidden(stoppedFrame, session.KillerIdentity.PlayerId);
+        Measurements.KillerHidden(stoppedFrame, killerId);
         long start = stoppedFrame.ReceivedAt, end = After(start, TimeSpan.FromSeconds(3.1));
-        int killerFrames = 0, killerWorlds = 0, survivorWorlds = 0;
+        int killerFrames = 0, killerWorlds = 0, survivorWorlds = 0, others = 0, ambiguous = 0;
+        string? ambiguity = null;
+        var join = new TickJoin(killerId, (world, attributions, survivors) =>
+        {
+            foreach (var a in attributions)
+            {
+                if (!a.Nearest.Contains(survivorId)) { others++; continue; }
+                // Only bit-identical positions are ambiguous (a bot standing exactly on the stopped survivor): evidence, not a failure.
+                Check.Require(a.ExactTie,
+                    $"Silent survivor {survivorId} leaked in the killer view at tick={world.Tick}: entry ({a.Entry.X:R},{a.Entry.Z:R}) Id={a.Entry.Id} " +
+                    $"is attributed to it by tick+position ({a.Distance:F4} m from its true position ({stopped.X:R},{stopped.Z:R}), " +
+                    $"nearest of {survivors} survivors).");
+                ambiguous++;
+                ambiguity ??= $"tick={world.Tick}: survivors [{string.Join(",", a.Nearest)}] at bit-identical positions";
+            }
+        });
+        join.AddTruth((S2C_WorldState)stoppedFrame.Packet);
+
+        void Survivor(ReceivedFrame frame)
+        {
+            Measurements.KillerHidden(frame, killerId);
+            if (frame.Packet is not S2C_WorldState world) return;
+            var current = Measurements.Self(frame, survivorId);
+            Check.Require(KillerView.SamePosition(current, stopped), "Survivor moved after stopping; coordinate sentinel is no longer valid.");
+            survivorWorlds++;
+            join.AddTruth(world);
+        }
 
         async Task ReadKillerAsync()
         {
@@ -71,9 +145,13 @@ public static class MatchChecks
             {
                 var frame = await session.Killer.ReadAsync(ct);
                 if (frame.ReceivedAt < start) continue;
-                Measurements.Masked(frame, session.SurvivorIdentity.PlayerId, stopped);
+                Measurements.Masked(frame, stopped);
                 killerFrames++;
-                if (frame.Packet is S2C_WorldState) killerWorlds++;
+                if (frame.Packet is S2C_WorldState world)
+                {
+                    killerWorlds++;
+                    join.AddKiller(world);
+                }
                 if (frame.ReceivedAt >= end) break;
             }
         }
@@ -84,23 +162,33 @@ public static class MatchChecks
             {
                 var frame = await session.Survivor.ReadAsync(ct);
                 if (frame.ReceivedAt < start) continue;
-                Measurements.KillerHidden(frame, session.KillerIdentity.PlayerId);
-                if (frame.Packet is S2C_WorldState)
-                {
-                    var current = Measurements.Self(frame, session.SurvivorIdentity.PlayerId);
-                    Check.Require(BitConverter.SingleToInt32Bits(current.X) == BitConverter.SingleToInt32Bits(stopped.X) &&
-                        BitConverter.SingleToInt32Bits(current.Z) == BitConverter.SingleToInt32Bits(stopped.Z),
-                        "Survivor moved after stopping; coordinate sentinel is no longer valid.");
-                    survivorWorlds++;
-                }
+                Survivor(frame);
                 if (frame.ReceivedAt >= end) break;
             }
         }
 
         await Task.WhenAll(ReadKillerAsync(), ReadSurvivorAsync());
-        Check.Require(killerWorlds >= 50 && survivorWorlds >= 50,
-            $"Insufficient masking coverage: killer worlds={killerWorlds}, survivor worlds={survivorWorlds}.");
-        return $"3.1 s Silent capture: {killerFrames} raw killer frames/{killerWorlds} worlds; survivorId={stopped.Id} omitted, X={stopped.X:R}/Z={stopped.Z:R} byte occurrences=0; killerId={session.KillerIdentity.PlayerId} absent in {survivorWorlds + 1} survivor worlds; moving Signal baseline verified.";
+        // Bounded wait for the survivor-stream ticks of killer frames that arrived first; ticks still missing are skipped.
+        using (var tail = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        {
+            tail.CancelAfter(TimeSpan.FromSeconds(1));
+            try
+            {
+                while (join.AwaitingTruth) Survivor(await session.Survivor.ReadAsync(tail.Token));
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
+        }
+        // Skipped unknown-Id frames are not delivered; their raw bytes get the same scan.
+        var unknown = session.Killer.UnknownFramesSince(start);
+        foreach (var frame in unknown) Measurements.MaskedBytes(frame.Raw, $"unknown packet 0x{frame.Id:X2}", stopped);
+        Check.Require(killerWorlds >= 50 && survivorWorlds >= 50 && join.Joined >= 50,
+            $"Insufficient masking coverage: killer worlds={killerWorlds}, survivor worlds={survivorWorlds}, ticks joined by Tick={join.Joined} (need 50 each).");
+        return $"3.1 s Silent capture: {killerFrames} raw killer frames/{killerWorlds} worlds (+{unknown.Count} unknown-Id frames); " +
+            $"{join.Joined} killer worlds joined by Tick with survivor ground truth ({join.Skipped} skipped, no survivor-stream tick); " +
+            $"{join.Entries} killer-view survivor entries attributed by tick+position (epsilon {KillerView.Epsilon} m): 0 unexplained, " +
+            $"0 to stopped survivor {survivorId}, {others} to other survivors, {ambiguous} ambiguous{(ambiguity != null ? $" ({ambiguity})" : "")}; " +
+            $"X={stopped.X:R}/Z={stopped.Z:R} byte occurrences=0; killerId={killerId} absent in {survivorWorlds + 1} survivor worlds; " +
+            $"moving baseline: {baselineEvidence}.";
     }
 
     public static async Task PingAsync(WireClient client, CancellationToken ct)

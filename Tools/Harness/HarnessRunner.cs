@@ -6,6 +6,7 @@ public static class HarnessRunner
     {
         var items = new List<CheckResult>();
         Task<MatchSession>? match = null;
+        options = options with { Unknown = new UnknownPackets() };
         try
         {
             foreach (string id in Scorer.Ids.Where(options.Only.Contains))
@@ -21,6 +22,7 @@ public static class HarnessRunner
                     // H6 enforces its own 150 s budget (with step evidence); this outer deadline is a backstop.
                     id == "H6" ? ScenarioCheck.Budget + TimeSpan.FromSeconds(10) :
                     TimeSpan.FromSeconds(id == "H1" ? 35 : 30) + options.Timeout * 10);
+                var unknownBefore = options.Unknown.Snapshot();
                 try
                 {
                     string evidence;
@@ -46,6 +48,9 @@ public static class HarnessRunner
                     string reason = ex is OperationCanceledException ? "Timed out or cancelled waiting for server/check completion." : ex.Message;
                     items.Add(Scorer.Result(id, false, $"{ex.GetType().Name}: {reason}"));
                 }
+                // Frames with a well-formed length but a PacketId unknown to Shared were skipped, not delivered.
+                if (UnknownPackets.Describe(unknownBefore, options.Unknown.Snapshot()) is string skipped)
+                    items[^1] = Scorer.Result(id, items[^1].Passed, $"{items[^1].Evidence}; {skipped}");
                 Console.WriteLine($"{id} completed: {(items[^1].Passed ? "PASS" : "FAIL")} — {items[^1].Evidence}");
             }
         }

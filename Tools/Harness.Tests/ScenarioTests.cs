@@ -19,12 +19,13 @@ internal static class H6
 
 // H6 must pass under both U2b versions (leave-and-re-enter without and with the 2 s execution grace) and must
 // not depend on the grace. Separate classes so both run in parallel.
-public abstract class ScenarioPassTest(bool grace)
+// U3c: also with the U2c anonymous killer view (Id 0, shuffled, quantised progress) and with unknown-Id frames interleaved.
+public abstract class ScenarioPassTest(bool grace, bool anonymous = false, bool unknown = false)
 {
     [Fact]
     public async Task H6PassesAgainstTheRulesFakeWithPositiveEvidenceForEveryStep()
     {
-        await using var server = new ScenarioServer { ExecutionGrace = grace };
+        await using var server = new ScenarioServer { ExecutionGrace = grace, AnonymousKillerView = anonymous, UnknownFrames = unknown };
         var (h6, _) = await H6.RunAsync(server.Port);
         Assert.True(h6.Passed, h6.Evidence);
         Assert.Equal(10, h6.Score);
@@ -36,11 +37,21 @@ public abstract class ScenarioPassTest(bool grace)
         Assert.False(server.UnexpectedFlow);
         Assert.Equal(0, server.Executions);
         Assert.Equal(3, server.GameResultsSent);
+        Assert.Equal(anonymous, server.AnonymousWorldsSent > 0);
+        if (unknown)
+        {
+            Assert.Contains("skipped unknown packets: id=0x10 ×", h6.Evidence);
+            Assert.Contains("id=0x7E ×", h6.Evidence);
+            Assert.DoesNotContain(" 0 unknown-Id frames raw-scanned", h6.Evidence);
+        }
+        else Assert.DoesNotContain("skipped unknown packets", h6.Evidence);
     }
 }
 
 public sealed class ScenarioPassWithoutGraceTests() : ScenarioPassTest(false);
 public sealed class ScenarioPassWithGraceTests() : ScenarioPassTest(true);
+public sealed class ScenarioPassAnonymousKillerViewTests() : ScenarioPassTest(true, anonymous: true);
+public sealed class ScenarioPassUnknownFramesTests() : ScenarioPassTest(false, unknown: true);
 
 // One class per broken fake so xUnit runs these ~50 s scenarios in parallel collections.
 public abstract class H6BrokenFakeTest
@@ -85,6 +96,8 @@ public sealed class H6ExecuteOnContinuedContactTests() : H6BrokenFakeTest(H6Faul
 public sealed class H6PrematureEndTests() : H6BrokenFakeTest(H6Fault.PrematureEnd, "[escape by", "GameResult before escaper reached the exit");
 // Re-arms while still in contact: executes two ticks after the capture, while the killer holds contact.
 public sealed class H6RearmsInContactTests() : H6BrokenFakeTest(H6Fault.RearmsInContact, "[capture:", "player 2 has status 3");
+// U3c: killer X/Z inside an unknown-Id frame to the survivors (cannot be decoded, so it is scanned raw).
+public sealed class H6LeakInUnknownPacketTests() : H6BrokenFakeTest(H6Fault.LeakInUnknownPacket, "killer coordinate bytes in unknown packet 0x7E (update Shared)");
 
 public sealed class ScenarioOptionTests
 {

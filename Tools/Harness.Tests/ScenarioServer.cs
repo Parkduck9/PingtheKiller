@@ -11,7 +11,8 @@ namespace PingTheKiller.Harness.Tests;
 internal enum H6Fault
 {
     None, NoGameResult, DuplicateGameResult, EscapedEmpty, EscapedBoth, EscapedOther, WinnerKiller, ReasonTimeUp,
-    LeakSkillEffect, LeakKillerEntry, ExitNeverOpens, NoCapture, NoRescue, ExecuteOnContinuedContact, RearmsInContact, PrematureEnd
+    LeakSkillEffect, LeakKillerEntry, ExitNeverOpens, NoCapture, NoRescue, ExecuteOnContinuedContact, RearmsInContact, PrematureEnd,
+    LeakInUnknownPacket
 }
 
 // Test-only scripted rules fake for H6, following the U2b contract (docs/briefs/U2b-a1.md) closely enough to
@@ -38,12 +39,17 @@ internal sealed class ScenarioServer : IAsyncDisposable
         public uint Seq;
     }
 
-    private sealed class Peer(TcpClient tcp)
+    private sealed class Peer(TcpClient tcp, bool unknownFrames)
     {
         public TcpClient Tcp { get; } = tcp;
         public Channel<byte[]> Output { get; } = Channel.CreateUnbounded<byte[]>();
         public Player? Player;
-        public void Send(IPacket packet) => Output.Writer.TryWrite(PacketCodec.Encode(packet));
+        public void Send(IPacket packet)
+        {
+            if (unknownFrames) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x7E, 12, 0x7E));
+            Output.Writer.TryWrite(PacketCodec.Encode(packet));
+            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x10, 16, 0x10));
+        }
     }
 
     private readonly FixedMap map = new();
@@ -70,6 +76,13 @@ internal sealed class ScenarioServer : IAsyncDisposable
     // Future U2b: a Lagging survivor cannot be executed during its first 2 s after capture.
     public bool ExecutionGrace { get; init; }
     public float? DistanceToExitAtPrematureEnd { get; private set; }
+    // U2c killer view: survivor entries with Id 0, Yaw/CaptureCount/StatusTimer 0, Signal-only flags, shuffled per
+    // snapshot; terminal Progress quantised to 0 or 100. The killer's own entry keeps its real Id.
+    public bool AnonymousKillerView { get; init; }
+    // A well-formed unknown-Id frame (0x7E) before every packet and a 0x10 one (future v0.3 Id) after every world.
+    public bool UnknownFrames { get; init; }
+    public int AnonymousWorldsSent { get; private set; }
+    private readonly Random shuffle = new(4243);
 
     private void Execute(Player s)
     {
@@ -94,7 +107,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
             {
                 var tcp = await listener.AcceptTcpClientAsync(lifetime.Token);
                 tcp.NoDelay = true;
-                var peer = new Peer(tcp);
+                var peer = new Peer(tcp, UnknownFrames);
                 lock (sync)
                 {
                     peers.Add(peer);
@@ -386,6 +399,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
             {
                 world.Players.Add(State(recipient));
                 world.Players.AddRange(Survivors.Where(Visible).Select(State));
+                if (AnonymousKillerView) Anonymise(world);
             }
             else
             {
@@ -394,8 +408,32 @@ internal sealed class ScenarioServer : IAsyncDisposable
                 world.Players.AddRange(Survivors.Select(State));
                 if (fault == H6Fault.LeakSkillEffect && tick % 20 == 0)
                     recipient.Peer.Send(new S2C_SkillEffect { CasterId = Killer.Id, SkillId = 1, X = Killer.X, Z = Killer.Z, Duration = 3 });
+                if (fault == H6Fault.LeakInUnknownPacket && tick % 20 == 0)
+                {
+                    var payload = new byte[12];
+                    System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(payload.AsSpan(1), Killer.X);
+                    System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(payload.AsSpan(6), Killer.Z);
+                    recipient.Peer.Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x7E, 12, 0x5A, payload));
+                }
             }
             recipient.Peer.Send(world);
+        }
+    }
+
+    private void Anonymise(S2C_WorldState world)
+    {
+        AnonymousWorldsSent++;
+        world.Terminals = world.Terminals.Select(t => t with { Progress = (byte)(t.Progress == 100 ? 100 : 0) }).ToList();
+        for (int i = 0; i < world.Players.Count; i++)
+        {
+            var p = world.Players[i];
+            if (p.Role == (byte)Role.Killer) continue;
+            world.Players[i] = p with { Id = 0, Yaw = 0, CaptureCount = 0, StatusTimer = 0, Flags = (byte)(p.Flags & (byte)PlayerFlags.Signal) };
+        }
+        for (int i = world.Players.Count - 1; i > 0; i--)
+        {
+            int j = shuffle.Next(i + 1);
+            (world.Players[i], world.Players[j]) = (world.Players[j], world.Players[i]);
         }
     }
 

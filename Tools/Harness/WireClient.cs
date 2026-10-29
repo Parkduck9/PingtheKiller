@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading.Channels;
@@ -13,10 +14,31 @@ public sealed record ReceivedFrame(IPacket Packet, byte[] Raw, long ReceivedAt)
     public static double SecondsBetween(long earlier, long later) => (later - earlier) / (double)Stopwatch.Frequency;
 }
 
+// A well-formed server frame whose PacketId is not a Shared PacketId value (e.g. a newer protocol's packet):
+// skipped by the receive loop and never delivered as a packet, but kept raw for byte-level leak scans.
+public sealed record UnknownFrame(ushort Id, byte[] Raw, long ReceivedAt);
+
+// Skipped unknown-Id frames per PacketId across every WireClient of one harness run.
+public sealed class UnknownPackets
+{
+    private readonly ConcurrentDictionary<ushort, int> counts = new();
+    public void Add(ushort id) => counts.AddOrUpdate(id, 1, (_, n) => n + 1);
+    public IReadOnlyDictionary<ushort, int> Snapshot() => new Dictionary<ushort, int>(counts);
+
+    // Evidence for the frames skipped between two snapshots, or null when there were none.
+    public static string? Describe(IReadOnlyDictionary<ushort, int> before, IReadOnlyDictionary<ushort, int> after)
+    {
+        var parts = after.OrderBy(p => p.Key).Select(p => (Id: p.Key, Count: p.Value - before.GetValueOrDefault(p.Key)))
+            .Where(p => p.Count > 0).Select(p => $"id=0x{p.Id:X2} ×{p.Count}").ToList();
+        return parts.Count == 0 ? null : $"skipped unknown packets: {string.Join(", ", parts)}";
+    }
+}
+
 // Exactly one consumer per client. The receive loop timestamps and preserves every frame,
 // even while a test is sending, delaying, or consuming another connection's packets.
 public sealed class WireClient : IAsyncDisposable
 {
+    public const int MaxKeptUnknownFrames = 32768;
     private readonly TcpClient tcp;
     private readonly NetworkStream stream;
     private readonly TimeSpan timeout;
@@ -24,15 +46,20 @@ public sealed class WireClient : IAsyncDisposable
     private readonly Channel<ReceivedFrame> inbox = Channel.CreateBounded<ReceivedFrame>(32768);
     private readonly Task receiving;
     private readonly SemaphoreSlim sending = new(1, 1);
+    private readonly UnknownPackets unknownTally;
+    private readonly Queue<UnknownFrame> unknown = new();
+    private readonly Dictionary<ushort, int> unknownCounts = new();
+    private long unknownDropped;
     private int disposed;
     private int serverDisconnected;
     public bool ServerDisconnected => Volatile.Read(ref serverDisconnected) != 0;
 
-    private WireClient(TcpClient tcp, TimeSpan timeout)
+    private WireClient(TcpClient tcp, TimeSpan timeout, UnknownPackets unknownTally)
     {
         this.tcp = tcp;
         stream = tcp.GetStream();
         this.timeout = timeout;
+        this.unknownTally = unknownTally;
         receiving = ReceiveAsync();
     }
 
@@ -44,10 +71,13 @@ public sealed class WireClient : IAsyncDisposable
         try
         {
             await tcp.ConnectAsync(options.Host, options.Port, deadline.Token);
-            return new WireClient(tcp, options.Timeout);
+            return new WireClient(tcp, options.Timeout, options.Unknown);
         }
         catch { tcp.Dispose(); throw; }
     }
+
+    // A known Id: a Shared PacketId value, all of which PacketCodec.Decode handles. Anything else is skipped.
+    public static bool IsKnownId(ushort id) => Enum.IsDefined((PacketId)id);
 
     public Task SendAsync(IPacket packet, CancellationToken ct) => SendRawAsync(PacketCodec.Encode(packet), ct);
 
@@ -65,7 +95,12 @@ public sealed class WireClient : IAsyncDisposable
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         deadline.CancelAfter(timeout);
         try { return await inbox.Reader.ReadAsync(deadline.Token); }
-        catch (ChannelClosedException ex) { throw new IOException("Server disconnected or sent an invalid frame.", ex.InnerException ?? ex); }
+        catch (ChannelClosedException ex)
+        {
+            var cause = ex.InnerException ?? ex;
+            throw new IOException(cause is PacketFormatException
+                ? $"Server disconnected or sent an invalid frame: {cause.Message}" : "Server disconnected or sent an invalid frame.", cause);
+        }
     }
 
     public async Task<ReceivedFrame> ReadAsync<T>(CancellationToken ct, Func<T, bool>? predicate = null) where T : IPacket
@@ -90,6 +125,38 @@ public sealed class WireClient : IAsyncDisposable
                 while (inbox.Reader.TryRead(out _)) deadline.Token.ThrowIfCancellationRequested();
         }
         catch (Exception ex) when (ex is IOException or SocketException) { }
+    }
+
+    // Skipped unknown-Id frames per PacketId on this connection.
+    public IReadOnlyDictionary<ushort, int> UnknownCounts()
+    {
+        lock (unknown) return new Dictionary<ushort, int>(unknownCounts);
+    }
+
+    // Every skipped unknown-Id frame received at or after `since`. Fails if the bounded store dropped any of them.
+    public List<UnknownFrame> UnknownFramesSince(long since)
+    {
+        lock (unknown)
+        {
+            Check.Require(unknownDropped == 0 || (unknown.Count > 0 && unknown.Peek().ReceivedAt < since),
+                $"More than {MaxKeptUnknownFrames} unknown-Id frames on one connection; dropped frames cannot be scanned.");
+            return unknown.Where(f => f.ReceivedAt >= since).ToList();
+        }
+    }
+
+    private void KeepUnknown(UnknownFrame frame)
+    {
+        unknownTally.Add(frame.Id);
+        lock (unknown)
+        {
+            unknownCounts[frame.Id] = unknownCounts.GetValueOrDefault(frame.Id) + 1;
+            unknown.Enqueue(frame);
+            if (unknown.Count > MaxKeptUnknownFrames)
+            {
+                unknown.Dequeue();
+                unknownDropped++;
+            }
+        }
     }
 
     private async Task ReceiveAsync()
@@ -120,6 +187,13 @@ public sealed class WireClient : IAsyncDisposable
                     BinaryPrimitives.WriteInt32LittleEndian(raw, Protocol.IdSize + payload.Length);
                     BinaryPrimitives.WriteUInt16LittleEndian(raw.AsSpan(Protocol.HeaderSize), id);
                     payload.Span.CopyTo(raw.AsSpan(Protocol.HeaderSize + Protocol.IdSize));
+                    // The length was valid (checked above). An unknown Id is skipped, counted and kept raw; a known Id
+                    // that fails to decode (bad payload, trailing bytes) still faults the stream, as does a bad length.
+                    if (!IsKnownId(id))
+                    {
+                        KeepUnknown(new UnknownFrame(id, raw, receivedAt));
+                        continue;
+                    }
                     var frame = new ReceivedFrame(PacketCodec.Decode(id, payload.Span), raw, receivedAt);
                     if (!inbox.Writer.TryWrite(frame)) throw new CheckFailure("Harness receive queue exceeded 32768 frames.");
                 }
