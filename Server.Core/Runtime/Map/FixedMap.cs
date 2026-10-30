@@ -25,19 +25,39 @@ namespace PingTheKiller.ServerCore.Map
             float dz = z - Math.Max(MinZ, Math.Min(MaxZ, z));
             return dx * dx + dz * dz < radius * radius - 0.000001f;
         }
+
+        // Slab test of the segment (ax, az)-(bx, bz) against the closed box: touching an edge or a corner intersects.
+        public bool IntersectsSegment(float ax, float az, float bx, float bz)
+        {
+            double enter = 0, exit = 1;
+            return Slab(ax, (double)bx - ax, MinX, MaxX, ref enter, ref exit) &&
+                Slab(az, (double)bz - az, MinZ, MaxZ, ref enter, ref exit);
+        }
+
+        private static bool Slab(double start, double delta, double min, double max, ref double enter, ref double exit)
+        {
+            if (delta == 0) return start >= min && start <= max;
+            double t1 = (min - start) / delta, t2 = (max - start) / delta;
+            if (t1 > t2) { double swap = t1; t1 = t2; t2 = swap; }
+            if (t1 > enter) enter = t1;
+            if (t2 < exit) exit = t2;
+            return enter <= exit;
+        }
     }
 
     public sealed class FixedMap
     {
         public const float Size = 60;
         public const float PlayerRadius = 0.4f;
-        public IReadOnlyList<Wall> Walls { get; } = Array.AsReadOnly(new[]
+        private readonly Wall[] _walls =
         {
             new Wall(-1, -1, 0, 61), new Wall(60, -1, 61, 61),
             new Wall(0, -1, 60, 0), new Wall(0, 60, 60, 61),
             new Wall(18, 14, 20, 32), new Wall(36, 28, 38, 47),
             new Wall(24, 42, 32, 44), new Wall(40, 14, 49, 16)
-        });
+        };
+        public FixedMap() { Walls = Array.AsReadOnly(_walls); }
+        public IReadOnlyList<Wall> Walls { get; }
         public IReadOnlyList<MapPoint> SpawnPoints { get; } = Array.AsReadOnly(new[]
         {
             // Killer first, then seven survivor spawns strictly beyond the threat band.
@@ -66,6 +86,16 @@ namespace PingTheKiller.ServerCore.Map
             foreach (var wall in Walls)
                 if (wall.IntersectsCircle(x, z, PlayerRadius)) return false;
             return true;
+        }
+
+        // Line of sight (GDD §2): true when the segment touches or crosses any wall, including when an endpoint is
+        // inside one. A zero-length segment is never blocked. Walls are not inflated. Allocation-free.
+        public bool SegmentBlocked(float ax, float az, float bx, float bz)
+        {
+            if (ax == bx && az == bz) return false;
+            for (int i = 0; i < _walls.Length; i++)
+                if (_walls[i].IntersectsSegment(ax, az, bx, bz)) return true;
+            return false;
         }
 
         public MapPoint Move(float x, float z, float dx, float dz)

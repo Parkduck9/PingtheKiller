@@ -79,13 +79,15 @@ public sealed class DecoyAndLeakTests
     private sealed class SweepStats
     {
         internal int KillerFrames, SurvivorFrames, AbsentChecks, DecoyEntries, AfterimageEntries, Coincidences;
+        // U2e: survivor frames with the legal line-of-sight killer entry and frames where it is blocked.
+        internal int SightFrames, BlockedFrames;
         internal readonly HashSet<byte> KillerSkills = new(), SurvivorEffects = new(), KillerEffects = new();
     }
 
     // Seeded 3-minute matches: a scripted human killer that chases what it sees, a scripted human survivor,
     // and six survivor bots. Every frame is checked against the true positions of the same tick.
     [Fact]
-    public void LeakSweep_NoSurvivorFrameCarriesKillerCoordinatesAndNoKillerFrameCarriesAbsentSurvivors()
+    public void LeakSweep_BlockedSurvivorFramesCarryNoKillerCoordinatesAndNoKillerFrameCarriesAbsentSurvivors()
     {
         var stats = new SweepStats();
         foreach (int seed in new[] { 1, 2, 3, 4, 5, 6, 7, 8 }) Sweep(seed, stats);
@@ -94,6 +96,7 @@ public sealed class DecoyAndLeakTests
         Assert.True(stats.DecoyEntries > 100, "decoy entries " + stats.DecoyEntries);
         Assert.True(stats.AfterimageEntries > 20, "afterimage entries " + stats.AfterimageEntries);
         Assert.True(stats.Coincidences * 20 < stats.SurvivorFrames, "coincidences " + stats.Coincidences);
+        Assert.True(stats.BlockedFrames > 5000 && stats.SightFrames > 1000, $"blocked {stats.BlockedFrames} / sight {stats.SightFrames}");
         Assert.Equal(new byte[] { 0, 1, 2, 3 }, stats.KillerSkills.OrderBy(x => x));
         Assert.Superset(new HashSet<byte> { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.WhiteNoise },
             stats.SurvivorEffects);
@@ -128,7 +131,7 @@ public sealed class DecoyAndLeakTests
                 survivorSkill = survivor.Last<S2C_MatchStart>().SkillId;
                 stats.KillerSkills.Add(killerSkill);
                 dummies.Clear();
-                Check(f, killer, killerId, survivor, tick, dummies, stats);
+                Check(f, killer, killerId, survivor, survivorId, tick, dummies, stats);
                 started = true;
                 continue;
             }
@@ -143,7 +146,7 @@ public sealed class DecoyAndLeakTests
             f.Tick();
             killer.Drain();
             survivor.Drain();
-            Check(f, killer, killerId, survivor, tick, dummies, stats);
+            Check(f, killer, killerId, survivor, survivorId, tick, dummies, stats);
             if (survivor.Packets.OfType<S2C_GameResult>().Any()) started = false;
         }
     }
@@ -194,7 +197,7 @@ public sealed class DecoyAndLeakTests
         return count;
     }
 
-    private static void Check(CoreFixture f, Peer killer, int killerId, Peer survivor, int tick, List<(float X, float Z, int Until)> dummies, SweepStats stats)
+    private static void Check(CoreFixture f, Peer killer, int killerId, Peer survivor, int survivorId, int tick, List<(float X, float Z, int Until)> dummies, SweepStats stats)
     {
         var kWorld = killer.Packets.OfType<S2C_WorldState>().SingleOrDefault();
         var sWorld = survivor.Packets.OfType<S2C_WorldState>().SingleOrDefault();
@@ -214,20 +217,23 @@ public sealed class DecoyAndLeakTests
         Assert.All(kWorld.Players.Where(p => p.Role != (byte)Role.Killer), AssertAnonymous);
         Assert.Equal(sWorld.Players.Count, sWorld.Players.Select(p => p.Id).Distinct().Count());
 
-        // Survivor-bound frames: never the killer entry, never the killer's coordinate bytes.
+        // Survivor-bound frames (U2e): the exact killer entry only with line of sight, otherwise none; outside that one
+        // legal entry, never the killer's coordinate bytes.
         byte[] kx = BitConverter.GetBytes(killerSelf.X), kz = BitConverter.GetBytes(killerSelf.Z);
         byte[] pair = kx.Concat(kz).ToArray();
         foreach (var packet in survivor.Packets)
         {
             if (packet is S2C_WorldState w)
             {
-                Assert.DoesNotContain(w.Players, p => p.Role == (byte)Role.Killer);
-                var stripped = new S2C_WorldState { Tick = w.Tick, TimeLeft = w.TimeLeft, ThreatLevel = w.ThreatLevel, Players = w.Players };
+                if (KillerSight.Verify(w, survivorId, killerSelf, $"tick {tick}")) stats.SightFrames++;
+                else stats.BlockedFrames++;
+                var rest = KillerSight.WithoutKiller(w);
+                var stripped = new S2C_WorldState { Tick = w.Tick, TimeLeft = w.TimeLeft, ThreatLevel = w.ThreatLevel, Players = rest.Players };
                 byte[] bytes = PacketCodec.Encode(stripped);
                 Assert.Equal(-1, bytes.AsSpan().IndexOf(pair));
                 foreach (var (value, needle) in new[] { (killerSelf.X, kx), (killerSelf.Z, kz) })
                 {
-                    int legit = w.Players.Sum(p => (Same(p.X, value) ? 1 : 0) + (Same(p.Z, value) ? 1 : 0) + (Same(p.Yaw, value) ? 1 : 0) +
+                    int legit = stripped.Players.Sum(p => (Same(p.X, value) ? 1 : 0) + (Same(p.Z, value) ? 1 : 0) + (Same(p.Yaw, value) ? 1 : 0) +
                         (Same(p.StatusTimer, value) ? 1 : 0)) + (Same(w.TimeLeft, value) ? 1 : 0);
                     if (legit > 0) stats.Coincidences++;
                     Assert.True(Count(bytes, needle) <= legit, $"tick {tick}: killer coordinate {value:R} in a survivor frame");
@@ -244,8 +250,9 @@ public sealed class DecoyAndLeakTests
         }
 
         // Killer-bound frames: absent (Silent, alive) survivors' coordinates never appear outside decoy placement.
-        var truth = sWorld.Players.ToDictionary(p => p.Id);
-        var absent = sWorld.Players.Where(p => p.Status == (byte)PlayerStatus.Normal && (p.Flags & (byte)PlayerFlags.Signal) == 0).ToList();
+        var survivors = sWorld.Players.Where(p => p.Role == (byte)Role.Survivor).ToList();
+        var truth = survivors.ToDictionary(p => p.Id);
+        var absent = survivors.Where(p => p.Status == (byte)PlayerStatus.Normal && (p.Flags & (byte)PlayerFlags.Signal) == 0).ToList();
         var leftover = new List<PlayerState>();
         var sources = f.Server.KillerViewSources;
         if (sources.Count == 0 && killer.Packets.OfType<S2C_GameResult>().Any()) return; // final frame, match already reset

@@ -147,6 +147,30 @@ namespace PingTheKiller.ServerCore
             }
         }
 
+        // GDD §2 (10/30): an active survivor sees the killer while the 2D segment between their server positions of
+        // this tick touches no wall. Spectators (Escaped, Eliminated) never do. Per recipient, no linger or prediction.
+        private bool KillerInSightOf(Player survivor) =>
+            _killer != null && survivor.IsActiveSurvivor &&
+            !Map.SegmentBlocked(survivor.X, survivor.Z, _killer.X, _killer.Z);
+
+        // Server tests only: puts a player at an exact standable position between ticks (line-of-sight edge cases).
+        internal void PlaceForTests(int playerId, float x, float z)
+        {
+            if (!Map.CanStand(x, z)) throw new ArgumentOutOfRangeException(nameof(x));
+            lock (_tickGate)
+                foreach (var player in _players)
+                    if (player.Id == playerId) { player.X = x; player.Z = z; return; }
+            throw new ArgumentException("unknown player", nameof(playerId));
+        }
+
+        // The survivor-bound killer entry carries position, facing and status only: no input, timer or count detail.
+        private PlayerState SurvivorKillerEntry() => new PlayerState
+        {
+            Id = _killer.Id, Role = (byte)Role.Killer, Status = (byte)_killer.Status,
+            X = _killer.X, Z = _killer.Z, Yaw = _killer.Yaw,
+            Flags = (byte)PlayerFlags.None, StatusTimer = 0, CaptureCount = 0
+        };
+
         private float StatusTimer(Player player) =>
             player.Status == PlayerStatus.Lagging ? (float)Math.Max(0, player.LaggingUntil - _now) : 0;
 
@@ -245,6 +269,8 @@ namespace PingTheKiller.ServerCore
                     world.Terminals.AddRange(_terminals);
                     world.ThreatLevel = ThreatFor(recipient);
                     world.Players.AddRange(_survivorView);
+                    // Same tick, same positions as the snapshot: the line-of-sight decision and the entry agree.
+                    if (KillerInSightOf(recipient)) world.Players.Add(SurvivorKillerEntry());
                 }
                 Send(binding.Connection, world);
                 var self = SelfStateFor(recipient);

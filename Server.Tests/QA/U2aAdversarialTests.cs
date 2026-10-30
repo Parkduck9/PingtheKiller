@@ -1,6 +1,7 @@
 using PingTheKiller.ServerCore;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
+using PingTheKiller.Tests.Core;
 using Xunit;
 
 namespace PingTheKiller.Tests.QA;
@@ -132,8 +133,11 @@ public sealed class U2aAdversarialTests
     // ------------------------------------------------------------------ 2. killer hidden from survivors
 
     [Fact]
-    public void KillerHidden_MovingHumanKiller_NoSurvivorFrameContainsEntryOrCoordinateBytes_ThreatMatchesBands()
+    public void KillerHidden_MovingHumanKiller_BlockedSurvivorFramesCarryNoEntryOrCoordinateBytes_ThreatMatchesBands()
     {
+        // U2e re-target: survivors now see the killer while the line of sight is clear (GDD §2, 10/30). A frame without
+        // line of sight keeps the full U2a check (no entry, no coordinate bytes); a frame with it must carry exactly the
+        // contract entry, and the rest of that frame must still carry no killer coordinate bytes.
         // U2b migration: under the U2b rules a bot's Traffic Overload halves the killer's speed, so the "threat level
         // should vary" sanity check legitimately fails. The invariant protected here (no killer coordinates in any survivor
         // frame, threat bands from the true distance) is U2a core behaviour, so this runs in sandbox mode, which keeps the
@@ -151,7 +155,24 @@ public sealed class U2aAdversarialTests
         var killerDirs = new[] { (0.6f, 0.8f), (-0.8f, 0.6f), (0.7f, -0.7f), (-0.6f, -0.8f) };
         var s1Dirs = new[] { (1f, 0f), (0f, 1f), (-1f, 0f), (0f, -1f) };
         var distinctThreat = new HashSet<byte>();
-        int killerMovedTicks = 0, idleHidden = 0;
+        int killerMovedTicks = 0, idleHidden = 0, sightFrames = 0, blockedFrames = 0;
+        void CheckSurvivorFrames(int tick, PlayerState kself)
+        {
+            foreach (var s in new[] { s1, s2 })
+            {
+                var sw = s.World();
+                string ctx = "survivor " + s.Id + " tick " + tick;
+                if (KillerSight.Verify(sw, s.Id, kself, ctx)) sightFrames++; else blockedFrames++;
+                QaBytes.AssertAbsent(KillerSight.WithoutKiller(sw), killer.Id, kself.X, kself.Z, ctx);
+                Assert.Equal(4, sw.Players.Count(p => p.Role == (byte)Role.Survivor)); // all four survivors (2 humans + 2 bots) incl. Silent ones
+                var self = sw.Players.Single(p => p.Id == s.Id);
+                float d = Dist(self, kself);
+                byte expected = d > 18f ? (byte)0 : d > 12f ? (byte)1 : d > 6f ? (byte)2 : (byte)3;
+                bool nearBoundary = Math.Abs(d - 18f) < 1e-3f || Math.Abs(d - 12f) < 1e-3f || Math.Abs(d - 6f) < 1e-3f;
+                if (!nearBoundary) Assert.True(expected == sw.ThreatLevel, $"tick {tick} d={d}: expected threat {expected}, got {sw.ThreatLevel}");
+                distinctThreat.Add(sw.ThreatLevel);
+            }
+        }
         PlayerState prev = killer.Self();
         for (int tick = 0; tick < 240; tick++) // 12 s
         {
@@ -168,24 +189,24 @@ public sealed class U2aAdversarialTests
             if (Math.Abs(kself.X - prev.X) + Math.Abs(kself.Z - prev.Z) > 1e-4f) killerMovedTicks++;
             prev = kself;
             if (tick > 40 && !kw.Players.Any(p => p.Id == s2.Id)) idleHidden++;
-
-            foreach (var s in new[] { s1, s2 })
-            {
-                var sw = s.World();
-                QaBytes.AssertAbsent(sw, killer.Id, kself.X, kself.Z, "survivor " + s.Id + " tick " + tick);
-                Assert.DoesNotContain(sw.Players, p => p.Role == (byte)Role.Killer);
-                Assert.Equal(4, sw.Players.Count); // all four survivors (2 humans + 2 bots) incl. Silent ones
-                var self = sw.Players.Single(p => p.Id == s.Id);
-                float d = Dist(self, kself);
-                byte expected = d > 18f ? (byte)0 : d > 12f ? (byte)1 : d > 6f ? (byte)2 : (byte)3;
-                bool nearBoundary = Math.Abs(d - 18f) < 1e-3f || Math.Abs(d - 12f) < 1e-3f || Math.Abs(d - 6f) < 1e-3f;
-                if (!nearBoundary) Assert.True(expected == sw.ThreatLevel, $"tick {tick} d={d}: expected threat {expected}, got {sw.ThreatLevel}");
-                distinctThreat.Add(sw.ThreatLevel);
-            }
+            CheckSurvivorFrames(tick, kself);
         }
+        // U2e: phase 2 walks the killer behind the (18,14)-(20,32) wall, so blocked frames get the full U2a check.
+        s1.Move(0, 0);
+        foreach (var (gx, gz) in new[] { (24f, 12f), (24f, 22f) })
+            for (int tick = 0; tick < 200; tick++)
+            {
+                var me = killer.Self();
+                float dx = gx - me.X, dz = gz - me.Z, len = MathF.Sqrt(dx * dx + dz * dz);
+                if (len < 0.2f) break;
+                killer.Move(dx / len, dz / len);
+                f.Tick();
+                CheckSurvivorFrames(240 + tick, killer.Self());
+            }
         Assert.True(killerMovedTicks > 150, "scenario sanity: killer must actually move");
         Assert.True(idleHidden > 100, "scenario sanity: idle survivor must be masked from the killer");
         Assert.True(distinctThreat.Count >= 2, "scenario sanity: threat level should vary");
+        Assert.True(blockedFrames > 20 && sightFrames > 20, $"scenario sanity: blocked {blockedFrames}, sight {sightFrames}");
     }
 
     [Fact]
@@ -208,6 +229,7 @@ public sealed class U2aAdversarialTests
             var allIds = slots.Select(s => s.PlayerId).ToHashSet();
 
             HashSet<int>? seen = null;
+            int sightFrames = 0, blockedFrames = 0;
             for (int i = 0; i < 400; i++) // 20 s
             {
                 if (i % 40 == 0) h1.Move(0.6f, 0.8f); else if (i % 40 == 20) h1.Move(0, 0);
@@ -215,15 +237,22 @@ public sealed class U2aAdversarialTests
                 foreach (var h in new[] { h1, h2 })
                 {
                     var w = h.World();
-                    Assert.Equal(4, w.Players.Count);
-                    Assert.All(w.Players, p => Assert.Equal((byte)Role.Survivor, p.Role));
-                    var ids = w.Players.Select(p => p.Id).ToHashSet();
+                    // U2e re-target: the bot killer's entry appears exactly while in line of sight (same-tick ground truth);
+                    // the survivor list itself is unchanged.
+                    var k = f.Server.PlayerSnapshot().Single(p => p.Role == Role.Killer);
+                    if (KillerSight.Verify(w, h.Id, k.Id, k.X, k.Z, null, "tick " + i)) sightFrames++; else blockedFrames++;
+                    var survivorEntries = w.Players.Where(p => p.Role != (byte)Role.Killer).ToList();
+                    Assert.Equal(4, survivorEntries.Count);
+                    Assert.All(survivorEntries, p => Assert.Equal((byte)Role.Survivor, p.Role));
+                    var ids = survivorEntries.Select(p => p.Id).ToHashSet();
                     Assert.Equal(4, ids.Count);
                     seen ??= ids;
                     Assert.True(seen.SetEquals(ids), "survivor list membership changed");
                 }
             }
-            Assert.Single(allIds.Except(seen!)); // exactly one id (the killer) never appears
+            Assert.Single(allIds.Except(seen!)); // exactly one id (the killer) never appears as a survivor
+            // The bot killer stays in the open near the spawns here; blocked frames are covered by the moving-killer test above.
+            Assert.True(sightFrames > 0, $"scenario sanity: blocked {blockedFrames}, sight {sightFrames}");
             return;
         }
         Assert.Fail("no seed in 1..60 produced a bot killer with two human survivors (scenario problem)");
@@ -662,12 +691,18 @@ public sealed class U2aAdversarialTests
         f.Tick();
         Assert.Equal(1, humans.Count(h => h.Last<S2C_MatchStart>().Role == (byte)Role.Killer));
         f.Ticks(60);
+        var killerSelf = humans.Single(h => h.Last<S2C_MatchStart>().Role == (byte)Role.Killer).Self();
         foreach (var h in humans)
         {
             var w = h.World();
-            // the killer sees only itself (all 7 idle survivors are Silent = omitted); survivors see the 7 survivors
+            // the killer sees only itself (all 7 idle survivors are Silent = omitted); survivors see the 7 survivors,
+            // plus (U2e) the killer entry exactly when it is in their line of sight
             if (h.Last<S2C_MatchStart>().Role == (byte)Role.Killer) Assert.Single(w.Players);
-            else Assert.Equal(7, w.Players.Count);
+            else
+            {
+                Assert.Equal(7, w.Players.Count(p => p.Role == (byte)Role.Survivor));
+                KillerSight.Verify(w, h.Id, killerSelf, "survivor " + h.Id);
+            }
             GameConstants.TerminalsFor(7, out int required, out int placed);
             Assert.Equal(placed, w.Terminals.Count);
             Assert.Equal(required, w.TerminalsRequired);
