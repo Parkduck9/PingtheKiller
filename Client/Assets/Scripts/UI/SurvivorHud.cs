@@ -10,17 +10,31 @@ namespace PingTheKiller.Client.UI
     // a prompt applies. Every value comes from SurvivorReadout; this class only displays it.
     public sealed class SurvivorHud
     {
-        public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8;
-        private readonly VisualElement root, cluster, prompt, promptTrack, promptFill, meterTrack, meterFill, timeBar, exitBar;
+        public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
+        private static readonly Color32 Danger = new Color32(229, 72, 77, 255);
+        private readonly VisualElement root, cluster, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar, exitBar;
+        private readonly VisualElement threatStrip;
+        private readonly VisualElement[] bands = new VisualElement[4]; // top, bottom, left, right (HUD_SPEC 4.2 level 3)
         private readonly Label skillName, word, tag, reason, time, terminals, exit, promptText;
         private readonly SkillRing ring;
         private readonly VisualElement[] bordered;
+        private readonly Texture2D[] noise = new Texture2D[5]; // strip + four bands, rebuilt only when the mask is re-rolled
+        private ThreatEffect shownEffect;
+        private int shownSeed;
+        private float shownFraction;
+        private Vector2 shownCanvas;
+        private float scale = 1;
 
         public SurvivorHud(VisualElement parent, Font font)
         {
             root = Box(parent, "survivor-hud");
+            for (int i = 0; i < bands.Length; i++) { bands[i] = Box(root, "sband"); Show(bands[i], false); }
             prompt = Box(root, "sprompt");
-            promptText = Text(prompt, string.Empty, "km");
+            VisualElement promptLine = Box(prompt, "krow");
+            promptBar = Box(promptLine, "kbar");
+            promptBar.AddToClassList("danger");
+            promptText = Text(promptLine, string.Empty, "km");
+            Show(promptBar, false);
             promptTrack = Box(prompt, "sprompt-track");
             promptFill = Box(promptTrack, "sfill");
 
@@ -33,6 +47,9 @@ namespace PingTheKiller.Client.UI
             Text(column, "[Q]", "ks", "kmuted");
 
             VisualElement meter = Box(cluster, "smeter");
+            threatStrip = Box(meter, "sthreat-strip");
+            threatStrip.style.height = ThreatVisual.StripHeight;
+            Show(threatStrip, false);
             VisualElement rowA = Box(meter, "srow-a");
             word = Text(rowA, string.Empty, "km", "kbold");
             tag = Text(rowA, string.Empty, "ks", "stag");
@@ -109,9 +126,85 @@ namespace PingTheKiller.Client.UI
             tag.EnableInClassList("kmuted", m.TagMuted);
             SetText(reason, m.Reason);
             reason.EnableInClassList("kmuted", m.ReasonMuted);
+            reason.EnableInClassList("sreason-wrap", m.Wrap);
+            Show(meterTrack, !m.Wrap);
             meterTrack.EnableInClassList("ally-outline", m.AllyOutline);
             Fill(meterFill, m.Fill, m.Width);
         }
+
+        // HUD_SPEC 4.2: the meter-edge strip (levels 1-2) or the screen-edge band (level 3). seed = the mask, re-rolled by
+        // ThreatVisual on a level change only; the textures are rebuilt only when the seed, the level or the canvas changes.
+        public void SetThreat(ThreatEffect effect, float fraction, int seed)
+        {
+            Vector2 canvas = new Vector2(Screen.width, Screen.height) / Mathf.Max(.01f, scale);
+            bool strip = effect == ThreatEffect.MeterStrip, band = effect == ThreatEffect.ScreenEdge;
+            Show(threatStrip, strip);
+            foreach (VisualElement b in bands) Show(b, band);
+            if (effect == ThreatEffect.None) { shownEffect = effect; return; }
+            if (effect == shownEffect && seed == shownSeed && fraction == shownFraction && (!band || canvas == shownCanvas)) return;
+            shownEffect = effect; shownSeed = seed; shownFraction = fraction; shownCanvas = canvas;
+            if (strip)
+            {
+                float width = Mathf.Round(MeterWidth * fraction);
+                threatStrip.style.width = width;
+                Paint(threatStrip, 0, seed, width, ThreatVisual.StripHeight, ThreatVisual.StripCell, ThreatVisual.StripDensity);
+                return;
+            }
+            float edge = ThreatVisual.BandWidth, inner = Mathf.Max(0, canvas.y - 2 * edge);
+            Place(bands[0], 0, 0, canvas.x, edge);
+            Place(bands[1], 0, canvas.y - edge, canvas.x, edge);
+            Place(bands[2], 0, edge, edge, inner);
+            Place(bands[3], canvas.x - edge, edge, edge, inner);
+            for (int i = 0; i < bands.Length; i++)
+                Paint(bands[i], i + 1, unchecked(seed + 7919 * (i + 1)), bands[i].style.width.value.value, bands[i].style.height.value.value, ThreatVisual.Cell, ThreatVisual.Density);
+        }
+
+        private static void Place(VisualElement element, float left, float top, float width, float height)
+        {
+            element.style.left = left; element.style.top = top; element.style.width = width; element.style.height = height;
+        }
+
+        // One 1-bit texture: `danger` texels or fully transparent ones, point-filtered (no blend of palette colors).
+        private void Paint(VisualElement element, int slot, int seed, float width, float height, float cell, float density)
+        {
+            int w = Mathf.Max(1, Mathf.CeilToInt(width / cell)), h = Mathf.Max(1, Mathf.CeilToInt(height / cell));
+            bool[] mask = ThreatVisual.Mask(seed, w, h, density);
+            var pixels = new Color32[w * h];
+            for (int i = 0; i < pixels.Length; i++) pixels[i] = mask[i] ? Danger : new Color32(0, 0, 0, 0);
+            Texture2D texture = noise[slot];
+            if (texture == null || texture.width != w || texture.height != h)
+            {
+                Release(texture);
+                texture = noise[slot] = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, name = "threat noise" };
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false);
+            element.style.backgroundImage = new StyleBackground(texture);
+            element.MarkDirtyRepaint();
+        }
+
+        private static void Release(Object item)
+        {
+            if (item == null) return;
+            if (Application.isPlaying) Object.Destroy(item); else Object.DestroyImmediate(item);
+        }
+
+        public void Dispose()
+        {
+            for (int i = 0; i < noise.Length; i++) { Release(noise[i]); noise[i] = null; }
+        }
+
+        // Read-back for tests and the dev capture.
+        public ThreatEffect ThreatShown => threatStrip.style.display == DisplayStyle.Flex ? ThreatEffect.MeterStrip
+            : bands[0].style.display == DisplayStyle.Flex ? ThreatEffect.ScreenEdge : ThreatEffect.None;
+        public float ThreatStripWidth => threatStrip.style.width.value.value;
+        public float ThreatStripHeight => threatStrip.style.height.value.value;
+        // (10/30, U4e Q-02) The skill name column (ClientUI.uss .sname): wide enough for the longest skill word at S 600.
+        public const float SkillNameWidth = 100, SkillBlockWidth = 176, InfoBlockWidth = 160;
+        public Texture2D ThreatTexture(int slot) => noise[slot];
+        public bool ReasonWraps => reason.ClassListContains("sreason-wrap");
+        public bool MeterBarShown => meterTrack.style.display != DisplayStyle.None;
+        public bool PromptDanger => promptBar.style.display != DisplayStyle.None;
 
         // Info block: time (4.9), terminals (4.3), exit (4.7).
         public void SetInfo(float timeLeft, int done, int needed, ExitLine line, float? lockedLeft)
@@ -143,6 +236,7 @@ namespace PingTheKiller.Client.UI
             if (!visible) return;
             SetText(promptText, p.Text);
             promptText.EnableInClassList("kmuted", p.Muted);
+            Show(promptBar, p.Danger);
             Show(promptTrack, p.Bar != BarFill.Empty);
             Fill(promptFill, p.Bar, p.Width);
         }
@@ -170,6 +264,7 @@ namespace PingTheKiller.Client.UI
         // 1 u borders snap to whole pixels (HUD_SPEC 0.2): 1 physical px at every panel scale.
         public void SetScale(float scale)
         {
+            this.scale = scale;
             float border = Mathf.Max(1, Mathf.Round(scale)) / scale;
             foreach (VisualElement block in bordered)
             {

@@ -89,6 +89,8 @@
 .root .actions { flex-direction: row; margin-top: 12px; }
 
 .root .play { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+/* HUD_SPEC 4.5 Lagging stutter: two full-screen layers of the held world image (previous at full opacity, newest at 70 %). */
+.root .stutter { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; }
 .root .headline { -unity-font-style: bold; margin-top: 16px; margin-bottom: 8px; }
 .root .outcome { margin-bottom: 16px; }
 /* Dev line (F3, default off): top-left, small, above every screen. */
@@ -103,7 +105,7 @@
 }
 
 /* Survivor HUD (HUD_SPEC 4.0): one bottom-center cluster, 672x72 u, 24 u above the bottom edge, panel fill and a 1 u line
-   border (re-snapped to 1 physical px in code); blocks [8] skill 168 [8] meter 304 [8] info 168 [8] (the outer 8 u gaps
+   border (re-snapped to 1 physical px in code); blocks [8] skill 176 [8] meter 304 [8] info 160 [8] ((10/30); the outer 8 u gaps
    include the 1 u border, hence 7 u of padding). Prompt row 672x40 u, 8 u above the cluster. Text classes km / ks / kbold /
    kmuted / krow / kbar are shared with the Killer HUD. ally = Survivor-team information, Survivor client only. */
 .root .survivor-hud { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
@@ -112,9 +114,12 @@
     flex-direction: row; align-items: center; padding: 0; padding-left: 7px; padding-right: 7px;
     background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
 }
-.root .sskill { width: 168px; height: 70px; flex-shrink: 0; flex-direction: row; align-items: center; padding-left: 8px; padding-right: 8px; }
-.root .sskill-text { margin-left: 8px; width: 80px; }
-.root .unity-label.sname { white-space: normal; width: 80px; max-height: 36px; overflow: hidden; }
+/* (10/30, U4e Q-02) skill 176 = 8 + ring 64 + 4 + name column 100 (no right padding: the meter's 8 u margin + 8 u padding
+   follow); info 160. The longest skill word ("Emergency", S 600 at the 15 u floor ~ 90 u) fits, so names wrap only at
+   spaces. */
+.root .sskill { width: 176px; height: 70px; flex-shrink: 0; flex-direction: row; align-items: center; padding-left: 8px; padding-right: 0; }
+.root .sskill-text { margin-left: 4px; width: 100px; }
+.root .unity-label.sname { white-space: normal; width: 100px; max-height: 36px; overflow: hidden; }
 .root .unity-label.ring-count {
     position: absolute; left: 0; top: 0; width: 64px; height: 64px; margin: 0; padding: 0;
     font-size: 18px; color: #E8E6E1; -unity-text-align: middle-center;
@@ -129,13 +134,21 @@
 .root .sfill.fill-danger { background-color: #E5484D; }
 .root .sfill.fill-signal { background-color: #FFB020; }
 .root .sfill.fill-text { background-color: #E8E6E1; }
-.root .sinfo { width: 168px; height: 70px; flex-shrink: 0; margin-left: 8px; padding-left: 8px; padding-right: 8px; justify-content: center; }
+.root .sinfo { width: 160px; height: 70px; flex-shrink: 0; margin-left: 8px; padding-left: 8px; padding-right: 8px; justify-content: center; }
 .root .sprompt {
     position: absolute; bottom: 104px; left: 50%; translate: -50% 0; width: 672px; height: 40px;
     padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;
     background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
 }
 .root .sprompt-track { width: 656px; height: 4px; margin-top: 2px; }
+/* (10/30) Eliminated reason: up to two S lines in the meter's row B + gap + row C space (18 + 4 + 16 = 38 u); no bar. */
+.root .unity-label.sreason-wrap { white-space: normal; width: 288px; height: 38px; -unity-text-align: upper-left; }
+/* HUD_SPEC 4.2 threat noise: 1-bit danger/transparent textures (point filtered), static until the level changes.
+   Level 1-2: an 8 u strip on the meter's top edge from the right ((10/30) ruling; the meter's 4 u top padding plus the
+   blank top of row A, so it reaches no glyph). Level 3: a 24 u band on all four screen edges (bottom band ends 24 u below
+   the cluster: no overlap). */
+.root .sthreat-strip { position: absolute; right: 0; top: 0; height: 8px; }
+.root .sband { position: absolute; }
 
 /* Killer HUD (HUD_SPEC 6.1): bottom-left cluster, 320 u wide, margin 24 u, blocks with panel fill and a 1 u line border
    (the width is re-snapped to 1 physical px in code), corner radius 0. Type: S 14 / M 18 / L 28; S has a 12 px floor

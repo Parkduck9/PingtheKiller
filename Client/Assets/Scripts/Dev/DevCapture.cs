@@ -227,6 +227,53 @@ namespace PingTheKiller.Client.Dev
             else if (edges > 0 && inView == 0 && !taken.Contains("killer-offscreen.png")) EventShot("killer-offscreen.png", 0);
         }
 
+        // Survivor feedback evidence (U4e), every Survivor frame, from what the client shows (never from entries): the threat
+        // visual level, the own status, the capture banner, the stutter's presented frames and the Killer model's alpha.
+        // Event shots, one per frame: threat-1 / threat-2 / threat-3 (Normal, level held 0.3 / 0.3 / 0.2 s), capture-banner (0.6 s after the
+        // capture), lagging-stutter (banner gone, stutter running), eliminated-reason (1 s after), killer-in-sight (model fully
+        // shown for 0.5 s) and killer-fade (mid-fade after a sighting).
+        private byte shownThreat;
+        private PlayerStatus shownStatus;
+        private double threatSince = -1, capturedAt = -1, eliminatedAt = -1, killerSince = -1;
+        private bool killerSeen, killerLogged;
+        public void OnSurvivorFrame(byte threat, PlayerStatus status, bool banner, int stutterFrames, float killerAlpha)
+        {
+            if (matchAt < 0 || resultAt >= 0) return;
+            double t = Now;
+            if (threat != shownThreat) { shownThreat = threat; threatSince = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " threat visual level=" + threat); }
+            if (status != shownStatus)
+            {
+                if (status == PlayerStatus.Lagging) capturedAt = t;
+                if (status == PlayerStatus.Eliminated) eliminatedAt = t;
+                shownStatus = status;
+            }
+            bool full = killerAlpha >= .999f;
+            if (full && killerSince < 0) killerSince = t;
+            if (!full) killerSince = -1;
+            if (full) killerSeen = true;
+            if ((killerAlpha > 0) != killerLogged)
+            {
+                killerLogged = killerAlpha > 0;
+                Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " killer model " + (killerLogged ? "shown" : "hidden"));
+            }
+            if (args.Shots == null || capturing || pending.Count > 0) return;
+            if (Want("threat-1.png", located && threat == 1 && status == PlayerStatus.Normal && t - threatSince >= .3)) return;
+            if (Want("threat-2.png", located && threat == 2 && status == PlayerStatus.Normal && t - threatSince >= .3)) return;
+            if (Want("threat-3.png", located && threat == 3 && status == PlayerStatus.Normal && t - threatSince >= .2)) return;
+            if (Want("capture-banner.png", banner && capturedAt >= 0 && t - capturedAt >= .6)) return;
+            if (Want("lagging-stutter.png", status == PlayerStatus.Lagging && !banner && stutterFrames >= 4 && capturedAt >= 0 && t - capturedAt >= 3.3)) return;
+            if (Want("eliminated-reason.png", status == PlayerStatus.Eliminated && eliminatedAt >= 0 && t - eliminatedAt >= 1)) return;
+            if (Want("killer-in-sight.png", located && killerSince >= 0 && t - killerSince >= .5)) return;
+            if (killerSeen && killerAlpha > .25f && killerAlpha < .5f && !taken.Contains("killer-fade.png")) EventShot("killer-fade.png", 0);
+        }
+
+        private bool Want(string name, bool condition)
+        {
+            if (!condition || taken.Contains(name)) return false;
+            EventShot(name);
+            return true;
+        }
+
         // -ptk-rescue (Survivor client): the nearest Lagging ally from the Survivor HUD's own data, or found = false.
         public void RescueTarget(bool found, Vector3 at) { rescueFound = found; rescueAt = at; }
 
@@ -255,6 +302,7 @@ namespace PingTheKiller.Client.Dev
             laggingAt = resultAt = reopenedAt = backAt = -1; localStatus = 0; localHud = null; progress = Array.Empty<byte>(); exitState = -1;
             skillPresses = 0; skillUsed = false; nextSkillPress = cooldownSeenAt = countdownLogAt = chaseLogAt = -1; maxTracked = 0;
             loggedPrompt = ExecutionPrompt.None; chaseTerminal = 0; terminalPoints.Clear(); rescueFound = false;
+            shownThreat = 0; shownStatus = PlayerStatus.Normal; threatSince = capturedAt = eliminatedAt = killerSince = -1; killerSeen = killerLogged = false;
             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
         }
 

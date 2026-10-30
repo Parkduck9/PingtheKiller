@@ -7,11 +7,31 @@ using UnityEngine.Rendering;
 
 namespace PingTheKiller.Client.World
 {
-    // The static map plus, on a Survivor client, the Survivor characters (Id-based SnapshotBuffer interpolation).
+    // The static map plus, on a Survivor client, the Survivor characters (Id-based SnapshotBuffer interpolation) and the
+    // Killer model. The Killer model is drawn only from the Killer entry of the snapshots (SnapshotBuffer.SampleKiller),
+    // which the server sends to a Survivor only while its line of sight to the Killer is clear (HUD_SPEC 4.10 (10/30)): no
+    // marker, outline or through-wall indicator, and nothing else (threat level, effects) ever places it.
     // The Killer client draws no character here: it has no body, and Survivors reach it only as anonymous blips
     // (Killer/KillerWorldLayer). Its own position is read by Role.
     public sealed class WorldView : MonoBehaviour
     {
+        // Placeholder Killer model until the D3 assets: the Survivor capsule shape, 10 % taller, in the Killer red, with the visor.
+        private sealed class KillerModel
+        {
+            public GameObject Root;
+            public Material Material;
+            public Material Visor;
+        }
+        private KillerModel killerModel;
+        public static readonly Vector3 KillerBodyScale = new Vector3(CharacterLook.Width, CharacterLook.Height * .55f, CharacterLook.Width);
+        // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
+        public float KillerAlpha { get; private set; }
+        // Alpha of the Killer's visor material after the last Render; it fades with the body (KillerAlpha).
+        public float KillerVisorAlpha { get; private set; }
+
+        // A spectator (own status Eliminated or Escaped) never sees the Killer model, even if an entry arrives (U4e Q-04b).
+        public static bool KillerDrawable(byte ownStatus)
+            => ownStatus != (byte)PlayerStatus.Eliminated && ownStatus != (byte)PlayerStatus.Escaped;
         private sealed class Avatar
         {
             public GameObject Root;
@@ -60,6 +80,45 @@ namespace PingTheKiller.Client.World
             for (byte i = 0; i < map.TerminalPositions.Count; i++)
                 terminals.Add(i, MakeTerminal(i, new Vector3(map.TerminalPositions[i].X, 0, map.TerminalPositions[i].Z)));
             exit = Ring("Exit", SharedMap.Exit, GameConstants.ExitRadius, .16f, new Color32(154, 152, 144, 255));
+            if (role == Role.Survivor) killerModel = MakeKillerModel();
+        }
+
+        private KillerModel MakeKillerModel()
+        {
+            var root = new GameObject("Killer (line of sight)");
+            root.transform.SetParent(transform, false);
+            GameObject body = Primitive("Killer body", PrimitiveType.Capsule, Vector3.zero, KillerBodyScale, Killer, true);
+            body.transform.SetParent(root.transform, false);
+            body.transform.localPosition = Vector3.up * KillerBodyScale.y;
+            // Transparent like the body, so it fades with it (U4e Q-03).
+            GameObject visor = Primitive("Killer visor", PrimitiveType.Cube, Vector3.zero, CharacterLook.VisorScale, CharacterLook.Visor, true);
+            visor.transform.SetParent(root.transform, false);
+            visor.transform.localPosition = CharacterLook.VisorOffset + Vector3.up * (KillerBodyScale.y * 2 - CharacterLook.Height);
+            root.SetActive(false);
+            return new KillerModel
+            {
+                Root = root, Material = body.GetComponent<Renderer>().sharedMaterial, Visor = visor.GetComponent<Renderer>().sharedMaterial
+            };
+        }
+
+        // Survivor client: the Killer model from the Killer entry only (present, held + fading, or hidden); never while the
+        // own Survivor is spectating.
+        private void RenderKiller(double now)
+        {
+            KillerAlpha = 0; KillerVisorAlpha = 0;
+            if (killerModel == null) return;
+            bool seen = snapshots.SampleKiller(now, out Vector3 position, out float yaw, out float alpha)
+                && KillerDrawable(avatars.TryGetValue(localId, out Avatar self) ? self.Status : (byte)PlayerStatus.Normal);
+            if (killerModel.Root.activeSelf != seen) killerModel.Root.SetActive(seen);
+            if (!seen) return;
+            killerModel.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, yaw, 0));
+            Color color = Killer;
+            color.a = alpha;
+            killerModel.Material.color = color;
+            Color visor = CharacterLook.Visor;
+            visor.a = alpha;
+            killerModel.Visor.color = visor;
+            KillerAlpha = alpha; KillerVisorAlpha = killerModel.Visor.color.a;
         }
 
         public void Accept(S2C_WorldState state, double time)
@@ -130,6 +189,7 @@ namespace PingTheKiller.Client.World
                 Material wanted = own && localDither && ditherMaterial != null ? ditherMaterial : avatar.Material;
                 if (avatar.Body.sharedMaterial != wanted) avatar.Body.sharedMaterial = wanted;
             }
+            RenderKiller(now);
         }
 
         // Survivor: the own entry by Id. Killer: the own entry by Role (HUD_SPEC 6.2).

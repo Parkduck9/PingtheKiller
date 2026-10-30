@@ -59,7 +59,7 @@ Every element names its source. Allowed sources:
 2. **Static** — compiled into the client: the map (`Server.Core/Runtime/Map/FixedMap`), `GameConstants`, `SkillIds` durations, key bindings, the PC's own network interfaces.
 3. **Derived** — computed only from (1) and (2); the formula is given and the element is marked *derived*.
 
-A Survivor client has no Killer position, direction, speed or skill state beyond `S2C_WorldState.ThreatLevel` and the Survivor-bound `S2C_SkillEffect`s (U2b rule 10). A Killer client never uses `PlayerState.Id`, `Yaw`, `StatusTimer` or `CaptureCount` of Survivor entries and never uses the `Afterimage` flag (§6.3).
+A Survivor client has no Killer position, direction, speed or skill state beyond `S2C_WorldState.ThreatLevel`, the Survivor-bound `S2C_SkillEffect`s (U2b rule 10) and, **(10/30)** per the U2e contract (GDD §2, survivors see the Killer in line of sight), the Killer entry of its own `S2C_WorldState.Players`: `Role = Killer`, `X`, `Z`, `Yaw` (its `Flags`, `StatusTimer` and `CaptureCount` are 0), present only in snapshots where that Survivor has a clear line of sight to the Killer. Spectators (Eliminated, Escaped) never receive it. The client uses that entry only to draw the Killer model (§4.10); it is never a marker, an edge indicator, a sound source or an input to any other element. A Killer client never uses `PlayerState.Id`, `Yaw`, `StatusTimer` or `CaptureCount` of Survivor entries and never uses the `Afterimage` flag (§6.3).
 
 ### 0.2 Canvas, scale and strokes
 - Panel scale = `min(w/1920, h/1080)` clamped to `[0.8, 1.0]` (U4, `ClientScreens.cs`). Logical canvas = screen ÷ scale: **1920×1080 u** at 1920×1080, **1600×900 u** at 1280×720. Every layout below is given in logical units (u) with an anchor, and is checked against the 1600×900 canvas.
@@ -219,6 +219,7 @@ Anchor bottom-center, 24 u above the bottom edge. Width 672 u, height 72 u, fill
  8 + 168 + 8 + 304 + 8 + 168 + 8 = 672 u   (42 % of 1600, 35 % of 1920)
 ```
 Info block (168×72, padding 8 left/right, 0 top/bottom): three M lines, 3 × 23 = 69 ≤ 70 inner height; inner width 152 u. Widest lines at M (9.9 u per character): `Terminals 1/3` 129 u; line 3 (§4.7) `Exit Locked` 109 u, bar + gap + `Exit Open` 4 + 4 + 89 = 97 u, bar + gap + `Locked 4 s` 4 + 4 + 99 = 107 u. All ≤ 152.
+**(10/30) Block widths changed (U4e Q-02):** skill **176** and info **160** (8 + 176 + 8 + 304 + 8 + 160 + 8 = 672 u, unchanged overall). The skill name column is 100 u (padding 8 + ring area 64 + gap 4 + 100, no right padding), so the longest skill word, `Emergency` at S 600 (≈ 84 u at 14 u, ≈ 90 u at the 15 u floor, Inter with synthesized bold), fits and names wrap only at spaces. The info block's inner width becomes 144 u; its widest line, `Terminals 4/4` at M 600, is ≈ 135 u.
 At 720p the cluster is 538×58 px; at 1080p 672×72 px. Nothing else is in screen space except the §4.2 level-3 band, §4.6 markers and the play menu (§5).
 
 ### 4.1 Transmit meter — core element
@@ -249,6 +250,19 @@ Capture tag (row A, right), first match wins:
 Either tag is at most 15 characters (≈ 125 u) next to the longest word, `Lagging` (≈ 70 u at M). That fits 288 u.
 Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
 
+**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 66 characters ≈ 540 u, fits the 656 u row). It is shown once per capture and removed early when the status leaves Lagging. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
+
+**(10/30) Elimination reason** (*derived* from the own entry in the snapshot before `Status = Eliminated`):
+
+| Previous own status | Condition | Reason line |
+|---|---|---|
+| Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue within 60 s.` |
+| Lagging | last `StatusTimer > 0.2` | `Executed: the Killer touched you while Lagging.` |
+| Normal | `CaptureCount ≥ 1` | `Executed: caught a second time.` |
+| anything else | — | none (the meter keeps `Watching until the match ends.`) |
+
+While Eliminated the meter shows `Eliminated` (row A) and the reason in S `text` in rows B–C, wrapped to at most two lines in 288×38 u, with no bar. The same reason follows the §7.2 outcome line.
+
 ### 4.2 Threat cue (GDD §3.2)
 Source: `S2C_WorldState.ThreatLevel` (0–3). Distance only; the UI adds no direction (no audio panning, no edge bias).
 
@@ -257,11 +271,15 @@ Each level has its sound and **exactly one** screen effect:
 | Level | Trigger | Sound (centered, non-positional) | Screen effect |
 |---|---|---|---|
 | 0 | `ThreatLevel = 0` | — | — |
-| 1 | `= 1` (12–18 m) | `threat_beep` every 1.2 s | **meter-edge noise:** a 1-bit noise strip (pixels `danger` or transparent, 30 % density) along the meter's top edge, 4 u tall, covering 1/3 of the meter width from the right |
+| 1 | `= 1` (12–18 m) | `threat_beep` every 1.2 s | **meter-edge noise:** a 1-bit noise strip (pixels `danger` or transparent, ~~30 %~~ **45 % density (10/30)**) along the meter's top edge, ~~4 u~~ **8 u (10/30)** tall, covering 1/3 of the meter width from the right |
 | 2 | `= 2` (6–12 m) | `threat_beep` every 0.6 s + `threat_scratch` (low, −12 dB) | the same strip at 2/3 width |
-| 3 | `= 3` (≤ 6 m) | `threat_beep` every 0.25 s | **screen-edge noise** replaces the strip: the same 1-bit `danger` mask in a 24 u band on all four screen edges |
+| 3 | `= 3` (≤ 6 m) | `threat_beep` every 0.25 s | **screen-edge noise** replaces the strip: the same kind of 1-bit `danger` mask (30 % density) in a 24 u band on all four screen edges |
 
 The noise mask is static (never animated); it is re-rolled once on each level change (§11 Q2). Beep timers restart on change. The cue is hidden while Eliminated or Escaped. Level 2's visual is an addition (the GDD lists only sounds for level 2), recorded in §11 Q2.
+
+**(10/30) Strip size (orchestrator ruling, U4e Q-01):** the meter-edge strip at levels 1 and 2 is **8 u tall at 45 % density** (it was 4 u at 30 %, which read too faint). It still covers 1/3 (level 1) and 2/3 (level 2) of the meter width from the right, lies inside the meter's top padding and the blank top of row A (it reaches no glyph), stays static and is re-rolled once per level change. `danger` stays a non-text color only. The level-3 band is unchanged: 24 u at 30 %.
+
+**(10/30) Build notes.** One mask texel is 2×2 u in both the 8 u strip (four rows of noise) and the 24 u band, point-filtered, so the noise stays crisp at both canvas sizes. `threat_scratch` plays once on entering level 2 (from any other level). The hidden rule applies to the beep too: while Eliminated or Escaped the beep is fed level 0. A `ThreatLevel` outside 0–3 reads as 0.
 
 ### 4.3 Terminals, hacking, "hold E"
 Sources: `S2C_WorldState.Terminals[]{Id, X, Z, Progress}`, `TerminalsRequired`; own `Flags.Hacking` and position; static `TerminalRadius` 1.5 m. Display number = `Id + 1`.
@@ -298,6 +316,7 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
 - **Lagging:** meter rows 3–4.
   - Frame-stutter treatment (GDD §3.3): the world camera image is presented at 8 Hz (each frame held 125 ms) and blended with the previous frame at 30 %. HUD and audio stay at full rate. No shake, no flash.
   - Reduced-motion alternative: no frame hold, only the 30 % previous-frame blend, and no extra border (so it never competes with the level-3 edge noise). Until a settings screen exists, it is the launch option `-ptk-reduce-stutter`; a settings toggle is required before any Store build (§11 Q12).
+  - **(10/30) Build:** the world camera renders into an off-screen texture; at each 8 Hz slot (every frame when reduced) the newest presented frame is kept and the one before it is drawn on top at 30 % opacity, both under the HUD. It runs exactly while the own `Status = Lagging`.
   - The skill is disabled (§4.8), and edge markers show Normal Survivors (§4.6).
 - **Escaped:** lasts until `S2C_GameResult`, which normally arrives in the same tick. The meter shows row 2.
 - **Eliminated:** plays the sound `eliminated` (falling tone, 600 ms). The meter is replaced by a spectate block of the same size.
@@ -331,7 +350,7 @@ Sources: `S2C_MatchStart.SkillId`; own `S2C_SelfState.SkillCooldown` (seconds le
 
 The cooldown is the server's value: the ring and seconds follow `SkillCooldown` exactly, including after a reconnect. A key press alone changes nothing on screen.
 
-Layout (168×72, padding 8): at left a 64×64 u area holding a 56 u ring (3 u track `line`) with the 32×32 u icon centered in it (1 u `text` line drawing, §8); the Active arc (below) is drawn at 64 u diameter, so it stays inside the 64 u area and 4 u inside the block's top and bottom edges. To the right (168 − 8 − 64 − 8 − 8 = 80 u, ≈ 9 S characters per line): the skill name, S 600, max 2 lines (e.g. `Traffic` / `overload`; `Emergency` / `restore`), then the key glyph `[Q]` / `RB` (S `muted`). 2 × 18 + 18 = 54 ≤ 56 inner height.
+Layout (168×72, padding 8): at left a 64×64 u area holding a 56 u ring (3 u track `line`) with the 32×32 u icon centered in it (1 u `text` line drawing, §8); the Active arc (below) is drawn at 64 u diameter, so it stays inside the 64 u area and 4 u inside the block's top and bottom edges. To the right (168 − 8 − 64 − 8 − 8 = 80 u, ≈ 9 S characters per line): the skill name, S 600, max 2 lines (e.g. `Traffic` / `overload`; `Emergency` / `restore`), then the key glyph `[Q]` / `RB` (S `muted`). 2 × 18 + 18 = 54 ≤ 56 inner height. **(10/30, U4e Q-02)** The block is now 176×72 with the text column 176 − 8 − 64 − 4 = **100 u** (no right padding), because `Emergency` at S 600 (≈ 90 u at the 15 u floor) broke mid-word in 80 u. A name may wrap only at a space.
 
 | State | Trigger | Ring | Center | Sound |
 |---|---|---|---|---|
@@ -360,7 +379,7 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - Other Survivors are drawn as characters with no outline; the only on-character elements are the §4.6 world tags (Lagging, or the nearest Normal Survivors while you are Lagging).
   - The terminal the prompt row refers to gets its world label (§4.3) at weight 600, so the prompt and the object it names are linked.
   - World tags never draw over the own character's silhouette: a tag whose screen rectangle overlaps the own character's screen bounds moves up until it clears them.
-- **The Killer is never drawn.** The Survivor client never receives the Killer's position (§0.1), so there is no Killer model, shadow, footstep or marker, even when the camera can see around a corner the character cannot.
+- ~~**The Killer is never drawn.**~~ **(10/30) The Killer model is drawn only from the Killer entry (§0.1).** While snapshots carry the entry, a Killer-red body (the Killer's own color, one per match) stands at its interpolated `X, Z` on the same 100 ms render delay as Survivors, facing its `Yaw`. When the entry stops arriving, the model stays at its last position (no extrapolation) and fades out over 0.3 s. A gap of at most 0.3 s between two entries is bridged by interpolation; an entry that reappears after a longer gap snaps to its new position. There is no marker, outline, edge indicator, shadow, footstep or through-wall cue: the server only sends the entry when the Survivor's line of sight is clear, and the client adds nothing beyond it. The camera can still see around a corner the character cannot; that shows the Killer only if the character's own line of sight is also clear.
 
 ---
 
@@ -539,7 +558,9 @@ The first step of a newly moving instance plays after a random delay in `[0, int
 - **Voice cap:** only the 4 nearest instances are voiced (one footstep voice and one breathing voice each). A voiced instance keeps its voice until another instance is at least 1 m nearer, so voices do not flicker. With a White noise burst, the extra instances stay silent but keep their markers. A voiced instance is always drawn: the 6-nearest edge-indicator selection (§6.2) takes voiced instances first.
 - Priority (§0.7): world sound is lowest. It ducks by 6 dB for 300 ms under every UI cue (§6.5 table).
 
-The Killer itself makes no sound on Survivor clients: it is never on their wire (§0.1).
+The Killer itself makes no sound on Survivor clients. **(10/30)** Its entry reaches a Survivor only in line of sight (§0.1) and is used only for the model (§4.10), never as a sound source.
+
+**(10/30)** The Killer-bound view (§6.2–§6.5) is unchanged by the U2e contract, and the anonymity rules of §6.3 stand.
 
 ### 6.6 Killer play menu
 Esc / Start replaces the intro/prompt area at the top of the cluster with a 320×208 block, padding 12, inner width 296 u. It holds the skill name (M 600), the effect (§8; S, max 3 lines), then `Resume` (primary, focused) and `Leave match`, stacked as 296×40 u buttons with an 8 u gap.
@@ -559,7 +580,7 @@ Layout: menu style, left column, margin 48 u, full `bg` behind (the 3D view is n
 | # | Element | Content | Style |
 |---|---|---|---|
 | 7.1 | Headline | `Survivors win` / `Killer wins` | L 600 `text` [8] |
-| 7.2 | Your outcome | Survivor, in `EscapedIds`: `You reached the Exit.` · Survivor, not escaped, Survivors win: `Your team escaped.` · Survivor, Killer wins: `You did not escape.` · Killer, `AllSurvivorsDown`: `You stopped every Survivor.` · Killer, `TimeUp`: `Time ran out before the Survivors escaped.` · Killer, `SurvivorEscaped`: `A Survivor reached the Exit.` | M `text` [8] |
+| 7.2 | Your outcome | Survivor, in `EscapedIds`: `You reached the Exit.` · Survivor, not escaped, Survivors win: `Your team escaped.` · Survivor, Killer wins: `You did not escape.` · Killer, `AllSurvivorsDown`: `You stopped every Survivor.` · Killer, `TimeUp`: `Time ran out before the Survivors escaped.` · Killer, `SurvivorEscaped`: `A Survivor reached the Exit.` · **(10/30)** Survivor, eliminated with a §4.1 reason: `You were eliminated. ` + the reason line (e.g. `You were eliminated. Executed: caught a second time.`) | M `text` [8] |
 | 7.3 | Reason | `SurvivorEscaped`: `Mina reached the Exit with 4:12 left.` (names from `EscapedIds`, joined by `, `) · `AllSurvivorsDown`: `Every Survivor was Lagging or eliminated.` · `TimeUp`: `Time ran out with the Exit closed.` / `Time ran out with the Exit open.` | S `muted` [24] |
 | 7.4 | Fact | `Terminals hacked: 4 (3 needed)` — the done count and `TerminalsRequired`, both known to both roles. Captures and rescues are not in the protocol (§11 Q7). | M `text` [32] |
 | 7.5 | **Back to lobby** (primary) | → Lobby with the stored state | 280×48 |
@@ -628,6 +649,8 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
 | Killer effect line | own Overclock / Killer-bound TrafficOverload `S2C_SkillEffect.Duration` |
 | Spectate | Survivors' `PlayerState.{X, Z, Yaw, Status}` (orbit pivot and character facing) |
 | Survivor camera and movement | own `PlayerState.{X, Z, Yaw}`; static walls (boom collision); input → `C2S_MoveInput.{DirX, DirZ, Yaw}` (§4.10) |
+| Killer model (Survivor view) **(10/30)** | the Killer entry `PlayerState.{Role = Killer, X, Z, Yaw}`, present only in line of sight (§0.1, §4.10) |
+| Capture banner, elimination reason **(10/30)** | own `PlayerState.{Status, StatusTimer, CaptureCount}` transitions (§4.1) |
 | Terminal and Exit markers (Killer) | `Terminals[].{Id, X, Z, Progress = 100}` (done only, no percentage), `ExitOpen`, `ExitLocked`, FirewallBlock `Duration`; static positions |
 | Execution guidance | own `S2C_SelfState.ExecutionGraceLeft` (Killer, v0.3) + derived `armed` from own position and the Lagging target (§6.4) |
 | Positional Survivor sound (Killer) | per anonymous instance: rendered position, matched speed, `Status`; static walls for occlusion (§6.5.1) |
@@ -635,7 +658,7 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
 | Connection band | socket, `S2C_Pong`, `S2C_JoinResult.Result` |
 
 Never used:
-- The Killer's position or direction, on a Survivor client.
+- The Killer's position or direction, on a Survivor client, **(10/30)** except the line-of-sight Killer entry, for the model only (§0.1).
 - `Id`, `Yaw`, `StatusTimer`, `CaptureCount` and `Afterimage` of Survivor entries, on the Killer client.
 - Counts of hidden Survivors.
 - Another player's `S2C_SelfState` (it is never sent; the Killer never receives Survivor cooldowns, rescue progress or protection).

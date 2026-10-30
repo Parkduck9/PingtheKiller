@@ -218,17 +218,15 @@ namespace PingTheKiller.Client.Killer
                 if (character.Root.activeSelf != drawn) character.Root.SetActive(drawn);
                 if (drawn)
                 {
-                    Pose(character, view, pose, now, pixel, lagging);
-                    bool hasHead = Project(pose, view.Position + Vector3.up * HeadHeight, screen, out Vector2 head);
-                    bool hasFeet = Project(pose, view.Position, screen, out Vector2 feet);
+                    Vector3 ground = Pose(character, view, pose, now, pixel, lagging);
+                    // U4d F-02: the head point follows the drawn pose (stepped position, 25 deg Lagging tilt).
+                    Vector3 headPoint = HeadPoint(ground, view.FacingYaw, lagging);
+                    bool hasHead = Project(pose, headPoint, screen, out Vector2 head);
+                    bool hasFeet = Project(pose, ground, screen, out Vector2 feet);
                     if (!view.OutOfFrustum) InView++;
                     // The body's screen rectangle (capsule 0.8 m wide, 1.95 m to the visor top): no tag or terminal mark covers it.
-                    if (hasHead && hasFeet)
-                    {
-                        float half = Mathf.Max(4, (feet.y - head.y) * .5f * CharacterLook.BodyScale.x / HeadHeight);
-                        markers.Body(MarkerLayer.Signals, Rect.MinMaxRect(feet.x - half, head.y, feet.x + half, feet.y));
-                    }
-                    else markers.Body(MarkerLayer.Signals, default);
+                    // U4d F-01: also when the feet or the head project outside the screen (execution range), clamped to it.
+                    markers.Body(MarkerLayer.Signals, BodyRect(pose, ground, headPoint, screen, out Rect bodyRect) ? bodyRect : default);
                     if (view.Distance > DistanceTagBeyond && hasFeet)
                         markers.Tag(MarkerLayer.Signals, feet + new Vector2(0, 4), KillerHudCopy.Distance(view.Distance), TagStyle.Text, TagPivot.Below, LayoutPriority.Survivor, true);
                     if (lagging && hasHead)
@@ -262,9 +260,35 @@ namespace PingTheKiller.Client.Killer
             foreach (int handle in gone) { Destroy(characters[handle].Root); characters.Remove(handle); }
         }
 
+        // The top of the drawn character: HeadHeight above the ground point, tilted forward by LaggingTilt (about the ground
+        // pivot, toward the facing) in the Lagging pose, exactly as Pose rotates the model.
+        public static Vector3 HeadPoint(Vector3 ground, float facingYaw, bool lagging)
+            => ground + Quaternion.Euler(0, facingYaw, 0) * (Quaternion.Euler(lagging ? LaggingTilt : 0, 0, 0) * (Vector3.up * HeadHeight));
+
+        // The character's screen rectangle in panel units (y down): head to feet, 0.41 x its height wide, from the unclamped
+        // projection and then clamped to the screen, so a Survivor whose feet (or head) leave the view still blocks tags.
+        // False when neither point is in front of the camera or the clamped rectangle is empty.
+        public static bool BodyRect(ViewPose pose, Vector3 ground, Vector3 headPoint, Vector2 screen, out Rect rect)
+        {
+            rect = default;
+            bool hasHead = pose.ToViewport(headPoint, out Vector2 h), hasFeet = pose.ToViewport(ground, out Vector2 f);
+            if (!hasHead && !hasFeet) return false;
+            Vector2 head = hasHead ? new Vector2(h.x * screen.x, (1 - h.y) * screen.y) : default;
+            Vector2 feet = hasFeet ? new Vector2(f.x * screen.x, (1 - f.y) * screen.y) : default;
+            if (!hasHead) head = new Vector2(feet.x, 0);         // behind the near plane above: reaches the top edge
+            if (!hasFeet) feet = new Vector2(head.x, screen.y);  // behind the near plane below: reaches the bottom edge
+            float top = Mathf.Min(head.y, feet.y), bottom = Mathf.Max(head.y, feet.y);
+            float half = Mathf.Max(4, (bottom - top) * .5f * CharacterLook.BodyScale.x / HeadHeight);
+            float xMin = Mathf.Max(0, Mathf.Min(head.x, feet.x) - half), xMax = Mathf.Min(screen.x, Mathf.Max(head.x, feet.x) + half);
+            top = Mathf.Max(0, top); bottom = Mathf.Min(screen.y, bottom);
+            if (xMax <= xMin || bottom <= top) return false;
+            rect = Rect.MinMaxRect(xMin, top, xMax, bottom);
+            return true;
+        }
+
         // HUD_SPEC 6.3 rule 5: facing and animation from matched motion only. Walk = a small bob; Lagging = tilted pose
-        // with the animation (and position) stepped at 8 Hz.
-        private void Pose(Character character, BlipView view, ViewPose pose, double now, float pixel, bool lagging)
+        // with the animation (and position) stepped at 8 Hz. Returns the ground point the model was drawn at.
+        private Vector3 Pose(Character character, BlipView view, ViewPose pose, double now, float pixel, bool lagging)
         {
             Vector3 position = view.Position;
             double t = now;
@@ -283,6 +307,7 @@ namespace PingTheKiller.Client.Killer
                 float depth = Mathf.Max(ViewPose.Near, pose.ToCamera(position + Vector3.up * CharacterLook.Height * .5f).z);
                 character.Hull.localScale = Vector3.Scale(CharacterLook.BodyScale, CharacterLook.HullScale(pose.PixelSize(depth, Screen.height) * pixel));
             }
+            return position;
         }
 
         private Blip FindBlip(int handle)

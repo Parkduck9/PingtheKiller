@@ -54,6 +54,40 @@ namespace PingTheKiller.Client.World
             return true;
         }
 
+        // The Killer entry on a Survivor client (U2e contract, HUD_SPEC 4.10 (10/30)): the server sends it only while this
+        // Survivor's line of sight to the Killer is clear, and it is found by Role. The model is the only Killer rendering.
+        // - present in consecutive snapshots: interpolated like any player, facing its Yaw;
+        // - absent: held at the last received position (never extrapolated, never moved) and faded out over KillerFade;
+        // - a gap of at most KillerFade between two sightings is bridged by interpolation (no flicker on a wall edge);
+        // - a longer gap snaps: the model reappears at the new position, never interpolated across the hidden path.
+        public const double KillerFade = .3;
+        public bool SampleKiller(double now, out Vector3 position, out float yaw, out float alpha)
+        {
+            position = default; yaw = 0; alpha = 0;
+            double renderTime = now - Delay;
+            if (frames.Count == 0 || renderTime < frames[0].Time) return false;
+            int index = 0;
+            while (index + 1 < frames.Count && frames[index + 1].Time <= renderTime) index++;
+            int present = index;
+            while (present >= 0 && !Find(frames[present].State, KillerKey, out _)) present--;
+            if (present < 0) return false;
+            Find(frames[present].State, KillerKey, out PlayerState a);
+            position = new Vector3(a.X, 1, a.Z); yaw = a.Yaw; alpha = 1;
+            int next = index + 1;
+            while (next < frames.Count && !Find(frames[next].State, KillerKey, out _)) next++;
+            bool bridged = next < frames.Count && (next == present + 1 || frames[next].Time - frames[present].Time <= KillerFade + 1e-9);
+            if (bridged)
+            {
+                Find(frames[next].State, KillerKey, out PlayerState b);
+                position = ClientMath.Interpolate(position, new Vector3(b.X, 1, b.Z), frames[present].Time, frames[next].Time, renderTime);
+                yaw = ClientMath.InterpolateYaw(a.Yaw, b.Yaw, frames[present].Time, frames[next].Time, renderTime);
+                return true;
+            }
+            if (present == index) return true; // the newest sighting, or the next snapshot already lacks it: hold, no extrapolation
+            alpha = Mathf.Clamp01(1 - (float)((renderTime - frames[present + 1].Time) / KillerFade));
+            return alpha > 0;
+        }
+
         private static bool Find(S2C_WorldState state, int id, out PlayerState player)
         {
             foreach (PlayerState entry in state.Players)
