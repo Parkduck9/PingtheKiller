@@ -7,12 +7,12 @@ namespace PingTheKiller.Harness.Tests;
 
 internal static class H6
 {
-    public static async Task<(CheckResult Item, TimeSpan Elapsed)> RunAsync(int port, double timeoutSeconds = 3)
+    public static async Task<(CheckResult Item, TimeSpan Elapsed)> RunAsync(int port, double timeoutSeconds = 3, bool expectLos = false)
     {
         using var hard = new CancellationTokenSource(ScenarioCheck.Budget + TimeSpan.FromSeconds(20));
         var clock = Stopwatch.StartNew();
         var report = await HarnessRunner.RunAsync(new Options { Port = port, Timeout = TimeSpan.FromSeconds(timeoutSeconds),
-            Only = new HashSet<string> { "H6" } }, hard.Token);
+            Only = new HashSet<string> { "H6" }, ExpectLos = expectLos }, hard.Token);
         return (Assert.Single(report.Items), clock.Elapsed);
     }
 }
@@ -31,8 +31,12 @@ public abstract class ScenarioPassTest(bool grace, bool anonymous = false, bool 
         Assert.Equal(10, h6.Score);
         foreach (string expected in new[] { "co-hacked by A+B", "ExitOpen=1 seen by killer, A and B", "A Lagging, CaptureCount=1",
             "killer held contact 3 s", "no execution", "A Normal with CaptureCount=1", "before the GameResult",
-            "winner=Survivor, reason=SurvivorEscaped", "0 excess" })
+            "winner=Survivor, reason=SurvivorEscaped", "0 excess", "sight: B stands behind a wall" })
             Assert.Contains(expected, h6.Evidence);
+        // U3d: today's server shows no killer entry; the sight step still yields blocked-and-absent ticks.
+        var (visible, blocked) = SightEvidence.Counts(h6.Evidence);
+        Assert.Equal(0, visible);
+        Assert.True(blocked > 0, h6.Evidence);
         Assert.Equal(1, server.MatchStarts);
         Assert.False(server.UnexpectedFlow);
         Assert.Equal(0, server.Executions);

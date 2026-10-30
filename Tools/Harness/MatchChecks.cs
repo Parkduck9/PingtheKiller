@@ -45,6 +45,26 @@ public static class MatchChecks
         // position to the survivor whose true position (the survivor client's own stream holds every survivor, bots
         // included) at the same tick is nearest, within KillerView.Epsilon. The killer stream is never searched by Id.
         int killerId = session.KillerIdentity.PlayerId, survivorId = session.SurvivorIdentity.PlayerId;
+        // U3d: a killer entry in a survivor world is legal only with a clear line of sight at the same tick and exact contract
+        // fields; it is judged against the killer client's own entry, joined by Tick (SightJoin). Anything else is a leak.
+        var sight = new SightJoin(killerId);
+        // U3d a3: the judged window is defined by survivor-stream ticks (from the moving baseline on). Killer ticks from before
+        // it come from the killer client's retained WorldStates (an earlier check may have consumed them); after it, the killer
+        // stream is read until it covers the window's last survivor tick. Every survivor world must join; both streams must
+        // keep strictly increasing ticks with gaps <= 2.
+        foreach (var retained in session.Killer.RecentWorlds()) sight.SeedKiller((S2C_WorldState)retained.Packet);
+        var killerTicks = new TickSequence("killer");
+        var survivorTicks = new TickSequence($"survivor {survivorId}");
+        void AddSurvivorWorld(S2C_WorldState world)
+        {
+            survivorTicks.Add(world.Tick);
+            sight.AddSurvivor(survivorId, world);
+        }
+        void AddKillerWorld(S2C_WorldState world)
+        {
+            killerTicks.Add(world.Tick);
+            sight.AddKiller(world);
+        }
         // Establish nontrivial coordinate bytes and positive evidence that the killer
         // can see this survivor while moving, before testing omission while Silent.
         long movingStart = Stopwatch.GetTimestamp();
@@ -66,8 +86,7 @@ public static class MatchChecks
                 {
                     while (!baseline.Task.IsCompleted)
                     {
-                        var frame = await client.ReadAsync<S2C_WorldState>(reading.Token);
-                        if (frame.ReceivedAt >= movingStart) add(frame);
+                        add(await client.ReadAsync<S2C_WorldState>(reading.Token));
                     }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -77,10 +96,15 @@ public static class MatchChecks
                 }
             }
             var feeding = Task.WhenAll(
-                FeedAsync(session.Killer, frame => movingJoin.AddKiller((S2C_WorldState)frame.Packet)),
+                FeedAsync(session.Killer, frame =>
+                {
+                    AddKillerWorld((S2C_WorldState)frame.Packet);
+                    if (frame.ReceivedAt >= movingStart) movingJoin.AddKiller((S2C_WorldState)frame.Packet);
+                }),
                 FeedAsync(session.Survivor, frame =>
                 {
-                    Measurements.KillerHidden(frame, killerId);
+                    if (frame.ReceivedAt < movingStart) return;
+                    AddSurvivorWorld((S2C_WorldState)frame.Packet);
                     movingJoin.AddTruth((S2C_WorldState)frame.Packet);
                 }));
             await Task.WhenAny(baseline.Task, feeding);
@@ -100,17 +124,24 @@ public static class MatchChecks
         await moving;
         string baselineEvidence = await baseline.Task;
         await session.Survivor.SendAsync(new C2S_MoveInput { Seq = session.NextSequence() }, ct);
+        // The grace is measured in wall-clock time AND in ticks: the newest tick either stream had received when the zero input
+        // was sent bounds the server tick from below, so a lagging survivor stream cannot hand in a frame from before the grace.
+        long sendTick = Math.Max(session.Killer.LatestWorldTick, session.Survivor.LatestWorldTick);
+        long settleTicks = (long)Math.Ceiling((GameConstants.SignalHoldSeconds + 0.25) * GameConstants.TickRate);
         long settled = After(Stopwatch.GetTimestamp(), TimeSpan.FromSeconds(GameConstants.SignalHoldSeconds + 0.25));
         ReceivedFrame stoppedFrame;
         do
         {
             stoppedFrame = await session.Survivor.ReadAsync<S2C_WorldState>(ct);
-            Measurements.KillerHidden(stoppedFrame, session.KillerIdentity.PlayerId);
-        } while (stoppedFrame.ReceivedAt < settled);
+            AddSurvivorWorld((S2C_WorldState)stoppedFrame.Packet);
+        } while (stoppedFrame.ReceivedAt < settled || ((S2C_WorldState)stoppedFrame.Packet).Tick < sendTick + settleTicks);
         var stopped = Measurements.Self(stoppedFrame, survivorId);
         Check.Require((stopped.Flags & (byte)PlayerFlags.Signal) == 0, "Survivor remained Signal after zero input and grace period.");
-        Measurements.KillerHidden(stoppedFrame, killerId);
+        uint stoppedTick = ((S2C_WorldState)stoppedFrame.Packet).Tick;
         long start = stoppedFrame.ReceivedAt, end = After(start, TimeSpan.FromSeconds(3.1));
+        // The killer's Silent window starts at its first WorldState with Tick >= the stopped tick (a lagging killer stream still
+        // delivers earlier, Signal ticks after `start`; those are not part of the window).
+        long killerStart = 0;
         int killerFrames = 0, killerWorlds = 0, survivorWorlds = 0, others = 0, ambiguous = 0;
         string? ambiguity = null;
         var join = new TickJoin(killerId, (world, attributions, survivors) =>
@@ -131,12 +162,32 @@ public static class MatchChecks
 
         void Survivor(ReceivedFrame frame)
         {
-            Measurements.KillerHidden(frame, killerId);
             if (frame.Packet is not S2C_WorldState world) return;
+            AddSurvivorWorld(world);
             var current = Measurements.Self(frame, survivorId);
             Check.Require(KillerView.SamePosition(current, stopped), "Survivor moved after stopping; coordinate sentinel is no longer valid.");
             survivorWorlds++;
             join.AddTruth(world);
+        }
+
+        // Every killer tick read (also those queued while the survivor settled) is line-of-sight ground truth; frames from the
+        // Silent window on are byte-scanned and attributed.
+        bool Killer(ReceivedFrame frame)
+        {
+            if (frame.Packet is S2C_WorldState own)
+            {
+                AddKillerWorld(own);
+                if (killerStart == 0 && own.Tick >= stoppedTick) killerStart = frame.ReceivedAt;
+            }
+            if (killerStart == 0) return false;
+            Measurements.Masked(frame, stopped);
+            killerFrames++;
+            if (frame.Packet is S2C_WorldState world)
+            {
+                killerWorlds++;
+                join.AddKiller(world);
+            }
+            return true;
         }
 
         async Task ReadKillerAsync()
@@ -144,15 +195,7 @@ public static class MatchChecks
             while (true)
             {
                 var frame = await session.Killer.ReadAsync(ct);
-                if (frame.ReceivedAt < start) continue;
-                Measurements.Masked(frame, stopped);
-                killerFrames++;
-                if (frame.Packet is S2C_WorldState world)
-                {
-                    killerWorlds++;
-                    join.AddKiller(world);
-                }
-                if (frame.ReceivedAt >= end) break;
+                if (Killer(frame) && frame.ReceivedAt >= After(killerStart, TimeSpan.FromSeconds(3.1))) break;
             }
         }
 
@@ -168,26 +211,37 @@ public static class MatchChecks
         }
 
         await Task.WhenAll(ReadKillerAsync(), ReadSurvivorAsync());
-        // Bounded wait for the survivor-stream ticks of killer frames that arrived first; ticks still missing are skipped.
+        // Coverage, bounded by --timeout: read the killer stream until it covers the last survivor tick of the window (line of
+        // sight), and the survivor stream until it covers killer ticks that arrived first (attribution). A survivor tick the
+        // killer never receives then fails in sight.Finish(); killer ticks the survivor stream never delivers stay skipped.
         using (var tail = CancellationTokenSource.CreateLinkedTokenSource(ct))
         {
-            tail.CancelAfter(TimeSpan.FromSeconds(1));
+            tail.CancelAfter(session.Timeout);
             try
             {
-                while (join.AwaitingTruth) Survivor(await session.Survivor.ReadAsync(tail.Token));
+                while (true)
+                {
+                    if (sight.AwaitingKiller) Killer(await session.Killer.ReadAsync(tail.Token));
+                    else if (join.AwaitingTruth) Survivor(await session.Survivor.ReadAsync(tail.Token));
+                    else break;
+                }
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
         }
-        // Skipped unknown-Id frames are not delivered; their raw bytes get the same scan.
-        var unknown = session.Killer.UnknownFramesSince(start);
+        // Skipped unknown-Id frames are not delivered; their raw bytes get the same scan (from the killer's Silent window on).
+        var unknown = killerStart == 0 ? new List<UnknownFrame>() : session.Killer.UnknownFramesSince(killerStart);
         foreach (var frame in unknown) Measurements.MaskedBytes(frame.Raw, $"unknown packet 0x{frame.Id:X2}", stopped);
         Check.Require(killerWorlds >= 50 && survivorWorlds >= 50 && join.Joined >= 50,
             $"Insufficient masking coverage: killer worlds={killerWorlds}, survivor worlds={survivorWorlds}, ticks joined by Tick={join.Joined} (need 50 each).");
+        sight.Finish();
+        TickSequence.Require(killerTicks, survivorTicks);
         return $"3.1 s Silent capture: {killerFrames} raw killer frames/{killerWorlds} worlds (+{unknown.Count} unknown-Id frames); " +
             $"{join.Joined} killer worlds joined by Tick with survivor ground truth ({join.Skipped} skipped, no survivor-stream tick); " +
             $"{join.Entries} killer-view survivor entries attributed by tick+position (epsilon {KillerView.Epsilon} m): 0 unexplained, " +
             $"0 to stopped survivor {survivorId}, {others} to other survivors, {ambiguous} ambiguous{(ambiguity != null ? $" ({ambiguity})" : "")}; " +
-            $"X={stopped.X:R}/Z={stopped.Z:R} byte occurrences=0; killerId={killerId} absent in {survivorWorlds + 1} survivor worlds; " +
+            $"X={stopped.X:R}/Z={stopped.Z:R} byte occurrences=0; killer {killerId} in {sight.Counts.Total} survivor worlds judged by line of sight " +
+            $"(entry legal only when clear, exact fields, X/Z within {KillerSight.Epsilon} m of its own position at that tick): {sight.Counts}; " +
+            $"every survivor tick joined a killer tick ({survivorTicks}; {killerTicks}; Silent from tick {stoppedTick}); " +
             $"moving baseline: {baselineEvidence}.";
     }
 

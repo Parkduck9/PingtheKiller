@@ -39,6 +39,10 @@ public sealed class UnknownPackets
 public sealed class WireClient : IAsyncDisposable
 {
     public const int MaxKeptUnknownFrames = 32768;
+    // U3d a3: the last WorldStates received, whoever consumed them, so a later check can join ticks an earlier one read (3.2 s).
+    public const int RetainedWorlds = 64;
+    private readonly Queue<ReceivedFrame> recentWorlds = new();
+    private long latestWorldTick = -1;
     private readonly TcpClient tcp;
     private readonly NetworkStream stream;
     private readonly TimeSpan timeout;
@@ -127,6 +131,15 @@ public sealed class WireClient : IAsyncDisposable
         catch (Exception ex) when (ex is IOException or SocketException) { }
     }
 
+    // Tick of the newest WorldState the receive loop has seen (consumed or not), or -1.
+    public long LatestWorldTick => Interlocked.Read(ref latestWorldTick);
+
+    // The last RetainedWorlds WorldStates received, oldest first, whether or not a reader consumed them.
+    public List<ReceivedFrame> RecentWorlds()
+    {
+        lock (recentWorlds) return recentWorlds.ToList();
+    }
+
     // Skipped unknown-Id frames per PacketId on this connection.
     public IReadOnlyDictionary<ushort, int> UnknownCounts()
     {
@@ -195,6 +208,15 @@ public sealed class WireClient : IAsyncDisposable
                         continue;
                     }
                     var frame = new ReceivedFrame(PacketCodec.Decode(id, payload.Span), raw, receivedAt);
+                    if (frame.Packet is S2C_WorldState world)
+                    {
+                        lock (recentWorlds)
+                        {
+                            recentWorlds.Enqueue(frame);
+                            if (recentWorlds.Count > RetainedWorlds) recentWorlds.Dequeue();
+                        }
+                        Interlocked.Exchange(ref latestWorldTick, world.Tick);
+                    }
                     if (!inbox.Writer.TryWrite(frame)) throw new CheckFailure("Harness receive queue exceeded 32768 frames.");
                 }
             }

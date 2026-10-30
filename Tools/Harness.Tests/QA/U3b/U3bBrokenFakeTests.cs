@@ -246,10 +246,13 @@ internal static class Leaks
         ((long)BitConverter.SingleToInt32Bits(c.KillerZ) << 32) | (uint)BitConverter.SingleToInt32Bits(c.KillerX);
 }
 
+// U3d: the single entry used to be a leak by itself. Its fields (real Id/Role/X/Z, A Lagging in contact so sight is clear, all other
+// fields 0) are contract-legal now (see U3dH6LegalKillerEntryInContactOnceTests), so the leak is the naive copy of the killer's state:
+// the Signal flag is carried into the entry, which the contract forbids (Flags must be 0).
 public sealed class U3bLeakKillerEntryByIdOnceTests() : U3bBrokenFake(() => new Knobs
 {
-    SurvivorFrame = Leaks.Once(c => c.World.Players.Add(new PlayerState { Id = c.KillerId, Role = (byte)Role.Killer, X = c.KillerX, Z = c.KillerZ }))
-}, "Killer 1 leaked to survivor");
+    SurvivorFrame = Leaks.Once(c => c.World.Players.Add(new PlayerState { Id = c.KillerId, Role = (byte)Role.Killer, X = c.KillerX, Z = c.KillerZ, Flags = (byte)PlayerFlags.Signal }))
+}, "Killer 1 leaked to survivor", "the contract requires all three 0");
 
 public sealed class U3bLeakKillerEntryEveryFrameTests() : U3bBrokenFake(() => new Knobs
 {

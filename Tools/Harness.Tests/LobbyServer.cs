@@ -8,6 +8,15 @@ using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Harness.Tests;
 
+// U3d: where the killer (1) and the controlled survivor (2) stand. OffMap keeps the historic coordinates (outside FixedMap,
+// line of sight clear); Clear and Blocked put both on the map with no wall / the wall x 18..20 between them.
+internal enum SightLayout { OffMap, Clear, Blocked }
+
+// U3d killer entry in survivor worlds: never (today), per contract (only with a clear line of sight), always (a leak
+// whenever blocked), per contract but with Flags 1 (a leak whenever shown), or (U3d a2, QA F1) per contract plus the
+// entry on every 8th tick, sight or not, on which the killer itself gets no WorldState.
+internal enum KillerLos { Off, Contract, Always, NonZeroFields, UnjoinableTicks }
+
 // Minimal U2a-shaped test fixture. It verifies the harness's lobby/rebind/capture
 // orchestration over TCP; it is not an implementation or validation of Server.Core.
 internal sealed class LobbyServer : IAsyncDisposable
@@ -64,7 +73,9 @@ internal sealed class LobbyServer : IAsyncDisposable
     public int Rebinds { get; private set; }
     public int ReconnectRequests { get; private set; }
     public bool LeakSilent { get; init; }
-    public bool LeakKiller { get; init; }
+    public SightLayout Layout { get; init; }
+    public KillerLos KillerEntry { get; init; }
+    public int KillerEntriesSent { get; private set; }
     public bool BrokenReconnect { get; init; }
     public float MovementMultiplier { get; init; } = 1;
     public bool NeverMove { get; init; }
@@ -180,6 +191,14 @@ internal sealed class LobbyServer : IAsyncDisposable
                 if (player == null)
                 {
                     player = new Player(players.Count + 1);
+                    (player.X, player.Z) = (Layout, player.Id) switch
+                    {
+                        (SightLayout.Clear, 1) => (12.31579f, 9.75319f),
+                        (SightLayout.Clear, 2) => (8.13579f, 20.24681f),
+                        (SightLayout.Blocked, 1) => (25.13579f, 22.75319f),
+                        (SightLayout.Blocked, 2) => (14.13579f, 20.24681f),
+                        _ => (player.X, player.Z)
+                    };
                     players.Add(player);
                 }
                 else Rebinds++;
@@ -273,7 +292,7 @@ internal sealed class LobbyServer : IAsyncDisposable
                         foreach (var player in players)
                         {
                             bool signal = ReceivedFrame.SecondsBetween(player.LastMoving, now) < .15;
-                            if (recipient.Id != 1 && player.Id == 1 && !LeakKiller) continue;
+                            if (recipient.Id != 1 && player.Id == 1) continue;
                             if (recipient.Id == 1 && player.Id != 1 && !signal && !leak) continue;
                             var state = new PlayerState { Id = player.Id, Role = (byte)(player.Id == 1 ? 1 : 0),
                                 X = player.X, Z = player.Z, Flags = (byte)(signal ? 1 : 0) };
@@ -285,6 +304,14 @@ internal sealed class LobbyServer : IAsyncDisposable
                             world.Players.Add(state);
                         }
                         if (PassingBot) world.Players.Add(new PlayerState { Id = 10, X = botX, Z = botZ, Flags = 1, Yaw = 1.25f });
+                        if (recipient.Id != 1 && KillerEntry != KillerLos.Off && players[0] is var killer &&
+                            (KillerEntry == KillerLos.Always || (KillerEntry == KillerLos.UnjoinableTicks && tick % 8 == 0) ||
+                             !FakeSight.Blocked(recipient.X, recipient.Z, killer.X, killer.Z)))
+                        {
+                            world.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = killer.X, Z = killer.Z,
+                                Flags = (byte)(KillerEntry == KillerLos.NonZeroFields ? 1 : 0) });
+                            KillerEntriesSent++;
+                        }
                         if (recipient.Id == 1)
                         {
                             if (ExtraEntry && still) world.Players.Add(new PlayerState { X = 3.21f, Z = -4.56f, Flags = 1 });
@@ -297,6 +324,7 @@ internal sealed class LobbyServer : IAsyncDisposable
                                 recipient.Peer?.Output.Writer.TryWrite(UnknownFrame(0x7E, 8, 0, payload));
                             }
                         }
+                        if (recipient.Id == 1 && KillerEntry == KillerLos.UnjoinableTicks && tick % 8 == 0) continue;
                         recipient.Peer?.Send(world);
                     }
                 }

@@ -14,6 +14,9 @@ public sealed record Options
     // H6 needs a fresh lobby of its own; H2-H5 occupy the match of the --host/--port server.
     public string? H6Host { get; init; }
     public int? H6Port { get; init; }
+    // U3d: the H6 server shows survivors the Killer in line of sight (U2e). H6 then also requires at least one legal visible
+    // killer entry and at least one blocked-and-absent tick. Off by default: legal entries are accepted and counted either way.
+    public bool ExpectLos { get; init; }
     // Run state, not a CLI option: skipped unknown-Id frames of every connection. HarnessRunner gives each run a fresh one.
     public UnknownPackets Unknown { get; init; } = new();
 
@@ -34,6 +37,11 @@ public sealed record Options
         for (int i = 0; i < args.Length; i++)
         {
             string key = args[i];
+            if (key == "--expect-los")
+            {
+                result = result with { ExpectLos = true };
+                continue;
+            }
             if (++i == args.Length) throw new ArgumentException($"Missing value for {key}.");
             string value = args[i];
             result = key switch

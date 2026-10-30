@@ -2,11 +2,12 @@ using PingTheKiller.Harness;
 
 if (args.Length == 1 && args[0] is "--help" or "-h")
 {
-    Console.WriteLine("Harness --host 127.0.0.1 --port 7777 --h6-port 7778 [--h6-host <host>] --report docs/qa/harness-latest.json [--only H1,H3] [--duration 60] [--threshold 90] [--timeout 5]");
+    Console.WriteLine("Harness --host 127.0.0.1 --port 7777 --h6-port 7778 [--h6-host <host>] --report docs/qa/harness-latest.json [--only H1,H3] [--duration 60] [--threshold 90] [--timeout 5] [--expect-los]");
     Console.WriteLine("H1-H5: one fresh SANDBOX server (U2a rules) WITHOUT --autostart: Server --port 7777 --bots 0 --bind 127.0.0.1 --sandbox; harness first human/host, SetRole(Killer), SetBots(6), StartMatch. Selected match checks share this match.");
     Console.WriteLine("H6: a SECOND fresh NORMAL (non-sandbox) server WITHOUT --autostart: Server --port 7778 --bots 0 --bind 127.0.0.1, passed as --h6-port 7778 (--h6-host defaults to --host); 3 humans play hack, capture, rescue, escape, GameResult. No skills are used.");
     Console.WriteLine("A full run therefore needs two server instances (sandbox for H1-H5, normal for H6): Harness --port 7777 --h6-port 7778.");
     Console.WriteLine("--only H6 without --h6-port uses --port. H6 together with any of H2-H5 fails at once if --h6-port is missing or equals --port on the same host.");
+    Console.WriteLine("Survivor worlds may carry the Killer's entry only with a clear line of sight (U2e contract); the harness judges every entry itself. --expect-los (no value) makes H6 also require at least one legal visible entry and one blocked-and-absent tick.");
     Console.WriteLine("Omitted gates are unverified (gatesPassed=false); --only does not rescale the 100-point score.");
     return 0;
 }
