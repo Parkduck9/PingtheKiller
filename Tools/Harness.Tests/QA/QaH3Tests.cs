@@ -33,7 +33,10 @@ public sealed class QaH3Tests
         "x-only-in-timeleft-field" => new QaFaults { LeakXInTimeLeft = true },
         "z-only-in-killer-yaw-field" => new QaFaults { LeakZInKillerYaw = true },
         "xz-bytes-in-skilleffect-packet" => new QaFaults { LeakInSkillEffect = true },
-        "killer-entry-in-survivor-world" => new QaFaults { LeakKillerToSurvivors = true },
+        // U3d: a killer entry in a survivor world is a leak unless it is contract-legal (clear sight, Flags/StatusTimer/CaptureCount 0).
+        // QaServer's positions are off-map (no walls), so sight is always clear; the entry is made illegal by copying the killer's
+        // Signal flag into it. Previously any entry failed; the old, legal entry now passes (LegalKillerEntryInSurvivorWorldPassesH3).
+        "killer-entry-in-survivor-world" => new QaFaults { LeakKillerToSurvivors = true, KillerEntryFlags = (byte)PingTheKiller.Shared.Game.PlayerFlags.Signal },
         _ => throw new ArgumentOutOfRangeException(nameof(name))
     };
 
@@ -47,6 +50,16 @@ public sealed class QaH3Tests
         Assert.Equal(0, report.Total);
         Assert.False(report.GatesPassed);
         Assert.Contains("leak", Qa.Item(report, "H3").Evidence, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // U3d: what the previous theory case sent (the killer's entry with real X/Z, all other fields 0, clear sight) is legal now.
+    [Fact]
+    public async Task LegalKillerEntryInSurvivorWorldPassesH3()
+    {
+        await using var server = new QaServer(new QaFaults { LeakKillerToSurvivors = true });
+        var (report, _) = await Qa.RunAsync(server.Port, new[] { "H3" });
+        Qa.AssertPassed(report, "H3");
+        Assert.Contains("legal line-of-sight killer entries", Qa.Item(report, "H3").Evidence);
     }
 
     [Fact]

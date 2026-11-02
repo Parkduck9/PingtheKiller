@@ -207,33 +207,35 @@ public sealed class U3cH3CoverageAndLimitTests
         Assert.True(item.Passed, "The documented attribution limit has been closed (or behaviour changed): update docs/qa/U3c-qa-a1.md and flip this test. " + item.Evidence);
     }
 
-    // LIMIT (documented, minor): the killer's own entry is recognised by real Id + Role=Killer and skipped. A SECOND entry
-    // with that Id/Role at an offset stopped-survivor position is not attributed, not counted unexplained, and has no exact
-    // X/Z bytes, so H3 passes.
+    // CLOSED IN U3d a3 (was Gap_OffsetLeakDisguisedAsADuplicateOfTheKillersOwnEntryIsNotDetected). The killer's own entry is
+    // recognised by real Id + Role=Killer. A SECOND entry with that Id/Role at an offset stopped-survivor position used to pass H3.
+    // Since a3 the killer-stream tick has no unique own entry, so SightJoin has no ground truth for it and the check fails.
+    // Re-classified by QA round 3 because the clarified contract (one unique killer entry per killer world) closes the limit.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Gap_OffsetLeakDisguisedAsADuplicateOfTheKillersOwnEntryIsNotDetected(bool anonymous)
+    public async Task OffsetLeakDisguisedAsADuplicateOfTheKillersOwnEntryFailsH3(bool anonymous)
     {
         var (item, server) = await U3cRun.H3Async(new ViewKnobs { Anonymous = anonymous, Leak = StoppedLeak.KillerOwnEntryDuplicate },
-            $"{(anonymous ? "anon" : "id")}/GAP-leak-as-duplicate-own-entry");
+            $"{(anonymous ? "anon" : "id")}/CLOSED-leak-as-duplicate-own-entry");
         Assert.True(server.LeakEntriesSent > 50);
-        Assert.True(item.Passed, "The documented own-entry limit has been closed (or behaviour changed): update docs/qa/U3c-qa-a1.md and flip this test. " + item.Evidence);
+        Assert.False(item.Passed, "FALSE PASS: a duplicate killer-id entry at the stopped survivor's position passed H3. " + item.Evidence);
+        Assert.Contains("no unique own entry", item.Evidence);
     }
 
-    // LIMIT (informational, pre-existing windows, not a U3c regression): H3 settles 0.15 s grace + 0.25 s margin on RECEIVE time.
-    // A survivor stream more than ~250 ms behind the server fails "Survivor remained Signal"; a killer stream that late still
-    // shows the survivor's Signal-hold entries inside the capture window, which the raw byte scan reports as a leak.
+    // CLOSED IN U3d a3 (was Limit_StreamsMoreThanTheSignalMarginLateFailH3, a documented pre-existing limit). H3 now waits for
+    // coverage by tick instead of windows on receive time, so a CORRECT server whose survivor stream or killer stream is 500 ms
+    // behind passes H3. Re-classified by QA round 3: the brief (item 5) requires up to 300 ms; 500 ms passing is the stronger result.
     [Theory]
     [InlineData(false, true)]
     [InlineData(false, false)]
     [InlineData(true, true)]
     [InlineData(true, false)]
-    public async Task Limit_StreamsMoreThanTheSignalMarginLateFailH3(bool anonymous, bool killerLate)
+    public async Task StreamsHalfASecondLateStillPassH3(bool anonymous, bool killerLate)
     {
         var knobs = new ViewKnobs { Anonymous = anonymous, KillerDelayMs = killerLate ? 500 : 0, SurvivorDelayMs = killerLate ? 0 : 500 };
-        var (item, _) = await U3cRun.H3Async(knobs, $"{(anonymous ? "anon" : "id")}/LIMIT-{(killerLate ? "killer" : "survivor")}-stream-500ms-late");
-        Assert.False(item.Passed, "Behaviour changed: a 500 ms late stream no longer fails H3. " + item.Evidence);
+        var (item, _) = await U3cRun.H3Async(knobs, $"{(anonymous ? "anon" : "id")}/SKEW-{(killerLate ? "killer" : "survivor")}-stream-500ms-late");
+        Assert.True(item.Passed, "FALSE FAIL: a contract-correct server with one stream 500 ms late failed H3. " + item.Evidence);
     }
 
     // SPEC TENSION (minor): a CORRECT server whose bot shares only the stopped survivor's exact Z float fails H3, because the

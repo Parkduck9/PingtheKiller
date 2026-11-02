@@ -81,13 +81,6 @@ public static class Measurements
         Check.Require(raw.AsSpan().IndexOf(FloatBytes(stopped.Z)) < 0, $"Silent survivor Z={stopped.Z:R} bytes leaked in {what}.");
     }
 
-    public static void KillerHidden(ReceivedFrame frame, int killerId)
-    {
-        if (frame.Packet is S2C_WorldState world)
-            Check.Require(world.Players.All(p => p.Id != killerId && p.Role != (byte)Role.Killer),
-                $"Killer {killerId} leaked to survivor at tick={world.Tick}.");
-    }
-
     public static double MaxSpeed(IReadOnlyList<ReceivedFrame> frames, int playerId, byte role, bool requireStationary)
     {
         Check.Require(frames.Count >= 3, "Not enough WorldStates to measure abusive movement.");

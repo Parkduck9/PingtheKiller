@@ -81,12 +81,16 @@ public sealed class MeasurementTests
         }
     }
 
+    // U3d replaced "the killer is always hidden" with the line-of-sight rule (KillerSight, see LineOfSightTests): without a
+    // killer tick an entry is undecided, and any killer entry to a recipient that is not in the world is a leak.
     [Fact]
-    public void KillerIsAlwaysHiddenFromSurvivorWorlds()
+    public void KillerEntryWithoutLineOfSightGroundTruthIsNeverLegal()
     {
-        Measurements.KillerHidden(Frame(1, 0, new PlayerState { Id = 73 }), 11);
-        Assert.Throws<CheckFailure>(() => Measurements.KillerHidden(Frame(1, 0,
-            new PlayerState { Id = 11, Role = (byte)Role.Killer }), 11));
+        var absent = (S2C_WorldState)Frame(1, 0, new PlayerState { Id = 73 }).Packet;
+        Assert.Null(KillerSight.Judge(absent, 73, 11, null).Leak);
+        var present = (S2C_WorldState)Frame(1, 0, new PlayerState { Id = 11, Role = (byte)Role.Killer }).Packet;
+        Assert.NotNull(KillerSight.Judge(present, 73, 11, null).Leak);
+        Assert.Contains("Killer 11 leaked to survivor 74", KillerSight.Judge(present, 74, 11, null).Leak);
     }
 
     [Fact]

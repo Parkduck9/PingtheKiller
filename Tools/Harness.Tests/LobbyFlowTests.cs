@@ -101,12 +101,16 @@ public sealed class LobbyFlowTests
         Assert.Equal(0, server.ReconnectRequests);
     }
 
+    // U3d: the killer entry in a survivor world is a leak only when the line of sight is blocked (or a field is wrong), so the
+    // "killer leaks" regression stands behind a wall.
     [Theory]
     [InlineData(true, false, "Silent survivor")]
-    [InlineData(false, true, "Killer")]
+    [InlineData(false, true, "Killer 1 leaked to survivor 2")]
     public async Task H3FailsAgainstMaskingRegressions(bool leakSilent, bool leakKiller, string evidence)
     {
-        await using var server = new LobbyServer { LeakSilent = leakSilent, LeakKiller = leakKiller };
+        await using var server = leakKiller
+            ? new LobbyServer { Layout = SightLayout.Blocked, KillerEntry = KillerLos.Always }
+            : new LobbyServer { LeakSilent = leakSilent };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(12));
         var report = await HarnessRunner.RunAsync(new Options { Port = server.Port, Timeout = TimeSpan.FromSeconds(2),
             Only = new HashSet<string> { "H3" } }, deadline.Token);

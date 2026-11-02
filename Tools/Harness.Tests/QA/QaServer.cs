@@ -48,6 +48,9 @@ internal sealed class QaFaults
     public bool LeakInSkillEffect { get; init; }
     public bool LeakQuantizedInTerminal { get; init; }
     public bool LeakKillerToSurvivors { get; init; }
+    // U3d: the killer entry in survivor worlds is legal when sight is clear and Flags/StatusTimer/CaptureCount are 0 (off-map
+    // positions here have no walls). KillerEntryFlags != 0 makes it an illegal copy of the killer's state.
+    public byte KillerEntryFlags { get; init; }
 
     // ---- H4 (abuse) ----
     public DeadMode DeadOnNegativeLength { get; init; }
@@ -457,7 +460,8 @@ internal sealed class QaServer : IAsyncDisposable
             world.Players.Add(new PlayerState
             {
                 Id = p.Id, Role = (byte)(IsKiller(p) ? Role.Killer : Role.Survivor), Status = p.Status,
-                X = p.X, Z = p.Z, Flags = (byte)(signal ? PlayerFlags.Signal : PlayerFlags.None), CaptureCount = p.Captures
+                X = p.X, Z = p.Z, Flags = (byte)((signal ? PlayerFlags.Signal : PlayerFlags.None) |
+                    (recipient.Id != 1 && IsKiller(p) ? (PlayerFlags)f.KillerEntryFlags : PlayerFlags.None)), CaptureCount = p.Captures
             });
         }
         if (f.LeakZInKillerYaw && recipient.Id == 1 && killerEntry >= 0)

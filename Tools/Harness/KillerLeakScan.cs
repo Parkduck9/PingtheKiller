@@ -11,6 +11,7 @@ namespace PingTheKiller.Harness;
 //    alignment inside the string) is compared with the killer X/Z bit patterns observed by the killer. A match in
 //    a legitimate survivor field is a tolerated coincidence; any other match is a leak.
 // Windows straddling field boundaries are never formed, so round killer floats cannot false-positive.
+// U3d: the X/Z fields of a killer entry that KillerSight judged legal (line of sight) are legitimate in that frame only.
 public static class KillerLeakScan
 {
     public static int Bits(float value) => BitConverter.SingleToInt32Bits(value);
@@ -37,9 +38,11 @@ public static class KillerLeakScan
     }
 
     // Returns failure evidence, or null. coincidences (optional) receives the count of each explained match.
-    // selfStateType overrides SelfStateType (tests only).
+    // selfStateType overrides SelfStateType (tests only). legalKillerEntry (U3d): index in a WorldState's Players of a killer
+    // entry that KillerSight judged legal (line of sight); only its own X/Z fields may hold killer X/Z. Every other
+    // occurrence in the frame is still counted against the legitimate fields.
     public static string? Excess(ReceivedFrame frame, IReadOnlySet<int> killerBits, IReadOnlyCollection<int> survivorIds,
-        Action<int>? coincidences = null, Type? selfStateType = null)
+        Action<int>? coincidences = null, Type? selfStateType = null, int legalKillerEntry = -1)
     {
         byte[] encoded;
         try { encoded = PacketCodec.Encode(frame.Packet); }
@@ -48,7 +51,7 @@ public static class KillerLeakScan
             return $"unexplained bytes in survivor-bound frame {frame.Packet.Id}: {frame.Raw.Length} raw bytes do not re-encode " +
                 $"from the decoded packet ({encoded.Length} bytes); possible killer coordinate leak.";
         Dictionary<int, (int Count, int Allowed)>? found = null;
-        foreach (var field in Fields(frame.Packet, survivorIds, selfStateType ?? SelfStateType))
+        foreach (var field in Fields(frame.Packet, survivorIds, selfStateType ?? SelfStateType, legalKillerEntry))
         {
             if (!killerBits.Contains(field.Bits)) continue;
             found ??= new Dictionary<int, (int, int)>();
@@ -88,7 +91,7 @@ public static class KillerLeakScan
         return fields;
     }
 
-    private static IEnumerable<Field> Fields(IPacket packet, IReadOnlyCollection<int> survivorIds, Type? selfStateType)
+    private static IEnumerable<Field> Fields(IPacket packet, IReadOnlyCollection<int> survivorIds, Type? selfStateType, int legalKillerEntry)
     {
         if (selfStateType != null && packet.GetType() == selfStateType && OwnTimerFields(packet) is { } own) return own;
         Field F(float value, bool legitimate = false) => new(Bits(value), legitimate);
@@ -106,12 +109,13 @@ public static class KillerLeakScan
                 fields.Add(I((int)w.Tick));
                 fields.Add(F(w.TimeLeft, true));
                 foreach (var t in w.Terminals) { fields.Add(F(t.X, true)); fields.Add(F(t.Z, true)); }
-                foreach (var p in w.Players)
+                for (int i = 0; i < w.Players.Count; i++)
                 {
-                    bool survivor = survivorIds.Contains(p.Id);
+                    var p = w.Players[i];
+                    bool survivor = survivorIds.Contains(p.Id), legalKiller = i == legalKillerEntry;
                     fields.Add(I(p.Id));
-                    fields.Add(F(p.X, survivor));
-                    fields.Add(F(p.Z, survivor));
+                    fields.Add(F(p.X, survivor || legalKiller));
+                    fields.Add(F(p.Z, survivor || legalKiller));
                     fields.Add(F(p.Yaw, survivor));
                     fields.Add(F(p.StatusTimer, survivor));
                 }

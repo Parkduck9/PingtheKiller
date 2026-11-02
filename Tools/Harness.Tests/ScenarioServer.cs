@@ -12,7 +12,13 @@ internal enum H6Fault
 {
     None, NoGameResult, DuplicateGameResult, EscapedEmpty, EscapedBoth, EscapedOther, WinnerKiller, ReasonTimeUp,
     LeakSkillEffect, LeakKillerEntry, ExitNeverOpens, NoCapture, NoRescue, ExecuteOnContinuedContact, RearmsInContact, PrematureEnd,
-    LeakInUnknownPacket
+    LeakInUnknownPacket,
+    // U3d broken line-of-sight variants (each implies the LineOfSight mode): the entry while blocked, to a spectator, to
+    // every survivor when any one has sight, with the previous tick's position, with non-zero Flags/StatusTimer/CaptureCount,
+    // and killer X/Z in a SkillEffect while the entry is legally visible.
+    LosWhileBlocked, LosToSpectator, LosCrossRecipient, LosStalePosition, LosNonZeroFields, LosSkillEffect,
+    // U3d a2 (QA F1): every 8th tick the killer gets no WorldState while every eligible survivor gets the entry, sight or not.
+    LosUnjoinableTick
 }
 
 // Test-only scripted rules fake for H6, following the U2b contract (docs/briefs/U2b-a1.md) closely enough to
@@ -30,7 +36,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
         public Peer? Peer;
         public Role Role;
         public PlayerStatus Status;
-        public float X, Z, Dx, Dz, StatusTimer;
+        public float X, Z, Dx, Dz, StatusTimer, Yaw, PrevX, PrevZ;
         public double LastSignal = double.NegativeInfinity, InvulnerableUntil, RescueContact, ExecutionGraceUntil;
         public bool ExecutionArmed;
         public int MovingTicks;
@@ -82,6 +88,13 @@ internal sealed class ScenarioServer : IAsyncDisposable
     // A well-formed unknown-Id frame (0x7E) before every packet and a 0x11 one (future Id) after every world.
     public bool UnknownFrames { get; init; }
     public int AnonymousWorldsSent { get; private set; }
+    // U3d/U2e contract: a survivor-bound world carries the killer entry (real Id/Role/X/Z/Yaw/Status, Flags/StatusTimer/
+    // CaptureCount 0) only for a Normal/Lagging recipient whose segment to the killer hits no wall (FakeSight). Players get a
+    // Yaw from their move direction in this mode.
+    public bool LineOfSight { get; init; }
+    public int KillerEntriesSent { get; private set; }
+    public int BlockedWorldsSent { get; private set; }
+    private bool Los => LineOfSight || fault >= H6Fault.LosWhileBlocked;
     private readonly Random shuffle = new(4243);
 
     private void Execute(Player s)
@@ -271,7 +284,9 @@ internal sealed class ScenarioServer : IAsyncDisposable
         tick++;
         foreach (var p in players)
         {
+            (p.PrevX, p.PrevZ) = (p.X, p.Z);
             if (!Signal(p) || p.Status is PlayerStatus.Escaped or PlayerStatus.Eliminated) { p.Dx = p.Dz = 0; continue; }
+            if (Los && (p.Dx != 0 || p.Dz != 0)) p.Yaw = MathF.Atan2(p.Dx, p.Dz);
             float speed = (p.Role == Role.Killer ? GameConstants.KillerSpeed : GameConstants.SurvivorSpeed) *
                 (p.Status == PlayerStatus.Lagging ? GameConstants.LaggingSpeedMultiplier : 1);
             var moved = map.Move(p.X, p.Z, p.Dx * speed * Dt, p.Dz * speed * Dt);
@@ -369,7 +384,11 @@ internal sealed class ScenarioServer : IAsyncDisposable
             End(Role.Survivor, GameEndReason.SurvivorEscaped, new List<int> { early.Id });
             return;
         }
-        if (escaped.Count > 0) End(Role.Survivor, GameEndReason.SurvivorEscaped, escaped);
+        if (escaped.Count > 0)
+        {
+            if (fault == H6Fault.LosToSpectator) Broadcast(); // one world in which the escaper is a spectator
+            End(Role.Survivor, GameEndReason.SurvivorEscaped, escaped);
+        }
         else if (Survivors.All(s => s.Status != PlayerStatus.Normal)) End(Role.Killer, GameEndReason.AllSurvivorsDown, escaped);
         else Broadcast();
     }
@@ -382,14 +401,47 @@ internal sealed class ScenarioServer : IAsyncDisposable
         Id = p.Id, Role = (byte)p.Role, Status = (byte)p.Status, X = p.X, Z = p.Z,
         Flags = (byte)(((p.Role == Role.Killer ? Signal(p) : Visible(p)) ? PlayerFlags.Signal : PlayerFlags.None) |
             (p.Hacking ? PlayerFlags.Hacking : 0) | (p.Rescuing ? PlayerFlags.Rescuing : 0)),
-        StatusTimer = p.Status == PlayerStatus.Lagging ? p.StatusTimer : 0, CaptureCount = p.CaptureCount
+        StatusTimer = p.Status == PlayerStatus.Lagging ? p.StatusTimer : 0, CaptureCount = p.CaptureCount, Yaw = p.Yaw
     };
+
+    private bool Sees(Player recipient) => recipient.Status is PlayerStatus.Normal or PlayerStatus.Lagging &&
+        !FakeSight.Blocked(recipient.X, recipient.Z, Killer.X, Killer.Z);
+
+    private PlayerState? KillerEntryFor(Player recipient)
+    {
+        bool sees = Sees(recipient);
+        if (!sees && recipient.Status is PlayerStatus.Normal or PlayerStatus.Lagging) BlockedWorldsSent++;
+        bool show = fault switch
+        {
+            H6Fault.LosWhileBlocked => recipient.Status is PlayerStatus.Normal or PlayerStatus.Lagging,
+            H6Fault.LosUnjoinableTick when tick % 8 == 0 => recipient.Status is PlayerStatus.Normal or PlayerStatus.Lagging,
+            H6Fault.LosCrossRecipient => Survivors.Any(Sees),
+            H6Fault.LosToSpectator => sees || recipient.Status is PlayerStatus.Escaped or PlayerStatus.Eliminated,
+            _ => sees
+        };
+        if (!show) return null;
+        var entry = new PlayerState
+        {
+            Id = Killer.Id, Role = (byte)Role.Killer, Status = (byte)Killer.Status, X = Killer.X, Z = Killer.Z, Yaw = Killer.Yaw
+        };
+        if (fault == H6Fault.LosStalePosition) (entry.X, entry.Z) = (Killer.PrevX, Killer.PrevZ);
+        if (fault == H6Fault.LosNonZeroFields)
+            switch (tick % 3)
+            {
+                case 0: entry.Flags = (byte)PlayerFlags.Signal; break;
+                case 1: entry.StatusTimer = 1.5f; break;
+                default: entry.CaptureCount = 1; break;
+            }
+        KillerEntriesSent++;
+        return entry;
+    }
 
     private void Broadcast()
     {
         foreach (var recipient in players)
         {
             if (recipient.Peer == null) continue;
+            if (fault == H6Fault.LosUnjoinableTick && tick % 8 == 0 && recipient.Role == Role.Killer) continue;
             var world = new S2C_WorldState
             {
                 Tick = tick, TimeLeft = (float)(GameConstants.MatchLengthSeconds - now),
@@ -406,6 +458,12 @@ internal sealed class ScenarioServer : IAsyncDisposable
                 world.ThreatLevel = PingThreat(Distance(recipient, Killer.X, Killer.Z));
                 if (fault == H6Fault.LeakKillerEntry) world.Players.Add(State(Killer));
                 world.Players.AddRange(Survivors.Select(State));
+                if (Los && KillerEntryFor(recipient) is { } entry)
+                {
+                    world.Players.Insert(0, entry);
+                    if (fault == H6Fault.LosSkillEffect && tick % 10 == 0)
+                        recipient.Peer.Send(new S2C_SkillEffect { CasterId = Killer.Id, SkillId = 1, X = Killer.X, Z = Killer.Z, Duration = 3 });
+                }
                 if (fault == H6Fault.LeakSkillEffect && tick % 20 == 0)
                     recipient.Peer.Send(new S2C_SkillEffect { CasterId = Killer.Id, SkillId = 1, X = Killer.X, Z = Killer.Z, Duration = 3 });
                 if (fault == H6Fault.LeakInUnknownPacket && tick % 20 == 0)

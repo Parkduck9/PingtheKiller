@@ -6,7 +6,7 @@ using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Harness;
 
-// H6: hack -> exit open -> capture -> retreat -> rescue -> escape -> GameResult, played by three real TCP
+// H6: sight -> hack -> exit open -> capture -> retreat -> rescue -> escape -> GameResult, played by three real TCP
 // clients on a dedicated fresh lobby server (--bots 0, no --autostart), with a killer-coordinate leak scan.
 public static class ScenarioCheck
 {
@@ -87,7 +87,7 @@ public sealed class Actor : IAsyncDisposable
             // After a GameResult a quiet or closing socket is the normal end of the match stream.
             if (ex is CheckFailure || Interlocked.Read(ref results) == 0)
                 error = ex is CheckFailure ? ex : new CheckFailure(ex is OperationCanceledException
-                    ? $"{Name}: server sent nothing for {timeout.TotalSeconds:F1} s."
+                    ? $"{Name}: server sent nothing for {timeout.TotalSeconds:F1} s (no S2C_GameResult received)."
                     : $"{Name}: {ex.GetType().Name}: {ex.Message}");
         }
         catch (Exception) { }
@@ -188,10 +188,17 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     private readonly CancellationTokenSource failed = new();
     private readonly HashSet<int> killerBits = new();
     private readonly List<string> evidence = new();
+    private readonly SightCounts sightCounts = new();
     private Exception? pumpFailure;
+    private CheckFailure? inspectionFailure; // a leak or exit-integrity failure found while inspecting a received frame
     private string step = "setup";
     private Actor? killerActor, aActor, bActor;
     private int[] survivorIds = Array.Empty<int>();
+    private SightJoin? sight;
+    // U3d a3: per-stream tick integrity over the whole scenario (first WorldState after MatchStart to the end of the drain).
+    private readonly Dictionary<int, TickSequence> ticks = new();
+    // The Tick of the last WorldState before each human's GameResult (checked equal in the leak scan, after the join).
+    private List<(string Name, long Tick)> lastTicks = new();
 
     private Actor Killer => killerActor!;
     private Actor A => aActor!;
@@ -206,12 +213,14 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         try
         {
             await SetupAsync(linked.Token);
+            await SightAsync(linked.Token);
             await HackAsync(linked.Token);
             await CaptureAndRetreatAsync(linked.Token);
             await RescueAsync(linked.Token);
             var escaper = await EscapeAsync(linked.Token);
             await ResultAsync(escaper, linked.Token);
             LeakScan();
+            RequireSight();
             return $"{string.Join("; ", evidence)}; total {clock.Elapsed.TotalSeconds:F1} s.";
         }
         catch (Exception ex)
@@ -224,6 +233,16 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             throw new CheckFailure($"[{step}] {reason}" + (evidence.Count > 0 ? $" Completed: {string.Join("; ", evidence)}." : ""));
         }
     }
+
+    private Action<Actor, ReceivedFrame> Inspecting(Action<Actor, ReceivedFrame> inspect) => (actor, frame) =>
+    {
+        try { inspect(actor, frame); }
+        catch (CheckFailure failure)
+        {
+            Interlocked.CompareExchange(ref inspectionFailure, failure, null);
+            throw;
+        }
+    };
 
     private void OnPumpFailure(Exception ex)
     {
@@ -245,6 +264,8 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         bActor = await Actor.JoinAsync("B", options, ct);
         Check.Require(All.Select(x => x.Id).Distinct().Count() == 3, "Three humans did not receive distinct PlayerIds.");
         survivorIds = new[] { A.Id, B.Id };
+        sight = new SightJoin(Killer.Id);
+        foreach (var actor in All) ticks[actor.Id] = new TickSequence(actor.Name);
         await Killer.Wire.SendAsync(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Killer }, ct);
         await Killer.Wire.SendAsync(new C2S_SetBots { Count = 0 }, ct);
         await Killer.Wire.ReadAsync<S2C_LobbyState>(ct, p => p.HostRoleChoice == (byte)RoleChoice.Killer &&
@@ -254,9 +275,9 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         Check.Require(starts[0].Role == (byte)Role.Killer && starts[1].Role == (byte)Role.Survivor && starts[2].Role == (byte)Role.Survivor,
             $"MatchStart roles killer/A/B = {starts[0].Role}/{starts[1].Role}/{starts[2].Role}; expected Killer/Survivor/Survivor.");
         Check.Require(starts.All(s => s.Seed == starts[0].Seed), "Clients received different match seeds.");
-        Killer.Start(InspectKiller, OnPumpFailure);
-        A.Start(InspectSurvivor, OnPumpFailure);
-        B.Start(InspectSurvivor, OnPumpFailure);
+        Killer.Start(Inspecting(InspectKiller), OnPumpFailure);
+        A.Start(Inspecting(InspectSurvivor), OnPumpFailure);
+        B.Start(Inspecting(InspectSurvivor), OnPumpFailure);
         GameConstants.TerminalsFor(2, out int required, out int placed);
         foreach (var actor in All)
         {
@@ -282,6 +303,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     private void InspectKiller(Actor actor, ReceivedFrame frame)
     {
         if (frame.Packet is not S2C_WorldState world) return;
+        ticks[actor.Id].Add(world.Tick);
         RequireExitEarned(actor, world);
         // Only the killer's own entry is read from the killer stream (survivor entries may be anonymised later).
         var self = actor.Self(frame);
@@ -291,18 +313,26 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             killerBits.Add(KillerLeakScan.Bits(self.X));
             killerBits.Add(KillerLeakScan.Bits(self.Z));
         }
+        // Line-of-sight ground truth for this tick; survivor worlds waiting for it are judged now (a leak throws).
+        sight!.AddKiller(world);
     }
 
     private void InspectSurvivor(Actor actor, ReceivedFrame frame)
     {
-        // Contract (U2b a2): only "no killer entry" and the byte scan below; nothing about other entries.
+        // Contract (U2e): a killer entry only with a clear line of sight and exact fields (SightJoin), plus the byte scan
+        // below; nothing about other entries.
+        int legal = -1;
         if (frame.Packet is S2C_WorldState world)
         {
+            ticks[actor.Id].Add(world.Tick);
             RequireExitEarned(actor, world);
-            Measurements.KillerHidden(frame, Killer.Id);
+            var verdict = sight!.AddSurvivor(actor.Id, world);
+            // Waiting for the killer tick: the final LeakScan byte-scans this frame once its entry is judged.
+            if (verdict == null && KillerSight.HasKillerEntry(world, Killer.Id)) return;
+            legal = verdict?.AllowedEntry ?? -1;
         }
         string? leak;
-        lock (killerBits) leak = KillerLeakScan.Excess(frame, killerBits, survivorIds);
+        lock (killerBits) leak = KillerLeakScan.Excess(frame, killerBits, survivorIds, legalKillerEntry: legal);
         Check.Require(leak == null, $"{actor.Name}: {leak}");
     }
 
@@ -380,6 +410,28 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
 
             await actor.MoveAsync(delta.LengthSquared() > 1e-8f ? Vector2.Normalize(delta) : Vector2.Zero, ct);
         }
+    }
+
+    // U3d: positive line-of-sight coverage before the hack. The killer stands at its spawn; B walks to a spot where a wall
+    // blocks its line of sight to the killer (the map is open, so this does not happen reliably on its own) while A stays
+    // in the open. B blocked while A is not exposes per-recipient leaks; the capture contact later adds close-range sight.
+    private async Task SightAsync(CancellationToken ct)
+    {
+        step = "sight: B behind a wall";
+        var (aPos, bPos, killerPos) = await PositionsAsync(ct);
+        float MarginTo(Vector2 p) => (float)LineOfSight.Margin(p.X, p.Y, killerPos.X, killerPos.Y);
+        var hide = planner.PathToNearest(bPos, p => Vector2.Distance(p, killerPos) >= 8 && MarginTo(p) <= -0.75f,
+            new[] { new Circle(killerPos, KillerKeepOut) });
+        Check.Require(hide != null, $"No walkable spot for B whose line of sight to the killer at {killerPos} is blocked by a wall.");
+        await WalkAsync(B, "B behind a wall", hide!, 0.3f, ct);
+        long seen = 0;
+        for (int i = 0; i < 5; i++) (_, seen) = await B.NextWorldAsync(seen, ct); // a few blocked ticks to join
+        (aPos, bPos, killerPos) = await PositionsAsync(ct);
+        var bSight = LineOfSight.Classify(bPos.X, bPos.Y, killerPos.X, killerPos.Y);
+        Check.Require(bSight == Sight.Blocked,
+            $"B stopped at ({bPos.X:F2},{bPos.Y:F2}) where its line of sight to the killer is {bSight} (margin {MarginTo(bPos):F2} m), not blocked.");
+        evidence.Add($"sight: B stands behind a wall at ({bPos.X:F1},{bPos.Y:F1}), line of sight to the killer at ({killerPos.X:F1},{killerPos.Y:F1}) " +
+            $"blocked by {-MarginTo(bPos):F2} m; A at ({aPos.X:F1},{aPos.Y:F1}) {LineOfSight.Classify(aPos.X, aPos.Y, killerPos.X, killerPos.Y)}");
     }
 
     private async Task HackAsync(CancellationToken ct)
@@ -465,6 +517,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         float nearest = float.MaxValue, farthest = 0;
         int held = 0;
         long seenA = 0;
+        var heldA = new List<(uint Tick, Vector2 At)>();
         while (hold.Elapsed < HoldContact)
         {
             (var current, seenA) = await A.NextWorldAsync(seenA, ct);
@@ -472,10 +525,20 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             Check.Require(a.Status == (byte)PlayerStatus.Lagging,
                 $"A executed during the capturing contact (player {A.Id} has status {a.Status}) {hold.Elapsed.TotalSeconds:F2} s after capture; " +
                 "execution must require leaving and re-entering the capture radius.");
-            float distance = Vector2.Distance(Position(Killer.LatestSelf), Position(a));
-            Check.Require(distance <= GameConstants.CaptureRadius, $"Killer lost contact during the hold: {distance:F2} m from A.");
+            heldA.Add((((S2C_WorldState)current!.Packet).Tick, Position(a)));
+        }
+        // U3d a3: contact is measured between the killer's and A's positions at the SAME tick, so a lagging killer stream (an old
+        // killer position) does not break it (QA F3). The killer stream is read until it covers A's last held tick. An A tick the
+        // killer never received is not a contact sample; it fails in the leak scan's join ("never delivered to the killer").
+        var killerByTick = await KillerPositionsAsync(heldA[^1].Tick, ct);
+        foreach (var (tick, at) in heldA)
+        {
+            if (!killerByTick.TryGetValue(tick, out var k)) continue;
+            float distance = Vector2.Distance(k, at);
+            Check.Require(distance <= GameConstants.CaptureRadius, $"Killer lost contact during the hold: {distance:F2} m from A at tick={tick}.");
             (nearest, farthest, held) = (Math.Min(nearest, distance), Math.Max(farthest, distance), held + 1);
         }
+        Check.Require(held >= heldA.Count / 2, $"Only {held} of A's {heldA.Count} contact-hold ticks reached the killer stream.");
 
         step = "retreat";
         var killerAt = Position(Killer.LatestSelf);
@@ -540,6 +603,8 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         try { await WalkAsync(escaper, $"{escaper.Name} to exit", path, Reach, ct, endOnResult: true); }
         catch (Exception ex) when (!ct.IsCancellationRequested || pumpFailure != null)
         {
+            // A leak in the escaper's last frames (e.g. the killer entry to a spectator) is the cause, not a missing GameResult.
+            if (inspectionFailure != null) throw inspectionFailure;
             // A server that ends the match without a GameResult goes silent once the escaper is in range; the
             // last WorldState is from up to two ticks before the escaping tick.
             var last = escaper.Self(escaper.Frames().Last(f => f.Packet is S2C_WorldState));
@@ -565,6 +630,17 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         return escaper;
     }
 
+    // The killer's own position per tick, read until the killer stream has a WorldState with Tick >= tick (bounded per wait).
+    private async Task<Dictionary<uint, Vector2>> KillerPositionsAsync(uint tick, CancellationToken ct)
+    {
+        long seen = 0;
+        while (Killer.Latest.Tick < tick) (_, seen) = await Killer.NextWorldAsync(seen, ct);
+        var positions = new Dictionary<uint, Vector2>();
+        foreach (var frame in Killer.Frames())
+            if (frame.Packet is S2C_WorldState world) positions[world.Tick] = Position(Killer.Self(frame));
+        return positions;
+    }
+
     private async Task ResultAsync(Actor escaper, CancellationToken ct)
     {
         step = "GameResult";
@@ -572,8 +648,19 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         long drainEnd = firsts.Min(f => f.ReceivedAt) + Stopwatch.Frequency;
         double remaining = ReceivedFrame.SecondsBetween(Stopwatch.GetTimestamp(), drainEnd);
         if (remaining > 0) await Task.Delay(TimeSpan.FromSeconds(remaining), ct);
+        // U3d a3 coverage: keep the killer's pump running (bounded by --timeout) until it covers every survivor tick received.
+        var coverage = Stopwatch.StartNew();
+        while (sight!.AwaitingKiller && coverage.Elapsed < options.Timeout && pumpFailure == null) await Task.Delay(20, ct);
         foreach (var actor in All) await actor.StopAsync();
         if (pumpFailure != null) throw pumpFailure;
+        // Every human gets every tick, so the last WorldState before each GameResult carries the same Tick (checked in LeakScan).
+        lastTicks = All.Select(actor =>
+        {
+            var frames = actor.Frames();
+            int result = frames.FindIndex(f => f.Packet is S2C_GameResult);
+            var last = frames.Take(result < 0 ? frames.Count : result).LastOrDefault(f => f.Packet is S2C_WorldState);
+            return (actor.Name, Tick: last == null ? -1L : ((S2C_WorldState)last.Packet).Tick);
+        }).ToList();
         byte[]? reference = null;
         var lobbies = new List<string>();
         foreach (var actor in All)
@@ -600,14 +687,31 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         step = "killer-coordinate leak scan";
         int frames = 0, worlds = 0, coincidences = 0, unknown = 0;
         long bytes = 0;
+        // U3d a3: every survivor world joined a killer tick (no tolerance), every stream's ticks increase by 1 or 2, and every
+        // stream ends on the same tick; only then does every entry have a final verdict, so the byte scan runs on final verdicts only.
+        sight!.Finish();
+        TickSequence.Require(ticks.Values.ToArray());
+        Check.Require(lastTicks.Count > 0 && lastTicks.All(t => t.Tick == lastTicks[0].Tick),
+            $"the last WorldState before the GameResult differs between streams: {string.Join(", ", lastTicks.Select(t => $"{t.Name} tick={t.Tick}"))}; " +
+            "every human must receive every tick.");
         foreach (var actor in new[] { A, B })
         {
             foreach (var frame in actor.Frames())
             {
                 frames++;
                 bytes += frame.Raw.Length;
-                if (frame.Packet is S2C_WorldState) worlds++;
-                string? leak = KillerLeakScan.Excess(frame, killerBits, survivorIds, n => coincidences += n);
+                int legal = -1;
+                if (frame.Packet is S2C_WorldState world)
+                {
+                    worlds++;
+                    // Final judgement with every killer tick: only a Visible or Ambiguous entry's own X/Z offsets are allowed;
+                    // sight.Finish() passed above, so every world here joined a killer tick and the verdict is final.
+                    var verdict = sight.Judge(actor.Id, world);
+                    Check.Require(verdict.Leak == null, $"{actor.Name}: {verdict.Leak}.");
+                    sightCounts.Add(verdict.Outcome);
+                    legal = verdict.AllowedEntry;
+                }
+                string? leak = KillerLeakScan.Excess(frame, killerBits, survivorIds, n => coincidences += n, legalKillerEntry: legal);
                 Check.Require(leak == null, $"{actor.Name}: {leak}");
             }
             // Skipped unknown-Id frames (not decodable with this Shared): raw bytes at any alignment, any match fails.
@@ -620,7 +724,18 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         }
         evidence.Add($"leak scan: {killerBits.Count} distinct killer X/Z values vs {frames} survivor-bound frames ({bytes} bytes, any alignment): " +
             $"0 excess, {coincidences} exact match(es) with legitimate fields; {unknown} unknown-Id frames raw-scanned, 0 matches; " +
-            $"killer role/id absent in {worlds} survivor WorldStates");
+            $"killer entry judged by line of sight in {worlds} survivor WorldStates: {sightCounts}; every survivor tick joined a killer tick " +
+            $"({string.Join("; ", ticks.Values)}; last WorldState tick before GameResult {lastTicks[0].Tick} in every stream)");
+    }
+
+    // --expect-los (after U2e): the server must actually show the Killer in line of sight and hide it behind walls.
+    private void RequireSight()
+    {
+        if (!options.ExpectLos) return;
+        step = "line of sight (--expect-los)";
+        Check.Require(sightCounts.Visible >= 1 && sightCounts.BlockedAbsent >= 1,
+            $"--expect-los needs at least one legal line-of-sight killer entry and one blocked-and-absent tick in the survivor worlds; got {sightCounts}.");
+        evidence.Add($"--expect-los: {sightCounts.Visible} legal visible entries and {sightCounts.BlockedAbsent} blocked-and-absent ticks observed");
     }
 
     public async ValueTask DisposeAsync()
