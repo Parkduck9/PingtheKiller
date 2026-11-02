@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
 using PingTheKiller.Client.Net;
+using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.ServerCore.Transport;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -256,7 +258,9 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void SurvivorRoleStartsAMatchAsSurvivorAndNeverReceivesAKillerEntry()
+        // U2e (GDD section 2, 10/30): replaces U2b rule 10 ("the survivor never receives the killer's position").
+        // A survivor-bound S2C_WorldState contains the Killer entry only while that survivor's line of sight to the Killer is clear.
+        public void SurvivorRoleStartsAMatchAsSurvivorAndSeesTheKillerOnlyInLineOfSight()
         {
             using (var probe = new Probe())
             {
@@ -270,17 +274,68 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(match.Role, Is.EqualTo((byte)Role.Survivor));
                 Assert.That(match.SkillId, Is.LessThanOrEqualTo(4), "a survivor skill id is 0..4 (GDD section 4)");
 
+                FixedMap map = SharedMap.Map;
+                PlayerState selfEntry = default;
+                PlayerState killerEntry = default;
+                int killerCount = 0;
+
                 for (int i = 0; i < 6; i++)
                 {
                     S2C_WorldState world = probe.Await<S2C_WorldState>();
                     bool sawSelf = false;
                     foreach (PlayerState player in world.Players)
                     {
-                        Assert.That(player.Role, Is.EqualTo((byte)Role.Survivor), "the survivor never receives the killer's position");
-                        if (player.Id == joined.PlayerId) sawSelf = true;
+                        if (player.Role == (byte)Role.Killer)
+                        {
+                            killerCount++;
+                            killerEntry = player;
+                        }
+                        else
+                        {
+                            Assert.That(player.Role, Is.EqualTo((byte)Role.Survivor), "every non-killer entry is a survivor");
+                        }
+                        if (player.Id == joined.PlayerId)
+                        {
+                            sawSelf = true;
+                            selfEntry = player;
+                        }
                     }
                     Assert.That(sawSelf, Is.True, "a survivor sees itself and the team");
                     Assert.That(world.ThreatLevel, Is.LessThanOrEqualTo(3));
+                    Assert.That(killerCount, Is.LessThanOrEqualTo(1), "at most one killer entry per survivor world");
+
+                    if (killerCount == 1)
+                    {
+                        Assert.That(killerEntry.Flags, Is.EqualTo(0), "killer entry Flags == 0");
+                        Assert.That(killerEntry.StatusTimer, Is.EqualTo(0f), "killer entry StatusTimer == 0");
+                        Assert.That(killerEntry.CaptureCount, Is.EqualTo(0), "killer entry CaptureCount == 0");
+
+                        // Line of sight check (U2e): when a Killer entry is present, the segment from the receiving
+                        // survivor's own position to the Killer entry must not be blocked by a static wall.
+                        // Tolerance: walls are shrunk by 0.05 m on each side to absorb the server's ambiguity band
+                        // and corner-case floating point differences.
+                        const float tolerance = 0.05f;
+                        bool blocked = false;
+                        foreach (Wall wall in map.Walls)
+                        {
+                            float minX = wall.MinX + tolerance;
+                            float maxX = wall.MaxX - tolerance;
+                            float minZ = wall.MinZ + tolerance;
+                            float maxZ = wall.MaxZ - tolerance;
+                            if (minX < maxX && minZ < maxZ &&
+                                MapGeometry.SegmentHitsBox(selfEntry.X, selfEntry.Z, killerEntry.X, killerEntry.Z, minX, minZ, maxX, maxZ, out _))
+                            {
+                                blocked = true;
+                                break;
+                            }
+                        }
+
+                        Assert.That(blocked, Is.False, "killer entry present only when line of sight is clear (walls shrunk by 0.05 m tolerance)");
+                    }
+
+                    killerCount = 0;
+                    killerEntry = default;
+                    selfEntry = default;
                 }
             }
         }
