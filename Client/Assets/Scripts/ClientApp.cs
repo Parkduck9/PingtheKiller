@@ -40,6 +40,12 @@ namespace PingTheKiller.Client
         private readonly SurvivorEffects effects = new SurvivorEffects();
         private AudioSource cueSource;
         private AudioClip readyClip;
+        // U4e Survivor feedback: threat visuals (HUD_SPEC 4.2), capture banner, elimination reason, cues and the stutter (4.5).
+        private readonly ThreatVisual threatVisual = new ThreatVisual();
+        private readonly CaptureWatch capture = new CaptureWatch();
+        private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
+        private LaggingStutter stutter;
+        private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
         private Role role;
         private byte skillId;
         private PlayerStatus localStatus;
@@ -77,6 +83,13 @@ namespace PingTheKiller.Client
             float[] tick = KillerCueSynth.Build(KillerCue.SkillReady, KillerAudio.Rate);
             readyClip = AudioClip.Create("cue skill_ready", tick.Length, 1, KillerAudio.Rate, false);
             readyClip.SetData(tick, 0);
+            foreach (SurvivorCue cue in new[] { SurvivorCue.Captured, SurvivorCue.Eliminated, SurvivorCue.ThreatScratch })
+            {
+                float[] samples = SurvivorCueSynth.Build(cue, KillerAudio.Rate);
+                AudioClip clip = AudioClip.Create("cue " + cue, samples.Length, 1, KillerAudio.Rate, false);
+                clip.SetData(samples, 0);
+                survivorCues[cue] = clip;
+            }
             screens = gameObject.AddComponent<ClientScreens>();
             threat = gameObject.AddComponent<ThreatAudio>();
             screens.Join += Join;
@@ -90,6 +103,9 @@ namespace PingTheKiller.Client
             screens.Killer.Resume += () => SetMenu(false);
             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
+            stutter = gameObject.AddComponent<LaggingStutter>();
+            stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
+            if (devArgs.FakeKiller > 0) fakeKiller = new FakeKiller(devArgs.FakeKiller);
             if (devArgs.Active)
             {
                 dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState);
@@ -167,6 +183,7 @@ namespace PingTheKiller.Client
                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
                     selfState.Reset(); facing.Reset(0);
+                    capture.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
                     rig.Begin(role); screens.ShowPlay(role, skillId);
@@ -179,11 +196,15 @@ namespace PingTheKiller.Client
                     break;
                 case S2C_WorldState state:
                     if (!playing || world == null) break;
+                    if (fakeKiller != null && role == Role.Survivor)
+                    {
+                        byte implied = fakeKiller.Inject(state.Players, playerId, received.Time); // dev screenshots only
+                        if (implied > state.ThreatLevel) state.ThreatLevel = implied;
+                    }
                     world.Accept(state, received.Time);
                     killerLayer?.Accept(state, received.Time);
                     lastWorld = state;
                     exitOpen = state.ExitOpen != 0 && state.ExitLocked == 0;
-                    threat.SetLevel(role == Role.Survivor ? state.ThreatLevel : (byte)0);
                     foreach (PlayerState player in state.Players)
                     {
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
@@ -204,7 +225,8 @@ namespace PingTheKiller.Client
                             if (nearest >= 0) hackingTerminal = new Vector3(state.Terminals[nearest].X, 0, state.Terminals[nearest].Z);
                         }
                     }
-                    if (role == Role.Survivor) CollectMates(state);
+                    if (role == Role.Survivor) { CollectMates(state); OnOwnSnapshot(state.ThreatLevel, received.Time); }
+                    else threat.SetLevel(0);
                     dev?.OnWorld(state, playerId);
                     break;
                 case S2C_SelfState self:
@@ -230,11 +252,12 @@ namespace PingTheKiller.Client
         {
             bool wasPlaying = playing;
             playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset();
-            rig.SetCursor(false); threat.SetLevel(0);
+            rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
             DestroyWorld();
-            string headline = ResultCopy.Headline(result, lobby), outcome = ResultCopy.Outcome(result, playerId, role, localStatus);
+            string headline = ResultCopy.Headline(result, lobby);
+            string outcome = ResultCopy.Outcome(result, playerId, role, localStatus, role == Role.Survivor ? capture.ReasonText() : null);
             screens.ShowResult(headline, outcome, preview);
             screens.SetResultLobby(false, link != null && link.IsOffline);
             if (!preview) dev?.OnResult(result, headline, outcome);
@@ -285,8 +308,10 @@ namespace PingTheKiller.Client
             selfState.Advance(now);
             if (selfState.TakeSkillReady())
             {
-                if (survivor) cueSource.PlayOneShot(readyClip); else killerLayer?.OnSkillReady();
-                Debug.Log("[net] skill_ready (own cooldown reached 0)");
+                // A Survivor hears skill_ready only while it can use the skill: not Lagging, spectating or Escaped (U4d F-03).
+                bool audible = !survivor || CaptureWatch.SkillReadyAudible(own.Status);
+                if (survivor && audible) cueSource.PlayOneShot(readyClip); else if (!survivor) killerLayer?.OnSkillReady();
+                Debug.Log("[net] skill_ready (own cooldown reached 0)" + (audible ? string.Empty : ", silent: own status " + own.Status));
             }
             // Survivor: Esc releases the cursor (click resumes). Killer: Esc opens or closes the play menu.
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
@@ -336,8 +361,10 @@ namespace PingTheKiller.Client
             world.Render(now);
             if (survivor)
             {
+                stutter.SetActive(own.Status == PlayerStatus.Lagging);
                 UpdateSurvivorHud(now);
                 screens.SetExit(view, SharedMap.Exit + Vector3.up * 2.6f, exitOpen);
+                dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha);
             }
             else if (killerLayer != null && located)
             {
@@ -345,6 +372,22 @@ namespace PingTheKiller.Client
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt);
             }
         }
+        // Survivor client, each WorldState after the own entry was read: own-status transitions (captured sound + banner,
+        // eliminated sound + reason), the threat visual (re-rolled on a level change, threat_scratch on entering level 2) and
+        // the beep, both hidden while Eliminated or Escaped (HUD_SPEC 4.1, 4.2, 4.5).
+        private void OnOwnSnapshot(byte threatLevel, double time)
+        {
+            StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time);
+            if (change == StatusEvent.Captured) { cueSource.PlayOneShot(survivorCues[SurvivorCue.Captured]); Debug.Log("[client] captured: banner + stutter"); }
+            if (change == StatusEvent.Eliminated)
+            {
+                cueSource.PlayOneShot(survivorCues[SurvivorCue.Eliminated]);
+                Debug.Log("[client] eliminated, reason=" + capture.Reason + " (\"" + capture.ReasonText() + "\")");
+            }
+            if (threatVisual.Update(threatLevel, own.Status) && threatVisual.Level == 2) cueSource.PlayOneShot(survivorCues[SurvivorCue.ThreatScratch]);
+            threat.SetLevel(ThreatVisual.Effective(threatLevel, own.Status));
+        }
+
         // Survivor client only (HUD_SPEC 0.1: Survivors receive every Survivor): the others, for rescue and co-hacking prompts.
         private void CollectMates(S2C_WorldState state)
         {
@@ -373,11 +416,13 @@ namespace PingTheKiller.Client
             SurvivorHud hud = screens.Survivor;
             bool restore = SurvivorReadout.RestoreHasTarget(own, mates);
             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
-            hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now)));
+            hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now), capture.ReasonText()));
+            hud.SetThreat(threatVisual.Effect, threatVisual.StripFraction, threatVisual.Seed);
             hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired,
                 SurvivorReadout.Exit(lastWorld.ExitOpen, lastWorld.ExitLocked), effects.Locked(now));
             hud.SetSkill(skillId, SurvivorReadout.SkillState(skillId, own.Status, cooldown, restore), cooldown, effects.OwnActive(now), skillId == SkillIds.TrafficOverload);
-            hud.SetPrompt(SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));
+            hud.SetPrompt(capture.BannerVisible(now) ? CaptureWatch.BannerPrompt
+                : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));
         }
         private void OnApplicationFocus(bool focused)
         {
@@ -408,10 +453,15 @@ namespace PingTheKiller.Client
         {
             Release();
             playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset();
-            threat.SetLevel(0); rig.SetCursor(false);
+            threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
             DestroyWorld();
             screens.ShowMenu(notice);
         }
-        private void OnDestroy() { link?.Dispose(); if (readyClip != null) Destroy(readyClip); Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
+        private void OnDestroy()
+        {
+            link?.Dispose(); if (readyClip != null) Destroy(readyClip);
+            foreach (AudioClip clip in survivorCues.Values) if (clip != null) Destroy(clip);
+            Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+        }
     }
 }

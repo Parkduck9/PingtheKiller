@@ -43,6 +43,8 @@ namespace PingTheKiller.Client.UI
         public bool InResult { get; private set; }
         public KillerHud Killer { get; private set; }
         public SurvivorHud Survivor { get; private set; }
+        public VisualElement StutterBack { get; private set; }
+        public VisualElement StutterFront { get; private set; }
         public bool DevVisible
         {
             get => dev.style.display == DisplayStyle.Flex;
@@ -69,6 +71,9 @@ namespace PingTheKiller.Client.UI
             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
+            // Lagging stutter layers (HUD_SPEC 4.5): the held world image, behind every screen and the HUD.
+            StutterBack = Box(root, "stutter"); StutterFront = Box(root, "stutter");
+            StutterBack.pickingMode = PickingMode.Ignore; StutterFront.pickingMode = PickingMode.Ignore;
             BuildMenu(); BuildLobby(); BuildResult(); BuildPlay(font);
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
             root.Query<TextElement>().ForEach(element => element.style.unityFontDefinition = FontDefinition.FromFont(font));
@@ -276,6 +281,6 @@ namespace PingTheKiller.Client.UI
             if (lobby.style.display == DisplayStyle.None || !start.enabledSelf) return false;
             StartMatch?.Invoke(); return true;
         }
-        private void OnDestroy() { if (panel != null) Destroy(panel); }
+        private void OnDestroy() { Survivor?.Dispose(); if (panel != null) Destroy(panel); }
     }
 }

@@ -34,6 +34,15 @@ namespace PingTheKiller.Client.UI
             return survivorsWon ? "Your team won. You did not reach the Exit." : "You did not escape.";
         }
 
+        // (10/30) An eliminated Survivor's line carries the reason the meter showed (CaptureWatch), e.g.
+        // "You were eliminated. Executed: caught a second time." Without a reason it is the plain line.
+        public static string Outcome(S2C_GameResult result, int localId, Role localRole, PlayerStatus localStatus, string eliminatedReason)
+        {
+            string line = Outcome(result, localId, localRole, localStatus);
+            bool eliminated = localRole == Role.Survivor && line == "You were eliminated.";
+            return eliminated && !string.IsNullOrEmpty(eliminatedReason) ? line + " " + eliminatedReason : line;
+        }
+
         public static string NameOf(int id, S2C_LobbyState lobby)
         {
             if (lobby?.Slots != null)

@@ -32,6 +32,8 @@ namespace PingTheKiller.Client.UI
     {
         public string Word, Reason, Tag;
         public bool WordSignal, ReasonMuted, TagMuted, AllyOutline;
+        // (10/30) Eliminated with an inferred reason: the reason may take two lines and the bar row is not drawn.
+        public bool Wrap;
         public BarFill Fill;
         public float Width;
     }
@@ -41,6 +43,7 @@ namespace PingTheKiller.Client.UI
     {
         public string Text;
         public bool Muted;
+        public bool Danger;   // (10/30) capture banner: a 4x18 u `danger` bar before the text
         public BarFill Bar;   // Empty = no bar
         public float Width;
     }
@@ -116,13 +119,19 @@ namespace PingTheKiller.Client.UI
         // HUD_SPEC 4.1: the first matching row wins. self = the SelfState seam (null or unavailable: rows that need it
         // are skipped). scannedLeft / overloadLeft = seconds left of a PingScanner effect on you / your own Traffic overload.
         public static MeterState Meter(OwnEntry own, ISelfState self, float scannedLeft, float overloadLeft)
+            => Meter(own, self, scannedLeft, overloadLeft, null);
+
+        // eliminatedReason (10/30): CaptureWatch's inferred reason, shown in `text` on up to two lines while Eliminated.
+        public static MeterState Meter(OwnEntry own, ISelfState self, float scannedLeft, float overloadLeft, string eliminatedReason)
         {
             bool known = self != null && self.Available;
             var m = new MeterState { Fill = BarFill.Empty };
             switch (own.Status)
             {
                 case PlayerStatus.Eliminated:
-                    m.Word = "Eliminated"; m.Reason = "Watching until the match ends."; m.ReasonMuted = true;
+                    m.Word = "Eliminated";
+                    if (string.IsNullOrEmpty(eliminatedReason)) { m.Reason = "Watching until the match ends."; m.ReasonMuted = true; }
+                    else { m.Reason = eliminatedReason; m.Wrap = true; }
                     break;
                 case PlayerStatus.Escaped:
                     m.Word = "Escaped"; m.Reason = "Waiting for the result."; m.ReasonMuted = true;
