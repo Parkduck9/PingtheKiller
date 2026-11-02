@@ -142,14 +142,15 @@ public sealed class SkillTests
             previous = now;
         }
         a.Move(0, 0);
-        // (5,26) is 5.1 m from terminal 0 at (10,25): the dummy walks there and stands within 1 m of it ("hacking"),
-        // pausing Silently like a bot when its 2-5 s burst ends. It never outlives the 3 s skill.
+        // (5,26) is 5.1 m from terminal 0 at (10,25): the dummy walks there and stands where a survivor bot hacks, 1.4 m
+        // off the centre (U2d re-target: SurvivorBrain.HackStopDistance, was 1 m), pausing Silently like a bot when its
+        // 2-5 s burst ends. It never outlives the 3 s skill.
         bool arrived = false;
         for (int frame = 11; frame < 60; frame++)
         {
             m.Tick();
             if (m.KillerPhantoms() is not { Count: 1 } shown) { Assert.Empty(m.KillerPhantoms()); continue; }
-            if (RulesMatch.Distance(shown[0], 10, 25) <= 1.0f) { arrived = true; Assert.True(RulesMatch.Distance(shown[0], 10, 25) >= 0.75f); }
+            if (RulesMatch.Distance(shown[0], 10, 25) <= 1.45f) { arrived = true; Assert.True(RulesMatch.Distance(shown[0], 10, 25) >= 1.15f); }
         }
         Assert.True(arrived);
         m.Tick(); // frame 60: cast + 3 s

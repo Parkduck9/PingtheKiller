@@ -26,7 +26,19 @@ namespace PingTheKiller.ServerCore.Map
             for (int x = 0; x < Cells; x++)
                 for (int z = 0; z < Cells; z++)
                     _walkable[x * Cells + z] = map.CanStand(x + 0.5f, z + 0.5f);
+            var spots = new List<MapPoint>();
+            for (float x = SpotSpacing / 2; x < FixedMap.Size; x += SpotSpacing)
+                for (float z = SpotSpacing / 2; z < FixedMap.Size; z += SpotSpacing)
+                    if (map.CanStand(x, z) && map.CanStand(x - 0.5f, z) && map.CanStand(x + 0.5f, z) &&
+                        map.CanStand(x, z - 0.5f) && map.CanStand(x, z + 0.5f))
+                        spots.Add(new MapPoint(x, z));
+            Spots = spots.AsReadOnly();
         }
+
+        private const float SpotSpacing = 3f;
+
+        // Standable places on a 3 m lattice with some wall clearance: the refuges and hideouts survivor bots walk to.
+        public IReadOnlyList<MapPoint> Spots { get; }
 
         // True when a body can slide straight from one point to the other without touching a wall.
         public bool LineClear(float x, float z, float tx, float tz)

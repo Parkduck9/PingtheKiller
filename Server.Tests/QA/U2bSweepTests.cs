@@ -67,6 +67,14 @@ public sealed class U2bSweepTests
 
         internal void ResetMatch() { _dummies.Clear(); _lastReal.Clear(); }
 
+        // The killer-view entries exactly as they are encoded back to back inside the WorldState payload.
+        private static byte[] EntryBytes(S2C_WorldState world)
+        {
+            var writer = new PacketWriter();
+            foreach (var entry in world.Players) entry.Write(writer);
+            return writer.WrittenSpan.ToArray();
+        }
+
         // Processes one tick's worth of packets for both humans. Returns true when a GameResult was seen.
         internal bool Tick(int tick, List<IPacket> kp, List<IPacket> sp, int kId, int sId, ref bool resultK, ref bool resultS,
             IReadOnlyList<GameServer.KillerViewSource> src)
@@ -237,6 +245,11 @@ public sealed class U2bSweepTests
                 // the true position of an absent survivor must not be anywhere in the killer-bound frames
                 bool dummyExempt = _dummies.TryGetValue(t.Id, out var dm) && dm.X == t.X && dm.Z == t.Z;       // the Dummy is born at the caster
                 bool afterExempt = isAfter && sh.E.X == t.X && sh.E.Z == t.Z;                                  // stationary since the last Signal
+                // U2d re-target: the match-end frame is unaligned (labels already cleared), so an afterimage cannot be told apart
+                // there; exempt the same case the aligned rule allows (Afterimage killer, last seen position, at most 1 s ago).
+                if (!aligned && (resultK || resultS) && KillerSkill == SkillIds.PacketAfterimage &&
+                    _lastReal.TryGetValue(t.Id, out var endSeen) && endSeen.X == t.X && endSeen.Z == t.Z && tick - endSeen.Tick <= 22)
+                    afterExempt = true;
                 if (dummyExempt || afterExempt) continue;
                 foreach (var b in killerBytes)
                 {
@@ -256,7 +269,10 @@ public sealed class U2bSweepTests
                             bool sameAxisAsOwnDecoy = (_dummies.TryGetValue(t.Id, out var dd) && (Bits(dd.X) == Bits(f) || Bits(dd.Z) == Bits(f))) ||
                                 (isAfter && (Bits(sh.E.X) == Bits(f) || Bits(sh.E.Z) == Bits(f)));
                             bool otherEntryHasIt = kw.Players.Any(o => Bits(o.X) == Bits(f) || Bits(o.Z) == Bits(f));
-                            if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt) St.ByteCoincidences++;
+                            // U2d re-target: four bytes straddling fields of the shown entries (e.g. Role 0, Status 0 and the low half of
+                            // an X) are made of shown data only; which round coordinates collide this way changes with every bot path.
+                            bool straddlesShownEntries = QaWire.ContainsFloat(EntryBytes(kw), f);
+                            if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt || straddlesShownEntries) St.ByteCoincidences++;
                             else St.Violation($"coordinate {f} of silent survivor {t.Id} found in a killer-bound frame; truthPos=({t.X},{t.Z})" + ctx);
                         }
                 }
@@ -669,7 +685,9 @@ public sealed class U2bSweepTests
         r.Tick(100);
         Assert.True(Math.Abs(Spy.Get<float>(killer, "X") - x0) + Math.Abs(Spy.Get<float>(killer, "Z") - z0) > 3f, "the replacement killer bot does not move");
         Assert.DoesNotContain(r.Logs, l => l.StartsWith("tick error"));
-        Assert.True(r.SW.Players.Count == 2); // survivor frames keep flowing with only survivors
+        // survivor frames keep flowing with both survivors (U2d re-target: the replacement bot now patrols and may walk into a
+        // survivor's line of sight, where the U2e rule legitimately adds the killer entry, so only survivor entries are counted)
+        Assert.Equal(2, r.SW.Players.Count(p => p.Role == (byte)Role.Survivor));
     }
 
     [Fact]

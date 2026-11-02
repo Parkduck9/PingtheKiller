@@ -66,12 +66,16 @@ public sealed class MatchLengthTests
     // Before U2c (perfect bots, straight-line steering): idle human killer 22.9 s, killer bot 53.7 s with 4 of 15
     // matches stalled at 3/4 terminals and one with the exit open but nobody escaping (seeds 3, 4, 5, 11, 15).
     // The killer-bot floor is below the 180 s target on purpose: the measured median is reported, not tuned to the gate.
+    // U2d re-target: the idle-killer floor follows the U2d §3 target (median 2-6 min; was 180 s), and a bot time-out is
+    // no longer a stall by definition: U2d allows up to 15 % time-outs against the killer bot, so at most 2 of the 15
+    // runs may time out with a Normal bot, and only after real progress (at least one terminal).
     [Theory]
-    [InlineData(RoleChoice.Killer, 180)]
+    [InlineData(RoleChoice.Killer, 120)]
     [InlineData(RoleChoice.Survivor, 120)]
     public void MedianMatchLengthReport(RoleChoice humanRole, double floor)
     {
         var lengths = new List<double>();
+        int botTimeouts = 0;
         for (int seed = 1; seed <= 15; seed++)
         {
             var run = Run(seed, humanRole);
@@ -80,11 +84,17 @@ public sealed class MatchLengthTests
             // No stall: an idle killer always loses to the bots; a time-out only happens when the last Normal survivor
             // is the idle (hidden) human, never a bot standing around.
             if (humanRole == RoleChoice.Killer) Assert.Equal((byte)GameEndReason.SurvivorEscaped, run.Result.Reason);
-            if (run.Result.Reason == (byte)GameEndReason.TimeUp) Assert.DoesNotContain("b:N", run.End);
+            if (run.Result.Reason == (byte)GameEndReason.TimeUp && run.End.Contains("b:N"))
+            {
+                ++botTimeouts;
+                Assert.True(run.Completed >= 1, $"seed {seed}: time-out without any terminal");
+            }
         }
         double median = Median(lengths);
-        _output.WriteLine($"median {median:0.0}s");
+        _output.WriteLine($"median {median:0.0}s, time-outs with a Normal bot {botTimeouts}");
+        Assert.True(botTimeouts <= 2, $"time-outs with a Normal bot {botTimeouts} of 15");
         Assert.True(median >= floor, $"median match length {median:0.0}s");
+        if (humanRole == RoleChoice.Killer) Assert.True(median <= 360, $"median match length {median:0.0}s");
     }
 
     // Seeded reproduction of the 3/4 stall (killer-bot mode, private seeds 3 and 5 before U2c): survivor bots were
