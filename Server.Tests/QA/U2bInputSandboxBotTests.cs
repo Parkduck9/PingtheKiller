@@ -288,20 +288,21 @@ public sealed class U2bInputSandboxBotTests
     [InlineData(9)]
     public void Bots_SurvivorBotsNeverSteerByTheKillerPosition_OnlyByThreatLevel(int seed)
     {
-        // Same seed, same ThreatLevel (0) every tick, killer hidden at two very different spots: every survivor bot
-        // must take exactly the same path. A bot reading the true killer position would diverge.
         // Run the same seeded match with the (idle) human killer parked at several spots. Whenever two spots expose every
-        // bot to the identical ThreatLevel sequence (the only information a bot may legitimately use), every survivor bot
-        // must have taken exactly the same path. A bot reading the true killer position would diverge.
+        // bot to the identical ThreatLevel sequence and the identical line-of-sight sequence (U2e/U2d: a survivor also sees
+        // the killer while its own sight line is clear; that is all a bot may legitimately use), every survivor bot must
+        // have taken exactly the same path. A bot reading the true killer position would diverge.
         var runs = new List<(byte[] Bands, (float X, float Z)[] Track)>();
-        foreach (var killerSpot in new[] { (2f, 2f), (57f, 3f), (58f, 12f), (30f, 2f), (2f, 14f), (3f, 58f), (58f, 58f), (45f, 5f) })
+        // U2d re-target: survivor bots now also see the killer in line of sight, so two in-map spots rarely give identical
+        // inputs; two spots beyond the outer walls (ThreatLevel 0, never in sight, far apart) always form a matching pair.
+        foreach (var killerSpot in new[] { (2f, 2f), (57f, 3f), (58f, 12f), (30f, 2f), (2f, 14f), (3f, 58f), (58f, 58f), (45f, 5f), (-40f, -40f), (100f, 100f) })
         {
             using var b = new BotSet(seed, humanKiller: true, bots: 7);
             Assert.Equal(7, b.Bots.Count);
             b.Move(b.KillerPlayer!, killerSpot.Item1, killerSpot.Item2);
             var track = new List<(float, float)>();
             var bands = new List<byte>();
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 600; i++) // U2d re-target: 600 ticks (was 300); bots open with a 2-8 s Silent pause
             {
                 b.F.Tick();
                 foreach (var bot in b.Bots)
@@ -310,6 +311,8 @@ public sealed class U2bInputSandboxBotTests
                     var k = BotSet.At(b.KillerPlayer!);
                     float d = MathF.Sqrt((x - k.X) * (x - k.X) + (z - k.Z) * (z - k.Z));
                     bands.Add(GameServer.ThreatForDistance(d));
+                    // U2d re-target: line of sight is legitimate information too, so it is part of the compared sequence.
+                    bands.Add((byte)(b.F.Server.Map.SegmentBlocked(x, z, k.X, k.Z) ? 0 : 1));
                     track.Add((x, z));
                 }
                 Assert.False(b.Human.Has<S2C_GameResult>());
@@ -328,19 +331,29 @@ public sealed class U2bInputSandboxBotTests
     [Fact]
     public void Bots_SurvivorBotStopsAtThreatTwoOrMore_AndOnlyTheBandMatters_NotTheDirection()
     {
-        // U2c migration (bot timing changed): a survivor bot now waits 2-8 s before its first walk, pauses 6 s at ThreatLevel 1
-        // and freezes for 12 s at ThreatLevel 2+. The old 30-tick runs therefore proved nothing. The killer is re-placed
-        // every tick at a fixed distance from the bot in a chosen direction, so the ThreatLevel is constant by construction
-        // and the only thing that differs between two runs is the direction the killer is in.
+        // U2d re-target (bot timing and the U2e sight rule): a survivor bot freezes while ThreatLevel is 2+ and pauses for a
+        // while after ThreatLevel rises to 1; it also reacts to a killer in its line of sight, which is legitimate. The killer
+        // is therefore re-placed every tick at a fixed distance from the bot, at the first angle from the chosen direction
+        // (turning in 5-degree steps) whose sight line to the bot is blocked by a wall. ThreatLevel is constant and the killer
+        // is never in sight by construction, so the only thing that differs between two runs is where the killer is.
         List<(float X, float Z)> Run(float dirX, float dirZ, float distance, int ticks)
         {
             using var b = new BotSet(4, humanKiller: true, bots: 1);
+            var map = b.F.Server.Map;
             var track = new List<(float, float)>();
-            float len = MathF.Sqrt(dirX * dirX + dirZ * dirZ);
+            float baseAngle = MathF.Atan2(dirX, dirZ);
             for (int i = 0; i < ticks; i++)
             {
                 var (x, z) = BotSet.At(b.Bots[0]);
-                b.Move(b.KillerPlayer!, x + dirX / len * distance, z + dirZ / len * distance);
+                (float X, float Z)? hidden = null;
+                for (int step = 0; step < 72 && hidden == null; step++)
+                {
+                    float angle = baseAngle + step * MathF.PI / 36f;
+                    float kx = x + MathF.Sin(angle) * distance, kz = z + MathF.Cos(angle) * distance;
+                    if (map.SegmentBlocked(x, z, kx, kz)) hidden = (kx, kz);
+                }
+                Assert.True(hidden.HasValue, $"no hidden spot {distance} m from ({x},{z})");
+                b.Move(b.KillerPlayer!, hidden!.Value.X, hidden.Value.Z);
                 b.F.Tick();
                 track.Add(BotSet.At(b.Bots[0]));
             }
@@ -355,8 +368,9 @@ public sealed class U2bInputSandboxBotTests
         // Control: with the killer far away (ThreatLevel 0) the same bot walks within 10 s, so the freeze above is not vacuous.
         Assert.True(Travel(Run(0, -1, 40, 200)) > 0.5f, "control bot never moved");
         // ThreatLevel 1 (15 m): identical movement from two directions, and it does move after its pause.
-        var d1 = Run(0, -1, 15, 320);
-        var d2 = Run(1, -1, 15, 320);
+        // U2d re-target: 600 ticks (was 320): the ThreatLevel 1 scare lasts 8 s after the rise plus a 4-10 s calm.
+        var d1 = Run(0, -1, 15, 600);
+        var d2 = Run(1, -1, 15, 600);
         Assert.Equal(d1, d2);
         Assert.True(Travel(d1) > 0.5f, "bot never moved at threat 1");
     }

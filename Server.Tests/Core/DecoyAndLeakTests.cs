@@ -90,7 +90,9 @@ public sealed class DecoyAndLeakTests
     public void LeakSweep_BlockedSurvivorFramesCarryNoKillerCoordinatesAndNoKillerFrameCarriesAbsentSurvivors()
     {
         var stats = new SweepStats();
-        foreach (int seed in new[] { 1, 2, 3, 4, 5, 6, 7, 8 }) Sweep(seed, stats);
+        // U2d re-target: matches now last minutes instead of under one, so eight 3-minute runs no longer draw every killer
+        // skill; further seeds (at most 24) are added until all four were drawn.
+        for (int seed = 1; seed <= 24 && (seed <= 8 || stats.KillerSkills.Count < 4); seed++) Sweep(seed, stats);
         Assert.True(stats.KillerFrames > 20000 && stats.SurvivorFrames > 20000, $"{stats.KillerFrames}/{stats.SurvivorFrames}");
         Assert.True(stats.AbsentChecks > 20000, "absent checks " + stats.AbsentChecks);
         Assert.True(stats.DecoyEntries > 100, "decoy entries " + stats.DecoyEntries);
