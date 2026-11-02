@@ -6,6 +6,7 @@ using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Net;
 using PingTheKiller.Shared.Packets;
+using PingTheKiller.Tests.Core;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -59,6 +60,8 @@ public sealed class U2bSweepTests
         internal SweepStats St = new();
         internal byte KillerSkill;
         internal int FramesAligned;
+        // U2e: survivor frames with the legal line-of-sight killer entry and frames where it is blocked.
+        internal int SightFrames, BlockedFrames;
         private readonly Dictionary<int, (float X, float Z, int Until)> _dummies = new();
         private readonly Dictionary<int, (float X, float Z, int Tick)> _lastReal = new();
 
@@ -107,13 +110,35 @@ public sealed class U2bSweepTests
                 bool boundary = Math.Abs(d - 18f) < 1e-3f || Math.Abs(d - 12f) < 1e-3f || Math.Abs(d - 6f) < 1e-3f;
                 if (!boundary && sw.ThreatLevel != GameServer.ThreatForDistance(d)) St.Violation($"ThreatLevel {sw.ThreatLevel} != band of distance {d}" + ctx);
             }
-            // ---- A. survivor-bound frames never carry the killer
+            // ---- A. survivor-bound frames carry the killer only as the exact line-of-sight entry (U2e re-target). A blocked
+            // frame keeps the full original check; a frame with line of sight is checked with that one entry removed.
             var legit = new HashSet<int>();
-            foreach (var p in sw.Players) { legit.Add(Bits(p.X)); legit.Add(Bits(p.Z)); legit.Add(Bits(p.Yaw)); legit.Add(Bits(p.StatusTimer)); }
+            foreach (var p in sw.Players)
+            {
+                if (p.Role == (byte)Role.Killer) continue;
+                legit.Add(Bits(p.X)); legit.Add(Bits(p.Z)); legit.Add(Bits(p.Yaw)); legit.Add(Bits(p.StatusTimer));
+            }
             foreach (var t in sw.Terminals) { legit.Add(Bits(t.X)); legit.Add(Bits(t.Z)); }
             legit.Add(Bits(sw.TimeLeft)); legit.Add(Bits(Map.Exit.X)); legit.Add(Bits(Map.Exit.Z));
-            foreach (var pkt in sp)
+            int survivorEntries = sw.Players.Count(p => p.Role == (byte)Role.Survivor);
+            foreach (var raw in sp)
             {
+                var pkt = raw;
+                if (raw is S2C_WorldState rw)
+                {
+                    var self = rw.Players.FirstOrDefault(p => p.Id == sId);
+                    var entries = rw.Players.Where(p => p.Role == (byte)Role.Killer || p.Id == kId).ToList();
+                    if (self.Id == sId && KillerSight.Expected(self, kself.X, kself.Z))
+                    {
+                        SightFrames++;
+                        if (entries.Count != 1 || entries[0].Id != kId || entries[0].Role != (byte)Role.Killer || entries[0].Status != 0 ||
+                            Bits(entries[0].X) != Bits(kself.X) || Bits(entries[0].Z) != Bits(kself.Z) || Bits(entries[0].Yaw) != Bits(kself.Yaw) ||
+                            entries[0].Flags != 0 || entries[0].StatusTimer != 0 || entries[0].CaptureCount != 0)
+                            St.Violation("line-of-sight killer entry missing or not exact" + ctx);
+                        pkt = KillerSight.WithoutKiller(rw);
+                    }
+                    else BlockedFrames++;
+                }
                 byte[] bytes = PacketCodec.Encode(pkt);
                 if (ContainsPair(bytes, kself.X, kself.Z)) St.Violation("killer (X,Z) pair in survivor-bound " + pkt.GetType().Name + ctx);
                 foreach (float f in new[] { kself.X, kself.Z })
@@ -125,7 +150,7 @@ public sealed class U2bSweepTests
                 if (pkt is S2C_WorldState w)
                 {
                     if (w.Players.Any(p => p.Role == (byte)Role.Killer || p.Id == kId)) St.Violation("killer entry in survivor frame" + ctx);
-                    if (w.Players.Count(p => p.Role == (byte)Role.Survivor) != sw.Players.Count) St.Violation("survivor frame is not complete" + ctx);
+                    if (w.Players.Count(p => p.Role == (byte)Role.Survivor) != survivorEntries) St.Violation("survivor frame is not complete" + ctx);
                 }
             }
 
@@ -362,6 +387,8 @@ public sealed class U2bSweepTests
         Assert.True(st.Violations.Count == 0, string.Join(" | ", st.Violations.Take(6)));
         Assert.DoesNotContain(logs, l => l.StartsWith("tick error") || l.StartsWith("send error"));
         Assert.True(st.AbsentChecks > 15000, "absent checks " + st.AbsentChecks);
+        _out.WriteLine($"survivor frames with line of sight={sweep.SightFrames} blocked={sweep.BlockedFrames}");
+        Assert.True(sweep.BlockedFrames > 5000 && sweep.SightFrames > 1000, $"blocked {sweep.BlockedFrames} / sight {sweep.SightFrames}");
         Assert.True(st.DecoyEntries > 150, "decoy entries " + st.DecoyEntries);
         Assert.True(st.AfterimageEntries > 20, "afterimage entries " + st.AfterimageEntries);
         Assert.Equal(new byte[] { 0, 1, 2, 3 }, st.KillerSkills.OrderBy(x => x));

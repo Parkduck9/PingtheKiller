@@ -161,11 +161,12 @@ public sealed class SimulationTests
     }
 
     [Fact]
-    public void SurvivorNeverReceivesKillerAndThreatUsesActualDistanceBands()
+    public void SurvivorReceivesExactKillerEntryInLineOfSightAndThreatUsesActualDistanceBands()
     {
         using var f = new CoreFixture();
         var (killer, survivor) = f.StartPair();
-        // Killer spawns at (5,5), survivor at (5,26): both on the open x=5 line, 21 m apart.
+        // Killer spawns at (5,5), survivor at (5,26): both on the open x=5 line, 21 m apart, so (U2e) the survivor sees
+        // the killer in every frame. The blocked case is covered by LineOfSightTests.
         var target = survivor.Self();
         Assert.Equal(0, survivor.Last<S2C_WorldState>().ThreatLevel);
         foreach (var (distance, threat) in new[] { (20f, 0), (15f, 1), (9f, 2), (3f, 3) })
@@ -184,9 +185,9 @@ public sealed class SimulationTests
             var world = survivor.Last<S2C_WorldState>();
             Assert.InRange(target.Z - killer.Self().Z, distance - 0.01f, distance + 0.01f);
             Assert.Equal(threat, world.ThreatLevel);
-            Assert.DoesNotContain(world.Players, p => p.Id == killer.Id);
+            Assert.True(KillerSight.Verify(world, survivor.Id, killer.Self()));
         }
         survivor.Drain();
-        Assert.All(survivor.Packets.OfType<S2C_WorldState>(), w => Assert.DoesNotContain(w.Players, p => p.Id == killer.Id));
+        Assert.All(survivor.Packets.OfType<S2C_WorldState>(), w => Assert.Single(w.Players, p => p.Id == killer.Id));
     }
 }

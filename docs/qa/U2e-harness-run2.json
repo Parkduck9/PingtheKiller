@@ -1,0 +1,54 @@
+{
+  "total": 55,
+  "gatesPassed": false,
+  "items": [
+    {
+      "id": "H1",
+      "score": 25,
+      "max": 25,
+      "gate": true,
+      "passed": true,
+      "evidence": "10000/10000 ordered timestamps; zero disconnects; seed=20794; chunks=1..1500 bytes; final Ping/Pong barrier passed."
+    },
+    {
+      "id": "H2",
+      "score": 20,
+      "max": 20,
+      "gate": false,
+      "passed": true,
+      "evidence": "2 humans \u002B 6 bots, 60.00 s; client0: n=1201, arrival p99=63.319 ms, observed tick-period p99=63.319 ms; client1: n=1201, arrival p99=63.403 ms, observed tick-period p99=63.403 ms; Tick strictly increasing, gaps \u003C=2. Tick period is inferred from TCP reception, not server CPU duration."
+    },
+    {
+      "id": "H3",
+      "score": 0,
+      "max": 20,
+      "gate": true,
+      "passed": false,
+      "evidence": "CheckFailure: Killer 1 leaked to survivor at tick=1279."
+    },
+    {
+      "id": "H4",
+      "score": 0,
+      "max": 15,
+      "gate": true,
+      "passed": false,
+      "evidence": "CheckFailure: NaN input moved player by 0.199828 m."
+    },
+    {
+      "id": "H5",
+      "score": 10,
+      "max": 10,
+      "gate": false,
+      "passed": true,
+      "evidence": "Socket dropped; token rejoined in 48.4 ms; same PlayerId=3, position=(11.593807,28.051384), role/status/capture count preserved."
+    },
+    {
+      "id": "H6",
+      "score": 0,
+      "max": 10,
+      "gate": false,
+      "passed": false,
+      "evidence": "CheckFailure: [setup] Killer 1 leaked to survivor at tick=1324."
+    }
+  ]
+}

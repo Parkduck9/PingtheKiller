@@ -124,7 +124,8 @@ public sealed class AttemptTwoFixTests
         killer.Send(new C2S_StartMatch());
         f.Tick();
         var random = new Random(5);
-        var previous = survivor.Last<S2C_WorldState>().Players.ToDictionary(p => p.Id);
+        // Survivor frames may also carry the killer in line of sight (U2e); only survivor entries are ground truth here.
+        var previous = survivor.Last<S2C_WorldState>().Players.Where(p => p.Role == (byte)Role.Survivor).ToDictionary(p => p.Id);
         Assert.Equal(4, previous.Count);
         int movedChecks = 0, hiddenTicks = 0;
         for (int tick = 0; tick < 600; tick++)
@@ -135,7 +136,7 @@ public sealed class AttemptTwoFixTests
             if (roll == 4) killer.Move(1, 0);
             f.Tick();
             // Survivors receive every survivor: that is the ground truth for positions.
-            var truth = survivor.Last<S2C_WorldState>().Players;
+            var truth = survivor.Last<S2C_WorldState>().Players.Where(p => p.Role == (byte)Role.Survivor);
             var killerView = killer.Last<S2C_WorldState>();
             foreach (var state in truth)
             {
