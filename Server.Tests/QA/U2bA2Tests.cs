@@ -183,7 +183,7 @@ public sealed class U2bA2Tests
     {
         using var r = new QaRig(1);
         // Inside a match the limit still exists: 60 accepted, the next 40 are dropped.
-        r.Place(r.S[0], 30, 30);
+        r.Place(r.S[0], 48, 30);
         r.Tick();
         float x0 = r.Truth(r.S[0]).X;
         for (int i = 0; i < 60; i++) r.S[0].Move(1, 0);
@@ -208,7 +208,7 @@ public sealed class U2bA2Tests
         using var r = new QaRig(1);
         ulong token = r.S[0].Last<S2C_JoinResult>().ReconnectToken;
         int id = r.S[0].Id;
-        r.Place(r.S[0], 30, 30);
+        r.Place(r.S[0], 48, 30);
         r.S[0].Seq = 900;
         r.S[0].Move(0, 0);
         r.Tick();

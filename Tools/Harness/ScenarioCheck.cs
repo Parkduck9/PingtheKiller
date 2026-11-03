@@ -408,7 +408,9 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             while (next < path.Count - 1 && Vector2.Distance(position, path[next]) < 0.35f) next++;
             var delta = path[next] - position;
 
-            await actor.MoveAsync(delta.LengthSquared() > 1e-8f ? Vector2.Normalize(delta) : Vector2.Zero, ct);
+            // A delayed snapshot must not command full speed through a waypoint and oscillate around it.
+            float divisor = MathF.Max(delta.Length(), actor.Speed * .75f);
+            await actor.MoveAsync(divisor > 1e-4f ? delta / divisor : Vector2.Zero, ct);
         }
     }
 

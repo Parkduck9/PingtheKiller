@@ -100,7 +100,7 @@ public sealed class ProtocolV03Tests
     public void SelfStateIsSentOnEveryJumpAndOtherwiseOncePerSecondAndSkillCooldownFollowsTheServerTimer()
     {
         using var m = RulesMatch.Start(2, SkillIds.Overclock, SkillIds.StealthRelay);
-        uint start = m.Killer.Last<S2C_WorldState>().Tick;
+        uint start = SelfTicks(m.Killer).First();
         Assert.Equal(new uint[] { start }, SelfTicks(m.Killer)); // the first frame of the match always carries one
         m.Tick(100);
         // Nothing changes for 5 s: exactly the 1 Hz refresh.

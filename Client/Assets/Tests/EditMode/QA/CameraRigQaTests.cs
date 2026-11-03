@@ -6,10 +6,17 @@ using UnityEngine;
 namespace PingTheKiller.Client.QA.Tests
 {
     // U4c QA attempt 1, test item 5. Written from HUD_SPEC 4.10 (Survivor third person) and 6.0 (Killer first person); the map
-    // is the real FixedMap (wall x 18..20, z 14..32), so every expected number below is worked out by hand from the spec.
+    // is the real FixedMap, so every expected number below is worked out by hand from the spec. The wall under test is the
+    // west building of map v2 (Walls[4], x 12..24, z 12..36, formerly the 60 m map's x 18..20, z 14..32): the boom comes from its
+    // east face into the 4 m alley, 2.5 m off the face as before; Walls[10] (x 56..66, z 10..20) stands in for "the wall's end".
     [Category("U4cQaA1")]
     public sealed class CameraRigQaTests
     {
+        private static ServerCore.Map.Wall Block => SharedMap.Map.Walls[4];
+        private static ServerCore.Map.Wall EndBlock => SharedMap.Map.Walls[10];
+        // The Survivor's look target 2.5 m east of the east face of Block, level with its middle (formerly x 22.5, z 23).
+        private static Vector3 AlleyTarget => new Vector3(Block.MaxX + 2.5f, .7f, (Block.MinZ + Block.MaxZ) * .5f);
+
         private static void WithCamera(Action<Camera> body)
         {
             var go = new GameObject("qa-camera", typeof(Camera));
@@ -78,16 +85,19 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ASphereCastAgainstTheWallBoxStopsAtTheWallFaceExpandedByTheRadius()
         {
-            // Target east of the wall (maxX = 20), boom pointing west: contact when the sphere centre reaches x = 20.2.
-            float level = MapGeometry.SphereCast(SharedMap.Map, new Vector3(22.5f, .7f, 23), SurvivorOrbitRig.Back(90, 0), 4, .2f);
+            // Target east of the wall (Block.MaxX = 24), boom pointing west: contact when the sphere centre reaches x = 24.2.
+            float level = MapGeometry.SphereCast(SharedMap.Map, AlleyTarget, SurvivorOrbitRig.Back(90, 0), 4, .2f);
             Assert.That(level, Is.EqualTo(2.3f).Within(.005f));
             // At the default pitch the boom also rises, so the same face is reached 1/cos(20) farther along it.
-            float pitched = MapGeometry.SphereCast(SharedMap.Map, new Vector3(22.5f, .7f, 23), SurvivorOrbitRig.Back(90, 20), 4, .2f);
+            float pitched = MapGeometry.SphereCast(SharedMap.Map, AlleyTarget, SurvivorOrbitRig.Back(90, 20), 4, .2f);
             Assert.That(pitched, Is.EqualTo(2.3f / Mathf.Cos(20 * Mathf.Deg2Rad)).Within(.01f));
             // Open ground: the whole boom.
             Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(8, .7f, 40), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(4f).Within(1e-4f));
-            // Walls are boxes: a boom passing beside the wall's end (z beyond 32 + radius) is not shortened.
-            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(22.5f, .7f, 33f), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(4f).Within(1e-4f));
+            // Walls are boxes: a boom passing beside the wall's end (z beyond MaxZ + radius) is not shortened. EndBlock ends at
+            // z = 20 and the alley beyond it is open for 4 m; the target stands 2.5 m east of its east face, 1 m past its end.
+            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(EndBlock.MaxX + 2.5f, .7f, EndBlock.MaxZ + 1f), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(4f).Within(1e-4f));
+            // And the same height level with that wall is shortened, so the open result above is the wall's end and not a missing wall.
+            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(EndBlock.MaxX + 2.5f, .7f, EndBlock.MaxZ - 1f), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(2.3f).Within(.005f));
         }
 
         [Test]
@@ -140,22 +150,22 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(rig.Dither, Is.False);
 
                 // The same rig stepped next to the wall: the boom is pulled in on the very next Place.
-                ViewPose pulled = rig.Place(cam, 90, new Vector3(22.5f, 0, 23), 1f / 60);
+                ViewPose pulled = rig.Place(cam, 90, new Vector3(AlleyTarget.x, 0, AlleyTarget.z), 1f / 60);
                 Assert.That(rig.BoomLength, Is.EqualTo(2.3f / Mathf.Cos(20 * Mathf.Deg2Rad)).Within(.01f));
-                Assert.That(pulled.Eye.x, Is.GreaterThanOrEqualTo(20.2f - 1e-3f), "the camera never ends up inside the 0.2 m skin of the wall");
+                Assert.That(pulled.Eye.x, Is.GreaterThanOrEqualTo(Block.MaxX + .2f - 1e-3f), "the camera never ends up inside the 0.2 m skin of the wall");
             });
         }
 
         [Test]
         public void TheOwnCharacterIsDitheredExactlyWhileTheBoomIsShorterThanOneMetre()
         {
-            // At the default pitch the boom meets the wall face at x = 20.2 after (gx - 20.2) / cos(20) metres.
+            // At the default pitch the boom meets the wall face at x = Block.MaxX + 0.2 after (gx - that) / cos(20) metres.
             float cos = Mathf.Cos(20 * Mathf.Deg2Rad);
             foreach (var c in new[] { (length: .5f, dither: true), (length: .95f, dither: true), (length: 1.05f, dither: false), (length: 2f, dither: false) })
                 WithCamera(cam =>
                 {
                     var rig = new SurvivorOrbitRig(); // a fresh rig: no ease-out in progress
-                    rig.Place(cam, 90, new Vector3(20.2f + c.length * cos, 0, 23), 1f / 60);
+                    rig.Place(cam, 90, new Vector3(Block.MaxX + .2f + c.length * cos, 0, AlleyTarget.z), 1f / 60);
                     Assert.That(rig.BoomLength, Is.EqualTo(c.length).Within(.01f));
                     Assert.That(rig.Dither, Is.EqualTo(c.dither), "boom " + c.length + " m");
                 });

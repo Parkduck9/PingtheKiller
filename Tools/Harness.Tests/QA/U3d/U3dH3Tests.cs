@@ -162,13 +162,13 @@ public sealed class U3dH3KillerAtAWallCornerTests
     };
 
     [Theory]
-    [InlineData(18f, 14f, false)]     // exactly on the corner, strict contract
-    [InlineData(20f, 14f, false)]
-    [InlineData(18f, 32f, false)]
-    [InlineData(20f, 32f, false)]
-    [InlineData(18f, 14f, true)]      // touching treated as clear by a lenient server: inside the band, not judged
-    [InlineData(17.96875f, 13.96875f, false)] // 0.03 m outside the corner on both axes: clear for the server, ambiguous for the harness
-    [InlineData(18.03125f, 14.03125f, false)] // 0.03 m inside the wall
+    [InlineData(12f, 12f, false)]     // exactly on the corner, strict contract
+    [InlineData(24f, 12f, false)]
+    [InlineData(12f, 36f, false)]
+    [InlineData(24f, 36f, false)]
+    [InlineData(12f, 12f, true)]      // touching treated as clear by a lenient server: inside the band, not judged
+    [InlineData(11.96875f, 11.96875f, false)] // 0.03 m outside the corner on both axes: clear for the server, ambiguous for the harness
+    [InlineData(12.03125f, 12.03125f, false)] // 0.03 m inside the wall
     public async Task H3PassesAndCountsTheBandAsAmbiguous(float x, float z, bool lenient)
     {
         var (item, _, _) = await U3dH3Run.RunAsync($"corner-{x}-{z}-{(lenient ? "lenient" : "strict")}",
@@ -183,7 +183,7 @@ public sealed class U3dH3KillerAtAWallCornerTests
     public async Task KillerExactlyOnTheCornerIsAllAmbiguousAndNeverVisible()
     {
         var (item, _, _) = await U3dH3Run.RunAsync("corner-18-14-strict-counts",
-            new LobbyServer { Layout = SightLayout.Clear }, custom: tap => Brain(18f, 14f, false)(tap));
+            new LobbyServer { Layout = SightLayout.Clear }, custom: tap => Brain(12f, 12f, false)(tap));
         Assert.True(item.Passed, item.Evidence);
         var c = U3dCounts.Parse(item.Evidence);
         Assert.Equal(0, c.Visible);
@@ -202,7 +202,7 @@ public sealed class U3dH3AmbiguousBandIsNotJudgedTests
     public async Task ByDesign_AlwaysShowingServerWithTheKillerInsideTheBandPassesH3()
     {
         var (item, _, _) = await U3dH3Run.RunAsync("band-always-show-0.03-inside", new LobbyServer { Layout = SightLayout.Clear },
-            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(18.03125f, 14.03125f, lenient: false, always: true)(tap));
+            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(12.03125f, 12.03125f, lenient: false, always: true)(tap));
         Assert.True(item.Passed, item.Evidence);
         var c = U3dCounts.Parse(item.Evidence);
         Assert.True(c.Ambiguous > 50 && c.Visible == 0, item.Evidence);

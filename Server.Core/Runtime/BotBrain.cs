@@ -4,9 +4,7 @@ using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.ServerCore
 {
-    // Shared movement for both bot brains: the NavGrid route with a short random sidestep when progress stalls (the policy
-    // phantoms copy in GameServer.Phantoms). Uses only the bot's own position and speed. All randomness comes from the
-    // private bot stream passed in by the server.
+    // Shared static-map movement for both brains; phantoms use the same PathFollower.
     internal abstract class BotBrain
     {
         internal const float StopDistance = 1.0f;
@@ -16,12 +14,8 @@ namespace PingTheKiller.ServerCore
         internal uint LastTick;
         internal bool Started;
 
-        private float _lastX, _lastZ;
-        private bool _movedLastTick;
-        private double _detourUntil;
-        private float _detourX, _detourZ;
+        private readonly PathFollower _route = new PathFollower();
         private float _yaw;
-
         protected static double Uniform(Random random, double min, double max) => min + random.NextDouble() * (max - min);
 
         protected static float Distance(float x, float z, float tx, float tz)
@@ -40,12 +34,9 @@ namespace PingTheKiller.ServerCore
 
         protected void Stop(ref BotIntent intent, float x, float z)
         {
-            _detourUntil = 0;
+            _route.Pause();
             intent.DirX = intent.DirZ = 0;
             intent.Yaw = _yaw;
-            _movedLastTick = false;
-            _lastX = x;
-            _lastZ = z;
         }
 
         protected void Face(ref BotIntent intent, float yaw)
@@ -58,29 +49,16 @@ namespace PingTheKiller.ServerCore
         protected bool MoveTo(ref BotIntent intent, NavGrid nav, float x, float z, float tx, float tz, float stop,
             float speed, double time, Random random)
         {
-            float distance = Distance(x, z, tx, tz);
-            if (distance <= Math.Max(stop, 0.05f) || !nav.Steer(x, z, tx, tz, out float dx, out float dz))
+            if (Distance(x, z, tx, tz) <= Math.Max(stop, 0.05f))
             {
                 Stop(ref intent, x, z);
                 return true;
             }
-            float expected = speed / GameConstants.TickRate;
-            float moved = Distance(x, z, _lastX, _lastZ);
-            if (_movedLastTick && expected > 0 && moved < expected * StuckFraction && time >= _detourUntil)
-            {
-                float side = random.Next(2) == 0 ? 1 : -1;
-                _detourX = -dz * side;
-                _detourZ = dx * side;
-                _detourUntil = time + 0.5 + random.NextDouble() * 0.5;
-            }
-            if (time < _detourUntil) { dx = _detourX; dz = _detourZ; }
+            _route.Direction(nav, x, z, tx, tz, speed, time, out float dx, out float dz);
             intent.DirX = dx;
             intent.DirZ = dz;
-            _yaw = YawOf(dx, dz);
+            if (dx != 0 || dz != 0) _yaw = YawOf(dx, dz);
             intent.Yaw = _yaw;
-            _movedLastTick = true;
-            _lastX = x;
-            _lastZ = z;
             return false;
         }
     }

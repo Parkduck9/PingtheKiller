@@ -415,11 +415,11 @@ public sealed class ServerReverifyTests
 
     [Theory]
     // Closed box: segment grazing face or touching corner is BLOCKED
-    [InlineData(18f, 14f, 20f, 32f, true)] // Collinear with wall edge
-    [InlineData(16f, 16f, 20f, 12f, true)] // Touches corner (18, 14)
-    [InlineData(16f, 16f, 20f, 11.999f, false)] // Barely misses corner outside
-    [InlineData(10f, 20f, 18f, 20f, true)] // Touches west face
-    [InlineData(10f, 20f, 17.999f, 20f, false)] // Barely short of face
+    [InlineData(12f, 12f, 24f, 36f, true)] // Collinear with wall edge
+    [InlineData(10f, 14f, 14f, 10f, true)] // Touches corner (18, 14)
+    [InlineData(10f, 14f, 14f, 9.999f, false)] // Barely misses corner outside
+    [InlineData(10f, 20f, 12f, 20f, true)] // Touches west face
+    [InlineData(10f, 20f, 11.999f, 20f, false)] // Barely short of face
     [InlineData(19f, 20f, 19f, 20f, false)] // Zero-length: NEVER BLOCKED
     [InlineData(5f, 5f, 5f, 5f, false)] // Zero-length outside: NEVER BLOCKED
     public void U2e_Contract1_SegmentBlocked_EdgeCases(float ax, float az, float bx, float bz, bool expectedBlocked)
@@ -438,12 +438,12 @@ public sealed class ServerReverifyTests
         using var r = new QaRig(2, seed: 1001);
         int killerId = r.K.Id;
 
-        // Killer at (15, 20)
+        // Killer at (8, 20)
         // S[0] at (10, 20) -> Clear line of sight (no wall between 10 and 15 at z=20)
-        // S[1] at (25, 20) -> Blocked by wall (18, 14) to (20, 32)
-        r.Place(r.K, 15, 20);
+        // S[1] at (26, 20) -> Blocked by wall (18, 14) to (20, 32)
+        r.Place(r.K, 8, 20);
         r.Place(r.S[0], 10, 20);
-        r.Place(r.S[1], 25, 20);
+        r.Place(r.S[1], 26, 20);
 
         r.Tick();
 
@@ -462,7 +462,7 @@ public sealed class ServerReverifyTests
         Assert.Equal(killerId, killerEntryInS0.Id);
         Assert.Equal((byte)Role.Killer, killerEntryInS0.Role);
         Assert.Equal((byte)PlayerStatus.Normal, killerEntryInS0.Status);
-        Assert.True(MathF.Abs(killerEntryInS0.X - 15f) < 0.01f);
+        Assert.True(MathF.Abs(killerEntryInS0.X - 8f) < 0.01f);
         Assert.True(MathF.Abs(killerEntryInS0.Z - 20f) < 0.01f);
         Assert.Equal((byte)PlayerFlags.None, killerEntryInS0.Flags); // Flags = 0
         Assert.Equal(0f, killerEntryInS0.StatusTimer); // StatusTimer = 0
@@ -480,8 +480,8 @@ public sealed class ServerReverifyTests
     public void U2e_Contract3_SpectatorsNeverReceiveKillerEntry()
     {
         using var r = new QaRig(2, seed: 1002);
-        // Clear LoS positions: Killer at (15, 20), S[0] at (10, 20), S[1] at (10, 22)
-        r.Place(r.K, 15, 20);
+        // Clear LoS positions: Killer at (8, 20), S[0] at (10, 20), S[1] at (10, 22)
+        r.Place(r.K, 8, 20);
         r.Place(r.S[0], 10, 20);
         r.Place(r.S[1], 10, 22);
 
@@ -510,19 +510,19 @@ public sealed class ServerReverifyTests
         using var r = new QaRig(1, seed: 1003);
         r.Place(r.S[0], 10, 20);
 
-        // Step 1: Killer behind wall at (25, 20) -> BLOCKED
-        r.Place(r.K, 25, 20);
+        // Step 1: Killer behind wall at (26, 20) -> BLOCKED
+        r.Place(r.K, 26, 20);
         r.Tick();
         Assert.DoesNotContain(r.S[0].World().Players, p => p.Role == (byte)Role.Killer);
 
-        // Step 2: Killer moves to open view at (15, 20) -> CLEAR LoS (same tick!)
-        r.Place(r.K, 15, 20);
+        // Step 2: Killer moves to open view at (8, 20) -> CLEAR LoS (same tick!)
+        r.Place(r.K, 8, 20);
         r.Tick();
         var seen = r.S[0].World().Players.First(p => p.Role == (byte)Role.Killer);
-        Assert.True(MathF.Abs(seen.X - 15f) < 0.01f);
+        Assert.True(MathF.Abs(seen.X - 8f) < 0.01f);
 
-        // Step 3: Killer moves back behind wall at (25, 20) -> BLOCKED (immediately gone, 0 linger ticks!)
-        r.Place(r.K, 25, 20);
+        // Step 3: Killer moves back behind wall at (26, 20) -> BLOCKED (immediately gone, 0 linger ticks!)
+        r.Place(r.K, 26, 20);
         r.Tick();
         Assert.DoesNotContain(r.S[0].World().Players, p => p.Role == (byte)Role.Killer);
     }
@@ -535,9 +535,9 @@ public sealed class ServerReverifyTests
     public void U2e_Contract6_ThreatLevelUnaffectedByLoS_AndNoKillerCoordsInSkillEffects()
     {
         using var r = new QaRig(1, seed: 1004);
-        // Survivor at (10, 20), Killer at (22, 20) -> Distance is 12m (ThreatLevel 1), but LoS is BLOCKED by wall (18,14)-(20,32)
+        // Survivor at (10, 20), Killer at (26, 20) -> Distance is 12m (ThreatLevel 1), but LoS is BLOCKED by wall (18,14)-(20,32)
         r.Place(r.S[0], 10, 20);
-        r.Place(r.K, 22, 20);
+        r.Place(r.K, 26, 20);
 
         r.Tick();
         var sw = r.S[0].World();

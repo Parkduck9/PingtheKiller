@@ -74,7 +74,15 @@ internal sealed class RulesMatch : IDisposable
                 (killerSkill < 0 || killer.Last<S2C_MatchStart>().SkillId == killerSkill);
             for (int i = 0; ok && i < survivorSkills.Length; i++)
                 ok = survivorSkills[i] < 0 || list[i].Last<S2C_MatchStart>().SkillId == survivorSkills[i];
-            if (ok) return new RulesMatch(f, killer, list, seed);
+            if (ok)
+            {
+                // Arrange legacy rule scenarios in the west open lane, independently of production spawn clusters.
+                f.Server.PlaceForTests(killer.Id, 5, 5);
+                var positions = new[] { (5f,26f), (10f,26f), (5f,36f), (10f,36f), (48f,48f), (70f,50f), (70f,55f) };
+                for (int i=0;i<list.Length;i++) f.Server.PlaceForTests(list[i].Id,positions[i].Item1,positions[i].Item2);
+                f.Tick();
+                return new RulesMatch(f, killer, list, seed);
+            }
             f.Dispose();
         }
         throw new InvalidOperationException("No seed assigns the requested skills.");
@@ -83,16 +91,21 @@ internal sealed class RulesMatch : IDisposable
     // Walks straight to (x, z) at the given speed, resending input every tick and shortening the final step.
     internal void WalkTo(Peer peer, float x, float z, float speed)
     {
+        var route = new List<PingTheKiller.ServerCore.Map.MapPoint>(128);
+        var start = peer.Self();
+        Assert.True(F.Server.Nav.FindPath(start.X,start.Z,x,z,route), $"no route to {x},{z}");
+        int next=1;
         for (int i = 0; i < 4000; i++)
         {
             var self = peer.Self();
-            float dx = x - self.X, dz = z - self.Z;
-            float distance = MathF.Sqrt(dx * dx + dz * dz);
-            if (distance < 0.001f) break;
-            float step = speed / GameConstants.TickRate;
-            float scale = distance > step ? 1 / distance : 1 / step;
-            peer.Move(dx * scale, dz * scale);
-            F.Tick();
+            if (MathF.Abs(x-self.X)<.001f && MathF.Abs(z-self.Z)<.001f) break;
+            while(next+1<route.Count && F.Server.Nav.LineClear(self.X,self.Z,route[next+1].X,route[next+1].Z)) next++;
+            if(next>=route.Count) break;
+            float dx=route[next].X-self.X,dz=route[next].Z-self.Z;
+            float distance=MathF.Sqrt(dx*dx+dz*dz);
+            if(distance<.001f) {next++;continue;}
+            float scale=1/MathF.Max(distance,speed/GameConstants.TickRate);
+            peer.Move(dx*scale,dz*scale);F.Tick();
         }
         peer.Move(0, 0);
         var end = peer.Self();
@@ -126,32 +139,22 @@ internal sealed class RulesMatch : IDisposable
 
     internal static float Distance(PlayerState a, float x, float z) => MathF.Sqrt((a.X - x) * (a.X - x) + (a.Z - z) * (a.Z - z));
 
-    // Both survivors co-hack terminal 0 (10,25) and terminal 2 (49,25); 2 survivors need 2 of 4 terminals.
+    // Complete three real terminals using the current layout and the unchanged 10 s / co-hack rules.
     internal void OpenExitWithTwoSurvivors()
     {
-        var a = Survivors[0];
-        var b = Survivors[1];
-        WalkTo(a, 9.5f, 25.5f, GameConstants.SurvivorSpeed);
-        WalkTo(b, 10.5f, 25.5f, GameConstants.SurvivorSpeed);
-        a.Send(new C2S_Interact { Active = 1 });
-        b.Send(new C2S_Interact { Active = 1 });
-        Tick(101);
-        Assert.Equal(100, Killer.Last<S2C_WorldState>().Terminals[0].Progress);
-        a.Send(new C2S_Interact { Active = 0 });
-        b.Send(new C2S_Interact { Active = 0 });
-        var route = new[] { (12f, 34f), (21f, 34f), (30f, 27f) };
-        WalkPath(a, GameConstants.SurvivorSpeed, route);
-        WalkTo(a, 48f, 25f, GameConstants.SurvivorSpeed);
-        WalkPath(b, GameConstants.SurvivorSpeed, route);
-        WalkTo(b, 50f, 25.5f, GameConstants.SurvivorSpeed);
-        Assert.Equal(0, Killer.Last<S2C_WorldState>().ExitOpen);
-        Assert.Equal(1, Killer.Last<S2C_WorldState>().ExitLocked);
-        a.Send(new C2S_Interact { Active = 1 });
-        b.Send(new C2S_Interact { Active = 1 });
-        Tick(101);
-        var world = Killer.Last<S2C_WorldState>();
-        Assert.Equal(100, world.Terminals[2].Progress);
-        Assert.Equal(1, world.ExitOpen);
-        Assert.Equal(0, world.ExitLocked);
+        var a=Survivors[0]; var b=Survivors[1];
+        F.Server.PlaceForTests(Killer.Id,76,76); Tick();
+        foreach(int id in new[]{0,2,3})
+        {
+            var t=F.Server.Map.TerminalPositions[id];
+            WalkTo(a,t.X-.5f,t.Z,GameConstants.SurvivorSpeed);
+            WalkTo(b,t.X+.5f,t.Z,GameConstants.SurvivorSpeed);
+            a.Send(new C2S_Interact {Active=1}); b.Send(new C2S_Interact {Active=1}); Tick(101);
+            Assert.Equal(100,Killer.Last<S2C_WorldState>().Terminals[id].Progress);
+            a.Send(new C2S_Interact {Active=0}); b.Send(new C2S_Interact {Active=0});
+            if(id!=3) Assert.Equal(0,Killer.Last<S2C_WorldState>().ExitOpen);
+        }
+        Assert.Equal(1,Killer.Last<S2C_WorldState>().ExitOpen);
+        Assert.Equal(0,Killer.Last<S2C_WorldState>().ExitLocked);
     }
 }

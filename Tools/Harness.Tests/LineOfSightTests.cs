@@ -14,7 +14,7 @@ public sealed class LineOfSightGeometryTests
     public void ASegmentThroughAWallIsBlockedByItsFullDepth()
     {
         Assert.Equal(Sight.Blocked, LineOfSight.Classify(10, 20, 30, 20));
-        Assert.Equal(-1.0, LineOfSight.Margin(10, 20, 30, 20), 9);
+        Assert.Equal(-6.0, LineOfSight.Margin(10, 20, 30, 20), 9);
         Assert.True(LineOfSight.Blocked(10, 20, 30, 20));
         // An endpoint inside the wall is blocked too.
         Assert.Equal(Sight.Blocked, LineOfSight.Classify(19, 20, 10, 20));
@@ -24,7 +24,7 @@ public sealed class LineOfSightGeometryTests
     public void TouchingAnEdgeIsBlockedByContractButInsideTheAmbiguousBand()
     {
         // Along the face z = 14, and ending exactly on it.
-        foreach (var (ax, az, bx, bz) in new[] { (10.0, 14.0, 30.0, 14.0), (19.0, 10.0, 19.0, 14.0) })
+        foreach (var (ax, az, bx, bz) in new[] { (10.0, 12.0, 26.0, 12.0), (19.0, 10.0, 19.0, 12.0) })
         {
             Assert.True(LineOfSight.Blocked(ax, az, bx, bz));
             Assert.Equal(0.0, LineOfSight.Margin(ax, az, bx, bz), 9);
@@ -36,9 +36,9 @@ public sealed class LineOfSightGeometryTests
     public void TouchingACornerIsBlockedByContractButInsideTheAmbiguousBand()
     {
         // Through the corner (18,14) only: before it x < 18, after it z < 14.
-        Assert.True(LineOfSight.Blocked(17, 15, 19, 13));
-        Assert.Equal(0.0, LineOfSight.Margin(17, 15, 19, 13), 9);
-        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(17, 15, 19, 13));
+        Assert.True(LineOfSight.Blocked(11, 13, 13, 11));
+        Assert.Equal(0.0, LineOfSight.Margin(11, 13, 13, 11), 9);
+        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(11, 13, 13, 11));
     }
 
     [Fact]
@@ -52,14 +52,14 @@ public sealed class LineOfSightGeometryTests
     }
 
     [Theory]
-    [InlineData(13.97f, Sight.Ambiguous)] // misses the face by 0.03 m
-    [InlineData(13.94f, Sight.Clear)]     // misses by 0.06 m
-    [InlineData(14.03f, Sight.Ambiguous)] // penetrates by 0.03 m
-    [InlineData(14.06f, Sight.Blocked)]   // penetrates by 0.06 m
+    [InlineData(11.97f, Sight.Ambiguous)] // misses the face by 0.03 m
+    [InlineData(11.94f, Sight.Clear)]     // misses by 0.06 m
+    [InlineData(12.03f, Sight.Ambiguous)] // penetrates by 0.03 m
+    [InlineData(12.06f, Sight.Blocked)]   // penetrates by 0.06 m
     public void TheBandIsFiveCentimetresEitherSideOfAFace(float z, Sight expected)
     {
         Assert.Equal(expected, LineOfSight.Classify(10, z, 30, z));
-        Assert.Equal(z >= 14, LineOfSight.Blocked(10, z, 30, z));
+        Assert.Equal(z >= 12, LineOfSight.Blocked(10, z, 30, z));
     }
 
     [Theory]
@@ -69,8 +69,8 @@ public sealed class LineOfSightGeometryTests
     {
         // A diagonal passing the corner (18,14) on its outside at distance `gap`.
         double offset = gap * Math.Sqrt(2);
-        Assert.Equal(expected, LineOfSight.Classify(16 - offset, 16, 20 - offset, 12));
-        Assert.Equal(gap, LineOfSight.Margin(16 - offset, 16, 20 - offset, 12), 6);
+        Assert.Equal(expected, LineOfSight.Classify(10 - offset, 14, 14 - offset, 10));
+        Assert.Equal(gap, LineOfSight.Margin(10 - offset, 14, 14 - offset, 10), 6);
     }
 
     [Fact]
@@ -174,8 +174,8 @@ public sealed class KillerSightJudgeTests
     public void TheAmbiguousBandIsNotJudgedButFieldsStillAre()
     {
         // Killer and recipient on a line 0.03 m outside the face z = 14 of wall (18,14)-(20,32).
-        var killer = Killer with { X = 10, Z = 13.97f };
-        var me = InOpen with { X = 30, Z = 13.97f };
+        var killer = Killer with { X = 10, Z = 11.97f };
+        var me = InOpen with { X = 30, Z = 11.97f };
         var entry = Entry with { X = killer.X, Z = killer.Z };
         var verdict = Judge(W(me, entry), killer);
         Assert.Equal((SightOutcome.Ambiguous, 1, (string?)null), (verdict.Outcome, verdict.Entry, verdict.Leak));
@@ -183,7 +183,7 @@ public sealed class KillerSightJudgeTests
         Assert.NotNull(Judge(W(me, entry with { Flags = 1 }), killer).Leak);
         Assert.NotNull(Judge(W(me, entry with { X = 10.2f }), killer).Leak);
         // 0.06 m inside the wall is blocked.
-        Assert.Contains("is blocked", Judge(W(me with { Z = 14.06f }, entry with { Z = 14.06f }), killer with { Z = 14.06f }).Leak);
+        Assert.Contains("is blocked", Judge(W(me with { Z = 12.06f }, entry with { Z = 12.06f }), killer with { Z = 12.06f }).Leak);
     }
 
     [Fact]

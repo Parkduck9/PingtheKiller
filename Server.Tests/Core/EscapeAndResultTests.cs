@@ -49,10 +49,10 @@ public sealed class EscapeAndResultTests
         m.OpenExitWithTwoSurvivors();
         var a = m[0];
         int lobbiesBefore = m.Killer.All<S2C_LobbyState>().Count;
-        WalkUntilResult(m, a, 57.5f, 30, GameConstants.SurvivorSpeed);
+        WalkUntilResult(m, a, 4f, 4, GameConstants.SurvivorSpeed);
         var final = m[1].Last<S2C_WorldState>();
         Assert.Equal((byte)PlayerStatus.Escaped, RulesMatch.Entry(final, a.Id)!.Value.Status);
-        Assert.InRange(RulesMatch.Distance(RulesMatch.Entry(final, a.Id)!.Value, 58, 30), 1.8f, 2.001f);
+        Assert.InRange(RulesMatch.Distance(RulesMatch.Entry(final, a.Id)!.Value, 4, 4), 1.8f, 2.001f);
         Assert.Null(RulesMatch.Entry(m.Killer.Last<S2C_WorldState>(), a.Id));
         foreach (var peer in new[] { m.Killer, m[0], m[1] })
             AssertSingleResultThenLobby(peer, Role.Survivor, GameEndReason.SurvivorEscaped, a.Id);
@@ -76,7 +76,7 @@ public sealed class EscapeAndResultTests
         Assert.Empty(m.Killer.All<S2C_SkillEffect>());
         m.OpenExitWithTwoSurvivors();
         var a = m[0];
-        m.WalkTo(a, 55, 30, GameConstants.SurvivorSpeed);
+        m.WalkTo(a, 4, 7, GameConstants.SurvivorSpeed);
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
         m.Tick();
         foreach (var peer in new[] { m.Killer, m[0], m[1] })
@@ -84,12 +84,12 @@ public sealed class EscapeAndResultTests
             var effect = Assert.Single(peer.All<S2C_SkillEffect>());
             Assert.Equal(m.Killer.Id, effect.CasterId);
             Assert.Equal(SkillIds.FirewallBlock, effect.SkillId);
-            Assert.Equal(58f, effect.X);
-            Assert.Equal(30f, effect.Z);
+            Assert.Equal(4f, effect.X);
+            Assert.Equal(4f, effect.Z);
             Assert.Equal(5f, effect.Duration);
             Assert.Equal(1, peer.Last<S2C_WorldState>().ExitLocked);
         }
-        int ticks = 1 + WalkUntilResult(m, a, 57, 30, GameConstants.SurvivorSpeed);
+        int ticks = 1 + WalkUntilResult(m, a, 4, 5, GameConstants.SurvivorSpeed);
         // A second cast while on cooldown is ignored.
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
         while (!a.All<S2C_GameResult>().Any() && ticks < 200)
@@ -110,11 +110,11 @@ public sealed class EscapeAndResultTests
     {
         using var m = RulesMatch.Start(2);
         m.OpenExitWithTwoSurvivors(); // survivors stand at (48,25) and (50,25.5)
-        m.WalkPath(m.Killer, GameConstants.KillerSpeed, (30f, 8f), (46.9f, 25f));
-        Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(m[0]).Status);
-        Assert.Equal((byte)PlayerStatus.Normal, m.Truth(m[1]).Status);
-        // Around the Normal survivor at (50,25.5), so no rescue contact happens on the way.
-        m.WalkPath(m[0], GameConstants.SurvivorSpeed * GameConstants.LaggingSpeedMultiplier, (48f, 28f), (57.5f, 30f));
+        m.F.Server.PlaceForTests(m[0].Id,4,10); m.F.Server.PlaceForTests(m[1].Id,10,20);
+        m.F.Server.PlaceForTests(m.Killer.Id,4,9); m.Tick();
+        Assert.Equal((byte)PlayerStatus.Lagging,m.Truth(m[0]).Status);
+        Assert.Equal((byte)PlayerStatus.Normal,m.Truth(m[1]).Status);
+        m.WalkTo(m[0],4,4,GameConstants.SurvivorSpeed*GameConstants.LaggingSpeedMultiplier);
         m.Tick(20);
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(m[0]).Status);
         Assert.Equal(1, m.Killer.Last<S2C_WorldState>().ExitOpen);

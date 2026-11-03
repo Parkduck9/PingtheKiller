@@ -10,6 +10,7 @@ namespace PingTheKiller.Client.World
         public static readonly FixedMap Map = new FixedMap();
         public static Vector3 Center => new Vector3(FixedMap.Size * .5f, 0, FixedMap.Size * .5f);
         public static Vector3 Exit => new Vector3(Map.Exit.X, .04f, Map.Exit.Z);
+        public static Vector3 ExitAt(int index) => new Vector3(Map.Exits[index].X, .04f, Map.Exits[index].Z);
 
         // FixedMap walls are min/max boxes; Unity cubes want a centre and a size.
         public static void WallBox(Wall wall, out Vector3 center, out Vector3 size)

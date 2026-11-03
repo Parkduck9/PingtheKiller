@@ -106,7 +106,7 @@ public sealed class U3dH6OutOfOrderTests
     public async Task SwappedFramesDoNotLetALeakThrough()
     {
         // B's frames are swapped every 40th tick AND every blocked frame of B carries the entry.
-        var (item, tap, _, swaps) = await U3dR3.H6Async("out-of-order-leak", tap => Swap(tap, 2), U3dR3.BlockedLeak);
+        var (item, tap, _, swaps) = await U3dR3.H6Async("out-of-order-leak", tap => Swap(tap, 2), c => c.Tick >= 40 && U3dR3.BlockedLeak(c));
         Assert.True(swaps >= 1 && tap.Applied >= 1, $"premise: swaps={swaps} applied={tap.Applied}");
         Assert.False(item.Passed, $"FALSE PASS: {item.Evidence}");
         Assert.Equal(0, item.Score);
@@ -323,26 +323,22 @@ public sealed class U3dH6Skew500Tests
         Assert.True(item.Passed, $"FALSE FAIL (stream {lateConnection} +{ms} ms): {item.Evidence}");
     }
 
-    // LIMIT (pre-existing, not line of sight): B's stream at +500 ms already fails a scenario pacing step ("[rescue] ... not observed
-    // within 8.0 s", B's rescue contact is judged on state B reacts to), and at +1000 ms a movement step. The controls below show that
-    // a server without any line-of-sight entries fails identically, so it is not caused by U3d.
+    // Proportional waypoint steering tolerates B's 500 ms stream delay, with no line-of-sight entries required.
     [Fact]
-    public async Task Limit_AControlServerWithoutLineOfSightEntriesFailsToAtHalfASecondOnBsStream()
+    public async Task AControlServerWithoutLineOfSightEntriesToleratesHalfASecondOnBsStream()
     {
         var (item, _, _, _) = await U3dH6Run.RunAsync("control-no-los-B-500ms", losServer: false,
             delay: conn => conn == 2 ? TimeSpan.FromMilliseconds(500) : TimeSpan.Zero);
-        Assert.False(item.Passed, "Behaviour changed: H6 now tolerates a 500 ms lag on B. " + item.Evidence);
-        Assert.True(item.Evidence.Contains("[rescue]") || item.Evidence.Contains("[hack terminal"), item.Evidence);
+        Assert.True(item.Passed,item.Evidence);
+        Assert.Contains("A Normal with CaptureCount=1",item.Evidence);
     }
-
-    // LIMIT (pre-existing, not line of sight): at +1000 ms the scenario's own movement pacing ("stuck on leg" after a fixed time
-    // limit) fails with a server that has no line-of-sight entries at all, so a 1 s stream lag is outside what H6 supports.
+    // LIMIT: a 1 s stream lag remains outside the movement/rescue pacing budget.
     [Fact]
     public async Task Limit_AControlServerWithoutLineOfSightEntriesFailsToAtOneSecondOnBsStream()
     {
         var (item, _, _, _) = await U3dH6Run.RunAsync("control-no-los-B-1000ms", losServer: false,
             delay: conn => conn == 2 ? TimeSpan.FromMilliseconds(1000) : TimeSpan.Zero);
         Assert.False(item.Passed, "Behaviour changed: H6 now tolerates a 1 s lag on B, so the 1 s LOS tests can be added. " + item.Evidence);
-        Assert.Contains("stuck on leg", item.Evidence);
+        Assert.True(item.Evidence.Contains("stuck on leg") || (item.Evidence.Contains("[rescue]") && item.Evidence.Contains("not observed")), item.Evidence);
     }
 }

@@ -63,8 +63,8 @@ public sealed class LobbyTests
         Assert.InRange(world.Players.Count, 1, 8);
         Assert.Single(world.Players, p => p.Role == (byte)Role.Killer);
         Assert.InRange(host.Last<S2C_MatchStart>().SkillId, 0, 3);
-        Assert.Equal(6, world.Terminals.Count);
-        Assert.Equal(4, world.TerminalsRequired);
+        Assert.Equal(8, world.Terminals.Count);
+        Assert.Equal(5, world.TerminalsRequired);
         Assert.All(world.Terminals, t => Assert.Equal(0, t.Progress));
         Assert.Equal(0, world.ExitOpen);
         Assert.Equal(1, world.ExitLocked);
@@ -91,8 +91,8 @@ public sealed class LobbyTests
         if (choice != RoleChoice.Random) Assert.Equal((byte)choice, a.Role);
         Assert.InRange(a.SkillId, 0, a.Role == (byte)Role.Killer ? 3 : 4);
         Assert.InRange(b.SkillId, 0, b.Role == (byte)Role.Killer ? 3 : 4);
-        Assert.Equal(4, host.Last<S2C_WorldState>().Terminals.Count);
-        Assert.Equal(2, host.Last<S2C_WorldState>().TerminalsRequired);
+        Assert.Equal(5, host.Last<S2C_WorldState>().Terminals.Count);
+        Assert.Equal(3, host.Last<S2C_WorldState>().TerminalsRequired);
     }
 
     [Fact]

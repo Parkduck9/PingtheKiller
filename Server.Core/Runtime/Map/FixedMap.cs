@@ -47,29 +47,55 @@ namespace PingTheKiller.ServerCore.Map
 
     public sealed class FixedMap
     {
-        public const float Size = 60;
+        public const float Size = 80;
         public const float PlayerRadius = 0.4f;
         private readonly Wall[] _walls =
         {
-            new Wall(-1, -1, 0, 61), new Wall(60, -1, 61, 61),
-            new Wall(0, -1, 60, 0), new Wall(0, 60, 60, 61),
-            new Wall(18, 14, 20, 32), new Wall(36, 28, 38, 47),
-            new Wall(24, 42, 32, 44), new Wall(40, 14, 49, 16)
+            new Wall(-1, -1, 0, Size + 1), new Wall(Size, -1, Size + 1, Size + 1),
+            new Wall(0, -1, Size, 0), new Wall(0, Size, Size, Size + 1),
+            // Two U-shaped blocks with 4 m dead-end alleys, open to the south.
+            new Wall(12, 12, 24, 36), new Wall(28, 12, 40, 36), new Wall(12, 36, 40, 42),
+            new Wall(12, 46, 24, 68), new Wall(28, 46, 40, 68), new Wall(12, 68, 40, 74),
+            // Eastern blocks and the central service building. Building gaps are 4 m.
+            new Wall(56, 10, 66, 20), new Wall(56, 24, 66, 34), new Wall(56, 38, 66, 48),
+            new Wall(56, 52, 66, 62), new Wall(56, 66, 66, 76), new Wall(44, 34, 52, 42)
         };
-        public FixedMap() { Walls = Array.AsReadOnly(_walls); }
+        private readonly Obstacle[] _obstacles =
+        {
+            new Obstacle(45, 14, 47, 16), new Obstacle(50, 27.5f, 52, 29.5f),
+            new Obstacle(45, 50, 47, 52), new Obstacle(50, 56, 52, 58),
+            new Obstacle(4, 52, 6, 54), new Obstacle(4, 64, 6, 66),
+            new Obstacle(44, 4, 48, 6), new Obstacle(44, 74, 48, 76),
+            new Obstacle(25, 6, 27, 8), new Obstacle(72, 16, 74, 18),
+            new Obstacle(72, 52, 74, 54), new Obstacle(70, 74, 72, 76)
+        };
+        public FixedMap()
+        {
+            Walls = Array.AsReadOnly(_walls);
+            Obstacles = Array.AsReadOnly(_obstacles);
+        }
         public IReadOnlyList<Wall> Walls { get; }
+        public IReadOnlyList<Obstacle> Obstacles { get; }
+        // Wall-free plazas, both 16 x 16 m; low obstacles provide movement cover only.
+        public IReadOnlyList<Wall> Plazas { get; } = Array.AsReadOnly(new[]
+        { new Wall(40, 12, 56, 28), new Wall(40, 48, 56, 64) });
         public IReadOnlyList<MapPoint> SpawnPoints { get; } = Array.AsReadOnly(new[]
         {
-            // Killer first, then seven survivor spawns strictly beyond the threat band.
-            new MapPoint(5, 5), new MapPoint(5, 26), new MapPoint(10, 26), new MapPoint(5, 36),
-            new MapPoint(10, 36), new MapPoint(45, 50), new MapPoint(50, 50), new MapPoint(45, 55)
+            new MapPoint(46, 45),
+            new MapPoint(8, 12), new MapPoint(8, 16), new MapPoint(8, 20),
+            new MapPoint(26, 50), new MapPoint(26, 54), new MapPoint(72, 68), new MapPoint(74, 70)
         });
         public IReadOnlyList<MapPoint> TerminalPositions { get; } = Array.AsReadOnly(new[]
         {
-            new MapPoint(10, 25), new MapPoint(28, 12), new MapPoint(49, 25),
-            new MapPoint(12, 49), new MapPoint(30, 52), new MapPoint(50, 42)
+            new MapPoint(10, 25), new MapPoint(72, 44), new MapPoint(49, 25),
+            new MapPoint(8, 46), new MapPoint(48, 60), new MapPoint(26, 28),
+            new MapPoint(26, 60), new MapPoint(72, 60)
         });
-        public MapPoint Exit { get; } = new MapPoint(58, 30);
+        public IReadOnlyList<MapPoint> Exits { get; } = Array.AsReadOnly(new[]
+        { new MapPoint(4, 4), new MapPoint(76, 76) });
+        public MapPoint Exit => Exits[0];
+        public IReadOnlyList<MapPoint> HatchPoints { get; } = Array.AsReadOnly(new[]
+        { new MapPoint(8, 38), new MapPoint(26, 16), new MapPoint(48, 46), new MapPoint(70, 8), new MapPoint(76, 76) });
 
         public TerminalState[] CreateTerminals(int survivors, out byte required)
         {
@@ -81,10 +107,16 @@ namespace PingTheKiller.ServerCore.Map
             return result;
         }
 
-        public bool CanStand(float x, float z)
+        public bool CanStand(float x, float z) => CanStand(x, z, PlayerRadius);
+
+        public bool CanStand(float x, float z, float radius)
         {
-            foreach (var wall in Walls)
-                if (wall.IntersectsCircle(x, z, PlayerRadius)) return false;
+            if (float.IsNaN(x) || float.IsNaN(z) || x < radius || z < radius || x > Size - radius || z > Size - radius)
+                return false;
+            for (int i = 0; i < _walls.Length; i++)
+                if (_walls[i].IntersectsCircle(x, z, radius)) return false;
+            for (int i = 0; i < _obstacles.Length; i++)
+                if (_obstacles[i].IntersectsCircle(x, z, radius)) return false;
             return true;
         }
 

@@ -16,6 +16,23 @@ namespace PingTheKiller.Client.QA.Tests
         private static float Dx(float yaw) => Mathf.Sin(yaw * Mathf.Deg2Rad);
         private static float Dz(float yaw) => Mathf.Cos(yaw * Mathf.Deg2Rad);
 
+        // Fixtures on the 80 m map (formerly (30, 30) in open space and the north wall at z = 60):
+        // OpenX/OpenZ is the middle of the west plaza (x 40..56, z 12..28): nothing is within 2.4 m in any direction.
+        // NorthX is a column of the north boundary wall (z = FixedMap.Size) that has no building or obstacle within 2.4 m.
+        private const float OpenX = 48, OpenZ = 20, NorthX = 50;
+        private const float North = FixedMap.Size;
+
+        [Test]
+        public void TheFixturePointsAreClearInOpenSpaceAndMeetTheBoundaryWallWhereTheTestsSayTheyDo()
+        {
+            var map = new FixedMap();
+            Assert.That(map.CanStand(OpenX, OpenZ), Is.True);
+            for (float yaw = 0; yaw < 360; yaw += 5) Assert.That(Wander.WallAhead(map, OpenX, OpenZ, yaw), Is.False, "open space, yaw " + yaw);
+            Assert.That(Wander.WallAhead(map, NorthX, North - 1, 0), Is.True, "1 m from the north wall");
+            Assert.That(Wander.WallAhead(map, NorthX, North - 4, 0), Is.False, "4 m from the north wall");
+            for (float yaw = 90; yaw <= 270; yaw += 5) Assert.That(Wander.WallAhead(map, NorthX, North - 1, yaw), Is.False, "south of the north wall, yaw " + yaw);
+        }
+
         // ---- turning ---------------------------------------------------------------------------------------------------------
 
         [Test]
@@ -25,7 +42,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(Wander.TurnRate, Is.InRange(10f, 45f), "a slow turn, spec example 25 degrees per second");
             var wander = new Wander(0);
             float yaw = 0;
-            for (int i = 0; i < 60; i++) yaw = wander.Next(map, 30, 30, 1f / 60f);
+            for (int i = 0; i < 60; i++) yaw = wander.Next(map, OpenX, OpenZ, 1f / 60f);
             Assert.That(yaw, Is.EqualTo(Wander.TurnRate).Within(0.05f), "one second of frames turns by the turn rate");
         }
 
@@ -37,7 +54,7 @@ namespace PingTheKiller.Client.QA.Tests
             float previous = 100;
             foreach (float dt in new[] { 1f / 120f, 1f / 60f, 1f / 30f, 0.1f })
             {
-                float yaw = wander.Next(map, 30, 30, dt);
+                float yaw = wander.Next(map, OpenX, OpenZ, dt);
                 Assert.That(Mathf.Abs(Mathf.DeltaAngle(previous, yaw)), Is.LessThanOrEqualTo(Wander.TurnRate * dt + 0.01f), "dt " + dt);
                 previous = yaw;
             }
@@ -54,7 +71,7 @@ namespace PingTheKiller.Client.QA.Tests
                 foreach (float dt in new[] { 0f, -1f, float.NaN, float.PositiveInfinity, 1e-6f, 5f })
                 {
                     float yaw = 0;
-                    Assert.DoesNotThrow(() => yaw = wander.Next(map, 30, 30, dt), "dt " + dt);
+                    Assert.DoesNotThrow(() => yaw = wander.Next(map, OpenX, OpenZ, dt), "dt " + dt);
                     Assert.That(float.IsNaN(yaw) || float.IsInfinity(yaw), Is.False, "start " + start + " dt " + dt);
                     Assert.That(yaw, Is.InRange(0f, 360f));
                 }
@@ -66,10 +83,10 @@ namespace PingTheKiller.Client.QA.Tests
         {
             var map = new FixedMap();
             var wander = new Wander(45);
-            Assert.That(wander.Next(map, 30, 30, 0f), Is.EqualTo(45f).Within(0.001f));
-            Assert.That(wander.Next(map, 30, 30, -0.5f), Is.EqualTo(45f).Within(0.001f), "time never runs backwards");
-            Assert.That(wander.Next(map, 30, 30, float.NaN), Is.EqualTo(45f).Within(0.001f));
-            Assert.That(wander.Next(map, 30, 30, float.PositiveInfinity), Is.EqualTo(45f).Within(0.001f));
+            Assert.That(wander.Next(map, OpenX, OpenZ, 0f), Is.EqualTo(45f).Within(0.001f));
+            Assert.That(wander.Next(map, OpenX, OpenZ, -0.5f), Is.EqualTo(45f).Within(0.001f), "time never runs backwards");
+            Assert.That(wander.Next(map, OpenX, OpenZ, float.NaN), Is.EqualTo(45f).Within(0.001f));
+            Assert.That(wander.Next(map, OpenX, OpenZ, float.PositiveInfinity), Is.EqualTo(45f).Within(0.001f));
         }
 
         // ---- reversing before a wall -------------------------------------------------------------------------------------------
@@ -78,21 +95,21 @@ namespace PingTheKiller.Client.QA.Tests
         public void ANorthFacingSurvivorOneMetreFromTheBoundaryWallTurnsAround()
         {
             var map = new FixedMap();
-            // Yaw 0 faces +z; the north wall surface is at z = 60.
-            Assert.That(Wander.WallAhead(map, 30, 59f, 0), Is.True, "1 m from the wall");
+            // Yaw 0 faces +z; the north wall surface is at z = FixedMap.Size.
+            Assert.That(Wander.WallAhead(map, NorthX, North - 1f, 0), Is.True, "1 m from the wall");
             var wander = new Wander(0);
-            float yaw = wander.Next(map, 30, 59f, 1f / 60f);
+            float yaw = wander.Next(map, NorthX, North - 1f, 1f / 60f);
             Assert.That(Dz(yaw), Is.LessThan(-0.9f), "now heading south, away from the wall (yaw " + yaw + ")");
-            Assert.That(Wander.WallAhead(map, 30, 59f, yaw), Is.False);
+            Assert.That(Wander.WallAhead(map, NorthX, North - 1f, yaw), Is.False);
         }
 
         [Test]
         public void AWallFourMetresAheadIsNotReactedTo()
         {
             var map = new FixedMap();
-            Assert.That(Wander.WallAhead(map, 30, 56f, 0), Is.False, "4 m from the wall");
+            Assert.That(Wander.WallAhead(map, NorthX, North - 4f, 0), Is.False, "4 m from the wall");
             var wander = new Wander(0);
-            float yaw = wander.Next(map, 30, 56f, 1f);
+            float yaw = wander.Next(map, NorthX, North - 4f, 1f);
             Assert.That(yaw, Is.EqualTo(Wander.TurnRate).Within(0.05f), "keeps turning slowly, no reversal");
         }
 
@@ -100,11 +117,13 @@ namespace PingTheKiller.Client.QA.Tests
         public void EveryBoundaryWallAndEveryInnerWallTriggersAReversalFromTheFourCompassHeadings()
         {
             var map = new FixedMap();
-            // x, z, yaw: boundary walls (z = 0 and 60, x = 0 and 60) and the inner wall (18..20, 14..32) seen from x = 16.5.
+            // x, z, yaw: boundary walls (z = 0 and Size, x = 0 and Size) and an inner wall: the east face of the building Walls[10]
+            // (x 56..66, z 10..20) seen from 1.5 m east of it, facing west (formerly the wall 18..20 seen from x = 16.5).
+            Wall building = map.Walls[10];
             var cases = new[]
             {
-                new[] { 30f, 1.0f, 180f }, new[] { 30f, 59f, 0f }, new[] { 1.0f, 30f, 270f }, new[] { 59f, 30f, 90f },
-                new[] { 16.5f, 20f, 90f },
+                new[] { 30f, 1.0f, 180f }, new[] { NorthX, North - 1f, 0f }, new[] { 1.0f, 30f, 270f }, new[] { FixedMap.Size - 1f, 30f, 90f },
+                new[] { building.MaxX + 1.5f, (building.MinZ + building.MaxZ) * .5f, 270f },
             };
             foreach (float[] c in cases)
             {
@@ -121,7 +140,8 @@ namespace PingTheKiller.Client.QA.Tests
         {
             var map = new FixedMap();
             // x, z, and the diagonal heading that points into that corner (yaw 0 faces +z, 90 faces +x).
-            foreach (float[] c in new[] { new[] { 1.2f, 1.2f, 225f }, new[] { 58.8f, 1.2f, 135f }, new[] { 1.2f, 58.8f, 315f }, new[] { 58.8f, 58.8f, 45f } })
+            float far = FixedMap.Size - 1.2f;
+            foreach (float[] c in new[] { new[] { 1.2f, 1.2f, 225f }, new[] { far, 1.2f, 135f }, new[] { 1.2f, far, 315f }, new[] { far, far, 45f } })
             {
                 Assert.That(Wander.WallAhead(map, c[0], c[1], c[2]), Is.True, "the corner is ahead at " + c[0] + "," + c[1]);
                 var wander = new Wander(c[2]);
@@ -135,8 +155,8 @@ namespace PingTheKiller.Client.QA.Tests
         {
             var map = new FixedMap();
             var wander = new Wander(0);
-            float reversed = wander.Next(map, 30, 59f, 0f);
-            float after = wander.Next(map, 30, 30, 1f);
+            float reversed = wander.Next(map, NorthX, North - 1f, 0f);
+            float after = wander.Next(map, OpenX, OpenZ, 1f);
             Assert.That(Mathf.DeltaAngle(reversed, after), Is.EqualTo(-Wander.TurnRate).Within(0.05f), "after a reversal the turn goes the other way");
         }
 

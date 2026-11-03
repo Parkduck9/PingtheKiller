@@ -91,6 +91,22 @@ namespace PingTheKiller.Client.Tests
     public sealed class SharedMapTests
     {
         [Test]
+        public void LowObstaclesBlockMovementAndTheLowCameraButNeverSight()
+        {
+            Assert.That(MapGeometry.ObstacleHeight,Is.EqualTo(1.2f));
+            var map=SharedMap.Map;
+            Assert.That(map.Exits.Count,Is.EqualTo(2));
+            Assert.That(SharedMap.ExitAt(1).x,Is.EqualTo(map.Exits[1].X));
+            foreach(var o in map.Obstacles)
+            {
+                float z=(o.MinZ+o.MaxZ)*.5f;
+                Assert.That(map.CanStand((o.MinX+o.MaxX)*.5f,z),Is.False);
+                Assert.That(MapGeometry.SegmentBlocked(map,o.MinX-1,z,o.MaxX+1,z),Is.False);
+                Assert.That(MapGeometry.SphereCast(map,new Vector3(o.MinX-1,.6f,z),Vector3.right,4,.2f),Is.EqualTo(.8f).Within(.0001f));
+                Assert.That(MapGeometry.SphereCast(map,new Vector3(o.MinX-1,1.6f,z),Vector3.right,4,.2f),Is.EqualTo(4));
+            }
+        }
+        [Test]
         public void WallBoxesAreFixedMapMinMaxBoxes()
         {
             FixedMap map = SharedMap.Map;

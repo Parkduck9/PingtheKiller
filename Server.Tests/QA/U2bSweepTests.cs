@@ -253,7 +253,8 @@ public sealed class U2bSweepTests
                 if (dummyExempt || afterExempt) continue;
                 foreach (var b in killerBytes)
                 {
-                    if (ContainsPair(b, t.X, t.Z))
+                    // A different legitimate visible track can occupy the same point on the denser map.
+                    if (ContainsPair(b, t.X, t.Z) && !kw.Players.Where((entry,index) => aligned && (src[index].Phantom || src[index].Label != t.Id)).Any(entry => entry.X == t.X && entry.Z == t.Z))
                     {
                         var carriers = new List<string>();
                         for (int q = 0; q < kw.Players.Count; q++)
@@ -447,7 +448,7 @@ public sealed class U2bSweepTests
                         Assert.True(float.IsFinite(w.TimeLeft) && w.TimeLeft >= 0 && w.TimeLeft <= lastTimeLeft + 1e-3f);
                         lastTimeLeft = w.TimeLeft;
                         Assert.All(w.Players, e => Assert.True(float.IsFinite(e.X) && float.IsFinite(e.Z) && float.IsFinite(e.Yaw) && float.IsFinite(e.StatusTimer) &&
-                            e.X > -0.01f && e.X < 60.01f && e.Z > -0.01f && e.Z < 60.01f, $"bad entry {e.Id} ({e.X},{e.Z}) tick {ticks}"));
+                            e.X > -0.01f && e.X < (FixedMap.Size + .01f) && e.Z > -0.01f && e.Z < (FixedMap.Size + .01f), $"bad entry {e.Id} ({e.X},{e.Z}) tick {ticks}"));
                         Assert.All(w.Terminals, t => Assert.InRange((int)t.Progress, 0, 100));
                     }
                 }

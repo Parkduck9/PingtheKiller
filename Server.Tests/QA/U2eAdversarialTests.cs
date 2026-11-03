@@ -62,51 +62,37 @@ public sealed class U2eAdversarialTests
     // ------------------------------------------------------------------ 1. geometry
 
     [Theory]
-    // Grazing a face exactly (collinear with an edge) is blocked; one float step outside is clear.
-    [InlineData(18f, 0.5f, 18f, 59f, true)]
-    [InlineData(20f, 0.5f, 20f, 59f, true)]
-    [InlineData(10f, 14f, 30f, 14f, true)]
-    [InlineData(10f, 32f, 30f, 32f, true)]
-    [InlineData(0f, 5f, 0f, 50f, true)]    // along the inner face of the west border wall
-    [InlineData(5f, 0f, 55f, 0f, true)]    // along the inner face of the south border wall
-    [InlineData(17.999998f, 0.5f, 17.999998f, 59f, false)]
-    [InlineData(20.000002f, 0.5f, 20.000002f, 59f, false)]
-    [InlineData(10f, 13.999999f, 30f, 13.999999f, false)]
-    [InlineData(10f, 32.000004f, 30f, 32.000004f, false)]
-    // Exactly through a corner, and one float step either side.
-    [InlineData(16f, 16f, 20f, 12f, true)]      // corner (18,14)
-    [InlineData(16f, 16f, 20f, 11.999999f, false)]
-    [InlineData(16f, 16f, 20f, 12.000001f, true)]
-    [InlineData(22f, 34f, 18f, 30f, true)]      // corner (20,32)
-    [InlineData(36f, 26f, 40f, 30f, true)]      // corner (38,28) of the (36,28)-(38,47) wall
-    [InlineData(36f, 26f, 40f, 29.999998f, false)]
-    [InlineData(36f, 26f, 40f, 30.000002f, true)]
-    [InlineData(0.5f, 0.5f, -3f, -3f, true)]    // through the (0,0) junction of two adjacent border walls
-    // Start / end exactly on a boundary, with the other end on the open side or the far side.
-    [InlineData(18f, 20f, 10f, 20f, true)]
-    [InlineData(10f, 20f, 18f, 20f, true)]
-    [InlineData(20f, 20f, 30f, 20f, true)]
-    [InlineData(19f, 14f, 19f, 5f, true)]
-    [InlineData(17.999998f, 20f, 10f, 20f, false)]
-    // Endpoints inside walls: one end, both ends, in different walls.
-    [InlineData(19f, 20f, 10f, 20f, true)]
-    [InlineData(19f, 20f, 19f, 25f, true)]
-    [InlineData(19f, 20f, 37f, 40f, true)]
-    [InlineData(28f, 43f, 28f, 43.5f, true)]
-    // Negative coordinates and outside the map: west of everything, then crossing the west border wall.
-    [InlineData(-5f, -5f, -3f, -3f, false)]
-    [InlineData(-5f, 10f, 5f, 10f, true)]
-    [InlineData(-100f, -100f, -50f, 200f, false)]
-    // Very long segments.
-    [InlineData(-1e6f, 30f, 1e6f, 30f, true)]
-    [InlineData(-1e6f, 100f, 1e6f, 100.5f, false)]
-    [InlineData(-1e6f, -1e6f, 1e6f, 1e6f, true)]
-    [InlineData(-1e5f, 62f, 1e5f, 62f, false)]
-    // Open middle, and zero length.
-    [InlineData(5f, 26f, 5f, 5f, false)]
-    [InlineData(22f, 22f, 22f, 22f, false)]
-    [InlineData(19f, 20f, 19f, 20f, false)]
-    public void ExplicitCasesAgreeWithBothTheReferenceAndTheProduct(float ax, float az, float bx, float bz, bool blocked)
+    [InlineData(12f,14f,12f,34f,true)]
+    [InlineData(24f,14f,24f,34f,true)]
+    [InlineData(10f,12f,26f,12f,true)]
+    [InlineData(0f,5f,0f,50f,true)]
+    [InlineData(5f,0f,55f,0f,true)]
+    [InlineData(11.999999f,14f,11.999999f,34f,false)]
+    [InlineData(24.000002f,14f,24.000002f,34f,false)]
+    [InlineData(10f,11.999999f,26f,11.999999f,false)]
+    [InlineData(10f,14f,14f,10f,true)]
+    [InlineData(10f,14f,14f,9.999999f,false)]
+    [InlineData(10f,14f,14f,10.000001f,true)]
+    [InlineData(0.5f,0.5f,-3f,-3f,true)]
+    [InlineData(12f,20f,10f,20f,true)]
+    [InlineData(10f,20f,12f,20f,true)]
+    [InlineData(24f,20f,26f,20f,true)]
+    [InlineData(19f,12f,19f,5f,true)]
+    [InlineData(11.999999f,20f,10f,20f,false)]
+    [InlineData(19f,20f,10f,20f,true)]
+    [InlineData(19f,20f,19f,25f,true)]
+    [InlineData(19f,20f,37f,40f,true)]
+    [InlineData(28f,40f,28f,40.5f,true)]
+    [InlineData(-5f,-5f,-3f,-3f,false)]
+    [InlineData(-5f,10f,5f,10f,true)]
+    [InlineData(-100f,-100f,-50f,200f,false)]
+    [InlineData(-1e6f,30f,1e6f,30f,true)]
+    [InlineData(-1e6f,100f,1e6f,100.5f,false)]
+    [InlineData(-1e6f,-1e6f,1e6f,1e6f,true)]
+    [InlineData(-1e5f,82f,1e5f,82f,false)]
+    [InlineData(5f,26f,5f,5f,false)]
+    [InlineData(22f,22f,22f,22f,false)]
+    [InlineData(19f,20f,19f,20f,false)]    public void ExplicitCasesAgreeWithBothTheReferenceAndTheProduct(float ax, float az, float bx, float bz, bool blocked)
     {
         Assert.Equal(blocked, RefBlocked(ax, az, bx, bz)); // the reference itself is right on the hand-checked cases
         Assert.Equal(blocked, Map.SegmentBlocked(ax, az, bx, bz));
@@ -287,7 +273,8 @@ public sealed class U2eAdversarialTests
         Assert.True(entries.Count == 0, $"{ctx}: killer entry without line of sight / spectator (status {self.Status})");
         byte[] frame = PacketCodec.Encode(sw);
         byte[] bx = BitConverter.GetBytes(k.X), bz = BitConverter.GetBytes(k.Z);
-        Assert.True(frame.AsSpan().IndexOf(bx.Concat(bz).ToArray()) < 0, $"{ctx}: killer (X,Z) byte pair in the frame");
+        int legitimatePairs = sw.Terminals.Count(t => Same(t.X,k.X) && Same(t.Z,k.Z)) + sw.Players.Count(p => Same(p.X,k.X) && Same(p.Z,k.Z));
+        Assert.True(Count(frame,bx.Concat(bz).ToArray()) <= legitimatePairs, $"{ctx}: killer (X,Z) byte pair in the frame");
         var legit = new HashSet<int> { BitConverter.SingleToInt32Bits(sw.TimeLeft) };
         foreach (var t in sw.Terminals) { legit.Add(BitConverter.SingleToInt32Bits(t.X)); legit.Add(BitConverter.SingleToInt32Bits(t.Z)); }
         foreach (var p in sw.Players) { foreach (float f in new[] { p.X, p.Z, p.Yaw, p.StatusTimer }) legit.Add(BitConverter.SingleToInt32Bits(f)); }
@@ -403,9 +390,9 @@ public sealed class U2eAdversarialTests
         using var m = Duel.Start(2);
         // Survivor 0 walks north along x = 14 while the killer stands east of the (18,14)-(20,32) wall; survivor 1 walks the
         // opposite way past the wall's far side; then the killer walks past the wall edges itself.
-        m.Place(m.K, 22, 20);
+        m.Place(m.K, 26, 20);
         m.Place(m.S[0], 14, 6);
-        m.Place(m.S[1], 34, 50);
+        m.Place(m.S[1], 42, 50);
         m.Tick();
         var last = new bool?[2];
         int[] flips = new int[2], seen = new int[2], hidden = new int[2];
@@ -431,7 +418,7 @@ public sealed class U2eAdversarialTests
         for (int phase = 0; phase < 3; phase++)
         {
             // The killer circles the wall's far end: its snapshot position crosses the sight edges while it moves.
-            var targets = new[] { (22f, 40f), (12f, 40f), (12f, 8f), (24f, 8f) };
+            var targets = new[] { (26f, 10f), (8f, 10f), (8f, 44f), (42f, 44f), (42f, 10f), (26f, 10f) };
             foreach (var (gx, gz) in targets)
                 for (int i = 0; i < 400; i++)
                 {
@@ -454,15 +441,15 @@ public sealed class U2eAdversarialTests
     {
         using var m = Duel.Start(1);
         // Survivor (16,16); the killer sits on the line through corner (18,14): exactly on it blocks, one step below is clear.
-        m.Place(m.K, 20, 12);
-        m.Place(m.S[0], 16, 16);
+        m.Place(m.K, 14, 10);
+        m.Place(m.S[0], 10, 14);
         var seq = new List<(float z, bool expectEntry)>
         {
             (12f, false), (Down(12f), true), (12f, false), (Up(12f), false), (Down(12f, 3), true), (12.5f, false), (11f, true), (12f, false)
         };
         foreach (var (z, entry) in seq)
         {
-            m.Place(m.K, 20, z);
+            m.Place(m.K, 14, z - 2);
             m.Tick();
             bool seen = CheckFrame(m, 0, $"killer z {z:R}");
             Assert.Equal(entry, seen);
@@ -520,7 +507,7 @@ public sealed class U2eAdversarialTests
         Assert.Equal((byte)PlayerStatus.Eliminated, m.S[0].Self().Status);
         int spectatorFrames = 0, otherSight = 0;
         var r = Rng(9);
-        for (int i = 0; i < 60; i++)
+        for (int i = 0; i < 120; i++)
         {
             // Wherever the killer stands with a clear line to the dead survivor, it still gets nothing; survivor 1 follows the rule.
             var spot = RandomStand(r, (x, z) => Math.Abs(x - 5) + Math.Abs(z - 26) > 3 && Math.Abs(x - 10) + Math.Abs(z - 40) > 3 && Math.Abs(x - 40) + Math.Abs(z - 8) > 3);
@@ -545,7 +532,7 @@ public sealed class U2eAdversarialTests
         Assert.False(CheckFrame(m, 0, "reconnected eliminated survivor"));
 
         // Reconnect of an active survivor: the first frame obeys the same rule, clear and blocked.
-        foreach (var (kx, kz, expect) in new[] { (10f, 30f, true), (24.5f, 25f, false), (10f, 30f, true) })
+        foreach (var (kx, kz, expect) in new[] { (10f, 30f, true), (26.5f, 25f, false), (10f, 30f, true) })
         {
             ulong token = m.S[1].Last<S2C_JoinResult>().ReconnectToken;
             m.S[1].Dispose();
@@ -564,16 +551,16 @@ public sealed class U2eAdversarialTests
         OpenExitWith(m, m.S[1], m.S[2]);
         var exit = Map.Exit;
         Assert.True(Map.CanStand(exit.X, exit.Z));
-        m.Place(m.K, exit.X, exit.Z - 8);
-        m.Place(m.S[2], exit.X - 6, exit.Z + 3);
+        m.Place(m.K, exit.X, exit.Z + 8);
+        m.Place(m.S[2], exit.X + 6, exit.Z + 3);
         m.Place(m.S[1], exit.X, exit.Z);
-        Assert.False(RefBlocked(exit.X, exit.Z, exit.X, exit.Z - 8));
+        Assert.False(RefBlocked(exit.X, exit.Z, exit.X, exit.Z + 8));
         m.Tick();
         var escaped = m.S[1].Last<S2C_WorldState>().Players.Single(p => p.Id == m.S[1].Id);
         Assert.Equal((byte)PlayerStatus.Escaped, escaped.Status);
         var final = m.S[1].Last<S2C_WorldState>();
         Assert.DoesNotContain(final.Players, p => p.Role == (byte)Role.Killer || p.Id == m.K.Id);
-        Assert.False(RefBlocked(escaped.X, escaped.Z, exit.X, exit.Z - 8)); // geometry alone would have shown it
+        Assert.False(RefBlocked(escaped.X, escaped.Z, exit.X, exit.Z + 8)); // geometry alone would have shown it
         var other = m.S[2].Last<S2C_WorldState>();
         Assert.Equal(final.Tick, other.Tick);
         Assert.Single(other.Players, p => p.Role == (byte)Role.Killer && p.Id == m.K.Id);
@@ -590,7 +577,7 @@ public sealed class U2eAdversarialTests
             m.S[0].Dispose();
             m.Tick(2);
             // While disconnected the server keeps simulating; place the pair so the line is clear / blocked on return.
-            m.Place(m.K, clear ? 5f : 24.5f, clear ? 5f : 22f);
+            m.Place(m.K, clear ? 5f : 26.5f, clear ? 5f : 22f);
             m.Place(m.S[0], 5, 26);
             m.Place(m.S[1], 40, 8);
             m.Tick();
@@ -690,7 +677,7 @@ public sealed class U2eAdversarialTests
         {
             using var m = Duel.Start(7);
             for (int i = 0; i < 7; i++) m.Place(m.S[i], 5 + (i % 3) * 3, 26 + (i / 3) * 4);
-            m.Place(m.K, sight ? 5 : 24.5f, sight ? 5 : 22f);
+            m.Place(m.K, sight ? 5 : 26.5f, sight ? 5 : 22f);
             m.Tick(50);
             long before = GC.GetAllocatedBytesForCurrentThread();
             m.Tick(400);
@@ -706,18 +693,18 @@ public sealed class U2eAdversarialTests
     {
         using var m = Duel.Start(2);
         // Same distance (5 m), one pair with the wall in between and one in the open: both threat 3.
-        m.Place(m.K, 21.5f, 20);
-        m.Place(m.S[0], 16.5f, 20);   // wall between
-        m.Place(m.S[1], 21.5f, 25);   // open
+        m.Place(m.K, 53, 38);
+        m.Place(m.S[0], 43, 38);   // wall between
+        m.Place(m.S[1], 53, 48);   // open
         m.Tick();
         Assert.False(CheckFrame(m, 0, "wall"));
         Assert.True(CheckFrame(m, 1, "open"));
-        Assert.Equal(3, m.S[0].World().ThreatLevel);
-        Assert.Equal(3, m.S[1].World().ThreatLevel);
+        Assert.Equal(2, m.S[0].World().ThreatLevel);
+        Assert.Equal(2, m.S[1].World().ThreatLevel);
         // 13 m: band 1 behind the wall and in the open.
-        m.Place(m.K, 25f, 20);
-        m.Place(m.S[0], 12f, 20);
-        m.Place(m.S[1], 25f, 7);
+        m.Place(m.K, 26f, 20);
+        m.Place(m.S[0], 10f, 20);
+        m.Place(m.S[1], 26f, 33);
         m.Tick();
         Assert.False(CheckFrame(m, 0, "wall far"));
         Assert.True(CheckFrame(m, 1, "open far"));

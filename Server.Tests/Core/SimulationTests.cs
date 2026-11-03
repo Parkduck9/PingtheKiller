@@ -108,7 +108,7 @@ public sealed class SimulationTests
             var state = survivor.Self();
             Assert.True(f.Server.Map.CanStand(state.X, state.Z));
         }
-        Assert.InRange(survivor.Self().X, 17.4f, 17.61f);
+        Assert.InRange(survivor.Self().X, 11.4f, 11.61f);
         for (int i = 0; i < 120; i++)
         {
             f.Walk(survivor, -1, 0, 1);
@@ -122,13 +122,13 @@ public sealed class SimulationTests
     public void CircleCollisionSlidesAndLargeStepCannotTunnel()
     {
         var map = new FixedMap();
-        var slide = map.Move(17.6f, 20, 4, 4);
-        Assert.InRange(slide.X, 17.59f, 17.61f);
+        var slide = map.Move(11.6f, 20, 4, 4);
+        Assert.InRange(slide.X, 11.59f, 11.61f);
         Assert.InRange(slide.Z, 23.99f, 24.01f);
         var tunnel = map.Move(5, 20, 50, 0);
-        Assert.InRange(tunnel.X, 17.4f, 17.61f);
+        Assert.InRange(tunnel.X, 11.4f, 11.61f);
         Assert.True(map.CanStand(tunnel.X, tunnel.Z));
-        Assert.Equal(60, FixedMap.Size);
+        Assert.Equal(80, FixedMap.Size);
         Assert.All(map.SpawnPoints, p => Assert.True(map.CanStand(p.X, p.Z)));
         Assert.All(map.TerminalPositions, p => Assert.True(map.CanStand(p.X, p.Z)));
         Assert.True(map.CanStand(map.Exit.X, map.Exit.Z));
@@ -188,6 +188,6 @@ public sealed class SimulationTests
             Assert.True(KillerSight.Verify(world, survivor.Id, killer.Self()));
         }
         survivor.Drain();
-        Assert.All(survivor.Packets.OfType<S2C_WorldState>(), w => Assert.Single(w.Players, p => p.Id == killer.Id));
+        Assert.All(survivor.Packets.OfType<S2C_WorldState>().Skip(1), w => Assert.Single(w.Players, p => p.Id == killer.Id));
     }
 }

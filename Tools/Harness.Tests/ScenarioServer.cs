@@ -240,7 +240,8 @@ internal sealed class ScenarioServer : IAsyncDisposable
         foreach (var p in players)
         {
             p.Role = p.Id == 1 ? Role.Killer : Role.Survivor;
-            var point = map.SpawnPoints[p.Role == Role.Killer ? 0 : spawn++];
+            // Keep A initially visible and B occluded so single-frame and per-recipient leak mutations remain non-vacuous.
+            var point = p.Role == Role.Killer ? map.SpawnPoints[0] : spawn++ == 1 ? new MapPoint(8,44) : map.SpawnPoints[2];
             (p.X, p.Z) = (point.X, point.Z);
             p.Peer?.Send(new S2C_MatchStart { Role = (byte)p.Role, SkillId = 0, Seed = 4242 });
         }

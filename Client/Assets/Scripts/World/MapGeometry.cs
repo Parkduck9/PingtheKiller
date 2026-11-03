@@ -9,13 +9,12 @@ namespace PingTheKiller.Client.World
     {
         // Rendered wall height (WorldView builds every wall this tall).
         public const float WallHeight = 3f;
+        public const float ObstacleHeight = 1.2f;
 
         // HUD_SPEC 6.2 / N8: walls are full height for occlusion, so a 2D segment test is enough.
         public static bool SegmentBlocked(FixedMap map, float x0, float z0, float x1, float z1)
         {
-            foreach (Wall wall in map.Walls)
-                if (SegmentHitsBox(x0, z0, x1, z1, wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, out _)) return true;
-            return false;
+            return map.SegmentBlocked(x0, z0, x1, z1);
         }
 
         // Slab test of the segment (x0,z0)->(x1,z1) against an axis-aligned box. t = entry fraction in [0, 1].
@@ -40,6 +39,14 @@ namespace PingTheKiller.Client.World
                 if (!Slab(origin.x, direction.x, wall.MinX - radius, wall.MaxX + radius, ref enter, ref exit)) continue;
                 if (!Slab(origin.z, direction.z, wall.MinZ - radius, wall.MaxZ + radius, ref enter, ref exit)) continue;
                 if (!Slab(origin.y, direction.y, float.NegativeInfinity, WallHeight + radius, ref enter, ref exit)) continue;
+                if (enter < best) best = enter;
+            }
+            foreach (Obstacle obstacle in map.Obstacles)
+            {
+                float enter = 0, exit = maxDistance;
+                if (!Slab(origin.x, direction.x, obstacle.MinX - radius, obstacle.MaxX + radius, ref enter, ref exit)) continue;
+                if (!Slab(origin.z, direction.z, obstacle.MinZ - radius, obstacle.MaxZ + radius, ref enter, ref exit)) continue;
+                if (!Slab(origin.y, direction.y, -radius, ObstacleHeight + radius, ref enter, ref exit)) continue;
                 if (enter < best) best = enter;
             }
             // The floor: the sphere may not sink below y = radius (keeps the camera above the ground at low pitch).

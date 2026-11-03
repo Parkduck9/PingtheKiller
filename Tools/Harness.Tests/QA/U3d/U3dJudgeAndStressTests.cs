@@ -76,13 +76,22 @@ public sealed class U3dJudgeProbeTests
     [Fact]
     public void TheFuzzComparisonWouldCatchAWrongWallSet()
     {
-        var shrunk = new FixedMap().Walls.Select(w => new Wall(w.MinX + 0.2f, w.MinZ + 0.2f, w.MaxX - 0.2f, w.MaxZ - 0.2f)).ToList();
+        var map = new FixedMap();
+        var shrunk = map.Walls.Select(w => new Wall(w.MinX + 0.2f, w.MinZ + 0.2f, w.MaxX - 0.2f, w.MaxZ - 0.2f)).ToList();
         var random = new Random(3);
         int differing = 0;
         for (int n = 0; n < 20_000; n++)
         {
-            double R() => RefLos.Snap(-3 + random.NextDouble() * 66);
+            double R() => RefLos.Snap(-3 + random.NextDouble() * (FixedMap.Size + 6));
             double ax = R(), az = R(), bx = R(), bz = R();
+            // On larger buildings uniform long rays often hit another wall too. Probe the erased face strip directly.
+            if ((n & 3) == 0)
+            {
+                var wall = map.Walls[4 + n % (map.Walls.Count - 4)];
+                ax = bx = wall.MinX + .125;
+                az = (wall.MinZ + wall.MaxZ) * .5 - .25;
+                bz = az + .5;
+            }
             if (LineOfSight.Classify(ax, az, bx, bz, shrunk).ToString() != RefLos.Classify(ax, az, bx, bz).ToString()) differing++;
         }
         U3dEvidence.Write("los-fuzz-sensitivity", $"shrunk-wall harness disagrees with the reference on {differing}/20000 pairs");

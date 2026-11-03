@@ -477,13 +477,16 @@ namespace PingTheKiller.Client.Tests
             fake.Inject(later, OwnId, 100 + FakeKiller.OnSeconds + .5);
             Assert.That(later.Count, Is.EqualTo(2), "hidden part of the cycle: no entry (the model fades)");
             Assert.That(fake.Showing, Is.False);
-            // Facing a wall (x 18..20) from x = 15: pulled closer until the line of sight is clear.
+            // Facing a wall from 3 m away: pulled closer until the line of sight is clear. The wall is the west face of the
+            // building Walls[4] (x 12..24, z 12..36; formerly x 18..20 seen from x = 15), so the Survivor stands at x = 9.
+            PingTheKiller.ServerCore.Map.Wall wall = SharedMap.Map.Walls[4];
+            float wallX = wall.MinX - 3, wallZ = 23;
             var walled = new FakeKiller(6);
-            var list = new List<PlayerState> { new PlayerState { Id = OwnId, Role = (byte)Role.Survivor, X = 15, Z = 23, Yaw = 90 } };
+            var list = new List<PlayerState> { new PlayerState { Id = OwnId, Role = (byte)Role.Survivor, X = wallX, Z = wallZ, Yaw = 90 } };
             walled.Inject(list, OwnId, 0);
             Assert.That(list.Count, Is.EqualTo(2));
-            Assert.That(list[1].X, Is.LessThanOrEqualTo(18f));
-            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 15, 23, list[1].X, list[1].Z), Is.False);
+            Assert.That(list[1].X, Is.LessThanOrEqualTo(wall.MinX));
+            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, wallX, wallZ, list[1].X, list[1].Z), Is.False);
         }
 
         [Test]

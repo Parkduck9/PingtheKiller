@@ -13,13 +13,14 @@ public sealed class Planner
     public const float Cell = 0.5f, Margin = 0.35f;
     private const int N = (int)(FixedMap.Size / Cell) + 1;
     private readonly IReadOnlyList<Wall> walls;
+    private readonly IReadOnlyList<Obstacle> obstacles;
     private readonly bool[] open = new bool[N * N];
 
     public Planner() : this(new FixedMap()) { }
 
     public Planner(FixedMap map)
     {
-        walls = map.Walls;
+        walls = map.Walls; obstacles = map.Obstacles;
         for (int i = 0; i < open.Length; i++) open[i] = Clear(Pos(i));
     }
 
@@ -29,6 +30,8 @@ public sealed class Planner
     {
         foreach (var wall in walls)
             if (wall.IntersectsCircle(p.X, p.Y, FixedMap.PlayerRadius + Margin)) return false;
+        foreach (var obstacle in obstacles)
+            if (obstacle.IntersectsCircle(p.X, p.Y, FixedMap.PlayerRadius + Margin)) return false;
         return true;
     }
 

@@ -13,14 +13,15 @@ namespace PingTheKiller.Client.QA.Tests
     [Category("U4cQaA1")]
     public sealed class ClassificationHysteresisQaTests
     {
-        private static ViewPose Pose(float eyeX, float yaw) => new ViewPose(new Vector3(eyeX, KillerViewRig.EyeHeight, 23), yaw, 0, KillerViewRig.VerticalFov, 16f / 9);
+        // Scenes are written in the legacy 60 m numbers (Killer x 10, wall x 18..20) and laid on the 80 m map by KillerRoom.
+        private static ViewPose Pose(float eyeX, float yaw) => new ViewPose(new Vector3(KillerRoom.MapX(eyeX), KillerViewRig.EyeHeight, KillerRoom.Z), yaw, 0, KillerViewRig.VerticalFov, 16f / 9);
 
         private static KillerScene SceneWith(float x, float z)
         {
             var scene = new KillerScene(new System.Random(5), null);
             var state = new S2C_WorldState { Tick = 1 };
-            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 23 });
-            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = x, Z = z });
+            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = KillerRoom.X, Z = KillerRoom.Z });
+            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = KillerRoom.MapX(x), Z = KillerRoom.MapZ(z) });
             scene.Accept(state, 0);
             return scene;
         }
@@ -96,7 +97,8 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheWallRayFlagUsedByTheSoundModelHasTheSameHundredMillisecondHold()
         {
-            // The Survivor at (26, 22) is behind the wall x 18..20 when the Killer stands at x = 10, and clear when it stands at x = 22.
+            // The Survivor at (26, 22) is behind the wall x 18..20 when the Killer stands at x = 10, and clear when it stands at x = 22
+            // (legacy numbers: on the 80 m map the wall is the building Walls[11] and these are 72 / 48 / 68).
             KillerScene scene = SceneWith(26, 22);
             ViewPose blocked = Pose(10, 90), clear = Pose(22, 90);
             IReadOnlyList<BlipView> first = scene.Frame(blocked, .05, null);
