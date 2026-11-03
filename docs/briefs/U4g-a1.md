@@ -1,6 +1,6 @@
 # Brief U4g — attempt 1: Character art (Robot Kyle Killer, Rio Survivors, animation)
 
-Implementer: Claude Opus subagent (Codex is unavailable in this session; CLAUDE.md quota-fallback route). It runs **in parallel with U4h (world art)** in a separate git worktree. Read `AGENTS.md`, `docs/ui/SLOP_DEFINITION.md`, and `docs/ui/HUD_SPEC.md` §0.4, §4.10, §6.2, §6.3 first. Do **not** commit.
+Implementer: Codex `gpt-6.1-sol`, effort high (user decision 2026-11-02: Codex implements every unit). QA: Antigravity Gemini Flash. It runs **in parallel with U6b (map v2)** in a separate git worktree. Read `AGENTS.md`, `docs/ui/SLOP_DEFINITION.md`, and `docs/ui/HUD_SPEC.md` §0.4, §4.10, §6.2, §6.3 first. Do **not** commit.
 
 ## Goal
 
@@ -16,7 +16,8 @@ The look must keep every rule the capsules encode today.
 - `Client/Assets/Resources/Shaders/PtkDither.shader`, `PtkOutline.shader`, and new shaders under the same folder
 - New: `Client/Assets/Scripts/World/CharacterArt.cs` (a ScriptableObject catalog), `Client/Assets/Resources/CharacterArt.asset`, and `Client/Assets/Art/Characters/**` (animator controllers, override materials, avatar masks)
 - New editor builder: `Client/Assets/Editor/Setup/CharacterArtSetup.cs`. It creates the catalog and controllers reproducibly, idempotent like `UrpSetup.cs`.
-- New tests: `Client/Assets/Tests/EditMode/CharacterArtTests.cs`
+- `Client/Assets/Scripts/Killer/KillerScene.cs` (playtest fix 2 below only)
+- New tests: `Client/Assets/Tests/EditMode/CharacterArtTests.cs`, `Client/Assets/Tests/EditMode/CloseRangeVisibilityTests.cs`
 - `docs/qa/U4g-impl-a1.md` and `docs/qa/U4g-screens/`
 
 Do not touch `WorldProps.cs`, `WorldMaterials.cs`, `SceneLighting.cs`, `ClientApp.cs`, `Resources/WorldLit*.mat`, or `Assets/ThirdParty/**`. Vendor files stay pristine: make copies or overrides under `Art/Characters/`.
@@ -43,6 +44,27 @@ Do not touch `WorldProps.cs`, `WorldMaterials.cs`, `SceneLighting.cs`, `ClientAp
    - Facing and walk/idle come from matched deltas only, as today.
 6. **Performance.** Up to 8 characters. Share materials where the tint is the same (for example `MaterialPropertyBlock`). No per-frame allocations in `Render` or `Pose`.
 7. **SLOP.** No glow, no rim light, no particles on characters.
+
+## Playtest fixes (2026-11-03, in scope for this unit)
+
+The user reported: "when I walk close to the other characters they disappear", in both roles. Codex diagnosis (read-only) found:
+
+1. **Survivor view: the camera enters another character.**
+   - Cause: the boom collision checks walls and the floor only (`MapGeometry.cs:34`). There is no player-vs-player collision, so the camera, or the local survivor, can end up inside another avatar or the Killer. The back-face-culled material then hides that body.
+   - Fix in `CharacterViews`: when the active camera is inside, or within 0.3 m of, another character's bounds (allies and the Killer), draw that character with the 40 % screen-door dither (the same path as the own character) instead of letting it vanish. The Killer's fade alpha still applies on top.
+   - Do not change server rules here; player-vs-player collision is a separate rules decision.
+2. **Killer view: a close survivor's whole model disappears.**
+   - Cause: `KillerScene.cs:99` classifies InView by testing only the 1.2 m marker point against the frustum, and `KillerWorldLayer.cs:217` disables the entire model unless it is InView. At level pitch, a survivor about 0.8 m straight ahead has its marker point below the frustum while the head is on screen, so the model is hidden.
+   - Fix: classify model visibility from the model bounds (any part of the 1.8 m × 0.4 m radius bounds inside the frustum, with the near plane respected). Keep the marker and edge classification separate and unchanged.
+   - The Silent omission rule is by design and stays.
+
+`CloseRangeVisibilityTests` must cover:
+- (a) a survivor 0.8 m directly ahead of the Killer camera at level pitch: the model renderer is enabled;
+- (b) the survivor camera placed inside an ally's bounds: the ally is drawn with dither, not disabled;
+- (c) the same for the Killer entry inside the survivor camera;
+- (d) a survivor fully behind the Killer camera: still classified out of view.
+
+Add a `close-range` screenshot pair, survivor and Killer view, to `docs/qa/U4g-screens/`.
 
 ## Source-text tests
 
