@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67f12031a6f3218419cb8e64bf39f1f1, type: 3}
+  m_Name: CharacterArt
+  m_EditorClassIdentifier: PingTheKiller.Client::PingTheKiller.Client.World.CharacterArt
+  SurvivorPrefab: {fileID: 8936249513097276200, guid: 679604b631e7d5048b83e4df7e6fca7f, type: 3}
+  KillerPrefab: {fileID: 7912262253176055642, guid: 65668091cadd0344c8f756711007d72e, type: 3}
+  SurvivorModel: {fileID: 919132149155446097, guid: 24fc2c3e62c52bf4e9e63fd980b8e85d, type: 3}
+  KillerModel: {fileID: 919132149155446097, guid: 73ffbc06802a247cfb1b26f4ee67eba8, type: 3}
+  Controller: {fileID: 9100000, guid: e0d28bab2b081ac49aed933c5bf84182, type: 2}
+  SurvivorMaterial: {fileID: 2100000, guid: 49439b1ff6fe92a41b63142faf1172cb, type: 2}
+  KillerMaterial: {fileID: 2100000, guid: 2732141f9fc957c4bbc07e7bac937b25, type: 2}
+  NeutralMaterial: {fileID: 2100000, guid: 4ca6bd05f0f163b44a13fee2ea6b22ed, type: 2}

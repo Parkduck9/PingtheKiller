@@ -63,7 +63,7 @@ namespace PingTheKiller.Client
         private void Awake()
         {
             Application.runInBackground = true;
-            var cameraObject = new GameObject("Role camera", typeof(Camera), typeof(AudioListener));
+            var cameraObject = new GameObject("Role camera", typeof(Camera), typeof(AudioListener)) { tag = "MainCamera" }; // CharacterViews reads Camera.main
             cameraObject.transform.SetParent(transform, false);
             view = cameraObject.GetComponent<Camera>();
             view.clearFlags = CameraClearFlags.SolidColor;

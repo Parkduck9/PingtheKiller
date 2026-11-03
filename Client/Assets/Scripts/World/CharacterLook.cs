@@ -26,6 +26,55 @@ namespace PingTheKiller.Client.World
             return material;
         }
 
+        public static Material Dither(Material source, float discard)
+        {
+            Material material = Dither(source.color, discard);
+            if (material == null) return new Material(source);
+            if (source.HasProperty("_BaseMap"))
+            {
+                material.SetTexture("_BaseMap", source.GetTexture("_BaseMap"));
+                material.SetTextureScale("_BaseMap", source.GetTextureScale("_BaseMap"));
+                material.SetTextureOffset("_BaseMap", source.GetTextureOffset("_BaseMap"));
+            }
+            return material;
+        }
+
+        public static void Transparent(Material material)
+        {
+            material.SetFloat("_Surface", 1);
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        }
+
+        public static void Release(Object value)
+        {
+            if (value == null) return;
+            if (Application.isPlaying) Object.Destroy(value); else Object.DestroyImmediate(value);
+        }
+
+        // Conservative AABB/plane test, including the near plane. Marker classification stays point-based.
+        public static bool InModelFrustum(ViewPose view, Vector3 ground)
+        {
+            float tan = Mathf.Tan(view.VerticalFov * .5f * Mathf.Deg2Rad);
+            Vector3 centre = view.ToCamera(ground + Vector3.up * Height * .5f);
+            Quaternion inverse = Quaternion.Inverse(view.Rotation);
+            Vector3 right = inverse * Vector3.right * Width * .5f;
+            Vector3 up = inverse * Vector3.up * Height * .5f;
+            Vector3 forward = inverse * Vector3.forward * Width * .5f;
+            return InsidePlane(centre, right, up, forward, Vector3.forward, -ViewPose.Near)
+                && InsidePlane(centre, right, up, forward, new Vector3(1, 0, tan * view.Aspect), 0)
+                && InsidePlane(centre, right, up, forward, new Vector3(-1, 0, tan * view.Aspect), 0)
+                && InsidePlane(centre, right, up, forward, new Vector3(0, 1, tan), 0)
+                && InsidePlane(centre, right, up, forward, new Vector3(0, -1, tan), 0);
+        }
+
+        private static bool InsidePlane(Vector3 centre, Vector3 right, Vector3 up, Vector3 forward, Vector3 normal, float offset)
+            => Vector3.Dot(normal, centre) + offset + Mathf.Abs(Vector3.Dot(normal, right))
+                + Mathf.Abs(Vector3.Dot(normal, up)) + Mathf.Abs(Vector3.Dot(normal, forward)) >= 0;
+
         // Inverted-hull outline in one flat colour (HUD_SPEC 6.2 `signal` outline); null when the shader is missing.
         public static Material Outline(Color color)
         {

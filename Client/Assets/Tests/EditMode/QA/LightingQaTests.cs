@@ -62,7 +62,9 @@ namespace PingTheKiller.Client.QA.Tests
             string world = QaSource.StripComments(WorldSources.ReadAll());
             Assert.That(Regex.Matches(world, @"new Material\(").Count, Is.EqualTo(2), "template copy and the URP/Lit fallback only");
             Assert.That(world, Does.Contain("Resources.Load<Material>"));
-            Assert.That(Regex.Matches(world, @"CreatePrimitive\(").Count, Is.EqualTo(1), "all primitives come from Primitive(), which assigns MakeMaterial");
+            Assert.That(Regex.Matches(world, @"CreatePrimitive\(").Count, Is.EqualTo(2), "map Primitive and character fallback both assign MakeMaterial");
+            string fallback = QaSource.MethodText(world, "private GameObject FallbackPart(");
+            Assert.That(fallback, Does.Contain("materials.MakeMaterial(color, transparent)"), "character fallback uses the same URP material path");
             Assert.That(world, Does.Not.Contain("GetComponent<Renderer>().material ="), "no per-object Built-in default material swap");
         }
 
