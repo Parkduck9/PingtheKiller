@@ -68,6 +68,7 @@ namespace PingTheKiller.Client.Dev
             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
             if (args.Chase > 0 || args.Rescue) nav = new NavGrid(SharedMap.Map);
+            MotionPreview.Active = args.PreviewMotion; // U4j: read by CharacterViews (own Survivor) only
         }
 
         private bool Wandering => match == 1 && role == Role.Survivor && args.Wander > 0 && InWindow(args.Wander);
@@ -78,7 +79,12 @@ namespace PingTheKiller.Client.Dev
             return t >= 2 && t < 2 + seconds;
         }
 
-        private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0;
+        private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0 && !KillerDownStaging;
+        // -ptk-preview-motion killer-down (U4j): after the first capture the chase stops; the Killer walks away from the
+        // nearest instance for RetreatSeconds, then turns to face it, so the downed Survivor is framed at a few metres.
+        private const double RetreatSeconds = 1.3, KillerDownShotSeconds = 2.4;
+        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && graceSeenAt >= 0 && resultAt < 0;
+        private bool Retreating => KillerDownStaging && Now - graceSeenAt < RetreatSeconds;
         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
         private const float RescueStop = 1f;
         // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
@@ -87,7 +93,7 @@ namespace PingTheKiller.Client.Dev
 
         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
         // -ptk-chase and -ptk-rescue walk through the same path.
-        public bool HoldForward => RescueWalk || Chasing || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+        public bool HoldForward => RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
 
         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
         public bool Steer(float currentYaw, float dt, out float yaw)
@@ -152,6 +158,12 @@ namespace PingTheKiller.Client.Dev
         {
             yaw = 0;
             if (Chasing) return Chase(hasTarget, target, out yaw);
+            if (KillerDownStaging)
+            {
+                if (!hasTarget) return false;
+                yaw = Mathf.Atan2(target.x - from.x, target.z - from.z) * Mathf.Rad2Deg + (Retreating ? 180 : 0);
+                return true;
+            }
             if (args.Look == KillerLook.None || role != Role.Killer || matchAt < 0 || (aimAt >= 0 && Now - aimAt < .5)) return false;
             if (args.Look == KillerLook.Fixed || (args.Look == KillerLook.Occluded && !hasTarget)) yaw = args.LookYaw;
             else
@@ -215,6 +227,7 @@ namespace PingTheKiller.Client.Dev
                 maxTracked = tracked;
                 Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips tracked max=" + tracked);
             }
+            lastInView = inView;
             if (prompt != loggedPrompt)
             {
                 loggedPrompt = prompt;
@@ -393,6 +406,7 @@ namespace PingTheKiller.Client.Dev
                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
             }
             if (SelfShots(t)) return;
+            if (MotionShots(t)) return;
             // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.
             if (match == 1 && matchAt >= 0 && resultAt < 0 && located && movedLogged < 2 && t >= matchAt + (movedLogged == 0 ? 1 : 5)) LogMoved(t - matchAt);
             // The countdown is only on screen while the match runs; a capture that ends the match leaves no lagging shot.
@@ -454,6 +468,32 @@ namespace PingTheKiller.Client.Dev
             if (role == Role.Killer && self.ExecutionGraceLeft > 0 && !taken.Contains("killer-grace.png"))
             {
                 EventShot("killer-grace.png"); return true;
+            }
+            return false;
+        }
+
+        // -ptk-preview-motion: motion-<clip>.png at MotionPreview.ShotTimes (Survivor, first match; the second Death shot is
+        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first execution grace (1.3 s walking away, then facing it), with an
+        // instance in view (the captured Survivor knocked down / crawling, Killer view).
+        private double graceSeenAt = -1;
+        private int lastInView;
+        private bool MotionShots(double t)
+        {
+            MotionPreviewClip clip = args.PreviewMotion;
+            if (clip == MotionPreviewClip.None || args.Shots == null || match != 1 || matchAt < 0 || resultAt >= 0) return false;
+            if (clip == MotionPreviewClip.KillerDown)
+            {
+                if (role != Role.Killer || self == null || !self.Available) return false;
+                if (graceSeenAt < 0 && self.ExecutionGraceLeft > 0) { graceSeenAt = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " motion preview: capture seen (grace)"); }
+                if (graceSeenAt >= 0 && t >= graceSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
+                return false;
+            }
+            if (role != Role.Survivor || !located) return false;
+            double[] times = MotionPreview.ShotTimes(clip);
+            for (int i = 0; i < times.Length; i++)
+            {
+                string name = "motion-" + MotionPreview.Name(clip) + (i == 0 ? string.Empty : "-held") + ".png";
+                if (t >= matchAt + times[i] && !taken.Contains(name)) { EventShot(name, 0); return true; }
             }
             return false;
         }

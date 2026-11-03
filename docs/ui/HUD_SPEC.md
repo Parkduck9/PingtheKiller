@@ -380,6 +380,12 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - The terminal the prompt row refers to gets its world label (§4.3) at weight 600, so the prompt and the object it names are linked.
   - World tags never draw over the own character's silhouette: a tag whose screen rectangle overlaps the own character's screen bounds moves up until it clears them.
 - ~~**The Killer is never drawn.**~~ **(10/30) The Killer model is drawn only from the Killer entry (§0.1).** While snapshots carry the entry, a Killer-red body (the Killer's own color, one per match) stands at its interpolated `X, Z` on the same 100 ms render delay as Survivors, facing its `Yaw`. When the entry stops arriving, the model stays at its last position (no extrapolation) and fades out over 0.3 s. A gap of at most 0.3 s between two entries is bridged by interpolation; an entry that reappears after a longer gap snaps to its new position. There is no marker, outline, edge indicator, shadow, footstep or through-wall cue: the server only sends the entry when the Survivor's line of sight is clear, and the client adds nothing beyond it. The camera can still see around a corner the character cannot; that shows the Killer only if the character's own line of sight is also clear.
+- **(11/03, U4j) Character motion (Survivor view, full state).** Clips are Mixamo, retargeted to the shared characters; they come only from fields this client receives (`Status`, `Flags.Hacking`, `CaptureCount`, positions):
+  - A Survivor's `Status` Normal → Lagging: a short hit flinch blending into a knock-down, then the crawl while Lagging. The crawl's rate follows the measured speed, so a still Lagging Survivor holds the last crawl pose. Lagging → Normal: getting up (2.7 s), then locomotion.
+  - → Eliminated: the fall-back death once; the body keeps its last pose for 6 s after the fall began, then despawns. A Survivor first seen already Eliminated is not drawn.
+  - `Hacking` set and speed about 0: the button-pushing loop. `CaptureCount` ≥ 1 and Normal: the injured idle/limp when still or slow.
+  - The Killer model swipes once per capture (`Status` Normal → Lagging, or Normal → Eliminated; 1.2 s), and only if the model is drawn at that moment. The swipe is on the upper body; the legs keep their locomotion.
+  - No other cue is added: the motion never reveals anything the HUD does not already show.
 
 ---
 
@@ -492,6 +498,8 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
    - An instance that has not moved since it spawned faces the nearest terminal (static data). This applies equally to real and fake entries.
    - Animation: walk when the matched speed is > 0.5 m/s, otherwise idle; the Lagging pose when `Status = Lagging`.
    - There is no hacking or rescuing animation, because those flags are unread (§11.1 N2).
+   - **(11/03, U4j) Character motion in the Killer view.** The motion reads only `Status` and the matched speed, the same for real entries, afterimages and decoys. Allowed: locomotion; on a matched Normal → Lagging change, the hit flinch blending into the knock-down; while Lagging, the crawl (frozen when still), stepped at 8 Hz. Never: hacking/button pushing, rescuing, getting up, the injured limp or anything from `CaptureCount`. An unmatched new Lagging entry spawns already down (no knock-down). The knock-down falls in place over the entry's position. While the body is down, the `Lagging` tag sits just above it (0.7–0.9 m), not at standing head height. An unmatched old blip still despawns at once; **no death clip plays in the Killer view** (Eliminated entries never reach it).
+   - The Killer's own capture (`CaptureConfirm`, §6.5) gives a 0.22 s first-person lunge: vertical FOV −4° and the eye 0.12 m forward, easing out. None with reduced motion (`-ptk-reduce-stutter`, later the settings toggle).
 
 ### 6.4 Execution guidance (GDD §3.3, execution grace added 2026-10-27)
 Rule (server, `GameServer.Rules.cs`): after a capture, the Lagging Survivor cannot be eliminated for 2 s; a touch during those 2 s is spent and does nothing; elimination needs the Killer to be out of contact (> `CaptureRadius` 1.2 m) at some tick and then touch them after the grace.
