@@ -1,6 +1,7 @@
 // Screen-door dither for the own Survivor when the camera boom is shorter than 1 m (HUD_SPEC 4.10): an 8x8 ordered
 // (Bayer) pattern discards _Discard of the pixels (0.4 = 40 %). Main light + ambient (SH) only: the weak fill light is
 // left out, so a dithered character is slightly darker on its shaded side.
+// U4i: with _Toon = 1 (set from a toon source material) the main light uses the same flat bands as the toon shader.
 Shader "PingTheKiller/Dither"
 {
     Properties
@@ -8,6 +9,12 @@ Shader "PingTheKiller/Dither"
         [MainColor] _BaseColor ("Color", Color) = (0.25, 0.72, 0.69, 1)
         [MainTexture] _BaseMap ("Base map", 2D) = "white" {}
         _Discard ("Discarded fraction", Range(0, 1)) = 0.4
+        _Toon ("Toon bands", Float) = 0
+        _LightTint ("Light tint", Color) = (1, 1, 1, 1)
+        _MiddleTint ("Middle tint", Color) = (0.5, 0.5, 0.5, 1)
+        _ShadowTint ("Shadow tint", Color) = (0, 0, 0, 1)
+        _DiffuseThresholds ("Diffuse thresholds", Vector) = (0, 0.01, 0.5, 0.51)
+        _UseSecondThreshold ("Use second threshold", Float) = 0
     }
     SubShader
     {
@@ -26,6 +33,12 @@ Shader "PingTheKiller/Dither"
             CBUFFER_START(UnityPerMaterial)
                 half4 _BaseColor;
                 half _Discard;
+                half _Toon;
+                half4 _LightTint;
+                half4 _MiddleTint;
+                half4 _ShadowTint;
+                float4 _DiffuseThresholds;
+                half _UseSecondThreshold;
                 float4 _BaseMap_ST;
             CBUFFER_END
             TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
@@ -48,7 +61,15 @@ Shader "PingTheKiller/Dither"
                 clip(_BaseColor.a * (1 - _Discard) - (bayer + 0.5) / 64.0);
                 half3 n = normalize(input.normalWS);
                 Light main = GetMainLight();
-                half3 light = SampleSH(n) + main.color * saturate(dot(n, main.direction));
+                half ndl = dot(n, main.direction);
+                half bands = smoothstep(_DiffuseThresholds.x, _DiffuseThresholds.y, ndl);
+                half3 toon = lerp(_ShadowTint.rgb, _LightTint.rgb, bands);
+                if (_UseSecondThreshold > 0.5)
+                {
+                    bands += smoothstep(_DiffuseThresholds.z, _DiffuseThresholds.w, ndl);
+                    toon = lerp(lerp(_ShadowTint.rgb, _MiddleTint.rgb, saturate(bands)), _LightTint.rgb, saturate(bands - 1));
+                }
+                half3 light = SampleSH(n) + main.color * lerp(saturate(ndl), toon, _Toon);
                 return half4(SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb * _BaseColor.rgb * light, 1);
             }
             ENDHLSL

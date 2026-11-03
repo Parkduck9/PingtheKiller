@@ -203,7 +203,8 @@ namespace PingTheKiller.Client.Tests
                         string name = prefab.name + " / " + renderer.name;
                         Assert.That(material, Is.Not.Null, name + " has a missing material");
                         Assert.That(material.shader.isSupported, Is.True, name + ": " + material.shader.name);
-                        Assert.That(material.shader.name, Does.StartWith("Universal Render Pipeline/").Or.StartWith("Shader Graphs/HS_"), name);
+                        // U4i: world art is toon (PingTheKiller/Toon); unlit windows/signs stay URP Unlit, the marker HS_ particles.
+                        Assert.That(material.shader.name, Does.StartWith("Universal Render Pipeline/").Or.StartWith("Shader Graphs/HS_").Or.EqualTo(ToonShading.ShaderName), name);
                     }
         }
 

@@ -66,8 +66,7 @@ namespace PingTheKiller.Client.Killer
 
         private Material Lit(Color color)
         {
-            var template = Resources.Load<Material>("WorldLit");
-            var material = template != null ? new Material(template) : new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var material = WorldMaterials.NewMaterial(false, ToonShading.Find()); // toon, or URP Lit when the shader is missing (U4i)
             material.color = color;
             materials.Add(material);
             return material;

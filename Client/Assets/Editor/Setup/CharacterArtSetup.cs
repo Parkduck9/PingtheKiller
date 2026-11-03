@@ -50,19 +50,28 @@ namespace PingTheKiller.Editor.Setup
         private static T Required<T>(string path) where T : UnityEngine.Object
             => AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException("Missing character source: " + path);
 
+        // U4i: toon (three bands, no rim, no specular) when the toon shader is available, else URP Lit as before.
         private static Material Material(string name, string texture, Color color)
         {
             string path = Folder + "/" + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            Shader toon = ToonShading.Find();
+            Shader shader = toon != null ? toon : Shader.Find("Universal Render Pipeline/Lit");
             if (material == null)
             {
-                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                material = new Material(shader);
                 AssetDatabase.CreateAsset(material, path);
             }
+            if (material.shader != shader)
+            {
+                material.shader = shader;
+                material.shaderKeywords = new string[0];
+            }
             material.SetColor("_BaseColor", color);
-            material.SetFloat("_Smoothness", .12f);
             material.SetTexture("_BaseMap", texture == null ? null : Required<Texture2D>(texture));
             material.SetFloat("_Cull", 2);
+            if (toon != null) ToonShading.Configure(material, ToonShading.Kind.Character);
+            else material.SetFloat("_Smoothness", .12f);
             EditorUtility.SetDirty(material);
             return material;
         }

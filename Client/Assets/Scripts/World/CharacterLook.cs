@@ -36,6 +36,14 @@ namespace PingTheKiller.Client.World
                 material.SetTextureScale("_BaseMap", source.GetTextureScale("_BaseMap"));
                 material.SetTextureOffset("_BaseMap", source.GetTextureOffset("_BaseMap"));
             }
+            // U4i: a toon source keeps its light bands while dithered, so switching to the dither shows no shading pop.
+            if (ToonShading.IsToon(source))
+            {
+                material.SetFloat("_Toon", 1);
+                foreach (string tint in new[] { "_LightTint", "_MiddleTint", "_ShadowTint" }) material.SetColor(tint, source.GetColor(tint));
+                material.SetVector("_DiffuseThresholds", source.GetVector("_DiffuseThresholds"));
+                material.SetFloat("_UseSecondThreshold", source.GetFloat("_UseSecondThreshold"));
+            }
             return material;
         }
 
