@@ -83,11 +83,14 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void ThereIsNoSkyboxAndNoFog()
+        public void ThereIsNoSkyboxAndTheFogFadesToThePaletteBackground()
         {
             string lighting = Code("World/SceneLighting.cs");
             Assert.That(lighting, Does.Match(@"RenderSettings\.skybox\s*=\s*null\s*;"));
-            Assert.That(lighting, Does.Match(@"RenderSettings\.fog\s*=\s*false\s*;"));
+            // U4h brief spec 7: distance fog toward the camera clear colour (#101113) is allowed; nothing else.
+            Assert.That(lighting, Does.Match(@"RenderSettings\.fogColor\s*=\s*Background\s*;"));
+            Assert.That(lighting, Does.Match(@"Color\s+Background\s*=\s*new Color32\(\s*16\s*,\s*17\s*,\s*19\s*,\s*255\s*\)"), "#101113");
+            Assert.That(PingTheKiller.Client.World.SceneLighting.FogStart, Is.GreaterThanOrEqualTo(25f), "no fog on nearby characters");
             foreach (string path in QaPaths.AllScripts())
             {
                 string code = QaSource.StripComments(File.ReadAllText(path));
@@ -129,7 +132,10 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(fillIntensity, Is.GreaterThan(0f));
             Assert.That(fillIntensity, Is.LessThan(keyIntensity * 0.5f), "weak fill");
             Assert.That(keyIntensity, Is.LessThanOrEqualTo(1.5f), "not brighter than the old single light (1.5)");
-            Assert.That(lighting, Does.Match(@"light\.shadows\s*=\s*LightShadows\.None"), "no shadow cost");
+            // U4h brief spec 7: shadows are allowed on the key light only.
+            Assert.That(Regex.Match(lighting, @"Directional\(\s*parent\s*,\s*""Fill light""[^;]*;").Value, Does.Contain("LightShadows.None"), "the fill casts no shadows");
+            Assert.That(Regex.Matches(lighting, @"LightShadows\.(Hard|Soft)").Count, Is.LessThanOrEqualTo(1), "at most one shadow-casting light (the key)");
+            Assert.That(Regex.Match(lighting, @"Directional\(\s*parent\s*,\s*""Key light""[^;]*;").Value, Does.Not.Contain("LightShadows.Soft"), "hard shadows: no soft-shadow filtering cost");
         }
 
         [Test]
@@ -192,8 +198,11 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(amber, Is.False, name + " must not be amber (reserved for Signal)");
                 Assert.That(brightness, Is.GreaterThan(0.25f), name + " is readable against the floor (26,28,31)");
             }
-            string accept = QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript(WorldSources.Props)), "void Accept(");
-            Assert.That(accept, Does.Match(@"Panel\.color\s*=[^;]*terminal\.Progress == 100[^;]*\bSurvivor\b[^;]*PanelIdle"),
+            string props = QaSource.StripComments(QaPaths.ReadScript(WorldSources.Props));
+            string accept = QaSource.MethodText(props, "void Accept(");
+            // U4h: the colour statement lives in SetTerminalLook(item, done); Accept passes terminal.Progress == 100 as done.
+            Assert.That(accept, Does.Contain("SetTerminalLook(item, terminal.Progress == 100);"));
+            Assert.That(QaSource.MethodText(props, "void SetTerminalLook("), Does.Match(@"Panel\.color\s*=[^;]*\bdone\b[^;]*\bSurvivor\b[^;]*PanelIdle"),
                 "on the Survivor client done is the team tint (the statement may also branch on the role)");
             Match ally = Regex.Match(world, @"Color\s+Survivor\s*=\s*new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*255\s*\)");
             Assert.That(ally.Success, Is.True, "the Survivor colour literal");
