@@ -22,6 +22,7 @@ namespace PingTheKiller.Client.Killer
         public bool Edge;          // off-screen and among the 6 shown edge indicators
         public float FacingYaw;
         public bool Walking;
+        public bool ModelVisible; // Separate bounds test; the point-based marker/edge class is unchanged.
     }
 
     // The Killer stream, pure (HUD_SPEC 6.2/6.3). It reads only Role, Status, X and Z of each entry: the Killer's own
@@ -108,6 +109,7 @@ namespace PingTheKiller.Client.Killer
                     FacingYaw = Mathf.Atan2(blip.FacingX, blip.FacingZ) * Mathf.Rad2Deg,
                     Walking = blip.Walking
                 };
+                item.ModelVisible = !item.Occluded && CharacterLook.InModelFrustum(view, position);
                 occluded[blip.Handle] = item.Occluded;
                 views.Add(item);
             }

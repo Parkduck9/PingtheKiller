@@ -19,8 +19,11 @@ namespace PingTheKiller.Client.Killer
         {
             public GameObject Root, Pose;
             public Transform Hull;
+            public CharacterInstance Art;
         }
         private readonly Dictionary<int, Character> characters = new Dictionary<int, Character>();
+        private readonly Stack<Character> pool = new Stack<Character>();
+        private CharacterArt art;
         private readonly List<int> gone = new List<int>();
         private readonly List<Material> materials = new List<Material>();
         private readonly System.Random rng = new System.Random(); // client-local; never seeded from wire data
@@ -52,6 +55,8 @@ namespace PingTheKiller.Client.Killer
             isVoiced = sound.IsVoiced;
             audioOut = gameObject.AddComponent<KillerAudio>();
             body = Lit(Neutral); visor = Lit(CharacterLook.Visor);
+            art = CharacterArt.Load();
+            if (art != null && art.NeutralMaterial != null) body = art.NeutralMaterial;
             outline = CharacterLook.Outline(CharacterLook.Signal);
             if (outline != null) materials.Add(outline);
             else Debug.LogWarning("[killer] outline shader missing; in-view Survivors are drawn without the signal outline");
@@ -214,7 +219,7 @@ namespace PingTheKiller.Client.Killer
             {
                 bool lagging = view.Status == BlipStatus.Lagging;
                 Character character = Get(view.Handle);
-                bool drawn = view.Class == BlipClass.InView;
+                bool drawn = view.ModelVisible;
                 if (character.Root.activeSelf != drawn) character.Root.SetActive(drawn);
                 if (drawn)
                 {
@@ -257,7 +262,14 @@ namespace PingTheKiller.Client.Killer
                 foreach (BlipView view in views) if (view.Handle == entry.Key) { alive = true; break; }
                 if (!alive) gone.Add(entry.Key);
             }
-            foreach (int handle in gone) { Destroy(characters[handle].Root); characters.Remove(handle); }
+            foreach (int handle in gone)
+            {
+                Character removed = characters[handle];
+                removed.Root.SetActive(false);
+                // Bound the spare pool; a White noise burst can contain more than eight blips.
+                if (pool.Count < 8) pool.Push(removed); else { removed.Art?.Dispose(); Destroy(removed.Root); }
+                characters.Remove(handle);
+            }
         }
 
         // The top of the drawn character: HeadHeight above the ground point, tilted forward by LaggingTilt (about the ground
@@ -299,13 +311,18 @@ namespace PingTheKiller.Client.Killer
                 if (blip != null) position = scene.Tweened(blip, t);
             }
             character.Root.transform.SetPositionAndRotation(position, Quaternion.Euler(0, view.FacingYaw, 0));
+            if (character.Art != null)
+            {
+                character.Pose.transform.localRotation = Quaternion.Euler(lagging ? LaggingTilt : 0, 0, 0);
+                character.Art.Animate(view.Position, now, lagging, true, view.Walking);
+                return position;
+            }
             float bob = view.Walking ? Mathf.Abs(Mathf.Sin((float)(t * 2 * System.Math.PI * 1.6))) * .05f : 0;
             character.Pose.transform.localPosition = new Vector3(0, bob, 0);
             character.Pose.transform.localRotation = Quaternion.Euler(lagging ? LaggingTilt : 0, 0, 0);
             if (character.Hull != null)
             {
-                float depth = Mathf.Max(ViewPose.Near, pose.ToCamera(position + Vector3.up * CharacterLook.Height * .5f).z);
-                character.Hull.localScale = Vector3.Scale(CharacterLook.BodyScale, CharacterLook.HullScale(pose.PixelSize(depth, Screen.height) * pixel));
+                character.Hull.localScale = CharacterLook.BodyScale;
             }
             return position;
         }
@@ -321,10 +338,47 @@ namespace PingTheKiller.Client.Killer
         private Character Get(int handle)
         {
             if (characters.TryGetValue(handle, out Character found)) return found;
+            if (pool.Count > 0)
+            {
+                Character reused = pool.Pop();
+                reused.Root.SetActive(true);
+                reused.Art?.ResetMotion();
+                reused.Root.SetActive(false);
+                characters.Add(handle, reused);
+                return reused;
+            }
             var root = new GameObject("Signal instance");
             root.transform.SetParent(transform, false);
             var pose = new GameObject("Pose");
             pose.transform.SetParent(root.transform, false);
+            if (art != null && art.SurvivorPrefab != null)
+            {
+                GameObject model = Instantiate(art.SurvivorPrefab, pose.transform);
+                var instance = new CharacterInstance(model, true);
+                foreach (Renderer renderer in instance.Renderers)
+                {
+                    Material[] slots = renderer.sharedMaterials;
+                    for (int i = 0; i < slots.Length; i++) slots[i] = body;
+                    renderer.sharedMaterials = slots;
+                    if (outline == null || !(renderer is SkinnedMeshRenderer skinned)) continue;
+                    var hullObject = new GameObject("Signal outline");
+                    hullObject.transform.SetParent(renderer.transform, false);
+                    var hullRenderer = hullObject.AddComponent<SkinnedMeshRenderer>();
+                    hullRenderer.sharedMesh = skinned.sharedMesh;
+                    hullRenderer.bones = skinned.bones;
+                    hullRenderer.rootBone = skinned.rootBone;
+                    hullRenderer.localBounds = skinned.localBounds;
+                    hullRenderer.updateWhenOffscreen = true;
+                    hullRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    hullRenderer.receiveShadows = false;
+                    for (int i = 0; i < slots.Length; i++) slots[i] = outline;
+                    hullRenderer.sharedMaterials = slots;
+                }
+                root.SetActive(false);
+                var imported = new Character { Root = root, Pose = pose, Art = instance };
+                characters.Add(handle, imported);
+                return imported;
+            }
             Part(pose.transform, PrimitiveType.Capsule, Vector3.up * CharacterLook.Height * .5f, CharacterLook.BodyScale, body);
             Part(pose.transform, PrimitiveType.Cube, CharacterLook.VisorOffset, CharacterLook.VisorScale, visor);
             Transform hull = outline != null ? Part(pose.transform, PrimitiveType.Capsule, Vector3.up * CharacterLook.Height * .5f, CharacterLook.BodyScale, outline) : null;
@@ -337,7 +391,7 @@ namespace PingTheKiller.Client.Killer
         private static Transform Part(Transform parent, PrimitiveType type, Vector3 position, Vector3 scale, Material material)
         {
             GameObject item = GameObject.CreatePrimitive(type);
-            Destroy(item.GetComponent<Collider>()); // positions are server-owned; nothing collides on the client
+            CharacterLook.Release(item.GetComponent<Collider>()); // positions are server-owned
             item.transform.SetParent(parent, false);
             item.transform.localPosition = position;
             item.transform.localScale = scale;
