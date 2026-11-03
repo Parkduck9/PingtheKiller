@@ -162,7 +162,7 @@
 }
 .root .kblock.klast { margin-bottom: 0; }
 .root .kintro { height: 208px; padding: 12px; }
-.root .kmenu { height: 208px; padding: 12px; }
+.root .kmenu { height: 256px; padding: 12px; }
 .root .kprompt { height: 56px; padding: 8px; }
 .root .kinfo { height: 72px; padding: 0; padding-left: 8px; padding-right: 8px; }
 .root .keffect { height: 32px; padding: 4px; flex-direction: row; align-items: center; }
@@ -190,3 +190,37 @@
 }
 .root .unity-label.tag.tag-muted { color: #9A9890; }
 .root .unity-label.tag.tag-lagging { border-left-width: 2px; border-left-color: #E8E6E1; padding-left: 4px; }
+
+/* Settings (U7a): a left-aligned panel, 640 u wide, 24 u from the top-left (top-right over a match); rows are label 240 / control 240 / value 80. */
+.root .settings {
+    position: absolute; left: 24px; top: 24px; width: 640px; padding: 32px; padding-top: 24px;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+    align-items: flex-start;
+}
+/* Over a match the panel moves to the top-right so it never covers the Killer's bottom-left cluster or its play menu. */
+.root.in-game .settings { left: auto; right: 24px; }
+.root .settings .title { margin-bottom: 16px; }
+.root .set-row { flex-direction: row; align-items: center; height: 48px; margin-bottom: 12px; }
+.root .unity-label.set-label { width: 240px; margin: 0; }
+.root .unity-label.set-value { width: 80px; margin: 0; margin-left: 16px; -unity-text-align: middle-right; }
+.root .unity-label.set-note { color: #9A9890; font-size: 14px; margin-top: 0; margin-bottom: 16px; }
+.root.s-floor .unity-label.set-note { font-size: 15px; }
+.root .unity-button.set-toggle { min-width: 240px; margin: 0; }
+.root .set-actions { flex-direction: row; margin-top: 12px; }
+.root .set-actions .unity-button { margin-bottom: 0; }
+.root .unity-button.set-open { margin-top: 24px; }
+.root .set-slider { width: 240px; height: 48px; margin: 0; padding: 0; }
+.root .set-slider .unity-base-slider__input { height: 48px; }
+.root .set-slider .unity-base-slider__drag-container { height: 48px; align-items: stretch; justify-content: center; }
+.root .set-slider .unity-base-slider__tracker {
+    position: absolute; left: 0; right: 0; top: 22px; height: 4px; margin: 0;
+    background-color: #9A9890; border-width: 0; border-radius: 0;
+}
+.root .set-slider .unity-base-slider__dragger {
+    position: absolute; top: 12px; width: 12px; height: 24px; margin: 0;
+    background-color: #E8E6E1; border-width: 0; border-radius: 0;
+}
+.root .set-slider .unity-base-slider__dragger-border { display: none; }
+.root .set-slider:hover .unity-base-slider__tracker { background-color: #E8E6E1; }
+.root .set-slider:focus .unity-base-slider__tracker { background-color: #E8E6E1; }
+.root .set-slider:focus .unity-base-slider__dragger { background-color: #FFFFFF; width: 16px; }

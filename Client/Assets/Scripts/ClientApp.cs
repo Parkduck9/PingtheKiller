@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using PingTheKiller.Client.Dev;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.Net;
+using PingTheKiller.Client.Settings;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
@@ -45,6 +46,7 @@ namespace PingTheKiller.Client
         private readonly CaptureWatch capture = new CaptureWatch();
         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
         private LaggingStutter stutter;
+        private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
         private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
         private Role role;
         private byte skillId;
@@ -105,6 +107,10 @@ namespace PingTheKiller.Client
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             stutter = gameObject.AddComponent<LaggingStutter>();
             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
+            options = screens.Options;
+            rig.Options = options;
+            options.Changed += ApplyOptions;
+            ApplyOptions();
             if (devArgs.FakeKiller > 0) fakeKiller = new FakeKiller(devArgs.FakeKiller);
             if (devArgs.Active)
             {
@@ -115,6 +121,13 @@ namespace PingTheKiller.Client
                 dev.PreviewResult += Preview;
             }
         }
+        // FOV, sensitivity and Invert Y are read by the rig each frame; the rest is pushed here at start and on every change.
+        private void ApplyOptions()
+        {
+            AudioListener.volume = options.Volume01;
+            stutter.SetReducedOption(options.ReducedMotion);
+        }
+        private void OnApplicationQuit() => options?.Save();
         private bool IsHost()
         {
             if (lobby == null || link == null || !link.IsConnected || playing) return false;
@@ -316,7 +329,8 @@ namespace PingTheKiller.Client
             // Survivor: Esc releases the cursor (click resumes). Killer: Esc opens or closes the play menu.
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             {
-                if (survivor) { releasedCursor = true; rig.SetCursor(false); }
+                if (screens.SettingsOpen) screens.CloseSettings(); // Esc backs out of Settings first, back to the play menu
+                else if (survivor) { releasedCursor = true; rig.SetCursor(false); }
                 else SetMenu(!menuOpen);
             }
             if (survivor && releasedCursor && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)

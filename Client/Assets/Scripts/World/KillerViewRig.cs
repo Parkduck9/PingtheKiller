@@ -10,14 +10,16 @@ namespace PingTheKiller.Client.World
         public const float MaxPitch = 70;
         public static readonly float VerticalFov = ViewPose.VerticalFromHorizontal(90, 16f / 9);
         public float Pitch { get; private set; }
+        // The vertical FOV in use: the spec value unless the player's setting says otherwise.
+        public float Fov { get; set; } = VerticalFov;
 
         public void Reset() => Pitch = 0;
         public void LookPitch(float delta) => Pitch = Mathf.Clamp(Pitch - delta, -MaxPitch, MaxPitch);
 
         public ViewPose Place(Camera camera, float yaw, Vector3 ground)
         {
-            var pose = new ViewPose(new Vector3(ground.x, EyeHeight, ground.z), yaw, Pitch, VerticalFov, camera.aspect);
-            camera.fieldOfView = VerticalFov;
+            var pose = new ViewPose(new Vector3(ground.x, EyeHeight, ground.z), yaw, Pitch, Fov, camera.aspect);
+            camera.fieldOfView = Fov;
             camera.transform.SetPositionAndRotation(pose.Eye, pose.Rotation);
             return pose;
         }

@@ -27,6 +27,8 @@ namespace PingTheKiller.Client.Dev
         private bool restarted, position2, position5;
         private double orbitAt = -1, aimAt = -1;
         private bool menuWanted;
+        private double settingsAt = -1;
+        private int settingsStage, settingsPlayStage;
         private int participants, match;
         private Role role;
         private Wander wander;
@@ -361,6 +363,24 @@ namespace PingTheKiller.Client.Dev
             EventShot("result.png");
         }
 
+        // -ptk-settings: open the Settings screen, wait for it to lay out, shoot, close. Stage 0 -> 1 -> 2 -> 3 (done).
+        private bool SettingsMenuShot(double t)
+        {
+            if (screens == null) { settingsStage = 3; return false; }
+            if (settingsStage == 0) { screens.ShowSettings(); settingsAt = t; settingsStage = 1; return true; }
+            if (settingsStage == 1 && t >= settingsAt + .5) { settingsStage = 2; Shot("settings-menu.png"); return true; }
+            if (settingsStage == 2) { screens.CloseSettings(); settingsStage = 3; return false; }
+            return true;
+        }
+        private bool SettingsPlayShot(double t)
+        {
+            if (screens == null) { settingsPlayStage = 3; return false; }
+            if (settingsPlayStage == 0) { screens.ShowSettings(); settingsAt = t; settingsPlayStage = 1; return true; }
+            if (settingsPlayStage == 1 && t >= settingsAt + .4) { settingsPlayStage = 2; Shot("settings-play.png"); return true; }
+            if (settingsPlayStage == 2) { screens.CloseSettings(); settingsPlayStage = 3; return false; }
+            return true;
+        }
+
         private double Now => Time.realtimeSinceStartupAsDouble - origin;
         private static string Stamp(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 
@@ -371,7 +391,8 @@ namespace PingTheKiller.Client.Dev
             double t = Now;
             bool shots = args.Shots != null;
             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
-            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot))
+            if (args.Settings && shots && menuShot && settingsStage < 3 && SettingsMenuShot(t)) return;
+            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot) && (!args.Settings || !shots || settingsStage >= 3))
             {
                 joined = true;
                 if (args.Offline) Offline?.Invoke(); else Join?.Invoke(args.Join);
@@ -391,6 +412,7 @@ namespace PingTheKiller.Client.Dev
                 if (role == Role.Survivor && !taken.Contains("survivor-3p.png") && t >= matchAt + 1.8 && taken.Add("survivor-3p.png")) { Shot("survivor-3p.png"); return; }
                 if (orbitAt >= 0 && !taken.Contains("survivor-behind.png") && t >= orbitAt + .6 && taken.Add("survivor-behind.png")) { Shot("survivor-behind.png"); return; }
                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
+                if (args.Settings && args.Menu > 0 && taken.Contains("play-menu.png") && settingsPlayStage < 3 && SettingsPlayShot(t)) return;
             }
             if (SelfShots(t)) return;
             // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.

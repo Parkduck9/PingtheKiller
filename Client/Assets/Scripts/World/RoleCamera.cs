@@ -1,3 +1,4 @@
+using PingTheKiller.Client.Settings;
 using PingTheKiller.Shared.Game;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -15,6 +16,8 @@ namespace PingTheKiller.Client.World
         private Role role;
         public float Yaw { get; private set; }
         public ViewPose Pose { get; private set; }
+        // The player's FOV, sensitivity and Invert Y; read every frame, so a change applies at once.
+        public GameSettings Options { get; set; } = new GameSettings();
         // Survivor only: the boom is shorter than 1 m, so the own character is drawn dithered.
         public bool Dither => role == Role.Survivor && orbit.Dither;
         public RoleCamera(Camera camera) { this.camera = camera; }
@@ -39,7 +42,12 @@ namespace PingTheKiller.Client.World
         public void Look(bool active)
         {
             if (!active || Cursor.lockState != CursorLockMode.Locked || Mouse.current == null) return;
-            Vector2 delta = Mouse.current.delta.ReadValue() * Sensitivity;
+            Look(Mouse.current.delta.ReadValue());
+        }
+        // Mouse counts to yaw and pitch: sensitivity and Invert Y come from Options.
+        public void Look(Vector2 counts)
+        {
+            Vector2 delta = Options.LookDelta(counts, Sensitivity);
             Yaw = Mathf.Repeat(Yaw + delta.x, 360);
             if (role == Role.Survivor) orbit.LookPitch(delta.y); else eye.LookPitch(delta.y);
         }
@@ -48,6 +56,7 @@ namespace PingTheKiller.Client.World
         // ground = the own character's position (y ignored).
         public void Place(Vector3 ground, float dt)
         {
+            orbit.Fov = Options.SurvivorVerticalFov; eye.Fov = Options.KillerVerticalFov;
             Pose = role == Role.Survivor ? orbit.Place(camera, Yaw, ground, dt) : eye.Place(camera, Yaw, ground);
         }
     }

@@ -563,10 +563,10 @@ The Killer itself makes no sound on Survivor clients. **(10/30)** Its entry reac
 **(10/30)** The Killer-bound view (§6.2–§6.5) is unchanged by the U2e contract, and the anonymity rules of §6.3 stand.
 
 ### 6.6 Killer play menu
-Esc / Start replaces the intro/prompt area at the top of the cluster with a 320×208 block, padding 12, inner width 296 u. It holds the skill name (M 600), the effect (§8; S, max 3 lines), then `Resume` (primary, focused) and `Leave match`, stacked as 296×40 u buttons with an 8 u gap.
-- Height: 12 + 23 + 4 + 3 × 18 + 12 + 40 + 8 + 40 + 12 = 205 ≤ 208.
+Esc / Start replaces the intro/prompt area at the top of the cluster with a 320×256 block **(U7a: was 320×208)**, padding 12, inner width 296 u. It holds the skill name (M 600), the effect (§8; S, max 3 lines), then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, stacked as 296×40 u buttons with an 8 u gap.
+- Height: 12 + 23 + 4 + 3 × 18 + 12 + 40 + 8 + 40 + 8 + 40 + 12 = 253 ≤ 256.
 - Behaviour is the same as §5: one zero MoveInput, the cursor is released, and the match keeps running.
-- Focus: Resume → Leave match. Esc / B = Resume.
+- Focus: Resume → Settings → Leave match. Esc / B = Resume.
 - The HUD itself has no focusable elements.
 
 ---
@@ -701,3 +701,30 @@ GDD §2 gives Survivors a third-person orbit camera and the Killer a first-perso
 | N7 | Stationary decoys would be told apart from moving Survivors. | **U2c design:** decoys move, walking at Survivor speed, and still appear only at terminals. | §6.3 and §6.5.1 need no change: facing, animation and footsteps already follow position and motion only. |
 | N8 | Occlusion source for the Killer's in-view / occluded split. | **Accepted.** Full-height walls only. | §6.2 |
 | N9 | Terminal progress in the Killer view. | **Server-side, U2c.** The Killer receives `Terminals[].Progress` as 0 or 100 only. | §6.2 and 6.1a show done / not done and the done count; never a percentage. |
+
+---
+
+## 12. Settings (U7a)
+
+Opened from the main menu (`Settings`, secondary, under `Play against bots on this PC`) and from the Killer play menu (§6.6). **Gap:** the Survivor play menu (§5) is not built yet, so a Survivor has no way to open Settings during a match until it is. Esc outside a match closes it; during a match Esc closes it first and a second Esc closes the play menu.
+
+One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` fill, 1 u `line` border, padding 32 u (24 u on top). It replaces the menu; over a match it sits at the top-left, so the centre of the view stays visible while FOV is adjusted. Each row is 48 u high with a 12 u gap: label 240 u, control 240 u, value 80 u (right-aligned, tabular).
+
+| # | Setting | Control | Range | Default | Stored as (`PlayerPrefs`, float) |
+|---|---|---|---|---|---|
+| 12.1 | Survivor field of view | slider, whole degrees | 60–90° | 79.2° shown `79°` (vertical 50°, as before) | `ptk.settings.survivorFov` |
+| 12.2 | Killer field of view | slider, whole degrees | 60–100° | 90° (vertical 58.7°, §6.0) | `ptk.settings.killerFov` |
+| 12.3 | Mouse sensitivity | slider, 0.05 steps, shown `1.00×` | 0.25×–3× | 1× | `ptk.settings.sensitivity` |
+| 12.4 | Invert Y | toggle button `On` / `Off` | | Off | `ptk.settings.invertY` |
+| 12.5 | Reduced motion | toggle button `On` / `Off` | | Off | `ptk.settings.reducedMotion` |
+| 12.6 | Master volume | slider, 5 % steps, shown `100 %` | 0–100 % | 100 % | `ptk.settings.volume` |
+
+- **FOV is the horizontal angle at a 16:9 reference** (§6.0 convention). The rig converts it to Unity's vertical FOV, so other aspect ratios stay Hor+. The 60° lower bound is a horizontal angle, so today's Survivor (vertical 50° = 79.2° horizontal) and Killer (90°) defaults are inside their ranges.
+- **Mouse sensitivity** multiplies `RoleCamera.Sensitivity` (0.12° per count) for both axes. **Invert Y** flips only the pitch sign. Both roles.
+- **Reduced motion** is the Lagging stutter's reduced mode (§4.5): a new world frame every frame, still blended 30 %. `-ptk-reduce-stutter` still forces it on whatever the setting says.
+- **Master volume** sets `AudioListener.volume`.
+- A stored value that is missing, NaN or out of range loads as that setting's default; the others are kept. Setters clamp.
+- Every control applies at once; `Done` (primary, 320×48) and Esc outside a match save. `Reset to defaults` (secondary) restores all six. The values are also saved when the app quits.
+- Focus: Survivor FOV slider first; Tab / Up / Down move through the controls in the order above, then `Done` → `Reset to defaults`. Left / Right change a slider; Enter or Space presses a button. Focused slider: brighter track and a wider handle. Hover: lighter track.
+- Notes in S `muted`: under the FOV rows `Horizontal angle at 16:9. Applies at once.`, under Reduced motion `Lagging shows every frame instead of holding the picture at 8 Hz.`
+- Presentation only: nothing here is sent to the server.
