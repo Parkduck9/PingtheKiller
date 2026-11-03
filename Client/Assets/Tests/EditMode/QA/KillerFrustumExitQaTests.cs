@@ -15,7 +15,7 @@ namespace PingTheKiller.Client.QA.Tests
     public sealed class KillerFrustumExitQaTests
     {
         // Written in the legacy 60 m numbers (Killer at 10,23, wall x 18..20, z 14..32); KillerRoom lays them on the 80 m map:
-        // the Killer 8 m west of the building Walls[11], the scene's wall being that building (see QaSupport.cs).
+        // the Killer 8 m west of the building Walls[16], the scene's wall being that building (see QaSupport.cs).
         private static float KillerX => KillerRoom.X;
         private static float KillerZ => KillerRoom.Z;
         private static readonly List<(float x, float z)> Terminals = new List<(float x, float z)> { (10, 25), (28, 12) };

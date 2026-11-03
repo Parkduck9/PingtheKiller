@@ -74,6 +74,7 @@ public sealed class InputValidationTests
 
         // Spawn (5,26) is 5.1 m from terminal 0; walk to (10,26) with valid input.
         server.PlaceForTests(hostId,5,26);
+        server.Tick(0.05f);
         uint seq = 1;
         for (int i = 0; i < 25; i++)
         {

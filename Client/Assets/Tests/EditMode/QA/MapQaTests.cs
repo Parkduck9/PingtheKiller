@@ -14,9 +14,9 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheClientDrawsTheServersFixedMapWallForWall()
         {
             var server = new FixedMap();
-            Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(16), "wall count (4 borders + 12 buildings, U6b map v2)");
+            Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(31), "wall count (4 borders + 27 building boxes, U6e map v2.1)");
             Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(server.Walls.Count));
-            Assert.That(SharedMap.Map.Obstacles.Count, Is.EqualTo(12), "obstacle count (U6b map v2)");
+            Assert.That(SharedMap.Map.Obstacles.Count, Is.EqualTo(15), "obstacle count (U6e map v2.1)");
             Assert.That(SharedMap.Map.Obstacles.Count, Is.EqualTo(server.Obstacles.Count));
             for (int i = 0; i < server.Obstacles.Count; i++)
             {

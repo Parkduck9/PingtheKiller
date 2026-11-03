@@ -92,7 +92,7 @@ public sealed class U2bSkillTests
     {
         using var r = new QaRig(1);
         r.SetSkill(r.K, SkillIds.Overclock);
-        r.Place(r.K, 3, 5);
+        r.Place(r.K, 3, 2);
         r.Tick();
         float baseStep = GameConstants.KillerSpeed / GameConstants.TickRate;
         var steps = new List<float>();
@@ -623,7 +623,7 @@ public sealed class U2bSkillTests
         using var r = new QaRig(2);
         r.SetSkill(r.S[0], SkillIds.WhiteNoise);
         r.Place(r.S[0], 30, 30);
-        r.Place(r.S[1], 50, 50);
+        r.Place(r.S[1], 74, 50);
         r.MakeLagging(r.S[0]);
         for (int i = 0; i < 5; i++) { r.Use(r.S[0], SkillIds.WhiteNoise); r.Tick(); }
         Assert.Empty(Effects(r.S[0]));

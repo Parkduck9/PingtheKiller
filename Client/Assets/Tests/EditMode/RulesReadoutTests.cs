@@ -85,24 +85,24 @@ namespace PingTheKiller.Client.Tests
         {
             var map = new FixedMap();
             var wander = new Wander(0);
-            float yaw = wander.Next(map, 48, 30, 1);
+            float yaw = wander.Next(map, 6, 30, 1);
             Assert.That(yaw, Is.EqualTo(Wander.TurnRate).Within(.001f));
-            Assert.That(wander.Next(map, 48, 30, float.NaN), Is.EqualTo(yaw).Within(.001f), "a bad dt does not turn");
+            Assert.That(wander.Next(map, 6, 30, float.NaN), Is.EqualTo(yaw).Within(.001f), "a bad dt does not turn");
         }
 
         [Test]
         public void WanderReversesBeforeAWall()
         {
             var map = new FixedMap();
-            // Facing +z, 1.5 m from the north boundary wall (z = FixedMap.Size): the wall is within 2 m ahead.
-            Assert.That(Wander.WallAhead(map, 48, FixedMap.Size - 1.5f, 0), Is.True);
-            Assert.That(Wander.WallAhead(map, 48, 30, 0), Is.False);
+            // Facing +z, 1.5 m from the north boundary wall (z = FixedMap.Size) at a column with no container beside it.
+            Assert.That(Wander.WallAhead(map, 50, FixedMap.Size - 1.5f, 0), Is.True);
+            Assert.That(Wander.WallAhead(map, 6, 30, 0), Is.False);
             var wander = new Wander(0);
-            float yaw = wander.Next(map, 48, FixedMap.Size - 1.5f, 0);
+            float yaw = wander.Next(map, 50, FixedMap.Size - 1.5f, 0);
             Assert.That(Mathf.Abs(Mathf.DeltaAngle(yaw, 180)), Is.LessThan(1), "heading reversed");
-            Assert.That(Wander.WallAhead(map, 48, FixedMap.Size - 1.5f, yaw), Is.False);
+            Assert.That(Wander.WallAhead(map, 50, FixedMap.Size - 1.5f, yaw), Is.False);
             // The turn direction flipped as well.
-            Assert.That(Mathf.DeltaAngle(yaw, wander.Next(map, 48, 30, 1)), Is.EqualTo(-Wander.TurnRate).Within(.01f));
+            Assert.That(Mathf.DeltaAngle(yaw, wander.Next(map, 6, 30, 1)), Is.EqualTo(-Wander.TurnRate).Within(.01f));
         }
 
         [Test]

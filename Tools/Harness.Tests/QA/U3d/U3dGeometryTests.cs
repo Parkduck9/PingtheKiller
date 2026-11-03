@@ -19,7 +19,9 @@ internal static class U3dEvidence
 // ---- handwritten geometry, each checked against the QA reference as well ----------------------------------------------
 public sealed class U3dGeometryCaseTests
 {
-    // FixedMap walls: boundary (-1,-1,0,61) (60,-1,61,61) (0,-1,60,0) (0,60,60,61); inner (18,14,20,32) (36,28,38,47) (24,42,32,44) (40,14,49,16).
+    // FixedMap walls: boundary (-1,-1,0,81) (80,-1,81,81) (0,-1,80,0) (0,80,80,81). The face, corner and band cases use the building
+    // (12,24)-(18,37): the open road lies west of it, a 3 m alley (z 21..24) below it with the wall (12,14)-(19,21) beyond, and a
+    // 3 m alley (x 18..21) east of it.
     private static void Check(string name, double ax, double az, double bx, double bz, Sight expected, bool contractBlocked)
     {
         Assert.Equal(expected, LineOfSight.Classify(ax, az, bx, bz));
@@ -47,49 +49,49 @@ public sealed class U3dGeometryCaseTests
     [Fact]
     public void ASegmentLyingOnWallEdgeIsBlockedByContractAndAmbiguousForTheHarness()
     {
-        // along the bottom face z=14 (outside the wall x range too) and along the left face x=18
-        Check("flush-bottom-face", 10, 12, 26, 12, Sight.Ambiguous, true);
-        Check("flush-left-face", 12, 14, 12, 34, Sight.Ambiguous, true);
-        Check("flush-inside-face-span", 18.5, 12, 19.5, 12, Sight.Ambiguous, true);
+        // along the bottom face z=24 (outside the wall x range too) and along the left face x=12
+        Check("flush-bottom-face", 10, 24, 20, 24, Sight.Ambiguous, true);
+        Check("flush-left-face", 12, 26, 12, 35, Sight.Ambiguous, true);
+        Check("flush-inside-face-span", 14.5, 24, 15.5, 24, Sight.Ambiguous, true);
         Check("flush-boundary-wall", 5, 0, 55, 0, Sight.Ambiguous, true);                 // face of the bottom boundary wall
     }
 
     [Fact]
     public void ASegmentEndingOnAnEdgeIsBlockedByContractAndAmbiguousForTheHarness()
     {
-        Check("end-on-face", 19, 10, 19, 12, Sight.Ambiguous, true);
-        Check("end-on-vertical-face", 10, 20, 12, 20, Sight.Ambiguous, true);
+        Check("end-on-face", 15, 22, 15, 24, Sight.Ambiguous, true);
+        Check("end-on-vertical-face", 10, 30, 12, 30, Sight.Ambiguous, true);
     }
 
     [Fact]
     public void ASegmentTouchingACornerIsBlockedByContractAndAmbiguousForTheHarness()
     {
-        Check("through-corner", 11, 13, 13, 11, Sight.Ambiguous, true);                 // diagonal through (18,14) only
-        Check("end-on-corner", 10, 20, 12, 12, Sight.Ambiguous, true);
-        Check("start-on-corner", 12, 12, 10, 20, Sight.Ambiguous, true);
-        Check("corner-of-corner", 24, 12, 26, 10, Sight.Ambiguous, true);
-        Check("graze-far-corner", 23, 11, 25, 13, Sight.Ambiguous, true);              // passes exactly through (20,32) only
+        Check("through-corner", 11, 25, 13, 23, Sight.Ambiguous, true);                 // diagonal through (12,24) only
+        Check("end-on-corner", 10, 32, 12, 24, Sight.Ambiguous, true);
+        Check("start-on-corner", 12, 24, 10, 32, Sight.Ambiguous, true);
+        Check("corner-of-corner", 18, 24, 20, 22, Sight.Ambiguous, true);
+        Check("graze-far-corner", 17, 23, 19, 25, Sight.Ambiguous, true);              // passes exactly through (18,24) only
     }
 
     [Fact]
     public void AParallelSegmentJustOffAFaceFollowsTheBand()
     {
-        // parallel to the face z=14, 0.03 m / 0.06 m outside
-        Check("parallel-0.03", 10, 11.96875, 30, 11.96875, Sight.Ambiguous, false);   // 0.03125 m
-        Check("parallel-0.06", 10, 11.9375, 30, 11.9375, Sight.Clear, false);         // 0.0625 m
-        Check("parallel-0.03-inside", 10, 12.03125, 30, 12.03125, Sight.Ambiguous, true);
-        Check("parallel-0.06-inside", 10, 12.0625, 30, 12.0625, Sight.Blocked, true);
+        // parallel to the face z=24, 0.03 m / 0.06 m outside
+        Check("parallel-0.03", 10, 23.96875, 20, 23.96875, Sight.Ambiguous, false);   // 0.03125 m
+        Check("parallel-0.06", 10, 23.9375, 20, 23.9375, Sight.Clear, false);         // 0.0625 m
+        Check("parallel-0.03-inside", 10, 24.03125, 20, 24.03125, Sight.Ambiguous, true);
+        Check("parallel-0.06-inside", 10, 24.0625, 20, 24.0625, Sight.Blocked, true);
     }
 
     [Fact]
     public void ZeroLengthSegmentsAreJudgedAsPoints()
     {
         Check("point-open", 5, 5, 5, 5, Sight.Clear, false);
-        Check("point-inside-wall", 19, 20, 19, 20, Sight.Blocked, true);
-        Check("point-on-face", 12, 20, 12, 20, Sight.Ambiguous, true);
-        Check("point-on-corner", 12, 12, 12, 12, Sight.Ambiguous, true);
-        Check("point-0.03-off", 11.96875, 20, 11.96875, 20, Sight.Ambiguous, false);
-        Check("point-0.0625-off", 11.9375, 20, 11.9375, 20, Sight.Clear, false);
+        Check("point-inside-wall", 15, 30, 15, 30, Sight.Blocked, true);
+        Check("point-on-face", 12, 30, 12, 30, Sight.Ambiguous, true);
+        Check("point-on-corner", 12, 24, 12, 24, Sight.Ambiguous, true);
+        Check("point-0.03-off", 11.96875, 30, 11.96875, 30, Sight.Ambiguous, false);
+        Check("point-0.0625-off", 11.9375, 30, 11.9375, 30, Sight.Clear, false);
     }
 
     [Fact]
@@ -107,19 +109,19 @@ public sealed class U3dGeometryCaseTests
     public void SegmentsTheBandOnEitherSideAreAmbiguousNeverPassOrFail()
     {
         // Distance 0.049 / 0.051 on the Clear side and penetration 0.049 / 0.051 on the Blocked side (non-grid values on purpose).
-        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 12 - 0.049, 30, 12 - 0.049));
-        Assert.Equal(Sight.Clear, LineOfSight.Classify(10, 12 - 0.051, 30, 12 - 0.051));
-        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 12 + 0.049, 30, 12 + 0.049));
-        Assert.Equal(Sight.Blocked, LineOfSight.Classify(10, 12 + 0.051, 30, 12 + 0.051));
+        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 24 - 0.049, 20, 24 - 0.049));
+        Assert.Equal(Sight.Clear, LineOfSight.Classify(10, 24 - 0.051, 20, 24 - 0.051));
+        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 24 + 0.049, 20, 24 + 0.049));
+        Assert.Equal(Sight.Blocked, LineOfSight.Classify(10, 24 + 0.051, 20, 24 + 0.051));
     }
 
     // Band pairs reach the judge as Ambiguous: counted, no verdict either way, whether the entry is present or absent.
     [Fact]
     public void BandPairsAreCountedAsAmbiguousByTheJudgeEntryPresentOrAbsent()
     {
-        var killer = new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 11.96875f };
+        var killer = new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 23.96875f };
         var entry = killer with { Flags = 0 };
-        var me = new PlayerState { Id = 2, X = 30, Z = 11.96875f };
+        var me = new PlayerState { Id = 2, X = 20, Z = 23.96875f };
         Assert.Equal(SightOutcome.Ambiguous, KillerSight.Judge(new S2C_WorldState { Tick = 3, Players = { me } }, 2, 1, killer).Outcome);
         var with = KillerSight.Judge(new S2C_WorldState { Tick = 3, Players = { me, entry } }, 2, 1, killer);
         Assert.Equal(SightOutcome.Ambiguous, with.Outcome);

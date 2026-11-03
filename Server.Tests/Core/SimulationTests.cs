@@ -100,7 +100,7 @@ public sealed class SimulationTests
     {
         using var f = new CoreFixture();
         var (_, survivor) = f.StartPair();
-        // Survivor spawn (5,26) is aligned with the interior wall x=18..20, z=14..32.
+        // Survivor spawn (5,26) is aligned with the interior wall x=12..18, z=24..37.
         Assert.Equal(26f, survivor.Self().Z);
         for (int i = 0; i < 160; i++)
         {
@@ -122,9 +122,9 @@ public sealed class SimulationTests
     public void CircleCollisionSlidesAndLargeStepCannotTunnel()
     {
         var map = new FixedMap();
-        var slide = map.Move(11.6f, 20, 4, 4);
+        var slide = map.Move(11.6f, 26, 4, 4);
         Assert.InRange(slide.X, 11.59f, 11.61f);
-        Assert.InRange(slide.Z, 23.99f, 24.01f);
+        Assert.InRange(slide.Z, 29.99f, 30.01f);
         var tunnel = map.Move(5, 20, 50, 0);
         Assert.InRange(tunnel.X, 11.4f, 11.61f);
         Assert.True(map.CanStand(tunnel.X, tunnel.Z));

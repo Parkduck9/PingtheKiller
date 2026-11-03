@@ -674,7 +674,7 @@ public sealed class U2bSweepTests
     {
         using var r = new QaRig(2, seed: 9);
         r.Place(r.S[0], 30, 10);
-        r.Place(r.S[1], 50, 50);
+        r.Place(r.S[1], 74, 50);
         r.K.Connection.Close();
         r.Tick(150); // inside the 10 s grace: the killer is idle
         Assert.False(r.S[0].Has<S2C_GameResult>());
