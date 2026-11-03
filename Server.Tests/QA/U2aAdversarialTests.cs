@@ -1,3 +1,4 @@
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.ServerCore;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -152,6 +153,7 @@ public sealed class U2aAdversarialTests
         f.Tick();
         Assert.Equal((byte)Role.Killer, killer.Last<S2C_MatchStart>().Role);
 
+        f.Server.PlaceForTests(killer.Id,5,5); f.Server.PlaceForTests(s1.Id,5,26); f.Server.PlaceForTests(s2.Id,10,26); f.Tick();
         var killerDirs = new[] { (0.6f, 0.8f), (-0.8f, 0.6f), (0.7f, -0.7f), (-0.6f, -0.8f) };
         var s1Dirs = new[] { (1f, 0f), (0f, 1f), (-1f, 0f), (0f, -1f) };
         var distinctThreat = new HashSet<byte>();
@@ -193,7 +195,7 @@ public sealed class U2aAdversarialTests
         }
         // U2e: phase 2 walks the killer behind the (18,14)-(20,32) wall, so blocked frames get the full U2a check.
         s1.Move(0, 0);
-        foreach (var (gx, gz) in new[] { (24f, 12f), (24f, 22f) })
+        foreach (var (gx, gz) in new[] { (26f, 10f), (26f, 22f) })
             for (int tick = 0; tick < 200; tick++)
             {
                 var me = killer.Self();
@@ -763,8 +765,8 @@ public sealed class U2aAdversarialTests
                 f.Tick();
                 var p = s.Self();
                 Assert.True(f.Server.Map.CanStand(p.X, p.Z), $"inside a wall at ({p.X},{p.Z}) walking {d}");
-                Assert.InRange(p.X, 0.399f, 59.601f);
-                Assert.InRange(p.Z, 0.399f, 59.601f);
+                Assert.InRange(p.X, 0.399f, FixedMap.Size - .399f);
+                Assert.InRange(p.Z, 0.399f, FixedMap.Size - .399f);
             }
         }
     }

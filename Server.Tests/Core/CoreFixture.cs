@@ -74,6 +74,10 @@ internal sealed class CoreFixture : IDisposable
         killer.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Killer });
         killer.Send(new C2S_StartMatch());
         Tick();
+        // Rule/input fixtures use an explicit open lane; production spawns are validated in MapV2Tests.
+        Server.PlaceForTests(killer.Id, 5, 5);
+        Server.PlaceForTests(survivor.Id, 5, 26);
+        Tick();
         return (killer, survivor);
     }
     // StartPair on the first private seed whose killer skill is not the passive Packet Afterimage, for tests that

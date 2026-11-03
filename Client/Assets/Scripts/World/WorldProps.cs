@@ -28,6 +28,7 @@ namespace PingTheKiller.Client.World
         private readonly HashSet<byte> retained = new HashSet<byte>();
         private readonly List<byte> removed = new List<byte>();
         private GameObject exit;
+        private GameObject secondExit;
 
         public WorldProps(WorldMaterials materials, Role role)
         {
@@ -46,10 +47,17 @@ namespace PingTheKiller.Client.World
                 SharedMap.WallBox(wall, out Vector3 center, out Vector3 size);
                 materials.Primitive("Wall", PrimitiveType.Cube, center + Vector3.up * MapGeometry.WallHeight * .5f, size + Vector3.up * MapGeometry.WallHeight, new Color32(80, 83, 87, 255));
             }
+            foreach (Obstacle obstacle in map.Obstacles)
+            {
+                var center = new Vector3((obstacle.MinX + obstacle.MaxX) * .5f, MapGeometry.ObstacleHeight * .5f, (obstacle.MinZ + obstacle.MaxZ) * .5f);
+                var size = new Vector3(obstacle.MaxX - obstacle.MinX, MapGeometry.ObstacleHeight, obstacle.MaxZ - obstacle.MinZ);
+                materials.Primitive("Obstacle", PrimitiveType.Cube, center, size, new Color32(80, 83, 87, 255));
+            }
             // Initial terminals are replaced by the first authoritative terminal list.
             for (byte i = 0; i < map.TerminalPositions.Count; i++)
                 terminals.Add(i, MakeTerminal(i, new Vector3(map.TerminalPositions[i].X, 0, map.TerminalPositions[i].Z)));
             exit = Ring("Exit", SharedMap.Exit, GameConstants.ExitRadius, .16f, new Color32(154, 152, 144, 255));
+            secondExit = Ring("Exit 2 (locked)", SharedMap.ExitAt(1), GameConstants.ExitRadius, .16f, new Color32(154, 152, 144, 255));
         }
 
         public void Accept(S2C_WorldState state)
@@ -109,8 +117,14 @@ namespace PingTheKiller.Client.World
 
         public void Dispose()
         {
-            if (exit == null) return;
-            MeshFilter filter = exit.GetComponent<MeshFilter>();
+            DisposeRing(exit);
+            DisposeRing(secondExit);
+        }
+
+        private static void DisposeRing(GameObject ring)
+        {
+            if (ring == null) return;
+            MeshFilter filter = ring.GetComponent<MeshFilter>();
             if (filter != null && filter.sharedMesh != null) Object.Destroy(filter.sharedMesh);
         }
     }

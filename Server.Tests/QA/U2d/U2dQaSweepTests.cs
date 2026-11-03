@@ -168,6 +168,7 @@ public sealed class U2dQaSweepTests
 
     [Theory]
     [MemberData(nameof(SweepConfigs))]
+    [Trait("Category", "BalanceSweep")]
     public void IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(string config, int survivors,
         double winMin, double winMax, double medianMin, double medianMax, double timeoutMax, double reqRescueShare)
     {
@@ -242,11 +243,11 @@ public sealed class U2dQaSweepTests
 
         // Terminals
         GameConstants.TerminalsFor(1, out int req1, out int placed1);
-        Assert.Equal(2, req1); Assert.Equal(4, placed1);
+        Assert.Equal(3, req1); Assert.Equal(5, placed1);
         GameConstants.TerminalsFor(3, out int req3, out int placed3);
-        Assert.Equal(3, req3); Assert.Equal(5, placed3);
+        Assert.Equal(4, req3); Assert.Equal(7, placed3);
         GameConstants.TerminalsFor(7, out int req7, out int placed7);
-        Assert.Equal(4, req7); Assert.Equal(6, placed7);
+        Assert.Equal(5, req7); Assert.Equal(8, placed7);
     }
 
     [Fact]

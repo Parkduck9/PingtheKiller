@@ -29,8 +29,8 @@ namespace PingTheKiller.Shared.Game
         {
             if (survivorCount < 1 || survivorCount > 7)
                 throw new ArgumentOutOfRangeException(nameof(survivorCount));
-            required = survivorCount <= 2 ? 2 : survivorCount <= 5 ? 3 : 4;
-            placed = survivorCount <= 2 ? 4 : survivorCount <= 5 ? 5 : 6;
+            required = survivorCount <= 2 ? 3 : survivorCount <= 5 ? 4 : 5;
+            placed = survivorCount <= 2 ? 5 : survivorCount <= 5 ? 7 : 8;
         }
     }
 }

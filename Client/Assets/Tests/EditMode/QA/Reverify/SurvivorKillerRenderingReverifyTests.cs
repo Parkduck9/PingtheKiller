@@ -230,7 +230,10 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 Assert.That(match.Role, Is.EqualTo((byte)Role.Survivor));
 
                 int killerEntriesChecked = 0;
-                for (int i = 0; i < 10; i++)
+                // Map v2 (U6b): every survivor spawn is out of the Killer's sight by design, so the Killer entry only arrives once
+                // the Killer bot has walked into line of sight. Check at least ten snapshots, and go on (at most 1200 = 60 s of
+                // game time) until a Killer entry has been checked.
+                for (int i = 0; i < 1200 && (i < 10 || killerEntriesChecked == 0); i++)
                 {
                     S2C_WorldState world = probe.Await<S2C_WorldState>();
                     bool sawSelf = false;

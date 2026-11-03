@@ -17,6 +17,7 @@ public sealed class SandboxTests
         killer.Send(new C2S_StartMatch());
         f.Tick();
         Assert.Equal((byte)Role.Killer, killer.Last<S2C_MatchStart>().Role);
+        f.Server.PlaceForTests(killer.Id,5,5); f.Server.PlaceForTests(a.Id,5,26); f.Server.PlaceForTests(b.Id,10,26); f.Tick();
         return (f, killer, a, b);
     }
 
@@ -96,7 +97,7 @@ public sealed class SandboxTests
         using (f)
         {
             // Two survivors on the exit cannot escape: no hacking means the exit never opens, and escape is off.
-            for (int i = 0; i < 11998; i++) // the StartMatch tick is the first of 12000
+            for (int i = 0; i < 11997; i++) // the StartMatch tick is the first of 12000
             {
                 if (i % 20 == 0) UseEverySkill(killer, a, b);
                 if (i < 300) { a.Move(1, 0.1f); b.Move(-0.2f, -1); }

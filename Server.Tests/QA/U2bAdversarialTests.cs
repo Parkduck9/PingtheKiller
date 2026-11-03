@@ -375,17 +375,17 @@ public sealed class U2bAdversarialTests
     }
 
     [Theory]
-    [InlineData(1, 2)]
-    [InlineData(2, 2)]
-    [InlineData(3, 3)]
-    [InlineData(5, 3)]
-    [InlineData(6, 4)]
-    [InlineData(7, 4)]
+    [InlineData(1, 3)]
+    [InlineData(2, 3)]
+    [InlineData(3, 4)]
+    [InlineData(5, 4)]
+    [InlineData(6, 5)]
+    [InlineData(7, 5)]
     public void Exit_OpensOnTheSameTickTheRequiredTerminalCountCompletes_ForBothRoles(int survivors, int required)
     {
         using var r = new QaRig(survivors);
         var map = new FixedMap();
-        int placed = survivors <= 2 ? 4 : survivors <= 5 ? 5 : 6;
+        int placed = survivors <= 2 ? 5 : survivors <= 5 ? 7 : 8;
         Assert.Equal(required, r.KW.TerminalsRequired);
         Assert.Equal(placed, r.KW.Terminals.Count);
         int doneTerminals = 0;
@@ -435,7 +435,7 @@ public sealed class U2bAdversarialTests
         Assert.Equal(1, r.KW.ExitOpen);
         Assert.Equal(0, r.KW.ExitLocked);
         var map = new FixedMap();
-        r.Place(r.S[0], 56.5f, 30); // 1.5 m from the exit, no Interact held
+        r.Place(r.S[0], 2.5f, 4); // 1.5 m from the exit, no Interact held
         r.Place(r.S[1], 40, 55);
         r.Use(r.K, SkillIds.FirewallBlock); // immediately usable: the failed attempt consumed nothing
         r.Tick();
@@ -481,7 +481,7 @@ public sealed class U2bAdversarialTests
         r.OpenExitWithTwo();
         r.Place(r.S[1], 30, 5);
         r.MakeLagging(r.S[1]); // nobody but S0 is Normal
-        r.Place(r.S[0], 56.5f, 30);
+        r.Place(r.S[0], 2.5f, 4);
         r.Tick();
         var result = r.K.Last<S2C_GameResult>();
         Assert.Equal((byte)Role.Survivor, result.WinnerRole);
@@ -494,7 +494,7 @@ public sealed class U2bAdversarialTests
     {
         using var r = new QaRig(2);
         r.OpenExitWithTwo();
-        r.Place(r.S[0], 56.5f, 30);
+        r.Place(r.S[0], 2.5f, 4);
         r.Place(r.S[1], 30, 5);
         r.Place(r.K, 31.0f, 5); // captures S1 (1.0 m) in the very tick S0 reaches the exit
         r.Tick();
@@ -508,9 +508,10 @@ public sealed class U2bAdversarialTests
     public void Win_TwoSurvivorsEnterTheExitInOneTick_BothListedInEscapedIds()
     {
         using var r = new QaRig(3);
+        r.Place(r.K,40,8);
         r.OpenExitFlag();
-        r.Place(r.S[0], 56.5f, 30);
-        r.Place(r.S[1], 58, 31.5f);
+        r.Place(r.S[0], 2.5f, 4);
+        r.Place(r.S[1], 4, 5.5f);
         r.Place(r.S[2], 40, 55);
         r.Tick();
         var result = r.S[2].Last<S2C_GameResult>();
@@ -524,7 +525,7 @@ public sealed class U2bAdversarialTests
         using var r = new QaRig(1);
         r.OpenExitFlag();
         r.SetMatchTime(599.96);
-        r.Place(r.S[0], 56.5f, 30);
+        r.Place(r.S[0], 2.5f, 4);
         r.Tick(); // matchTime reaches 600.01 in this same tick as the escape
         var result = r.S[0].Last<S2C_GameResult>();
         Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
@@ -561,7 +562,7 @@ public sealed class U2bAdversarialTests
     {
         using var r = new QaRig(2);
         r.OpenExitFlag();
-        r.Place(r.S[0], 58, 30);
+        r.Place(r.S[0], 4, 4);
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 30, 5);
         r.Place(r.K, 31f, 5);
@@ -580,8 +581,9 @@ public sealed class U2bAdversarialTests
         using var r = new QaRig(1);
         int survivorId = r.S[0].Id;
         ulong token = r.S[0].Last<S2C_JoinResult>().ReconnectToken;
+        r.Place(r.K,40,8);
         r.OpenExitFlag();
-        r.Place(r.S[0], 56.5f, 30);
+        r.Place(r.S[0], 2.5f, 4);
         r.Tick();
         r.Tick(200);
         foreach (var p in new[] { r.K, r.S[0] })

@@ -14,7 +14,10 @@ namespace PingTheKiller.Client.QA.Tests
     [Category("U4cQaA2")]
     public sealed class KillerFrustumExitQaTests
     {
-        private const float KillerX = 10, KillerZ = 23;
+        // Written in the legacy 60 m numbers (Killer at 10,23, wall x 18..20, z 14..32); KillerRoom lays them on the 80 m map:
+        // the Killer 8 m west of the building Walls[11], the scene's wall being that building (see QaSupport.cs).
+        private static float KillerX => KillerRoom.X;
+        private static float KillerZ => KillerRoom.Z;
         private static readonly List<(float x, float z)> Terminals = new List<(float x, float z)> { (10, 25), (28, 12) };
 
         // Killer at (10, 23). The wall x 18..20, z 14..32 of FixedMap stands east of it.
@@ -26,7 +29,7 @@ namespace PingTheKiller.Client.QA.Tests
             state.Terminals.Add(new TerminalState { Id = 0, X = 10, Z = 25, Progress = 0 });
             state.Terminals.Add(new TerminalState { Id = 1, X = 28, Z = 12, Progress = 0 });
             foreach (var s in survivors)
-                state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, Status = (byte)PlayerStatus.Normal, X = s.x, Z = s.z, Flags = (byte)PlayerFlags.Signal });
+                state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, Status = (byte)PlayerStatus.Normal, X = KillerRoom.MapX(s.x), Z = KillerRoom.MapZ(s.z), Flags = (byte)PlayerFlags.Signal });
             state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, Status = (byte)PlayerStatus.Normal, X = KillerX, Z = KillerZ, Yaw = 90 });
             return state;
         }

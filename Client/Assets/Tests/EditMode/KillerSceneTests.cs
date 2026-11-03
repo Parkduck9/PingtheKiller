@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 using UnityEngine;
@@ -13,8 +14,26 @@ namespace PingTheKiller.Client.Tests
     // states with real Ids in a fixed order (HUD_SPEC 6.3, U2c section 1).
     public sealed class KillerSceneTests
     {
-        // Killer at (10, 23) looking +x. Wall x 18..20, z 14..32 sits between it and x = 25.
-        private static readonly ViewPose Pose = new ViewPose(new Vector3(10, KillerViewRig.EyeHeight, 23), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
+        // The scene is written in the legacy 60 m numbers: Killer at (10, 23) looking +x, a wall x 18..20, z 14..32 between it and
+        // x = 25. On the 80 m map the same scene stands 8 m west of the building FixedMap.Walls[11] (x 56..66, z 24..34): MapX/MapZ
+        // move a legacy point there (x below 19 is in front of the wall, +38; from 19 on is behind it, +46; z + 6), so the wall
+        // faces 18 and 20 land on the building faces 56 and 66. (The QA assembly has the same helper in QaSupport.cs.)
+        private static float MapX(float legacyX) => legacyX < 19 ? legacyX + 38 : legacyX + 46;
+        private static float MapZ(float legacyZ) => legacyZ + 6;
+        private static readonly float KillerAtX = MapX(10), KillerAtZ = MapZ(23);
+        private static readonly ViewPose Pose = new ViewPose(new Vector3(KillerAtX, KillerViewRig.EyeHeight, KillerAtZ), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
+
+        [Test]
+        public void TheSceneHasTheWallBetweenTheKillerAndTheSurvivorsBehindIt()
+        {
+            FixedMap map = SharedMap.Map;
+            Assert.That(map.Walls[11].MinX, Is.EqualTo(MapX(18)));
+            Assert.That(map.Walls[11].MaxX, Is.EqualTo(MapX(20)));
+            Assert.That(map.CanStand(KillerAtX, KillerAtZ), Is.True);
+            Assert.That(MapGeometry.SegmentBlocked(map, KillerAtX, KillerAtZ, MapX(15), MapZ(20)), Is.False, "in front of the wall");
+            Assert.That(MapGeometry.SegmentBlocked(map, KillerAtX, KillerAtZ, MapX(25), MapZ(21)), Is.True, "behind the wall");
+            Assert.That(MapGeometry.SegmentBlocked(map, KillerAtX, KillerAtZ, MapX(25), MapZ(23)), Is.True, "behind the wall");
+        }
 
         private static S2C_WorldState State(uint tick, IList<PlayerState> survivors, bool anonymous, System.Random shuffle)
         {
@@ -29,7 +48,7 @@ namespace PingTheKiller.Client.Tests
             }
             if (anonymous)
                 for (int i = entries.Count - 1; i > 0; i--) { int j = shuffle.Next(i + 1); PlayerState t = entries[i]; entries[i] = entries[j]; entries[j] = t; }
-            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 23 });
+            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = KillerAtX, Z = KillerAtZ });
             // The Killer's own entry is found by Role, not position in the list.
             if (anonymous) state.Players.Insert(0, entries[0]); else state.Players.Add(entries[0]);
             for (int i = 1; i < entries.Count; i++) state.Players.Add(entries[i]);
@@ -41,9 +60,9 @@ namespace PingTheKiller.Client.Tests
             float step = .1f * tick; // 2 m/s
             return new List<PlayerState>
             {
-                new PlayerState { Id = 2, Role = (byte)Role.Survivor, X = 15, Z = 20 + step, Flags = (byte)(PlayerFlags.Signal | PlayerFlags.Hacking), Yaw = 33 },
-                new PlayerState { Id = 3, Role = (byte)Role.Survivor, X = 25, Z = 21 + step, Flags = (byte)PlayerFlags.Signal, CaptureCount = 1 },
-                new PlayerState { Id = 4, Role = (byte)Role.Survivor, X = 4, Z = 22 + step, Status = (byte)PlayerStatus.Lagging, StatusTimer = 40, Flags = (byte)PlayerFlags.Signal },
+                new PlayerState { Id = 2, Role = (byte)Role.Survivor, X = MapX(15), Z = MapZ(20 + step), Flags = (byte)(PlayerFlags.Signal | PlayerFlags.Hacking), Yaw = 33 },
+                new PlayerState { Id = 3, Role = (byte)Role.Survivor, X = MapX(25), Z = MapZ(21 + step), Flags = (byte)PlayerFlags.Signal, CaptureCount = 1 },
+                new PlayerState { Id = 4, Role = (byte)Role.Survivor, X = MapX(4), Z = MapZ(22 + step), Status = (byte)PlayerStatus.Lagging, StatusTimer = 40, Flags = (byte)PlayerFlags.Signal },
             };
         }
 
@@ -74,8 +93,8 @@ namespace PingTheKiller.Client.Tests
                     foreach (BlipEvent e in anonymous.Events)
                         Assert.That(e.Kind, Is.Not.EqualTo(BlipEventKind.Spawned).And.Not.EqualTo(BlipEventKind.Despawned), "tick " + tick);
             }
-            Assert.That(anonymous.KillerX, Is.EqualTo(10f));
-            Assert.That(anonymous.KillerZ, Is.EqualTo(23f));
+            Assert.That(anonymous.KillerX, Is.EqualTo(KillerAtX));
+            Assert.That(anonymous.KillerZ, Is.EqualTo(KillerAtZ));
         }
 
         [Test]
@@ -112,7 +131,7 @@ namespace PingTheKiller.Client.Tests
         public void AClassChangeMustHoldOneHundredMillisecondsBeforeItShows()
         {
             var scene = new KillerScene(new System.Random(9), null);
-            var visible = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = 15, Z = 20 } };
+            var visible = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = MapX(15), Z = MapZ(20) } };
             scene.Accept(State(1, visible, true, new System.Random(1)), 0);
             Assert.That(scene.Frame(Pose, .05, null)[0].Class, Is.EqualTo(BlipClass.InView));
             var turned = new ViewPose(Pose.Eye, 270, 0, KillerViewRig.VerticalFov, 16f / 9);
@@ -126,7 +145,7 @@ namespace PingTheKiller.Client.Tests
         public void AHeldClassThatLeftTheFrustumIsDrawnAsAnEdgeIndicatorAtOnce()
         {
             var scene = new KillerScene(new System.Random(9), null);
-            var hidden = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = 25, Z = 21 } }; // behind the wall
+            var hidden = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = MapX(25), Z = MapZ(21) } }; // behind the wall
             scene.Accept(State(1, hidden, true, new System.Random(1)), 0);
             BlipView first = scene.Frame(Pose, .05, null)[0];
             Assert.That(first.Class, Is.EqualTo(BlipClass.Occluded));
@@ -148,7 +167,7 @@ namespace PingTheKiller.Client.Tests
         {
             var scene = new KillerScene(new System.Random(11), null);
             var behind = new List<PlayerState>();
-            for (int i = 0; i < 8; i++) behind.Add(new PlayerState { Role = (byte)Role.Survivor, X = 8 - i, Z = 23 + (i % 2 == 0 ? 3 : -3) });
+            for (int i = 0; i < 8; i++) behind.Add(new PlayerState { Role = (byte)Role.Survivor, X = MapX(8 - i), Z = MapZ(23 + (i % 2 == 0 ? 3 : -3)) });
             scene.Accept(State(1, behind, true, new System.Random(1)), 0);
             IReadOnlyList<BlipView> views = scene.Frame(Pose, .05, null);
             Assert.That(scene.Count(BlipClass.OffScreen), Is.EqualTo(6));
@@ -170,7 +189,7 @@ namespace PingTheKiller.Client.Tests
         public void TheSoundOcclusionUsesTheWallRayEvenOffScreen()
         {
             var scene = new KillerScene(new System.Random(13), null);
-            var behindWall = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = 25, Z = 23 } };
+            var behindWall = new List<PlayerState> { new PlayerState { Role = (byte)Role.Survivor, X = MapX(25), Z = MapZ(23) } };
             scene.Accept(State(1, behindWall, true, new System.Random(1)), 0);
             var away = new ViewPose(Pose.Eye, 270, 0, KillerViewRig.VerticalFov, 16f / 9);
             BlipView view = scene.Frame(away, .05, null)[0];

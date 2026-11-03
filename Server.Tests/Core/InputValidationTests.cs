@@ -73,6 +73,7 @@ public sealed class InputValidationTests
         byte skill = host.All<S2C_MatchStart>().Single().SkillId;
 
         // Spawn (5,26) is 5.1 m from terminal 0; walk to (10,26) with valid input.
+        server.PlaceForTests(hostId,5,26);
         uint seq = 1;
         for (int i = 0; i < 25; i++)
         {

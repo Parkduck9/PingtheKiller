@@ -101,15 +101,16 @@ public sealed class IndistinguishabilityTests
     [Fact]
     public void PhantomTracksMatchRealNormalSignalTracksInSpeedStillnessAndTail()
     {
-        var terminals = new[] { (10f, 25f), (28f, 12f), (49f, 25f), (12f, 49f), (30f, 52f), (50f, 42f) };
+        var terminals = new PingTheKiller.ServerCore.Map.FixedMap().TerminalPositions.Select(p => (p.X,p.Z)).ToArray();
         var tracks = new List<Track>();
         foreach (int seed in new[] { 1, 40, 80, 120, 160, 200 }) tracks.AddRange(Record(seed));
         var usable = tracks.Where(t => !t.Lagging && !t.Excluded && !t.Truncated && t.Live.Count >= 2).ToList();
         bool StillAway(Track t, int k) => Step(t, k) < 0.01f &&
             terminals.All(c => MathF.Sqrt((t.Live[k].X - c.Item1) * (t.Live[k].X - c.Item1) + (t.Live[k].Z - c.Item2) * (t.Live[k].Z - c.Item2)) > GameConstants.TerminalRadius);
+        // Quantize below 1 mm/s: coordinate ULPs vary across the larger map and must not split identical 4 m/s steps in KS.
         var features = new (string Name, Func<Track, double> Value, bool Gated)[]
         {
-            ("speed m/s (median step)", t => Median(Enumerable.Range(1, t.Live.Count - 1).Select(k => (double)Step(t, k) * GameConstants.TickRate).ToList()), true),
+            ("speed m/s (median step)", t => Median(Enumerable.Range(1, t.Live.Count - 1).Select(k => Math.Round((double)Step(t, k) * GameConstants.TickRate, 3)).ToList()), true),
             ("still-away steps before the final frame", t => Enumerable.Range(1, t.Live.Count - 2).Count(k => StillAway(t, k)), true),
             ("afterimage tail ticks", t => t.Tail, true),
             ("mean speed m/s", t => Enumerable.Range(1, t.Live.Count - 1).Average(k => Step(t, k)) * GameConstants.TickRate, false),

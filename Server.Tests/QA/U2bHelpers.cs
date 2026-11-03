@@ -169,7 +169,7 @@ internal sealed class QaRig : IDisposable
     internal void OpenExitWithTwo()
     {
         Assert.Equal(2, S.Length);
-        foreach (var (tx, tz) in new[] { (10f, 25f), (28f, 12f) })
+        foreach (var (tx, tz) in Server.Map.TerminalPositions.Take(3).Select(t => (t.X,t.Z)))
         {
             Place(S[0], tx - 0.5f, tz + 0.5f);
             Place(S[1], tx + 0.5f, tz + 0.5f);

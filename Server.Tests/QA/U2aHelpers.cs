@@ -104,6 +104,7 @@ internal sealed class QaFixture : IDisposable
         Tick();
         Assert.Equal((byte)Role.Killer, killer.Last<S2C_MatchStart>().Role);
         Assert.Equal((byte)Role.Survivor, survivor.Last<S2C_MatchStart>().Role);
+        Server.PlaceForTests(killer.Id,5,5); Server.PlaceForTests(survivor.Id,5,26); Tick();
         return (killer, survivor);
     }
 

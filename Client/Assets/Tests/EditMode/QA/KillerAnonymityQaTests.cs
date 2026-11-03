@@ -20,8 +20,10 @@ namespace PingTheKiller.Client.QA.Tests
     [Category("U4cQaA1")]
     public sealed class KillerAnonymityQaTests
     {
-        private const float KillerX = 10, KillerZ = 23;
-        // Killer at (10, 23) looking +x (yaw 90). The wall x 18..20, z 14..32 of FixedMap stands in front of it.
+        // Killer at (10, 23) looking +x (yaw 90); the wall x 18..20, z 14..32 stands in front of it. Those are the legacy 60 m
+        // numbers: KillerRoom lays the scene on the 80 m map (Killer 8 m west of the building Walls[11], see QaSupport.cs).
+        private static float KillerX => KillerRoom.X;
+        private static float KillerZ => KillerRoom.Z;
         private static readonly ViewPose Pose = new ViewPose(new Vector3(KillerX, KillerViewRig.EyeHeight, KillerZ), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
         private static readonly List<(float x, float z)> Terminals = new List<(float x, float z)> { (10, 25), (28, 12) };
 
@@ -36,7 +38,7 @@ namespace PingTheKiller.Client.QA.Tests
         private static List<Spec> Truth(uint tick)
         {
             float s = tick * .1f;
-            return new List<Spec>
+            var legacy = new List<Spec>
             {
                 new Spec { X = 15, Z = 20 + s * .3f, Status = (byte)PlayerStatus.Normal },        // in view
                 new Spec { X = 26, Z = 22 + s * .5f, Status = (byte)PlayerStatus.Normal },        // behind the wall
@@ -45,6 +47,13 @@ namespace PingTheKiller.Client.QA.Tests
                 new Spec { X = 32, Z = 27 + s * .3f, Status = (byte)PlayerStatus.Normal },        // behind the wall, far
                 new Spec { X = 10, Z = 10 + s * .4f, Status = (byte)PlayerStatus.Normal },        // to the right, off-screen
             };
+            for (int i = 0; i < legacy.Count; i++)
+            {
+                Spec spec = legacy[i];
+                spec.X = KillerRoom.MapX(spec.X); spec.Z = KillerRoom.MapZ(spec.Z);
+                legacy[i] = spec;
+            }
+            return legacy;
         }
 
         private static void Shuffle<T>(IList<T> list, System.Random rng)

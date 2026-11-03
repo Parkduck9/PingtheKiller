@@ -285,13 +285,14 @@ namespace PingTheKiller.Client.QA.Tests
         public void InViewAndOccludedInstancesNeverTakeAnEdgeSlotAndFewerThanSixAllShow()
         {
             var scene = new KillerScene(new System.Random(9), null);
-            var pose = new ViewPose(new Vector3(10, KillerViewRig.EyeHeight, 23), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
+            // Legacy 60 m numbers (Killer at 10,23, wall x 18..20), laid on the 80 m map by KillerRoom.
+            var pose = new ViewPose(new Vector3(KillerRoom.X, KillerViewRig.EyeHeight, KillerRoom.Z), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
             var state = new S2C_WorldState { Tick = 1 };
-            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 23 });
-            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = 15, Z = 21 });   // in view
-            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = 26, Z = 22 });   // behind the wall
-            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = 4, Z = 24 });    // behind the camera
-            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = 3, Z = 27 });    // behind the camera
+            state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Killer, X = KillerRoom.X, Z = KillerRoom.Z });
+            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = KillerRoom.MapX(15), Z = KillerRoom.MapZ(21) });   // in view
+            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = KillerRoom.MapX(26), Z = KillerRoom.MapZ(22) });   // behind the wall
+            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = KillerRoom.MapX(4), Z = KillerRoom.MapZ(24) });    // behind the camera
+            state.Players.Add(new PlayerState { Role = (byte)Role.Survivor, X = KillerRoom.MapX(3), Z = KillerRoom.MapZ(27) });    // behind the camera
             scene.Accept(state, 0);
             IReadOnlyList<BlipView> views = scene.Frame(pose, .05, null);
             int edges = 0;

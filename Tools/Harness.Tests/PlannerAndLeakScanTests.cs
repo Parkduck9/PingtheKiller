@@ -29,7 +29,7 @@ public sealed class PlannerTests
     public void PathGoesAroundTheWallBetweenTwoTerminals()
     {
         var from = new Vector2(10, 25);
-        var to = new Vector2(28, 12);
+        var to = new Vector2(26, 28);
         var path = Planner.PathTo(from, to, Array.Empty<Circle>());
         Assert.NotNull(path);
         Assert.Equal(from, path![0]);
@@ -41,8 +41,8 @@ public sealed class PlannerTests
     [Fact]
     public void PathKeepsOutOfAvoidCircles()
     {
-        var avoid = new[] { new Circle(new Vector2(30, 30), 4) };
-        var path = Planner.PathTo(new Vector2(22, 30), new Vector2(34.5f, 30), avoid);
+        var avoid = new[] { new Circle(new Vector2(48, 20), 4) };
+        var path = Planner.PathTo(new Vector2(42, 20), new Vector2(54.5f, 20), avoid);
         Assert.NotNull(path);
         Assert.True(path!.Count > 2);
         AssertWalkable(path, avoid);
@@ -52,7 +52,7 @@ public sealed class PlannerTests
     [Fact]
     public void PathToNearestFindsTheCheapestPointSatisfyingTheGoal()
     {
-        var a = new Vector2(28, 12);
+        var a = new Vector2(26, 28);
         var path = Planner.PathToNearest(a, p => Vector2.Distance(p, a) >= 9, Array.Empty<Circle>());
         Assert.NotNull(path);
         Assert.InRange(Vector2.Distance(path![^1], a), 9, 9.8f);

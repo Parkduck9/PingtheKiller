@@ -62,7 +62,7 @@ public sealed class HackingTests
         m.Tick(40);
         Assert.Equal(40, Progress(m));
         // Held but out of range (2.24 m from the terminal): no progress, and progress is not lost.
-        m.WalkTo(a, 12, 26, GameConstants.SurvivorSpeed);
+        m.WalkTo(a, 8, 26, GameConstants.SurvivorSpeed);
         a.Send(new C2S_Interact { Active = 1 });
         m.Tick(40);
         Assert.Equal(40, Progress(m));
@@ -99,7 +99,7 @@ public sealed class HackingTests
             var world = peer.Last<S2C_WorldState>();
             Assert.Equal(1, world.ExitOpen);
             Assert.Equal(0, world.ExitLocked);
-            Assert.Equal(2, world.TerminalsRequired);
+            Assert.Equal(3, world.TerminalsRequired);
         }
     }
 }

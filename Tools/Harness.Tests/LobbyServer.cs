@@ -193,10 +193,10 @@ internal sealed class LobbyServer : IAsyncDisposable
                     player = new Player(players.Count + 1);
                     (player.X, player.Z) = (Layout, player.Id) switch
                     {
-                        (SightLayout.Clear, 1) => (12.31579f, 9.75319f),
+                        (SightLayout.Clear, 1) => (5.31579f, 9.75319f),
                         (SightLayout.Clear, 2) => (8.13579f, 20.24681f),
-                        (SightLayout.Blocked, 1) => (25.13579f, 22.75319f),
-                        (SightLayout.Blocked, 2) => (14.13579f, 20.24681f),
+                        (SightLayout.Blocked, 1) => (26.13579f, 22.75319f),
+                        (SightLayout.Blocked, 2) => (8.13579f, 20.24681f),
                         _ => (player.X, player.Z)
                     };
                     players.Add(player);

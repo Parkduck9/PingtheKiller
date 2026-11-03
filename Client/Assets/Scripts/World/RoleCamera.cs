@@ -23,7 +23,7 @@ namespace PingTheKiller.Client.World
             role = value; Yaw = 0;
             orbit.Reset(); eye.Reset();
             camera.nearClipPlane = ViewPose.Near;
-            camera.farClipPlane = 180;
+            camera.farClipPlane = PingTheKiller.ServerCore.Map.FixedMap.Size * 3;
             camera.orthographic = false;
             // Until the first own position arrives the camera waits at the map centre at eye height.
             camera.transform.SetPositionAndRotation(SharedMap.Center + Vector3.up * KillerViewRig.EyeHeight, Quaternion.identity);

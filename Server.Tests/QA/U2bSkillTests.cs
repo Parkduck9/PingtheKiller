@@ -174,7 +174,7 @@ public sealed class U2bSkillTests
         r.SetSkill(r.K, SkillIds.PacketAfterimage);
         r.SetSkill(r.S[0], SkillIds.StealthRelay);
         r.Place(r.K, 3, 3);
-        r.Place(r.S[0], 30, 20);
+        r.Place(r.S[0], 8, 20);
         for (int i = 0; i < 10; i++) { r.S[0].Move(0, 1); r.Tick(); }
         var last = r.KillerSees(r.S[0])!.Value;
         Assert.Equal((byte)PlayerFlags.Signal, last.Flags);
@@ -211,7 +211,7 @@ public sealed class U2bSkillTests
     {
         using var r = new QaRig(1);
         r.SetSkill(r.K, SkillIds.PingScanner); // a different skill: no afterimage
-        r.Place(r.S[0], 30, 20);
+        r.Place(r.S[0], 8, 20);
         for (int i = 0; i < 5; i++) { r.S[0].Move(0, 1); r.Tick(); }
         // U2c migration: without the skill the tail is 0 ticks. The afterimage flag no longer exists, so "no afterimage" is
         // observed as "no survivor entry at all once the 0.15 s Signal hold (3 ticks) is over".
@@ -241,7 +241,7 @@ public sealed class U2bSkillTests
         using var r = new QaRig(2);
         r.SetSkill(r.S[0], SkillIds.DummyPacket);
         r.Place(r.K, 5, 5);
-        r.Place(r.S[0], 14, 10);
+        r.Place(r.S[0], 8, 10);
         r.Place(r.S[1], 30, 10);
         r.Tick(3);
         Assert.Single(r.KW.Players); // everyone silent
@@ -249,7 +249,7 @@ public sealed class U2bSkillTests
         r.Tick();
         var map = new FixedMap();
         var first = Assert.Single(r.KillerSurvivorEntries);
-        Assert.Equal(14f, first.X);
+        Assert.Equal(8f, first.X);
         Assert.Equal(10f, first.Z);
         int visibleFrames = 0, lastVisibleFrame = 0;
         float px = first.X, pz = first.Z;
@@ -281,7 +281,7 @@ public sealed class U2bSkillTests
         var e = Assert.Single(Effects(r.S[1]));
         Assert.Equal(SkillIds.DummyPacket, e.SkillId);
         Assert.Equal(r.S[0].Id, e.CasterId); // survivor-bound effects keep the caster
-        Assert.Equal(14f, e.X);
+        Assert.Equal(8f, e.X);
         Assert.Equal(10f, e.Z);
         Assert.Equal(3f, e.Duration);
     }
@@ -297,7 +297,7 @@ public sealed class U2bSkillTests
         // and nothing is ever shown at the caster's position besides the caster itself.
         using var r = new QaRig(1);
         r.SetSkill(r.S[0], SkillIds.DummyPacket);
-        r.Place(r.S[0], 14, 10);
+        r.Place(r.S[0], 8, 10);
         r.Tick(2);
         r.Use(r.S[0], SkillIds.DummyPacket);
         r.Tick();
@@ -537,8 +537,8 @@ public sealed class U2bSkillTests
                 Assert.Equal(0f, p.StatusTimer);
                 Assert.Equal(0, p.CaptureCount);
                 Assert.True(map.CanStand(p.X, p.Z), $"decoy inside a wall at ({p.X},{p.Z})");
-                Assert.InRange(p.X, 0f, 60f);
-                Assert.InRange(p.Z, 0f, 60f);
+                Assert.InRange(p.X, 0f, FixedMap.Size);
+                Assert.InRange(p.Z, 0f, FixedMap.Size);
             }
             r.Tick();
         }

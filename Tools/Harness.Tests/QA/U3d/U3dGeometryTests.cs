@@ -36,7 +36,7 @@ public sealed class U3dGeometryCaseTests
     public void SegmentThroughAWallIsBlocked() => Check("through", 10, 20, 30, 20, Sight.Blocked, true);
 
     [Fact]
-    public void SegmentThroughTheThinWallFromAboveIsBlocked() => Check("through-thin", 28, 40, 28, 46, Sight.Blocked, true);
+    public void SegmentThroughTheThinWallFromAboveIsBlocked() => Check("through-thin", 26, 34, 26, 44, Sight.Blocked, true);
 
     [Fact]
     public void SegmentEndingInsideAWallIsBlocked() => Check("end-inside", 10, 20, 19, 20, Sight.Blocked, true);
@@ -48,37 +48,37 @@ public sealed class U3dGeometryCaseTests
     public void ASegmentLyingOnWallEdgeIsBlockedByContractAndAmbiguousForTheHarness()
     {
         // along the bottom face z=14 (outside the wall x range too) and along the left face x=18
-        Check("flush-bottom-face", 10, 14, 30, 14, Sight.Ambiguous, true);
-        Check("flush-left-face", 18, 10, 18, 40, Sight.Ambiguous, true);
-        Check("flush-inside-face-span", 18.5, 14, 19.5, 14, Sight.Ambiguous, true);
+        Check("flush-bottom-face", 10, 12, 26, 12, Sight.Ambiguous, true);
+        Check("flush-left-face", 12, 14, 12, 34, Sight.Ambiguous, true);
+        Check("flush-inside-face-span", 18.5, 12, 19.5, 12, Sight.Ambiguous, true);
         Check("flush-boundary-wall", 5, 0, 55, 0, Sight.Ambiguous, true);                 // face of the bottom boundary wall
     }
 
     [Fact]
     public void ASegmentEndingOnAnEdgeIsBlockedByContractAndAmbiguousForTheHarness()
     {
-        Check("end-on-face", 19, 10, 19, 14, Sight.Ambiguous, true);
-        Check("end-on-vertical-face", 10, 20, 18, 20, Sight.Ambiguous, true);
+        Check("end-on-face", 19, 10, 19, 12, Sight.Ambiguous, true);
+        Check("end-on-vertical-face", 10, 20, 12, 20, Sight.Ambiguous, true);
     }
 
     [Fact]
     public void ASegmentTouchingACornerIsBlockedByContractAndAmbiguousForTheHarness()
     {
-        Check("through-corner", 17, 15, 19, 13, Sight.Ambiguous, true);                 // diagonal through (18,14) only
-        Check("end-on-corner", 10, 20, 18, 14, Sight.Ambiguous, true);
-        Check("start-on-corner", 18, 14, 10, 20, Sight.Ambiguous, true);
-        Check("corner-of-corner", 20, 32, 25, 40, Sight.Ambiguous, true);
-        Check("graze-far-corner", 19, 33, 21, 31, Sight.Ambiguous, true);              // passes exactly through (20,32) only
+        Check("through-corner", 11, 13, 13, 11, Sight.Ambiguous, true);                 // diagonal through (18,14) only
+        Check("end-on-corner", 10, 20, 12, 12, Sight.Ambiguous, true);
+        Check("start-on-corner", 12, 12, 10, 20, Sight.Ambiguous, true);
+        Check("corner-of-corner", 24, 12, 26, 10, Sight.Ambiguous, true);
+        Check("graze-far-corner", 23, 11, 25, 13, Sight.Ambiguous, true);              // passes exactly through (20,32) only
     }
 
     [Fact]
     public void AParallelSegmentJustOffAFaceFollowsTheBand()
     {
         // parallel to the face z=14, 0.03 m / 0.06 m outside
-        Check("parallel-0.03", 10, 13.96875, 30, 13.96875, Sight.Ambiguous, false);   // 0.03125 m
-        Check("parallel-0.06", 10, 13.9375, 30, 13.9375, Sight.Clear, false);         // 0.0625 m
-        Check("parallel-0.03-inside", 10, 14.03125, 30, 14.03125, Sight.Ambiguous, true);
-        Check("parallel-0.06-inside", 10, 14.0625, 30, 14.0625, Sight.Blocked, true);
+        Check("parallel-0.03", 10, 11.96875, 30, 11.96875, Sight.Ambiguous, false);   // 0.03125 m
+        Check("parallel-0.06", 10, 11.9375, 30, 11.9375, Sight.Clear, false);         // 0.0625 m
+        Check("parallel-0.03-inside", 10, 12.03125, 30, 12.03125, Sight.Ambiguous, true);
+        Check("parallel-0.06-inside", 10, 12.0625, 30, 12.0625, Sight.Blocked, true);
     }
 
     [Fact]
@@ -86,10 +86,10 @@ public sealed class U3dGeometryCaseTests
     {
         Check("point-open", 5, 5, 5, 5, Sight.Clear, false);
         Check("point-inside-wall", 19, 20, 19, 20, Sight.Blocked, true);
-        Check("point-on-face", 18, 20, 18, 20, Sight.Ambiguous, true);
-        Check("point-on-corner", 18, 14, 18, 14, Sight.Ambiguous, true);
-        Check("point-0.03-off", 17.96875, 20, 17.96875, 20, Sight.Ambiguous, false);
-        Check("point-0.0625-off", 17.9375, 20, 17.9375, 20, Sight.Clear, false);
+        Check("point-on-face", 12, 20, 12, 20, Sight.Ambiguous, true);
+        Check("point-on-corner", 12, 12, 12, 12, Sight.Ambiguous, true);
+        Check("point-0.03-off", 11.96875, 20, 11.96875, 20, Sight.Ambiguous, false);
+        Check("point-0.0625-off", 11.9375, 20, 11.9375, 20, Sight.Clear, false);
     }
 
     [Fact]
@@ -107,19 +107,19 @@ public sealed class U3dGeometryCaseTests
     public void SegmentsTheBandOnEitherSideAreAmbiguousNeverPassOrFail()
     {
         // Distance 0.049 / 0.051 on the Clear side and penetration 0.049 / 0.051 on the Blocked side (non-grid values on purpose).
-        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 14 - 0.049, 30, 14 - 0.049));
-        Assert.Equal(Sight.Clear, LineOfSight.Classify(10, 14 - 0.051, 30, 14 - 0.051));
-        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 14 + 0.049, 30, 14 + 0.049));
-        Assert.Equal(Sight.Blocked, LineOfSight.Classify(10, 14 + 0.051, 30, 14 + 0.051));
+        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 12 - 0.049, 30, 12 - 0.049));
+        Assert.Equal(Sight.Clear, LineOfSight.Classify(10, 12 - 0.051, 30, 12 - 0.051));
+        Assert.Equal(Sight.Ambiguous, LineOfSight.Classify(10, 12 + 0.049, 30, 12 + 0.049));
+        Assert.Equal(Sight.Blocked, LineOfSight.Classify(10, 12 + 0.051, 30, 12 + 0.051));
     }
 
     // Band pairs reach the judge as Ambiguous: counted, no verdict either way, whether the entry is present or absent.
     [Fact]
     public void BandPairsAreCountedAsAmbiguousByTheJudgeEntryPresentOrAbsent()
     {
-        var killer = new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 13.96875f };
+        var killer = new PlayerState { Id = 1, Role = (byte)Role.Killer, X = 10, Z = 11.96875f };
         var entry = killer with { Flags = 0 };
-        var me = new PlayerState { Id = 2, X = 30, Z = 13.96875f };
+        var me = new PlayerState { Id = 2, X = 30, Z = 11.96875f };
         Assert.Equal(SightOutcome.Ambiguous, KillerSight.Judge(new S2C_WorldState { Tick = 3, Players = { me } }, 2, 1, killer).Outcome);
         var with = KillerSight.Judge(new S2C_WorldState { Tick = 3, Players = { me, entry } }, 2, 1, killer);
         Assert.Equal(SightOutcome.Ambiguous, with.Outcome);

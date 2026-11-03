@@ -15,7 +15,7 @@ public sealed class AmbiguousBandH3Tests
         // FixedMap wall corner at (18, 14); (18.07, 14.07) penetrates by 0.07 m
         var (h3, _, _) = await U3dH3Run.RunAsync("penetration-beyond-band",
             new LobbyServer { Layout = SightLayout.Clear },
-            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(18.07f, 14.07f, lenient: false, always: true)(tap));
+            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(12.07f, 12.07f, lenient: false, always: true)(tap));
 
         Assert.False(h3.Passed, $"FALSE PASS: killer entry penetrating wall by 0.07 m passed H3: {h3.Evidence}");
         Assert.Equal(0, h3.Score);
@@ -29,7 +29,7 @@ public sealed class AmbiguousBandH3Tests
         // Harness classifies within [-0.05, 0.05] as Ambiguous and does not fail
         var (h3, _, _) = await U3dH3Run.RunAsync("penetration-inside-band",
             new LobbyServer { Layout = SightLayout.Clear },
-            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(18.03125f, 14.03125f, lenient: false, always: true)(tap));
+            custom: tap => U3dH3KillerAtAWallCornerTests.BrainFor(12.03125f, 12.03125f, lenient: false, always: true)(tap));
 
         Assert.True(h3.Passed, $"FALSE FAIL: ambiguous band penetration failed H3: {h3.Evidence}");
         Assert.Equal(20, h3.Score);
@@ -43,7 +43,8 @@ public sealed class AmbiguousBandOnlyNearWallsH6Tests
 {
     private static Func<SurvCtx, bool> ShowOnlyNearWalls() => c =>
     {
-        bool nearWall = Math.Abs(c.Margin) <= LineOfSight.Band;
+        // Keep the independent reference away from the exact 0.05 boundary, where float rounding can flip either oracle.
+        bool nearWall = Math.Abs(c.Margin) <= LineOfSight.Band - .001;
         if (nearWall && c.EntryIndex < 0 && c.Eligible)
         {
             c.World.Players.Insert(0, c.LegalEntry);

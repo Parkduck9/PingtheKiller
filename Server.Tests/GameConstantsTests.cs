@@ -6,13 +6,13 @@ namespace PingTheKiller.Tests;
 public sealed class GameConstantsTests
 {
     [Theory]
-    [InlineData(1, 2, 4)]
-    [InlineData(2, 2, 4)]
-    [InlineData(3, 3, 5)]
-    [InlineData(4, 3, 5)]
-    [InlineData(5, 3, 5)]
-    [InlineData(6, 4, 6)]
-    [InlineData(7, 4, 6)]
+    [InlineData(1, 3, 5)]
+    [InlineData(2, 3, 5)]
+    [InlineData(3, 4, 7)]
+    [InlineData(4, 4, 7)]
+    [InlineData(5, 4, 7)]
+    [InlineData(6, 5, 8)]
+    [InlineData(7, 5, 8)]
     public void TerminalCountsMatchGdd(int survivors, int expectedRequired, int expectedPlaced)
     {
         GameConstants.TerminalsFor(survivors, out int required, out int placed);

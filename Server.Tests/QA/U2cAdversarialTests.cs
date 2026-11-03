@@ -231,7 +231,7 @@ public sealed class U2cAdversarialTests
         }
         Assert.True(partial > 150, "the survivor view really did show partial progress: " + partial);
         // Two terminals at different progress: still only done / not done for the killer.
-        r.Place(r.S[1], 28.2f, 12.5f);
+        r.Place(r.S[1], 72.2f, 44.5f);
         r.Interact(r.S[1], true);
         r.Tick(60);
         var (_, k2, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.KW));

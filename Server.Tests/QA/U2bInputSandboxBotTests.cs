@@ -406,17 +406,16 @@ public sealed class U2bInputSandboxBotTests
         // Non-vacuity: the bot walks (it also stops for look-around pauses of 1.5-4 s, so well under 300 distinct points is normal).
         Assert.True(tracks[0].Distinct().Count() > 100, $"killer bot barely moved: {tracks[0].Distinct().Count()} distinct positions");
 
-        // Positive control: a moving (visible) survivor is chased.
+        // Positive control in the east open lane, ahead of the initial patrol heading and inside notice range.
         using var c = new BotSet(seed, humanKiller: false, bots: 1);
-        c.Move(c.HumanPlayer, 30, 55);
+        c.Move(c.KillerPlayer!,74,40);
+        c.Move(c.HumanPlayer,70,40);
         c.F.Tick();
-        var start = BotSet.At(c.KillerPlayer!);
-        float d0 = Dist(start, (30, 55));
-        for (int i = 0; i < 100; i++) { c.Human.Move(0, 0.1f); c.F.Tick(); }
-        var near = BotSet.At(c.KillerPlayer!);
-        Assert.True(Dist(near, BotSet.At(c.HumanPlayer)) < d0 - 10, "killer bot did not chase a visible Signal");
+        float initial=Dist(BotSet.At(c.KillerPlayer!),(70,40));
+        for(int i=0;i<100;i++) { c.Human.Move(0,.1f);c.F.Tick(); }
+        float remaining=Dist(BotSet.At(c.KillerPlayer!),BotSet.At(c.HumanPlayer));
+        Assert.True(remaining<initial-2,$"visible target was not approached: {initial} -> {remaining}");
     }
-
     private static float Dist((float X, float Z) a, (float X, float Z) b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
 
     [Fact]

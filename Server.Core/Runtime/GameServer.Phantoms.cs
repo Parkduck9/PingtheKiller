@@ -25,8 +25,7 @@ namespace PingTheKiller.ServerCore
             internal bool Visible;
             internal double LastVisibleAt = double.NegativeInfinity;
             internal float VisibleX, VisibleZ;
-            internal double DetourUntil;
-            internal float DetourX, DetourZ;
+            internal readonly PathFollower Route = new PathFollower();
             // A White Noise walker first follows its landmark segment to the far end; afterwards it heads for terminals.
             internal bool Headed;
             internal float HeadX, HeadZ;
@@ -283,19 +282,10 @@ namespace PingTheKiller.ServerCore
                 if (endBurst) phantom.Pace = PaceHolding;
                 return;
             }
-            if (!Nav.Steer(phantom.X, phantom.Z, goalX, goalZ, out float dx, out float dz)) return;
+            phantom.Route.Direction(Nav, phantom.X, phantom.Z, goalX, goalZ, GameConstants.SurvivorSpeed, _now,
+                out float dx, out float dz);
             float step = GameConstants.SurvivorSpeed * dt;
-            if (_now < phantom.DetourUntil) { dx = phantom.DetourX; dz = phantom.DetourZ; }
             var moved = Map.Move(phantom.X, phantom.Z, dx * step, dz * step);
-            if (DistanceSquared(moved.X, moved.Z, phantom.X, phantom.Z) < (step * BotStuckFraction) * (step * BotStuckFraction))
-            {
-                // Blocked: sidestep for a moment, as a survivor bot does.
-                float side = _decoyRandom.Next(2) == 0 ? 1 : -1;
-                phantom.DetourX = -dz * side;
-                phantom.DetourZ = dx * side;
-                phantom.DetourUntil = _now + 0.5 + _decoyRandom.NextDouble() * 0.5;
-                moved = Map.Move(phantom.X, phantom.Z, phantom.DetourX * step, phantom.DetourZ * step);
-            }
             phantom.X = moved.X;
             phantom.Z = moved.Z;
         }

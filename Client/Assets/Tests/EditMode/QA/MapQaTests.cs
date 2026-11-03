@@ -14,8 +14,17 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheClientDrawsTheServersFixedMapWallForWall()
         {
             var server = new FixedMap();
-            Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(8), "wall count (4 borders + 4 blocks)");
+            Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(16), "wall count (4 borders + 12 buildings, U6b map v2)");
             Assert.That(SharedMap.Map.Walls.Count, Is.EqualTo(server.Walls.Count));
+            Assert.That(SharedMap.Map.Obstacles.Count, Is.EqualTo(12), "obstacle count (U6b map v2)");
+            Assert.That(SharedMap.Map.Obstacles.Count, Is.EqualTo(server.Obstacles.Count));
+            for (int i = 0; i < server.Obstacles.Count; i++)
+            {
+                Assert.That(SharedMap.Map.Obstacles[i].MinX, Is.EqualTo(server.Obstacles[i].MinX), "obstacle " + i + " MinX");
+                Assert.That(SharedMap.Map.Obstacles[i].MinZ, Is.EqualTo(server.Obstacles[i].MinZ), "obstacle " + i + " MinZ");
+                Assert.That(SharedMap.Map.Obstacles[i].MaxX, Is.EqualTo(server.Obstacles[i].MaxX), "obstacle " + i + " MaxX");
+                Assert.That(SharedMap.Map.Obstacles[i].MaxZ, Is.EqualTo(server.Obstacles[i].MaxZ), "obstacle " + i + " MaxZ");
+            }
             for (int i = 0; i < server.Walls.Count; i++)
             {
                 Assert.That(SharedMap.Map.Walls[i].MinX, Is.EqualTo(server.Walls[i].MinX), "wall " + i + " MinX");
@@ -28,20 +37,24 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ExitTerminalsSizeAndCentreAreTheServersValues()
         {
-            Assert.That(FixedMap.Size, Is.EqualTo(60f));
-            Assert.That(SharedMap.Map.Exit.X, Is.EqualTo(58f));
-            Assert.That(SharedMap.Map.Exit.Z, Is.EqualTo(30f));
-            Assert.That(SharedMap.Exit.x, Is.EqualTo(58f));
-            Assert.That(SharedMap.Exit.z, Is.EqualTo(30f));
-            Assert.That(SharedMap.Center.x, Is.EqualTo(30f));
-            Assert.That(SharedMap.Center.z, Is.EqualTo(30f));
+            var server = new FixedMap();
+            Assert.That(FixedMap.Size, Is.EqualTo(80f));
+            Assert.That(SharedMap.Map.Exits.Count, Is.EqualTo(2), "two exits (U6b)");
+            Assert.That(SharedMap.Map.Exit.X, Is.EqualTo(server.Exits[0].X));
+            Assert.That(SharedMap.Map.Exit.Z, Is.EqualTo(server.Exits[0].Z));
+            Assert.That(SharedMap.Exit.x, Is.EqualTo(server.Exits[0].X));
+            Assert.That(SharedMap.Exit.z, Is.EqualTo(server.Exits[0].Z));
+            Assert.That(SharedMap.ExitAt(1).x, Is.EqualTo(server.Exits[1].X));
+            Assert.That(SharedMap.ExitAt(1).z, Is.EqualTo(server.Exits[1].Z));
+            Assert.That(SharedMap.Center.x, Is.EqualTo(40f));
+            Assert.That(SharedMap.Center.z, Is.EqualTo(40f));
             Assert.That(SharedMap.Center.y, Is.EqualTo(0f));
-            Assert.That(SharedMap.Map.TerminalPositions.Count, Is.EqualTo(6), "terminal positions");
-            float[,] expected = { { 10, 25 }, { 28, 12 }, { 49, 25 }, { 12, 49 }, { 30, 52 }, { 50, 42 } };
-            for (int i = 0; i < 6; i++)
+            Assert.That(SharedMap.Map.TerminalPositions.Count, Is.EqualTo(8), "terminal positions (8 placed, U6b)");
+            Assert.That(SharedMap.Map.TerminalPositions.Count, Is.EqualTo(server.TerminalPositions.Count));
+            for (int i = 0; i < server.TerminalPositions.Count; i++)
             {
-                Assert.That(SharedMap.Map.TerminalPositions[i].X, Is.EqualTo(expected[i, 0]), "terminal " + i + " X");
-                Assert.That(SharedMap.Map.TerminalPositions[i].Z, Is.EqualTo(expected[i, 1]), "terminal " + i + " Z");
+                Assert.That(SharedMap.Map.TerminalPositions[i].X, Is.EqualTo(server.TerminalPositions[i].X), "terminal " + i + " X");
+                Assert.That(SharedMap.Map.TerminalPositions[i].Z, Is.EqualTo(server.TerminalPositions[i].Z), "terminal " + i + " Z");
             }
         }
 
@@ -94,6 +107,36 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(source, Does.Contain("SharedMap.Exit"));
             string camera = QaSource.StripComments(QaPaths.ReadScript("World/RoleCamera.cs"));
             Assert.That(camera, Does.Contain("SharedMap.Center"));
+        }
+
+        [Test]
+        public void TheWorldViewAlsoDrawsTheObstaclesAndBothExits()
+        {
+            string source = QaSource.StripComments(WorldSources.ReadAll());
+            Assert.That(source, Does.Contain("map.Obstacles"));
+            Assert.That(source, Does.Contain("SharedMap.ExitAt(1)"));
+        }
+
+        [Test]
+        public void TheKillerRoomFixtureHasTheLegacyWallBetweenTheKillerAndTheSurvivorsBehindIt()
+        {
+            // QA support: the legacy 60 m Killer-view scenes are laid on the 80 m map by KillerRoom; check it keeps their relations.
+            var map = SharedMap.Map;
+            Assert.That(KillerRoom.MapX(18), Is.EqualTo(KillerRoom.Building.MinX), "legacy wall face x 18 is the building's west face");
+            Assert.That(KillerRoom.MapX(20), Is.EqualTo(KillerRoom.Building.MaxX), "legacy wall face x 20 is the building's east face");
+            Assert.That(KillerRoom.Building.MinX - KillerRoom.X, Is.EqualTo(8f), "the wall stands eight metres ahead of the Killer");
+            Assert.That(map.CanStand(KillerRoom.X, KillerRoom.Z), Is.True);
+            foreach (float[] inFront in new[] { new[] { 15f, 20f }, new[] { 14f, 26f }, new[] { 15f, 23f } })
+            {
+                Assert.That(map.CanStand(KillerRoom.MapX(inFront[0]), KillerRoom.MapZ(inFront[1])), Is.True, "in front " + inFront[0] + "," + inFront[1]);
+                Assert.That(MapGeometry.SegmentBlocked(map, KillerRoom.X, KillerRoom.Z, KillerRoom.MapX(inFront[0]), KillerRoom.MapZ(inFront[1])), Is.False);
+            }
+            foreach (float[] behind in new[] { new[] { 26f, 22f }, new[] { 25f, 21f }, new[] { 32f, 27f }, new[] { 26f, 23f } })
+            {
+                Assert.That(map.CanStand(KillerRoom.MapX(behind[0]), KillerRoom.MapZ(behind[1])), Is.True, "behind " + behind[0] + "," + behind[1]);
+                Assert.That(MapGeometry.SegmentBlocked(map, KillerRoom.X, KillerRoom.Z, KillerRoom.MapX(behind[0]), KillerRoom.MapZ(behind[1])), Is.True);
+                Assert.That(MapGeometry.SegmentBlocked(map, KillerRoom.MapX(22), KillerRoom.Z, KillerRoom.MapX(behind[0]), KillerRoom.MapZ(behind[1])), Is.False, "from just past the wall");
+            }
         }
 
         [Test]
