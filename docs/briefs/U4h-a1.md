@@ -1,5 +1,7 @@
 # Brief U4h — attempt 1: World art (walls, floor, terminals, Exit, lighting)
 
+> **Superseded (2026-11-03), not run.** This brief targets the old 60 × 60 four-wall arena. U6b (map v2, 80 × 80 city blocks) replaces that map and owns `WorldProps.cs`. Re-brief world art against the U6b map after U6b merges. Its partial attempt was stopped and discarded.
+
 Implementer: Claude Opus subagent (Codex is unavailable in this session; CLAUDE.md quota-fallback route). It runs **in parallel with U4g (character art)** in a separate git worktree. Read `AGENTS.md`, `docs/ui/SLOP_DEFINITION.md`, and `docs/ui/HUD_SPEC.md` §0.4, §4.3, §4.7, §6.2 (Terminals, Exit) first. Do **not** commit.
 
 ## Goal
