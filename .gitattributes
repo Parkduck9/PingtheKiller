@@ -1,2 +1,45 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Git LFS for binary game assets under the Unity project only.
+# docs/qa screenshots stay in plain git (small QA evidence).
+
+# Images
+Client/Assets/**/*.png filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.tif filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.tiff filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.psd filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.exr filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.hdr filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.bmp filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.gif filter=lfs diff=lfs merge=lfs -text
+
+# Models
+Client/Assets/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.obj filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.blend filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.dae filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.3ds filter=lfs diff=lfs merge=lfs -text
+
+# Audio / video
+Client/Assets/**/*.wav filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.aif filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.aiff filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.flac filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.mov filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.webm filter=lfs diff=lfs merge=lfs -text
+
+# Fonts
+Client/Assets/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.otf filter=lfs diff=lfs merge=lfs -text
+
+# Unity binary-only assets (stay binary even with Force Text serialization)
+Client/Assets/**/LightingData.asset filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.cubemap filter=lfs diff=lfs merge=lfs -text
+Client/Assets/**/*.unitypackage filter=lfs diff=lfs merge=lfs -text
