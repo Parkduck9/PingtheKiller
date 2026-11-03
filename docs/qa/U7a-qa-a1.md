@@ -46,4 +46,4 @@ Tested all 8 screenshots (`720/` and `1080/` for `menu`, `settings-menu`, `play-
   - *Evidence:* `ClientApp.cs:330-335`, `HUD_SPEC.md:709`.
 
 ---
-**Orchestrator note (Claude Opus):** Flash says it reviewed 8 screenshots, but `720/settings-play.png` was never captured; 7 exist. The verdict stands. Follow-up: the Survivor in-match menu (F-01) belongs to a later HUD unit.
+**Orchestrator note (Claude Opus):** All 8 screenshots exist. An earlier note here said one was missing; that was a truncated listing. Follow-up: the Survivor in-match menu (F-01) belongs to a later HUD unit.
