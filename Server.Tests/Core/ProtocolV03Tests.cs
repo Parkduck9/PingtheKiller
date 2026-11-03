@@ -14,8 +14,9 @@ public sealed class ProtocolV03Tests
         Assert.Equal((ushort)0x0010, (ushort)PacketId.S2C_SelfState);
         var packet = new S2C_SelfState { SkillCooldown = 7.25f, RescueProgress = 0.5f, InvulnerableLeft = 1.95f, ExecutionGraceLeft = float.Epsilon };
         byte[] frame = PacketCodec.Encode(packet);
-        Assert.Equal(4 + 2 + 16, frame.Length);
-        Assert.Equal(new byte[] { 18, 0, 0, 0, 0x10, 0 }, frame.Take(6));
+        // v0.4 appends CollapseLeft, ActionProgress (floats) and ActionKind (byte): 25 bytes.
+        Assert.Equal(4 + 2 + 25, frame.Length);
+        Assert.Equal(new byte[] { 27, 0, 0, 0, 0x10, 0 }, frame.Take(6));
         Assert.Equal(BitConverter.GetBytes(7.25f), frame.Skip(6).Take(4));
         Assert.Equal(BitConverter.GetBytes(float.Epsilon), frame.Skip(18).Take(4));
         var decoded = Assert.IsType<S2C_SelfState>(PacketCodec.Decode(0x0010, frame.AsSpan(6)));
@@ -23,9 +24,10 @@ public sealed class ProtocolV03Tests
         Assert.Equal(0.5f, decoded.RescueProgress);
         Assert.Equal(1.95f, decoded.InvulnerableLeft);
         Assert.Equal(float.Epsilon, decoded.ExecutionGraceLeft);
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, frame.AsSpan(6, 15)));
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, new byte[17]));
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0011, Array.Empty<byte>()));
+        Assert.Equal(-1f, decoded.CollapseLeft);
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, frame.AsSpan(6, 24)));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, new byte[26]));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0014, Array.Empty<byte>()));
     }
 
     [Fact]
@@ -131,7 +133,7 @@ public sealed class ProtocolV03Tests
         foreach (var peer in m.Survivors) Assert.All(Selves(peer), s => Assert.Equal(0f, s.ExecutionGraceLeft));
     }
 
-    // A full 600 s match (sandbox rules end only on time) with a peer that drains once per second, as a slow client
+    // A full 900 s match (sandbox rules end only on time) with a peer that drains once per second, as a slow client
     // would: the connection is never closed for a full queue, and SelfState stays near the 1 Hz refresh.
     [Fact]
     public void ATenMinuteMatchStaysFarBelowTheReceiveQueueCap()
@@ -141,7 +143,7 @@ public sealed class ProtocolV03Tests
         human.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Survivor });
         human.Send(new C2S_StartMatch());
         int worlds = 0, selves = 0, results = 0, maxBacklog = 0;
-        for (int tick = 0; tick < 12100 && results == 0; tick++)
+        for (int tick = 0; tick < 18100 && results == 0; tick++)
         {
             f.Tick();
             if (tick % 20 != 19) continue;
@@ -156,8 +158,8 @@ public sealed class ProtocolV03Tests
         results += human.Packets.OfType<S2C_GameResult>().Count();
         Assert.False(human.Connection.IsClosed);
         Assert.Equal(1, results);
-        Assert.InRange(worlds, 11990, 12001);
-        Assert.InRange(selves, 600, 620);
+        Assert.InRange(worlds, 17990, 18001);
+        Assert.InRange(selves, 900, 930);
         Assert.InRange(maxBacklog, 20, 50);
     }
 
@@ -192,23 +194,18 @@ public sealed class ProtocolV03Tests
     }
 
     [Fact]
-    public void ExecutionGraceLeftIsTheKillersOnlyAndCoversTheNearestLaggingSurvivorWithinThreeMetres()
+    // GDD v2 §4 (2026-11-03): no execution, so the field is deprecated and always 0 for everyone, next to a fresh capture too.
+    public void ExecutionGraceLeftIsDeprecatedAndAlwaysZero()
     {
         // Two survivors: the second stays Normal, so the capture does not end the match.
         using var m = RulesMatch.Start(2);
         var a = m[0];
         m.WalkTo(m.Killer, 5, 25, GameConstants.KillerSpeed); // capture tick
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(a).Status);
-        Assert.Equal(2f, Now(m.Killer).ExecutionGraceLeft, 3);
         m.Tick(10);
-        Assert.Equal(1.5f, Now(m.Killer).ExecutionGraceLeft, 3);
-        // 3.1 m away: no guidance; back within 3 m: the grace again.
-        m.WalkTo(m.Killer, 5, 22.9f, GameConstants.KillerSpeed);
-        Assert.Equal(0f, Now(m.Killer).ExecutionGraceLeft);
         m.WalkTo(m.Killer, 5, 23.1f, GameConstants.KillerSpeed);
-        Assert.True(Now(m.Killer).ExecutionGraceLeft > 0);
         m.Tick(40);
-        Assert.Equal(0f, Now(m.Killer).ExecutionGraceLeft);
+        Assert.All(Selves(m.Killer), s => Assert.Equal(0f, s.ExecutionGraceLeft));
         Assert.All(Selves(a), s => Assert.Equal(0f, s.ExecutionGraceLeft));
     }
 
@@ -219,13 +216,13 @@ public sealed class ProtocolV03Tests
         var a = m[0];
         m.WalkTo(a, 9.5f, 25.5f, GameConstants.SurvivorSpeed);
         a.Send(new C2S_Interact { Active = 1 });
-        for (int tick = 0; tick < 201; tick++)
+        for (int tick = 0; tick < 901; tick++)
         {
             m.Tick();
             byte exact = a.Last<S2C_WorldState>().Terminals[0].Progress;
             byte killer = m.Killer.Last<S2C_WorldState>().Terminals[0].Progress;
             Assert.Equal(exact >= 100 ? 100 : 0, killer);
-            if (tick == 100) Assert.InRange(exact, 50, 51);
+            if (tick == 450) Assert.InRange(exact, 50, 51);
         }
         Assert.Equal(100, m.Killer.Last<S2C_WorldState>().Terminals[0].Progress);
         Assert.All(m.Killer.All<S2C_WorldState>().SelectMany(w => w.Terminals), t => Assert.True(t.Progress == 0 || t.Progress == 100));

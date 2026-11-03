@@ -33,7 +33,7 @@ public sealed class MatchLengthTests
         var run = new MatchRun();
         int lastCompleted = 0;
         var timeline = new System.Text.StringBuilder();
-        while (run.Result == null && run.Ticks <= 12001)
+        while (run.Result == null && run.Ticks <= 18001)
         {
             f.Tick();
             ++run.Ticks;
@@ -81,9 +81,10 @@ public sealed class MatchLengthTests
             var run = Run(seed, humanRole);
             lengths.Add(run.Ticks / 20.0);
             _output.WriteLine($"seed {seed}: {run.Ticks / 20.0:0.0}s winner={(Role)run.Result!.WinnerRole} reason={(GameEndReason)run.Result.Reason} terminals {run.Completed}/{run.Required}{run.Timeline} end [{run.End}]");
-            // No stall: an idle killer always loses to the bots; a time-out only happens when the last Normal survivor
-            // is the idle (hidden) human, never a bot standing around.
-            if (humanRole == RoleChoice.Killer) Assert.Equal((byte)GameEndReason.SurvivorEscaped, run.Result.Reason);
+            // No stall: an idle killer always loses to the bots (GDD v2: they escape one by one; a straggler may still be
+            // caught by the collapse); a time-out only happens when the last Normal survivor is the idle (hidden) human.
+            if (humanRole == RoleChoice.Killer) Assert.Equal((byte)Role.Survivor, run.Result.WinnerRole);
+            if (humanRole == RoleChoice.Killer) Assert.NotEqual((byte)GameEndReason.TimeUp, run.Result.Reason);
             if (run.Result.Reason == (byte)GameEndReason.TimeUp && run.End.Contains("b:N"))
             {
                 ++botTimeouts;
@@ -92,9 +93,12 @@ public sealed class MatchLengthTests
         }
         double median = Median(lengths);
         _output.WriteLine($"median {median:0.0}s, time-outs with a Normal bot {botTimeouts}");
-        Assert.True(botTimeouts <= 2, $"time-outs with a Normal bot {botTimeouts} of 15");
+        // U6a gate under GDD v2: at most 6 of 15 time-ups (raised from 4 by the orchestrator in U6a attempt 2: without
+        // Lagging executions survivors live longer and more matches reach the limit). U6d sets the tuned v2 targets.
+        Assert.True(botTimeouts <= 6, $"time-outs with a Normal bot {botTimeouts} of 15");
         Assert.True(median >= floor, $"median match length {median:0.0}s");
-        if (humanRole == RoleChoice.Killer) Assert.True(median <= 360, $"median match length {median:0.0}s");
+        // GDD v2: the U2d 360 s ceiling no longer applies (45 s terminals, 15 s switch); U6d sets the v2 length targets.
+        if (humanRole == RoleChoice.Killer) Assert.True(median <= GameConstants.MatchLengthSeconds, $"median match length {median:0.0}s");
     }
 
     // Seeded reproduction of the 3/4 stall (killer-bot mode, private seeds 3 and 5 before U2c): survivor bots were

@@ -168,11 +168,35 @@ namespace PingTheKiller.ServerCore
             float killerDistance = fresh ? Distance(view.X, view.Z, _killerX, _killerZ) : float.MaxValue;
             bool exposed = t - _exposedAt <= ExposedWindow;
 
-            // The exit is open: head there, unless the killer is in sight close by (then the usual danger rules apply).
-            bool exitRun = view.ExitOpen && !(view.KillerVisible && killerDistance <= ExitCaution);
-            if (exitRun && t >= _fleeUntil)
+            // An exit is open: head for the nearest open one, unless the killer is in sight close by and moving (then the
+            // usual danger rules apply; a killer standing still would otherwise freeze the bot until the collapse ends it).
+            // The same caution holds for the hatch and for the exit switch duty.
+            bool cautious = view.KillerVisible && killerDistance <= ExitCaution && _killerMoving;
+            int open = NearestExit(view, true);
+            if (open >= 0 && !cautious && t >= _fleeUntil)
             {
-                Plan(view.Exit.X, view.Exit.Z, 0, false);
+                Plan(view.Exits[open].X, view.Exits[open].Z, 0, false);
+                return;
+            }
+            // The last survivor in play goes for a hatch it can see and presses Interact on it.
+            if (view.HatchVisible && LastInPlay(view) && !cautious && t >= _fleeUntil)
+            {
+                if (Distance(view.X, view.Z, view.HatchX, view.HatchZ) <= HatchStop + 0.05f) _mode = ModeHack;
+                else Plan(view.HatchX, view.HatchZ, HatchStop, true);
+                return;
+            }
+            // Powered exits: the Normal survivor nearest to an unopened switch holds it; the others carry on.
+            int duty = SwitchDuty(view);
+            if (duty >= 0 && !cautious && t >= _fleeUntil)
+            {
+                var exit = view.Exits[duty];
+                _terminal = -1;
+                if (Distance(view.X, view.Z, exit.SwitchX, exit.SwitchZ) <= SwitchStop + 0.05f)
+                {
+                    if (_mode != ModeHack) _coverHack = true;
+                    _mode = ModeHack;
+                }
+                else Plan(exit.SwitchX, exit.SwitchZ, SwitchStop, true);
                 return;
             }
             if (t < _fleeUntil)
@@ -265,6 +289,58 @@ namespace PingTheKiller.ServerCore
                 _mode = ModeHack;
             }
             else Plan(view.Terminals[terminal].X, view.Terminals[terminal].Z, HackStopDistance, true);
+        }
+
+        private const float SwitchStop = GameConstants.ExitSwitchRadius - 0.5f;
+        private const float HatchStop = GameConstants.HatchRadius - 0.5f;
+
+        // The nearest exit that is open (open = true) or powered and not yet open (open = false); -1 when none.
+        private static int NearestExit(SurvivorBotView view, bool open)
+        {
+            int nearest = -1;
+            float best = float.MaxValue;
+            for (int i = 0; i < view.ExitCount; i++)
+            {
+                var exit = view.Exits[i];
+                if (open ? !exit.Open : !exit.Powered || exit.Open) continue;
+                float distance = open ? Distance(view.X, view.Z, exit.X, exit.Z) : Distance(view.X, view.Z, exit.SwitchX, exit.SwitchZ);
+                if (distance < best) { best = distance; nearest = i; }
+            }
+            return nearest;
+        }
+
+        // No other survivor entry of the WorldState is Normal or Lagging.
+        private static bool LastInPlay(SurvivorBotView view)
+        {
+            foreach (var entry in view.Team)
+                if (entry.Id != view.SelfId && (entry.Status == (byte)PlayerStatus.Normal || entry.Status == (byte)PlayerStatus.Lagging))
+                    return false;
+            return true;
+        }
+
+        // The unopened powered switch this bot should hold: it is the Normal survivor (lowest Id on a tie) closest to any
+        // unopened powered switch. Every bot evaluates the same WorldState, so exactly one takes the duty.
+        private static int SwitchDuty(SurvivorBotView view)
+        {
+            int bestExit = -1, bestId = int.MaxValue;
+            float best = float.MaxValue;
+            for (int i = 0; i < view.ExitCount; i++)
+            {
+                var exit = view.Exits[i];
+                if (!exit.Powered || exit.Open) continue;
+                foreach (var entry in view.Team)
+                {
+                    if (entry.Status != (byte)PlayerStatus.Normal) continue;
+                    float distance = Distance(entry.X, entry.Z, exit.SwitchX, exit.SwitchZ);
+                    if (distance < best - 0.0001f || (Math.Abs(distance - best) <= 0.0001f && entry.Id < bestId))
+                    {
+                        best = distance;
+                        bestId = entry.Id;
+                        bestExit = i;
+                    }
+                }
+            }
+            return bestId == view.SelfId ? bestExit : -1;
         }
 
         private void Plan(float x, float z, float stop, bool hack)

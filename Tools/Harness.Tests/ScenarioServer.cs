@@ -10,7 +10,7 @@ namespace PingTheKiller.Harness.Tests;
 
 internal enum H6Fault
 {
-    None, NoGameResult, DuplicateGameResult, EscapedEmpty, EscapedBoth, EscapedOther, WinnerKiller, ReasonTimeUp,
+    None, NoGameResult, DuplicateGameResult, EscapedEmpty, EscapedLastOnly, EscapedOther, WinnerKiller, ReasonTimeUp,
     LeakSkillEffect, LeakKillerEntry, ExitNeverOpens, NoCapture, NoRescue, ExecuteOnContinuedContact, RearmsInContact, PrematureEnd,
     LeakInUnknownPacket,
     // U3d broken line-of-sight variants (each implies the LineOfSight mode): the entry while blocked, to a spectator, to
@@ -28,6 +28,9 @@ internal enum H6Fault
 internal sealed class ScenarioServer : IAsyncDisposable
 {
     private const float Dt = 1f / GameConstants.TickRate;
+    // The fake hacks a terminal alone in 10 s instead of 45 s: it validates the harness, not the rules
+    // timings, and keeps each H6 run short. Switches use the real 15 s (H6 checks the hold time).
+    private const float FakeHackSeconds = 10f;
 
     private sealed class Player(int id)
     {
@@ -54,13 +57,13 @@ internal sealed class ScenarioServer : IAsyncDisposable
         {
             if (unknownFrames) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x7E, 12, 0x7E));
             Output.Writer.TryWrite(PacketCodec.Encode(packet));
-            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x11, 16, 0x11));
+            if (unknownFrames && packet is S2C_WorldState) Output.Writer.TryWrite(LobbyServer.UnknownFrame(0x21, 16, 0x21));
         }
     }
 
     private readonly FixedMap map = new();
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
-    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(170));
+    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(330)); // GDD v2 H6 budget is 300 s
     private readonly object sync = new();
     private readonly List<Player> players = new();
     private readonly List<Peer> peers = new();
@@ -70,7 +73,11 @@ internal sealed class ScenarioServer : IAsyncDisposable
     private TerminalState[] terminals = Array.Empty<TerminalState>();
     private double[] progress = Array.Empty<double>();
     private byte required, bots, choice = (byte)RoleChoice.Random;
-    private bool started, ended, exitOpen, rescued;
+    private bool started, ended, powered, rescued;
+    private readonly double[] switchSeconds = new double[2];
+    private readonly bool[] exitOpen = new bool[2];
+    private double collapseLeft = -1;
+    private readonly List<int> escapedIds = new();
     private double now;
     private uint tick;
 
@@ -85,7 +92,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
     // U2c killer view: survivor entries with Id 0, Yaw/CaptureCount/StatusTimer 0, Signal-only flags, shuffled per
     // snapshot; terminal Progress quantised to 0 or 100. The killer's own entry keeps its real Id.
     public bool AnonymousKillerView { get; init; }
-    // A well-formed unknown-Id frame (0x7E) before every packet and a 0x11 one (future Id) after every world.
+    // A well-formed unknown-Id frame (0x7E) before every packet and a 0x21 one (future Id) after every world.
     public bool UnknownFrames { get; init; }
     public int AnonymousWorldsSent { get; private set; }
     // U3d/U2e contract: a survivor-bound world carries the killer entry (real Id/Role/X/Z/Yaw/Status, Flags/StatusTimer/
@@ -364,33 +371,48 @@ internal sealed class ScenarioServer : IAsyncDisposable
         for (int i = 0; i < terminals.Length; i++)
         {
             if (hackers[i] > 0)
-                progress[i] = Math.Min(1, progress[i] + Dt / GameConstants.TerminalHackTimeSeconds * Math.Min(hackers[i], GameConstants.MaxCoHackMultiplier) + 1e-9);
+                progress[i] = Math.Min(1, progress[i] + Dt / FakeHackSeconds * GameConstants.CoHackRate(hackers[i]) + 1e-9);
             terminals[i].Progress = (byte)(progress[i] >= 1 ? 100 : Math.Min(99, (int)(progress[i] * 100)));
         }
-        if (terminals.Count(t => t.Progress == 100) >= required && fault != H6Fault.ExitNeverOpens) exitOpen = true;
-        var escaped = new List<int>();
-        if (exitOpen)
-            foreach (var s in Survivors)
-                if (s.Status == PlayerStatus.Normal && Distance(s, map.Exit.X, map.Exit.Z) <= GameConstants.ExitRadius)
-                {
-                    s.Status = PlayerStatus.Escaped;
-                    escaped.Add(s.Id);
-                }
+        if (terminals.Count(t => t.Progress == 100) >= required && fault != H6Fault.ExitNeverOpens) powered = true;
+        // GDD v2 §3: a Normal survivor holding Interact at a powered switch fills it in 15 s (holders do not stack).
+        if (collapseLeft > 0) collapseLeft = Math.Max(0, collapseLeft - Dt);
+        for (int e = 0; e < exitOpen.Length && powered; e++)
+        {
+            if (exitOpen[e]) continue;
+            var point = map.ExitSwitches[e];
+            if (!Survivors.Any(s => s.Interact && s.Status == PlayerStatus.Normal && !s.Hacking &&
+                Distance(s, point.X, point.Z) <= GameConstants.ExitSwitchRadius)) continue;
+            switchSeconds[e] += Dt;
+            if (switchSeconds[e] < GameConstants.ExitSwitchSeconds - 1e-6) continue;
+            exitOpen[e] = true;
+            if (collapseLeft < 0) collapseLeft = GameConstants.CollapseSeconds;
+        }
+        for (int e = 0; e < exitOpen.Length; e++)
+            if (exitOpen[e])
+                foreach (var s in Survivors)
+                    if (s.Status == PlayerStatus.Normal && Distance(s, map.Exits[e].X, map.Exits[e].Z) <= GameConstants.ExitRadius)
+                    {
+                        s.Status = PlayerStatus.Escaped;
+                        escapedIds.Add(s.Id);
+                    }
         // PrematureEnd: a valid SurvivorEscaped result ~1 s after a survivor starts walking after the rescue,
         // long before it reaches the exit.
         foreach (var s in Survivors) s.MovingTicks = rescued && Signal(s) && (s.Dx != 0 || s.Dz != 0) ? s.MovingTicks + 1 : 0;
         if (fault == H6Fault.PrematureEnd && Survivors.FirstOrDefault(s => s.MovingTicks >= 20) is { } early)
         {
             DistanceToExitAtPrematureEnd = Distance(early, map.Exit.X, map.Exit.Z);
-            End(Role.Survivor, GameEndReason.SurvivorEscaped, new List<int> { early.Id });
+            End(Role.Survivor, GameEndReason.AllResolved, new List<int> { early.Id });
             return;
         }
-        if (escaped.Count > 0)
+        // GDD v2 §1: the match ends once nobody is Normal or Lagging; survivors win with at least half escaped.
+        if (Survivors.All(s => s.Status is PlayerStatus.Escaped or PlayerStatus.Eliminated))
         {
-            if (fault == H6Fault.LosToSpectator) Broadcast(); // one world in which the escaper is a spectator
-            End(Role.Survivor, GameEndReason.SurvivorEscaped, escaped);
+            if (fault == H6Fault.LosToSpectator) Broadcast(); // one more world in which the escapers are spectators
+            int count = Survivors.Count();
+            End(escapedIds.Count * 2 >= count ? Role.Survivor : Role.Killer,
+                escapedIds.Count == 0 ? GameEndReason.AllSurvivorsDown : GameEndReason.AllResolved, escapedIds);
         }
-        else if (Survivors.All(s => s.Status != PlayerStatus.Normal)) End(Role.Killer, GameEndReason.AllSurvivorsDown, escaped);
         else Broadcast();
     }
 
@@ -446,8 +468,15 @@ internal sealed class ScenarioServer : IAsyncDisposable
             var world = new S2C_WorldState
             {
                 Tick = tick, TimeLeft = (float)(GameConstants.MatchLengthSeconds - now),
-                ExitOpen = (byte)(exitOpen ? 1 : 0), TerminalsRequired = required, Terminals = terminals.ToList()
+                TerminalsRequired = required, Terminals = terminals.ToList(), CollapseLeft = (float)collapseLeft
             };
+            for (int e = 0; e < exitOpen.Length; e++)
+                world.Exits.Add(new ExitState
+                {
+                    Id = (byte)e, X = map.Exits[e].X, Z = map.Exits[e].Z,
+                    Flags = (byte)((powered ? ExitFlags.Powered : 0) | (exitOpen[e] ? ExitFlags.Open : 0)),
+                    SwitchProgress = (byte)(exitOpen[e] ? 100 : Math.Min(99, (int)(switchSeconds[e] / GameConstants.ExitSwitchSeconds * 100)))
+                });
             if (recipient.Role == Role.Killer)
             {
                 world.Players.Add(State(recipient));
@@ -507,9 +536,9 @@ internal sealed class ScenarioServer : IAsyncDisposable
         var ids = fault switch
         {
             H6Fault.EscapedEmpty => new List<int>(),
-            H6Fault.EscapedBoth => Survivors.Select(s => s.Id).ToList(),
-            H6Fault.EscapedOther => Survivors.Select(s => s.Id).Where(id => !escaped.Contains(id)).ToList(),
-            _ => escaped
+            H6Fault.EscapedLastOnly => escaped.Skip(escaped.Count - 1).ToList(),
+            H6Fault.EscapedOther => escaped.Select((id, i) => i == 0 ? Killer.Id : id).ToList(),
+            _ => escaped.Order().ToList()
         };
         var result = new S2C_GameResult
         {

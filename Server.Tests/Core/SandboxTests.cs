@@ -97,7 +97,7 @@ public sealed class SandboxTests
         using (f)
         {
             // Two survivors on the exit cannot escape: no hacking means the exit never opens, and escape is off.
-            for (int i = 0; i < 11997; i++) // the StartMatch tick is the first of 12000
+            for (int i = 0; i < 17997; i++) // the StartMatch tick is the first of 18000
             {
                 if (i % 20 == 0) UseEverySkill(killer, a, b);
                 if (i < 300) { a.Move(1, 0.1f); b.Move(-0.2f, -1); }
@@ -106,7 +106,7 @@ public sealed class SandboxTests
                 if (i % 1000 == 0) Assert.Empty(a.Packets.OfType<S2C_GameResult>());
             }
             Assert.Empty(killer.All<S2C_GameResult>());
-            Assert.Equal(0, a.Last<S2C_WorldState>().ExitOpen);
+            Assert.False(a.Last<S2C_WorldState>().Powered());
             Assert.All(a.Last<S2C_WorldState>().Players, p => Assert.Equal((byte)PlayerStatus.Normal, p.Status));
             f.Tick();
             var result = Assert.Single(killer.All<S2C_GameResult>());
@@ -127,7 +127,7 @@ public sealed class SandboxTests
         f.Tick();
         bool botsMoved = false;
         float firstX = float.NaN;
-        for (int i = 0; i < 11998; i++) // the StartMatch tick is the first of 12000
+        for (int i = 0; i < 17998; i++) // the StartMatch tick is the first of 18000
         {
             if (i % 40 < 20) human.Move(1, 0); else human.Move(-1, 0); // a visible target for the killer bot
             f.Tick();

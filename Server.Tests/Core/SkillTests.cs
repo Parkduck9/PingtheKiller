@@ -268,11 +268,13 @@ public sealed class SkillTests
         foreach (var survivor in m.Survivors)
             AssertEffect(Assert.Single(survivor.All<S2C_SkillEffect>()), a.Id, SkillIds.EmergencyRestore, 10, 26, 0);
         Assert.Empty(m.Killer.All<S2C_SkillEffect>());
-        // Same result as a 3 s rescue: two seconds of protection from the killer standing 1 m away.
+        // Same result as a 3 s rescue: two seconds of protection from the killer standing 1 m away, then the second
+        // capture (GDD v2 §4: Lagging again with the 30 s timer).
         m.Tick(39);
         Assert.Equal((byte)PlayerStatus.Normal, m.Truth(b).Status);
         m.Tick();
-        Assert.Equal((byte)PlayerStatus.Eliminated, m.Truth(b).Status);
+        Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(b).Status);
+        Assert.Equal(2, m.Truth(b).CaptureCount);
     }
 
     [Theory]

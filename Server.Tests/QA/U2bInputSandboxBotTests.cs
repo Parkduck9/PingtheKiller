@@ -190,12 +190,12 @@ public sealed class U2bInputSandboxBotTests
                 Assert.Equal(0, p.Flags & ~(byte)PlayerFlags.Signal);
             });
             Assert.All(kw.Terminals, t => Assert.Equal(0, t.Progress));
-            Assert.Equal(0, kw.ExitOpen);
-            Assert.Equal(1, kw.ExitLocked);
+            Assert.False(kw.Powered());
+            Assert.False(kw.AnyOpen());
         }
         for (int i = 0; i < 400; i++) { Spam(); r.Tick(); if (i % 40 == 0) Check(); }
         r.Dt = 1f;
-        while (r.Elapsed < 596)
+        while (r.Elapsed < 896)
         {
             Spam();
             r.Tick();
@@ -203,8 +203,8 @@ public sealed class U2bInputSandboxBotTests
         }
         Check();
         r.Dt = 0.05f;
-        while (!r.K.Has<S2C_GameResult>() && r.Elapsed < 700) { Spam(); r.Tick(); }
-        Assert.InRange(r.Elapsed, 599.9, 600.12); // the match-start tick also counts as match time
+        while (!r.K.Has<S2C_GameResult>() && r.Elapsed < 1000) { Spam(); r.Tick(); }
+        Assert.InRange(r.Elapsed, 899.9, 900.12); // the match-start tick also counts as match time
         r.Tick(100);
         r.K.Drain();
         r.S[0].Drain();
@@ -412,9 +412,16 @@ public sealed class U2bInputSandboxBotTests
         c.Move(c.HumanPlayer,70,40);
         c.F.Tick();
         float initial=Dist(BotSet.At(c.KillerPlayer!),(70,40));
-        for(int i=0;i<100;i++) { c.Human.Move(0,.1f);c.F.Tick(); }
-        float remaining=Dist(BotSet.At(c.KillerPlayer!),BotSet.At(c.HumanPlayer));
-        Assert.True(remaining<initial-2,$"visible target was not approached: {initial} -> {remaining}");
+        // U6a attempt 2 (GDD v2 §4, no execution): once the bot catches the target it leaves to hunt others instead of
+        // camping, so the approach is measured as the closest distance reached (or the capture itself).
+        float remaining=initial; bool caught=false;
+        for(int i=0;i<100&&!caught;i++)
+        {
+            c.Human.Move(0,.1f);c.F.Tick();
+            remaining=MathF.Min(remaining,Dist(BotSet.At(c.KillerPlayer!),BotSet.At(c.HumanPlayer)));
+            caught=(PlayerStatus)Spy.Get(c.HumanPlayer,"Status")!=PlayerStatus.Normal;
+        }
+        Assert.True(caught||remaining<initial-2,$"visible target was not approached: {initial} -> {remaining}");
     }
     private static float Dist((float X, float Z) a, (float X, float Z) b) => MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
 

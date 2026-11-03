@@ -55,7 +55,8 @@ internal static class KillerSight
     // The same frame with the legal killer entry removed, for byte-level checks of everything else.
     internal static S2C_WorldState WithoutKiller(S2C_WorldState w) => new S2C_WorldState
     {
-        Tick = w.Tick, TimeLeft = w.TimeLeft, ThreatLevel = w.ThreatLevel, ExitOpen = w.ExitOpen, ExitLocked = w.ExitLocked,
+        Tick = w.Tick, TimeLeft = w.TimeLeft, ThreatLevel = w.ThreatLevel, CollapseLeft = w.CollapseLeft, Exits = w.Exits.ToList(),
+        HatchVisible = w.HatchVisible, HatchX = w.HatchX, HatchZ = w.HatchZ,
         TerminalsRequired = w.TerminalsRequired, Terminals = w.Terminals.ToList(),
         Players = w.Players.Where(p => p.Role != (byte)Role.Killer).ToList()
     };

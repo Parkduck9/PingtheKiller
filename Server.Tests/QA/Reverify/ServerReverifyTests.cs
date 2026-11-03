@@ -339,17 +339,14 @@ public sealed class ServerReverifyTests
         r.Place(r.S[1], 40, 40); // 30m away
 
         r.MakeLagging(r.S[0]);
-        // Set execution grace on S[0]
-        double now = Spy.Server<double>(r.Server, "_now");
-        Spy.Set(r.P(r.S[0]), "ExecutionGraceUntil", now + 2.0);
 
         r.Tick();
 
-        // 1. Killer's SelfState receives ExecutionGraceLeft > 0 for S[0] within 3m
+        // 1. GDD v2 §4 (2026-11-03): no execution, so the killer's ExecutionGraceLeft is 0 even next to a Lagging survivor
         r.K.Drain();
         var killerSelf = r.K.Packets.OfType<S2C_SelfState>().LastOrDefault();
         Assert.NotNull(killerSelf);
-        Assert.InRange(killerSelf.ExecutionGraceLeft, 1.8f, 2.0f);
+        Assert.Equal(0f, killerSelf.ExecutionGraceLeft);
 
         // 2. Survivor's SelfState NEVER receives ExecutionGraceLeft (always 0)
         r.S[0].Drain();
@@ -374,6 +371,7 @@ public sealed class ServerReverifyTests
         // Set partial progress on terminal 0
         var terminals = Spy.Server<TerminalState[]>(r.Server, "_terminals");
         terminals[0].Progress = 45;
+        Spy.Server<double[]>(r.Server, "_progress")[0] = 45; // v0.4: the byte follows the server-side float progress
 
         r.Tick();
         var kw = r.KW;

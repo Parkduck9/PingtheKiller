@@ -52,7 +52,7 @@ namespace PingTheKiller.ServerCore
                 }
                 finally { BotProbeForTests?.Invoke(bot.Id, false); }
                 ApplyMove(bot, new C2S_MoveInput { DirX = intent.DirX, DirZ = intent.DirZ, Yaw = intent.Yaw, Seq = bot.Seq + 1 });
-                if (bot.Role == Role.Survivor) SetInteract(bot, (byte)(intent.Interact ? 1 : 0));
+                SetInteract(bot, (byte)(intent.Interact ? 1 : 0));
                 if (intent.UseSkill) RequestSkill(bot, bot.Skill);
             }
         }
@@ -89,9 +89,10 @@ namespace PingTheKiller.ServerCore
             Array.Copy(_terminals, view.Terminals, _terminals.Length);
             view.TerminalCount = _terminals.Length;
             view.TerminalsRequired = _terminalsRequired;
-            view.ExitOpen = _exitOpen;
-            view.ExitLocked = ExitBlocked;
-            view.Exit = Map.Exit;
+            view.Exits = FillExits(view.Exits, out view.ExitCount);
+            view.HatchVisible = HatchVisibleTo(bot);
+            view.HatchX = view.HatchVisible ? _hatchX : 0;
+            view.HatchZ = view.HatchVisible ? _hatchZ : 0;
             view.Threat = ThreatFor(bot);
             view.KillerVisible = KillerInSightOf(bot);
             view.KillerX = view.KillerVisible ? _killer.X : 0;
@@ -110,7 +111,6 @@ namespace PingTheKiller.ServerCore
             view.Speed = SpeedAt(bot, _now);
             view.Skill = bot.Skill;
             view.SkillReady = SkillReady(bot);
-            view.ExecutionGraceLeft = SelfStateFor(bot).ExecutionGraceLeft;
             view.Blips.Clear();
             foreach (var entry in _killerView)
                 if (entry.Role == (byte)Role.Survivor)
@@ -119,9 +119,32 @@ namespace PingTheKiller.ServerCore
             for (int i = 0; i < _terminals.Length; i++)
                 view.Terminals[i] = new KillerBotView.Terminal { X = _terminals[i].X, Z = _terminals[i].Z, Done = _terminals[i].Progress >= 100 };
             view.TerminalCount = _terminals.Length;
-            view.ExitOpen = _exitOpen;
-            view.ExitLocked = ExitBlocked;
-            view.Exit = Map.Exit;
+            view.Exits = FillExits(view.Exits, out view.ExitCount);
+            view.HatchVisible = HatchVisibleTo(bot);
+            view.HatchX = view.HatchVisible ? _hatchX : 0;
+            view.HatchZ = view.HatchVisible ? _hatchZ : 0;
+        }
+
+        // The exits exactly as the WorldState carries them (both roles get the same), with the static switch points.
+        private readonly List<ExitState> _exitScratch = new List<ExitState>();
+        private BotExit[] FillExits(BotExit[] exits, out int count)
+        {
+            _exitScratch.Clear();
+            AddExitStates(_exitScratch);
+            count = _exitScratch.Count;
+            if (exits.Length < count) exits = new BotExit[count];
+            for (int i = 0; i < count; i++)
+            {
+                var state = _exitScratch[i];
+                var flags = (ExitFlags)state.Flags;
+                exits[i] = new BotExit
+                {
+                    X = state.X, Z = state.Z, SwitchX = Map.ExitSwitches[i].X, SwitchZ = Map.ExitSwitches[i].Z,
+                    Powered = (flags & ExitFlags.Powered) != 0, Open = (flags & ExitFlags.Open) != 0,
+                    Locked = (flags & ExitFlags.Locked) != 0, Progress = state.SwitchProgress
+                };
+            }
+            return exits;
         }
 
         private int NearestIncompleteTerminal(float x, float z)

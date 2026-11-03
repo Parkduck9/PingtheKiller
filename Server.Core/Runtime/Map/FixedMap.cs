@@ -94,8 +94,20 @@ namespace PingTheKiller.ServerCore.Map
         public IReadOnlyList<MapPoint> Exits { get; } = Array.AsReadOnly(new[]
         { new MapPoint(4, 4), new MapPoint(76, 76) });
         public MapPoint Exit => Exits[0];
+        // GDD v2 §3: one switch per exit (index-aligned), ExitSwitchOffset metres from the exit toward the map centre.
+        public const float ExitSwitchOffset = 4f;
+        public IReadOnlyList<MapPoint> ExitSwitches { get; } = Array.AsReadOnly(new[]
+        { SwitchFor(4, 4), SwitchFor(76, 76) });
+        // Every hatch point is at least 6 m from every exit and switch (MapV2Tests).
         public IReadOnlyList<MapPoint> HatchPoints { get; } = Array.AsReadOnly(new[]
-        { new MapPoint(8, 38), new MapPoint(26, 16), new MapPoint(48, 46), new MapPoint(70, 8), new MapPoint(76, 76) });
+        { new MapPoint(8, 38), new MapPoint(26, 16), new MapPoint(48, 46), new MapPoint(70, 8), new MapPoint(76, 30) });
+
+        private static MapPoint SwitchFor(float x, float z)
+        {
+            float dx = Size / 2 - x, dz = Size / 2 - z;
+            float length = (float)Math.Sqrt(dx * dx + dz * dz);
+            return new MapPoint(x + dx / length * ExitSwitchOffset, z + dz / length * ExitSwitchOffset);
+        }
 
         public TerminalState[] CreateTerminals(int survivors, out byte required)
         {

@@ -50,7 +50,8 @@ namespace PingTheKiller.ServerCore
         private const float WhiteNoiseSpacing = 6f;
         private const float WhiteNoiseTerminalJitter = 1f;
         private const float WhiteNoiseSegmentReach = 4f;
-        private const int WhiteNoiseMaxTerminalPoints = 2;
+        // GDD v2 (45 s hacks): over half of the real Signal tracks are hack bursts, so one to four of the five sit at terminals.
+        private const int WhiteNoiseMinTerminalPoints = 1, WhiteNoiseTerminalPointsSpread = 4;
 
         private readonly List<Phantom> _decoys = new List<Phantom>();
         private readonly List<MapPoint> _landmarks = new List<MapPoint>();
@@ -65,7 +66,7 @@ namespace PingTheKiller.ServerCore
             internal PlayerInfo(Player p, bool exposed)
             {
                 Id = p.Id; IsBot = p.IsBot; Role = p.Role; Status = p.Status; X = p.X; Z = p.Z; Hacking = p.Hacking; Visible = p.Visible;
-                Rescuing = p.Rescuing; Exposed = exposed;
+                Rescuing = p.Rescuing; Exposed = exposed; Switching = p.SwitchExit >= 0;
             }
             internal readonly int Id;
             internal readonly bool IsBot;
@@ -73,6 +74,8 @@ namespace PingTheKiller.ServerCore
             internal readonly PlayerStatus Status;
             internal readonly float X, Z;
             internal readonly bool Hacking, Visible, Rescuing;
+            // Holding an exit switch (GDD v2 §3): Signal while standing still at a known switch point.
+            internal readonly bool Switching;
             // Forced Signal (Ping Scanner, Traffic Overload).
             internal readonly bool Exposed;
         }
@@ -109,8 +112,8 @@ namespace PingTheKiller.ServerCore
         {
             BuildLandmarks();
             var placed = new List<MapPoint>();
-            // One or two of the five sit at terminals, about the share of real Signal tracks that are hack bursts.
-            int terminalPoints = 1 + _decoyRandom.Next(WhiteNoiseMaxTerminalPoints);
+            // About the share of real Signal tracks that are hack bursts sit at terminals.
+            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(WhiteNoiseTerminalPointsSpread);
             for (int i = 0; i < SkillIds.WhiteNoiseSignalCount; i++)
             {
                 bool atTerminal = i < terminalPoints && IncompleteTerminalCount() > 0;
@@ -187,7 +190,7 @@ namespace PingTheKiller.ServerCore
             _landmarks.Clear();
             _segments.Clear();
             foreach (var terminal in _terminals) _landmarks.Add(new MapPoint(terminal.X, terminal.Z));
-            _landmarks.Add(Map.Exit);
+            foreach (var exit in Map.Exits) _landmarks.Add(exit);
             for (int i = 1; i < Map.SpawnPoints.Count; i++) _landmarks.Add(Map.SpawnPoints[i]);
             for (int a = 0; a < _landmarks.Count; a++)
                 for (int b = 0; b < _landmarks.Count; b++)
@@ -252,6 +255,21 @@ namespace PingTheKiller.ServerCore
             }
         }
 
+        // The nearest open exit, or the nearest exit while none is open.
+        private MapPoint NearestExit(float x, float z)
+        {
+            bool anyOpen = AnyExitOpen;
+            var result = Map.Exit;
+            float best = float.MaxValue;
+            for (int i = 0; i < Map.Exits.Count; i++)
+            {
+                if (anyOpen && !_exitOpen[i]) continue;
+                float distance = DistanceSquared(x, z, Map.Exits[i].X, Map.Exits[i].Z);
+                if (distance < best) { best = distance; result = Map.Exits[i]; }
+            }
+            return result;
+        }
+
         private void StepPhantom(Phantom phantom, float dt)
         {
             float goalX, goalZ, stop;
@@ -261,11 +279,12 @@ namespace PingTheKiller.ServerCore
                 DistanceSquared(phantom.X, phantom.Z, phantom.HeadX, phantom.HeadZ) <= BotStopDistance * BotStopDistance)
                 phantom.Headed = false;
             int terminal = NearestIncompleteTerminal(phantom.X, phantom.Z);
-            if (_exitOpen || terminal < 0)
+            if (AnyExitOpen || terminal < 0)
             {
-                // A real escape ends the match, so a phantom never enters the exit: it stops at the edge as if pausing.
-                goalX = Map.Exit.X;
-                goalZ = Map.Exit.Z;
+                // A phantom never enters an exit (a real survivor would escape there): it stops at the edge as if pausing.
+                var exit = NearestExit(phantom.X, phantom.Z);
+                goalX = exit.X;
+                goalZ = exit.Z;
                 stop = GameConstants.ExitRadius + 0.5f;
                 endBurst = true;
             }

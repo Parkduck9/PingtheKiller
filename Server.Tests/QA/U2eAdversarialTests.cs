@@ -217,6 +217,7 @@ public sealed class U2eAdversarialTests
             for (int seed = seed0; seed < 20000; seed++)
             {
                 var f = new QaFixture(seed: seed);
+                f.Server.SyncChecksEnabled = false;
                 var killer = f.Join("Killer");
                 var list = new QaPeer[survivors];
                 for (int i = 0; i < survivors; i++) list[i] = f.Join("S" + i);
@@ -273,9 +274,12 @@ public sealed class U2eAdversarialTests
         Assert.True(entries.Count == 0, $"{ctx}: killer entry without line of sight / spectator (status {self.Status})");
         byte[] frame = PacketCodec.Encode(sw);
         byte[] bx = BitConverter.GetBytes(k.X), bz = BitConverter.GetBytes(k.Z);
-        int legitimatePairs = sw.Terminals.Count(t => Same(t.X,k.X) && Same(t.Z,k.Z)) + sw.Players.Count(p => Same(p.X,k.X) && Same(p.Z,k.Z));
+        int legitimatePairs = sw.Terminals.Count(t => Same(t.X,k.X) && Same(t.Z,k.Z)) + sw.Players.Count(p => Same(p.X,k.X) && Same(p.Z,k.Z)) +
+            sw.Exits.Count(e => Same(e.X,k.X) && Same(e.Z,k.Z)) + (sw.HatchVisible == 1 && Same(sw.HatchX,k.X) && Same(sw.HatchZ,k.Z) ? 1 : 0);
         Assert.True(Count(frame,bx.Concat(bz).ToArray()) <= legitimatePairs, $"{ctx}: killer (X,Z) byte pair in the frame");
-        var legit = new HashSet<int> { BitConverter.SingleToInt32Bits(sw.TimeLeft) };
+        var legit = new HashSet<int> { BitConverter.SingleToInt32Bits(sw.TimeLeft), BitConverter.SingleToInt32Bits(sw.CollapseLeft) };
+        foreach (var e in sw.Exits) { legit.Add(BitConverter.SingleToInt32Bits(e.X)); legit.Add(BitConverter.SingleToInt32Bits(e.Z)); }
+        if (sw.HatchVisible == 1) { legit.Add(BitConverter.SingleToInt32Bits(sw.HatchX)); legit.Add(BitConverter.SingleToInt32Bits(sw.HatchZ)); }
         foreach (var t in sw.Terminals) { legit.Add(BitConverter.SingleToInt32Bits(t.X)); legit.Add(BitConverter.SingleToInt32Bits(t.Z)); }
         foreach (var p in sw.Players) { foreach (float f in new[] { p.X, p.Z, p.Yaw, p.StatusTimer }) legit.Add(BitConverter.SingleToInt32Bits(f)); }
         // A coordinate whose four bytes are mostly zeros (2.0f = 00 00 00 40) matches across unrelated field boundaries, so
@@ -283,7 +287,9 @@ public sealed class U2eAdversarialTests
         // and the decoded-entry checks always apply.
         foreach (var (v, bytes) in new[] { (k.X, bx), (k.Z, bz) })
             if (!legit.Contains(BitConverter.SingleToInt32Bits(v)) && bytes.Distinct().Count() >= 3)
-                Assert.True(Count(frame, bytes) == 0, $"{ctx}: killer coordinate {v:R} bytes in the frame");
+                // A match starting inside the header, Tick or TimeLeft (the first 14 bytes) straddles those legit fields
+                // (seen with the v0.4 900 s TimeLeft: Tick high byte 00 + TimeLeft 777.25 = 00 00 50 42 = 52f).
+                Assert.True(Count(frame[14..], bytes) == 0, $"{ctx}: killer coordinate {v:R} bytes in the frame");
         return false;
     }
 
@@ -470,13 +476,20 @@ public sealed class U2eAdversarialTests
             m.Place(b, terminal.X + 0.5f, terminal.Z);
             a.Send(new C2S_Interact { Active = 1 });
             b.Send(new C2S_Interact { Active = 1 });
-            for (int i = 0; i < 400 && m.S[0].World().Terminals[t].Progress < 100; i++) m.Tick();
+            for (int i = 0; i < 1000 && m.S[0].World().Terminals[t].Progress < 100; i++) m.Tick();
             Assert.Equal(100, m.S[0].World().Terminals[t].Progress);
             a.Send(new C2S_Interact { Active = 0 });
             b.Send(new C2S_Interact { Active = 0 });
             m.Tick();
         }
-        Assert.Equal(1, m.S[0].World().ExitOpen);
+        Assert.True(m.S[0].World().Powered());
+        // GDD v2 §3: a holds the switch of exit 0 for 15 s, so that exit opens.
+        var point = Map.ExitSwitches[0];
+        m.Place(a, point.X, point.Z);
+        a.Send(new C2S_Interact { Active = 1 });
+        for (int i = 0; i < 400 && !m.S[0].World().Open(0); i++) m.Tick();
+        a.Send(new C2S_Interact { Active = 0 });
+        Assert.True(m.S[0].World().Open(0));
     }
 
     [Fact]
@@ -499,9 +512,9 @@ public sealed class U2eAdversarialTests
             CheckFrame(m, 2, "far survivor");
             m.Tick();
         }
-        // Back off, wait out the execution grace, touch again: Eliminated.
+        // GDD v2 §4 (2026-11-03): touches never advance a Lagging survivor; back off and let its timers (60 s + 30 s) run out.
         m.Place(m.K, 5, 21);
-        m.Tick(45);
+        for (int i = 0; i < 1900 && m.S[0].Self().Status == (byte)PlayerStatus.Lagging; i++) m.Tick();
         m.Place(m.K, 5, 25.6f);
         m.Tick();
         Assert.Equal((byte)PlayerStatus.Eliminated, m.S[0].Self().Status);
@@ -649,6 +662,8 @@ public sealed class U2eAdversarialTests
         m.Place(m.S[1], 40, 8);
         m.Tick(2);
         OpenExitWith(m, m.S[0], m.S[1]);
+        // GDD v2 §3: Firewall Block needs an unopened exit whose switch has progress; exit 0 is open, so exit 1 gets 1 s.
+        Spy.Server<double[]>(m.F.Server, "_switchSeconds")[1] = 1;
         m.Place(m.S[0], 5, 26);
         m.Place(m.S[1], 40, 8);
         int mark0 = m.S[0].Mark(), mark1 = m.S[1].Mark();

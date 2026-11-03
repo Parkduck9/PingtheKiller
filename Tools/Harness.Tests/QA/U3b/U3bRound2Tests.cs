@@ -22,39 +22,39 @@ public sealed class U3bControlGraceOnTests
 }
 
 // OLD literal rule: contact executes on the next tick. H6 must fail inside the 2 s hold.
-public sealed class U3bOldLiteralRuleTests() : U3bBrokenFake(() => new Knobs { ExecuteOnContinuedContact = true }, TimeSpan.FromSeconds(90),
+public sealed class U3bOldLiteralRuleTests() : U3bBrokenFake(() => new Knobs { ExecuteOnContinuedContact = true }, TimeSpan.FromSeconds(240),
     "[capture:", "player 2 has status 3");
 
 public sealed class U3bOldLiteralRuleWithGraceTests() : U3bBrokenFake(() => new Knobs { ExecuteOnContinuedContact = true, ExecutionGraceSeconds = 2 },
-    TimeSpan.FromSeconds(90), "[capture:");
+    TimeSpan.FromSeconds(240), "[capture:");
 
 // Re-arms while still touching: executes 2 ticks after the capture (grace off) ...
-public sealed class U3bRearmsInContactTests() : U3bBrokenFake(() => new Knobs { RearmsInContact = true }, TimeSpan.FromSeconds(90),
+public sealed class U3bRearmsInContactTests() : U3bBrokenFake(() => new Knobs { RearmsInContact = true }, TimeSpan.FromSeconds(240),
     "[capture:", "player 2 has status 3");
 
 // ... or right after the 2 s grace ends (grace on): H6 must not depend on the grace to catch it.
 public sealed class U3bRearmsInContactWithGraceTests() : U3bBrokenFake(() => new Knobs { RearmsInContact = true, ExecutionGraceSeconds = 2 },
-    TimeSpan.FromSeconds(120), "player 2 has status 3");
+    TimeSpan.FromSeconds(270), "player 2 has status 3");
 
 // Probes of the 2 s hold: a server executing after 1 s / 1.5 s of continuous contact must fail ...
 public sealed class U3bExecutesAfterOneSecondContactTests() : U3bBrokenFake(() => new Knobs { ExecuteAfterContactSeconds = 1.0f },
-    TimeSpan.FromSeconds(90), "[capture:", "player 2 has status 3");
+    TimeSpan.FromSeconds(240), "[capture:", "player 2 has status 3");
 
 public sealed class U3bExecutesAfterOnePointNineSecondContactTests() : U3bBrokenFake(() => new Knobs { ExecuteAfterContactSeconds = 1.9f },
-    TimeSpan.FromSeconds(90), "[capture:", "player 2 has status 3");
+    TimeSpan.FromSeconds(240), "[capture:", "player 2 has status 3");
 
 // ---- F2 re-verification and the per-frame ExitOpen rule ----------------------------------------------------
 
 // Terminals display last tick's progress while the exit logic is current: the exit is open one frame before the
 // second terminal shows 100. The per-frame rule must catch this inconsistency.
 public sealed class U3bExitOpenOneFrameBeforeProgress100Tests() : U3bBrokenFake(() => new Knobs { ProgressDisplayLagsOneTick = true },
-    TimeSpan.FromSeconds(60), "ExitOpen=1", "exit opened without terminals");
+    TimeSpan.FromSeconds(210), "exits=[", "exit powered without terminals");
 
 // ---- Escape-evidence rule: boundary probes -----------------------------------------------------------------
 
-// A server escaping at 2.6 m (> 2.0 + 0.5 and one tick of travel) must fail.
-public sealed class U3bEscapesAt2Point6mTests() : U3bBrokenFake(() => new Knobs { ExitRadiusOverride = 2.6f }, TimeSpan.FromSeconds(150),
-    "GameResult before escaper reached the exit");
+// A server escaping at 2.6 m must fail. GDD v2: B escapes first and its escaping frame is judged (ExitRadius + 0.25 m).
+public sealed class U3bEscapesAt2Point6mTests() : U3bBrokenFake(() => new Knobs { ExitRadiusOverride = 2.6f }, TimeSpan.FromSeconds(300),
+    "[escape by B]", "outside ExitRadius");
 
 public sealed class U3bKnownLimitEscapeToleranceTests
 {

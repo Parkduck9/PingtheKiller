@@ -25,26 +25,30 @@ public sealed class U1bAdversarialTests
     }
 
     // v0.2 S2C_WorldState payload with one terminal and one player, every enum-ish byte overridable.
-    //   uint Tick, float TimeLeft, byte ThreatLevel, byte ExitOpen, byte ExitLocked, byte TerminalsRequired,
-    //   byte terminalCount, { byte Id, float X, float Z, byte Progress }, byte playerCount,
+    //   v0.4: uint Tick, float TimeLeft, byte ThreatLevel, byte TerminalsRequired, float CollapseLeft,
+    //   byte exitCount, { byte Id, float X, float Z, byte Flags, byte SwitchProgress }, byte HatchVisible,
+    //   byte terminalCount, { byte Id, float X, float Z, byte Progress, byte Flags }, byte playerCount,
     //   { int Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float StatusTimer, byte CaptureCount }
     private static byte[] World(
-        byte threat = 0, byte exitOpen = 0, byte exitLocked = 0, byte terminalsRequired = 2,
-        byte progress = 0, byte role = 0, byte status = 0, byte flags = 0)
+        byte threat = 0, byte exitFlags = 0, byte switchProgress = 0, byte terminalsRequired = 2,
+        byte progress = 0, byte role = 0, byte status = 0, byte flags = 0, byte terminalFlags = 0)
     {
         return Concat(
             Hex("01000000"),                // Tick = 1
             Hex("0000803F"),                // TimeLeft = 1f
-            new[] { threat, exitOpen, exitLocked, terminalsRequired },
+            new[] { threat, terminalsRequired },
+            Hex("000080BF"),                // CollapseLeft = -1f
+            new byte[] { 1, 0 }, Hex("00008040"), Hex("00008040"), new[] { exitFlags, switchProgress }, // exit 0 at (4,4)
+            new byte[] { 0 },               // HatchVisible = 0
             new byte[] { 1 },               // one terminal
-            new byte[] { 5 }, Hex("0000803F"), Hex("00000000"), new[] { progress },
+            new byte[] { 5 }, Hex("0000803F"), Hex("00000000"), new[] { progress, terminalFlags },
             new byte[] { 1 },               // one player
             Le32(7), new[] { role, status }, Hex("0000803F"), Hex("00000040"), Hex("00000000"),
             new[] { flags }, Hex("00000000"), new byte[] { 0 });
     }
 
     // v0.2 S2C_GameResult payload with no escaped ids: byte WinnerRole, byte Reason, byte count.
-    private static byte[] Result(byte winnerRole, byte reason) => new byte[] { winnerRole, reason, 0 };
+    private static byte[] Result(byte winnerRole, byte reason) => new byte[] { winnerRole, reason, 0, 0 };
 
     // v0.2 S2C_LobbyState payload with 8 trivial slots: byte IsOffline, byte HostRoleChoice, byte 8, slots.
     private static byte[] Lobby(byte isOffline, byte hostRoleChoice, byte isBot = 0, byte isHost = 0)
@@ -77,11 +81,12 @@ public sealed class U1bAdversarialTests
     //     Flags Signal|Hacking = 1|8 = 9 -> 09
     //     StatusTimer 0.5f (0x3F000000)  -> 00 00 00 3F
     //     CaptureCount 1                 -> 01
-    // Body = 2 (id) + 48 = 50 = 0x32. Frame = 4 + 50 = 54 bytes.
+    // v0.4: TerminalsRequired is followed by CollapseLeft -1f (0xBF800000), no exits, HatchVisible 0; TerminalState
+    // gains Flags 0. Body = 2 (id) + 53 = 55 = 0x37. Frame = 4 + 55 = 59 bytes.
     private const string WorldGoldenHex =
-        "32000000 0500" +
-        "04030201 0000803F 03 01 00 02" +
-        "01 05 0000803F 00000000 64" +
+        "37000000 0500" +
+        "04030201 0000803F 03 02 000080BF 00 00" +
+        "01 05 0000803F 00000000 64 00" +
         "01 07000000 00 01 0000803F 00000040 000080BF 09 0000003F 01";
 
     [Fact]
@@ -89,7 +94,7 @@ public sealed class U1bAdversarialTests
     {
         var w = new S2C_WorldState
         {
-            Tick = 0x01020304u, TimeLeft = 1f, ThreatLevel = 3, ExitOpen = 1, ExitLocked = 0, TerminalsRequired = 2
+            Tick = 0x01020304u, TimeLeft = 1f, ThreatLevel = 3, TerminalsRequired = 2
         };
         w.Terminals.Add(new TerminalState { Id = 5, X = 1f, Z = 0f, Progress = 100 });
         w.Players.Add(new PlayerState
@@ -98,7 +103,7 @@ public sealed class U1bAdversarialTests
         });
 
         byte[] expected = Hex(WorldGoldenHex);
-        Assert.Equal(54, expected.Length);
+        Assert.Equal(59, expected.Length);
         Assert.Equal(expected, PacketCodec.Encode(w));
     }
 
@@ -109,15 +114,16 @@ public sealed class U1bAdversarialTests
         a.Append(Hex(WorldGoldenHex));
         Assert.Equal(AssembleResult.Packet, a.TryRead(out ushort id, out ReadOnlyMemory<byte> payload));
         Assert.Equal((ushort)5, id);
-        Assert.Equal(48, payload.Length);
+        Assert.Equal(53, payload.Length);
 
         var w = Assert.IsType<S2C_WorldState>(PacketCodec.Decode(id, payload.Span));
         Assert.Equal(0x01020304u, w.Tick);
         Assert.Equal(1f, w.TimeLeft);
         Assert.Equal((byte)3, w.ThreatLevel);
-        Assert.Equal((byte)1, w.ExitOpen);
-        Assert.Equal((byte)0, w.ExitLocked);
         Assert.Equal((byte)2, w.TerminalsRequired);
+        Assert.Equal(-1f, w.CollapseLeft);
+        Assert.Empty(w.Exits);
+        Assert.Equal((byte)0, w.HatchVisible);
         var t = Assert.Single(w.Terminals);
         Assert.Equal((byte)5, t.Id);
         Assert.Equal(1f, t.X);
@@ -141,7 +147,8 @@ public sealed class U1bAdversarialTests
     // WinnerRole 1 (Killer), Reason 2 (TimeUp), count 2, ids 3 and 258 (0x00000102).
     // The wire layer does not enforce winner/reason/escaped consistency, so this combination is legal bytes.
     // Payload = 01 02 02 | 03 00 00 00 | 02 01 00 00 = 11 bytes; body = 13 = 0x0D.
-    private const string ResultGoldenHex = "0D000000 0700 01 02 02 03000000 02010000";
+    // v0.4 appends the EliminatedIds count (0 here).
+    private const string ResultGoldenHex = "0E000000 0700 01 02 02 03000000 02010000 00";
 
     [Fact]
     public void GameResult_TimeUpWithTwoEscapedIds_GoldenFrame_Encodes()
@@ -315,7 +322,8 @@ public sealed class U1bAdversarialTests
     [InlineData(0, true)]
     [InlineData(1, true)]
     [InlineData(2, true)]
-    [InlineData(3, false)]
+    [InlineData(3, true)] // v0.4: Collapse
+    [InlineData(4, false)]
     [InlineData(255, false)]
     public void GameResult_Reason_OnlyDefinedValuesAccepted(byte reason, bool accepted)
     {
@@ -360,8 +368,9 @@ public sealed class U1bAdversarialTests
     {
         var cases = new (ushort Id, byte[] Payload)[]
         {
-            (0x0005, World(exitOpen: value)),
-            (0x0005, World(exitLocked: value)),
+            (0x0005, World(exitFlags: value)),
+            (0x0005, World(switchProgress: value)),
+            (0x0005, World(terminalFlags: value)),
             (0x000A, Lobby(value, 0)),
             (0x000A, Lobby(0, 0, isBot: value)),
             (0x000A, Lobby(0, 0, isHost: value)),
@@ -452,12 +461,12 @@ public sealed class U1bAdversarialTests
         Assert.NotNull(w.Terminals);
         Assert.NotNull(w.Players);
         // Tick 0, TimeLeft 0f, 4 flag bytes 0, terminal count 0, player count 0 = 4+4+4+1+1 = 14; body 16 = 0x10.
-        Assert.Equal(Hex("10000000 0500 00000000 00000000 00000000 00 00"), PacketCodec.Encode(w));
+        Assert.Equal(Hex("14000000 0500 00000000 00000000 00 00 000080BF 00 00 00 00"), PacketCodec.Encode(w));
 
         var g = new S2C_GameResult();
         Assert.NotNull(g.EscapedIds);
         // WinnerRole 0, Reason 0, count 0 -> payload 3; body 5.
-        Assert.Equal(Hex("05000000 0700 00 00 00"), PacketCodec.Encode(g));
+        Assert.Equal(Hex("06000000 0700 00 00 00 00"), PacketCodec.Encode(g));
     }
 
     [Fact]
@@ -575,10 +584,10 @@ public sealed class U1bAdversarialTests
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);           // 3.3: 60 s
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds); // 3.3: 2 s
         Assert.Equal(1.5f, GameConstants.TerminalRadius);                 // 3.4: 1.5 m
-        Assert.Equal(10f, GameConstants.TerminalHackTimeSeconds);         // 3.4: 10 s
-        Assert.Equal(3, GameConstants.MaxCoHackMultiplier);               // 3.4: max 3x
+        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);         // GDD v2 2: 45 s
+        Assert.Equal(2.4f, GameConstants.CoHackRate(3));                  // GDD v2 2: 3 or more 2.4x
         Assert.Equal(2.0f, GameConstants.ExitRadius);                     // 3.5: 2 m
-        Assert.Equal(600f, GameConstants.MatchLengthSeconds);             // 5: 600 s
+        Assert.Equal(900f, GameConstants.MatchLengthSeconds);             // GDD v2 1: 900 s
         Assert.Equal(18f, GameConstants.ThreatLevel1Distance);            // 3.2: 18 m
         Assert.Equal(12f, GameConstants.ThreatLevel2Distance);            // 3.2: 12 m
         Assert.Equal(6f, GameConstants.ThreatLevel3Distance);             // 3.2: 6 m
@@ -608,7 +617,7 @@ public sealed class U1bAdversarialTests
             new[] { (byte)PlayerStatus.Normal, (byte)PlayerStatus.Lagging, (byte)PlayerStatus.Escaped, (byte)PlayerStatus.Eliminated });
         Assert.Equal(4, Enum.GetValues<PlayerStatus>().Length);   // "Frozen" removed
         Assert.Equal(new byte[] { 0, 1, 2 },
-            new[] { (byte)GameEndReason.SurvivorEscaped, (byte)GameEndReason.AllSurvivorsDown, (byte)GameEndReason.TimeUp });
+            new[] { (byte)GameEndReason.AllResolved, (byte)GameEndReason.AllSurvivorsDown, (byte)GameEndReason.TimeUp });
         Assert.Equal(new byte[] { 1, 2, 4, 8, 16 },
             new[] { (byte)PlayerFlags.Signal, (byte)PlayerFlags.Afterimage, (byte)PlayerFlags.Stealthed, (byte)PlayerFlags.Hacking, (byte)PlayerFlags.Rescuing });
     }

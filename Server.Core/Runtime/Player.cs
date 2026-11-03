@@ -1,3 +1,4 @@
+using System;
 using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.ServerCore
@@ -25,10 +26,28 @@ namespace PingTheKiller.ServerCore
         internal double LaggingUntil;
         internal double InvulnerableUntil;
         internal double RescueProgress;
-        internal bool ExecutionArmed;
-        internal double ExecutionGraceUntil;
         internal bool Interacting, Hacking, Rescuing;
         internal double SkillReadyAt;
+        // GDD v2: the terminal hacked and the exit switch held this tick (-1 when none).
+        internal int HackTerminal = -1, SwitchExit = -1;
+        // Killer holds: seconds of the current kick and hatch close; the kicked terminal (-1 when none).
+        internal double KickHeld, HatchHeld;
+        internal int KickTerminal = -1;
+        // Personal collapse clock (GDD v2 §3).
+        internal double CollapseLeft;
+        // Sync checks (GDD v2 §2): seconds of hacking until the next check, and the pending check if any.
+        internal Random SyncRandom;
+        internal double SyncTimer;
+        internal bool SyncPending;
+        internal uint SyncCheckId;
+        internal int SyncTerminal = -1;
+        internal double SyncSentAt;
+        internal float SyncZoneStart;
+        // A survivor bot's planned press instant for the pending check (NaN: it misses).
+        internal double SyncBotPressAt = double.NaN;
+        internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
+        // Smoothed round-trip time used by the sync judge; 0 until a measurement exists.
+        internal double RttSeconds;
         internal double ExposedUntil, StealthUntil;
         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
         // Effective Signal for the current tick and the last position the killer saw (Packet Afterimage).
@@ -75,8 +94,11 @@ namespace PingTheKiller.ServerCore
             Status = PlayerStatus.Normal;
             CaptureCount = 0;
             LaggingUntil = InvulnerableUntil = RescueProgress = 0;
-            ExecutionArmed = false;
             Interacting = Hacking = Rescuing = false;
+            HackTerminal = SwitchExit = KickTerminal = SyncTerminal = -1;
+            KickHeld = HatchHeld = 0;
+            SyncPending = false;
+            SyncBotPressAt = double.NaN;
             SkillReadyAt = now;
             ExposedUntil = StealthUntil = OverclockUntil = RecoveryUntil = SlowedUntil = double.NegativeInfinity;
             Visible = false;
@@ -87,7 +109,6 @@ namespace PingTheKiller.ServerCore
             HasSeq = false;
             Seq = 0;
             InputTimes.Clear();
-            ExecutionGraceUntil = 0;
             SelfSent = null;
             ResetBotPlan();
             HasLastSeen = false;

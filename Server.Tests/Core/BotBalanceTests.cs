@@ -14,8 +14,10 @@ public sealed class BotBalanceTests
 
     public static IEnumerable<object[]> Configs() => new[]
     {
-        // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share
-        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.15 },
+        // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share.
+        // GDD v2 (U6a): the U2d win and length bands are reported only until U6d sets the v2 targets; the gate is that 1v7
+        // all-bot matches end through the rules (at most 30 % time-ups).
+        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.30 },
         new object[] { "1v3", 3, 0.25, 0.75, 120.0, 480.0, 1.0 },
         new object[] { "1v1", 1, 0.20, 0.80, 90.0, 480.0, 1.0 },
         new object[] { "idle killer + 7", 0, 0.90, 1.0, 120.0, 360.0, 1.0 },
@@ -35,10 +37,9 @@ public sealed class BotBalanceTests
         _output.WriteLine(BotBalance.Header);
         _output.WriteLine(summary.Row(config));
         _output.WriteLine($"lagging timeouts per match {summary.LagTimeouts:0.00}; sweep {watch.Elapsed.TotalSeconds:0.0} s");
-        Assert.InRange(summary.WinRate, winMin, winMax);
-        Assert.InRange(summary.Median, medianMin, medianMax);
+        _output.WriteLine($"U2d bands (not gated under GDD v2): win {winMin:P0}-{winMax:P0}, median {medianMin:0}-{medianMax:0} s");
+        Assert.Equal(Seeds, summary.Matches);
         Assert.True(summary.TimeoutRate <= timeoutMax, $"timeouts {summary.TimeoutRate:P0}");
-        if (survivors == 7) Assert.True(summary.RescueShare >= 0.30, $"matches with a rescue {summary.RescueShare:P0}");
     }
 
     // The all-bot hook is deterministic per private seed: the same seed replays the same match.

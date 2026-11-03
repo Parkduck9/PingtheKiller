@@ -204,7 +204,7 @@ namespace PingTheKiller.Client
                     world.Accept(state, received.Time);
                     killerLayer?.Accept(state, received.Time);
                     lastWorld = state;
-                    exitOpen = state.ExitOpen != 0 && state.ExitLocked == 0;
+                    exitOpen = WorldExits.AnyOpen(state);
                     foreach (PlayerState player in state.Players)
                     {
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
@@ -265,7 +265,7 @@ namespace PingTheKiller.Client
         // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server.
         private void Preview(S2C_GameResult result)
         {
-            if (result.Reason == (byte)GameEndReason.SurvivorEscaped && result.EscapedIds.Count == 0)
+            if (result.WinnerRole == (byte)Role.Survivor && result.EscapedIds.Count == 0)
             {
                 if (role == Role.Survivor) result.EscapedIds.Add(playerId);
                 // The Killer client never reads a Survivor entry's Id (HUD_SPEC 6.3), so the preview names lobby slots instead.
@@ -419,7 +419,7 @@ namespace PingTheKiller.Client
             hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now), capture.ReasonText()));
             hud.SetThreat(threatVisual.Effect, threatVisual.StripFraction, threatVisual.Seed);
             hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired,
-                SurvivorReadout.Exit(lastWorld.ExitOpen, lastWorld.ExitLocked), effects.Locked(now));
+                SurvivorReadout.Exit(lastWorld), effects.Locked(now));
             hud.SetSkill(skillId, SurvivorReadout.SkillState(skillId, own.Status, cooldown, restore), cooldown, effects.OwnActive(now), skillId == SkillIds.TrafficOverload);
             hud.SetPrompt(capture.BannerVisible(now) ? CaptureWatch.BannerPrompt
                 : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));

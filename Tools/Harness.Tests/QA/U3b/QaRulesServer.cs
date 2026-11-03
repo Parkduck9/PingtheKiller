@@ -68,6 +68,9 @@ internal sealed class LeakContext
 internal sealed class QaRulesServer : IAsyncDisposable
 {
     private const float Dt = 1f / GameConstants.TickRate;
+    // GDD v2 (U6a): the fake hacks a terminal alone in 10 s (it validates the harness, not the 45 s timing) and uses
+    // the v2 co-hack rates, the 15 s exit switch, per-survivor escape and the v0.4 exit states.
+    private const float FakeHackSeconds = 10f;
 
     private sealed class Player(int id)
     {
@@ -97,7 +100,7 @@ internal sealed class QaRulesServer : IAsyncDisposable
 
     private readonly FixedMap map = new();
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
-    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(175));
+    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(335)); // GDD v2 H6 budget is 300 s
     private readonly object sync = new();
     private readonly List<Player> players = new();
     private readonly List<Peer> peers = new();
@@ -109,7 +112,11 @@ internal sealed class QaRulesServer : IAsyncDisposable
     private double[] progress = Array.Empty<double>();
     private byte[] lastShown = Array.Empty<byte>();
     private byte required, bots, choice = (byte)RoleChoice.Random;
-    private bool started, ended, exitOpen, rescued;
+    private bool started, ended, powered, exitOpen, rescued;
+    private readonly double[] switchSeconds = new double[2];
+    private readonly bool[] open = new bool[2];
+    private readonly List<int> escapedIds = new();
+    private double collapseLeft = -1;
     private int prematureMover;
     private double prematureAt;
     private double now;
@@ -402,32 +409,47 @@ internal sealed class QaRulesServer : IAsyncDisposable
         for (int i = 0; i < terminals.Length; i++)
         {
             if (hackers[i] > 0)
-                progress[i] = Math.Min(1, progress[i] + Dt * knobs.HackRateFactor / GameConstants.TerminalHackTimeSeconds * Math.Min(hackers[i], GameConstants.MaxCoHackMultiplier) + 1e-9);
+                progress[i] = Math.Min(1, progress[i] + Dt * knobs.HackRateFactor / FakeHackSeconds * GameConstants.CoHackRate(hackers[i]) + 1e-9);
             int shown = progress[i] >= 1 ? 100 : Math.Min(99, (int)(progress[i] * 100));
             byte shownByte = (byte)(knobs.ProgressCappedAt99 ? Math.Min(99, shown) : shown);
             terminals[i].Progress = knobs.ProgressDisplayLagsOneTick ? lastShown[i] : shownByte;
             lastShown[i] = shownByte;
         }
-        if (progress.Count(p => p >= 1) >= required) exitOpen = true;
-        if (knobs.ForceExitOpenAtTick >= 0 && tick >= knobs.ForceExitOpenAtTick) exitOpen = true;
-        var escaped = new List<int>();
-        if (exitOpen)
-            foreach (var s in Survivors)
-                if (s.Status == PlayerStatus.Normal && Distance(s, map.Exit.X, map.Exit.Z) <= (knobs.ExitRadiusOverride ?? GameConstants.ExitRadius))
-                {
-                    s.Status = PlayerStatus.Escaped;
-                    escaped.Add(s.Id);
-                }
-        if (knobs.EndWithoutAnyWalk && rescued) { End(Role.Survivor, GameEndReason.SurvivorEscaped, new List<int> { 2 }); return; }
+        if (progress.Count(p => p >= 1) >= required) powered = true;
+        // Forced: exit 0 powered and open without terminals or switch.
+        if (knobs.ForceExitOpenAtTick >= 0 && tick >= knobs.ForceExitOpenAtTick) powered = open[0] = true;
+        if (collapseLeft > 0) collapseLeft = Math.Max(0, collapseLeft - Dt);
+        for (int e = 0; e < open.Length && powered; e++)
+        {
+            if (open[e]) continue;
+            var point = map.ExitSwitches[e];
+            if (!Survivors.Any(s => s.Interact && s.Status == PlayerStatus.Normal && !s.Hacking &&
+                Distance(s, point.X, point.Z) <= GameConstants.ExitSwitchRadius)) continue;
+            switchSeconds[e] += Dt;
+            if (switchSeconds[e] >= GameConstants.ExitSwitchSeconds - 1e-6) open[e] = true;
+        }
+        exitOpen = open.Any(o => o);
+        if (exitOpen && collapseLeft < 0) collapseLeft = GameConstants.CollapseSeconds;
+        for (int e = 0; e < open.Length; e++)
+            if (open[e])
+                foreach (var s in Survivors)
+                    if (s.Status == PlayerStatus.Normal && Distance(s, map.Exits[e].X, map.Exits[e].Z) <= (knobs.ExitRadiusOverride ?? GameConstants.ExitRadius))
+                    {
+                        s.Status = PlayerStatus.Escaped;
+                        escapedIds.Add(s.Id);
+                    }
+        if (knobs.EndWithoutAnyWalk && rescued) { End(Role.Survivor, GameEndReason.AllResolved, new List<int> { 2, 3 }); return; }
         if (prematureMover != 0 && now >= prematureAt)
         {
             var mover = players.First(p => p.Id == prematureMover);
-            DistanceToExitAtPrematureEnd = Distance(mover, map.Exit.X, map.Exit.Z);
-            End(Role.Survivor, GameEndReason.SurvivorEscaped, new List<int> { prematureMover });
+            DistanceToExitAtPrematureEnd = map.Exits.Min(e => Distance(mover, e.X, e.Z));
+            End(Role.Survivor, GameEndReason.AllResolved, new List<int> { 2, 3 });
             return;
         }
-        if (escaped.Count > 0) End(Role.Survivor, GameEndReason.SurvivorEscaped, escaped);
-        else if (Survivors.All(s => s.Status != PlayerStatus.Normal)) End(Role.Killer, GameEndReason.AllSurvivorsDown, escaped);
+        // GDD v2 §1: the match ends once nobody is Normal or Lagging; survivors win with at least half escaped.
+        if (Survivors.All(s => s.Status is PlayerStatus.Escaped or PlayerStatus.Eliminated))
+            End(escapedIds.Count * 2 >= Survivors.Count() ? Role.Survivor : Role.Killer,
+                escapedIds.Count == 0 ? GameEndReason.AllSurvivorsDown : GameEndReason.AllResolved, escapedIds.Order().ToList());
         else Broadcast();
         MaybeClose();
     }
@@ -468,8 +490,15 @@ internal sealed class QaRulesServer : IAsyncDisposable
             var world = new S2C_WorldState
             {
                 Tick = tick, TimeLeft = (float)(GameConstants.MatchLengthSeconds - now),
-                ExitOpen = (byte)(exitOpen ? 1 : 0), TerminalsRequired = required, Terminals = terminals.ToList()
+                TerminalsRequired = required, Terminals = terminals.ToList(), CollapseLeft = (float)collapseLeft
             };
+            for (int e = 0; e < open.Length; e++)
+                world.Exits.Add(new ExitState
+                {
+                    Id = (byte)e, X = map.Exits[e].X, Z = map.Exits[e].Z,
+                    Flags = (byte)((powered ? ExitFlags.Powered : 0) | (open[e] ? ExitFlags.Open : 0)),
+                    SwitchProgress = (byte)(open[e] ? 100 : Math.Min(99, (int)(switchSeconds[e] / GameConstants.ExitSwitchSeconds * 100)))
+                });
             if (recipient.Role == Role.Killer)
             {
                 world.Players.Add(State(recipient));

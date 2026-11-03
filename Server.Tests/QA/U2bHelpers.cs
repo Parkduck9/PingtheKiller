@@ -60,6 +60,8 @@ internal sealed class QaRig : IDisposable
     {
         F = new QaFixture(0, false, seed, sandbox, matchSeed, csprng);
         F.Server.Log += m => { lock (Logs) Logs.Add(m); };
+        // Long hacks in these scenarios are not interrupted by sync checks (an unanswered check costs progress).
+        F.Server.SyncChecksEnabled = false;
         K = F.Join("K");
         S = new QaPeer[survivors];
         for (int i = 0; i < survivors; i++) S[i] = F.Join("S" + i);
@@ -80,7 +82,7 @@ internal sealed class QaRig : IDisposable
     {
         K.Drain();
         int results = K.Packets.Count(p => p is S2C_GameResult);
-        SetMatchTime(599.9);
+        SetMatchTime(899.9);
         Tick(3);
         K.Drain();
         Assert.Equal(results + 1, K.Packets.Count(p => p is S2C_GameResult));
@@ -115,13 +117,24 @@ internal sealed class QaRig : IDisposable
         Spy.Set(p, "Status", (byte)PlayerStatus.Lagging);
         Spy.Set(p, "CaptureCount", (byte)1);
         Spy.Set(p, "LaggingUntil", Spy.Server<double>(Server, "_now") + GameConstants.LaggingTimeoutSeconds);
-        Spy.Set(p, "ExecutionArmed", false);
         Spy.Set(p, "Interacting", false);
         Spy.Set(p, "RescueProgress", 0.0);
     }
+    internal void SetCaptureCount(QaPeer peer, byte count) => Spy.Set(P(peer), "CaptureCount", count);
     internal void SetMatchTime(double seconds) => Spy.SetServer(Server, "_matchTime", seconds);
-    internal void OpenExitFlag() => Spy.SetServer(Server, "_exitOpen", true);
-    internal bool ExitOpenFlag => Spy.Server<bool>(Server, "_exitOpen");
+    // GDD v2: both exits powered and exit 0 (4,4) open, as if its switch had been held for 15 s.
+    internal void OpenExitFlag()
+    {
+        Spy.SetServer(Server, "_powered", true);
+        Spy.Server<bool[]>(Server, "_exitOpen")[0] = true;
+    }
+    internal bool ExitOpenFlag => Spy.Server<bool[]>(Server, "_exitOpen")[0];
+    // GDD v2: both exits powered and the switch of exit 0 at 1 s of progress, so Firewall Block has a target.
+    internal void ArmFirewall()
+    {
+        Spy.SetServer(Server, "_powered", true);
+        Spy.Server<double[]>(Server, "_switchSeconds")[0] = 1;
+    }
     internal void Use(QaPeer peer, byte skill) => peer.Send(new C2S_UseSkill { SkillId = skill });
     internal void Interact(QaPeer peer, bool on) => peer.Send(new C2S_Interact { Active = (byte)(on ? 1 : 0) });
 
@@ -175,12 +188,12 @@ internal sealed class QaRig : IDisposable
             Place(S[1], tx + 0.5f, tz + 0.5f);
             Interact(S[0], true);
             Interact(S[1], true);
-            Tick(104);
+            Tick(504);
         }
         Interact(S[0], false);
         Interact(S[1], false);
         Tick();
-        Assert.Equal(1, KW.ExitOpen);
+        Assert.True(KW.Powered());
     }
 }
 

@@ -184,6 +184,10 @@ namespace PingTheKiller.Client.UI
         public static ExitLine Exit(byte exitOpen, byte exitLocked)
             => exitOpen == 0 ? ExitLine.Locked : exitLocked != 0 ? ExitLine.LockedByKiller : ExitLine.Open;
 
+        // Protocol v0.4: any open exit reads Open; otherwise a switch locked by Firewall Block reads LockedByKiller.
+        public static ExitLine Exit(S2C_WorldState world)
+            => WorldExits.AnyOpen(world) ? ExitLine.Open : WorldExits.AnyLocked(world) ? ExitLine.LockedByKiller : ExitLine.Locked;
+
         public static string ExitText(ExitLine line, float? lockedLeft)
         {
             switch (line)

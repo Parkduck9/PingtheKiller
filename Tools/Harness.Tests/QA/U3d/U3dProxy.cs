@@ -19,7 +19,7 @@ internal sealed class U3dProxy : IAsyncDisposable
     public delegate IEnumerable<byte[]> Rewrite(int connection, IPacket? packet, byte[] raw);
 
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
-    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(190));
+    private readonly CancellationTokenSource lifetime = new(TimeSpan.FromSeconds(350)); // GDD v2 H6 budget is 300 s
     private readonly int upstreamPort;
     private readonly Rewrite rewrite;
     private readonly Func<int, TimeSpan> delay;

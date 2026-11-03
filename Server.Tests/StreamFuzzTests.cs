@@ -66,7 +66,7 @@ public sealed class StreamFuzzTests
                 var world = new S2C_WorldState
                 {
                     Tick = (uint)Int32(r), TimeLeft = Float(r), ThreatLevel = (byte)r.Next(4),
-                    ExitOpen = Byte(r), ExitLocked = Byte(r), TerminalsRequired = Byte(r)
+                    TerminalsRequired = Byte(r), CollapseLeft = Float(r), HatchVisible = (byte)r.Next(2), HatchX = Float(r), HatchZ = Float(r)
                 };
                 int terminals = r.Next(9);
                 for (int i = 0; i < terminals; i++)

@@ -117,7 +117,9 @@ public sealed class LineOfSightTests
         Assert.True(bytes.AsSpan().IndexOf(x.Concat(z).ToArray()) < 0, "killer (X,Z) bytes in a blocked frame");
         foreach (var (value, needle) in new[] { (killer.X, x), (killer.Z, z) })
         {
-            int legit = (Same(w.TimeLeft, value) ? 1 : 0) +
+            int legit = (Same(w.TimeLeft, value) ? 1 : 0) + (Same(w.CollapseLeft, value) ? 1 : 0) +
+                w.Exits.Sum(e => (Same(e.X, value) ? 1 : 0) + (Same(e.Z, value) ? 1 : 0)) +
+                (w.HatchVisible == 1 ? (Same(w.HatchX, value) ? 1 : 0) + (Same(w.HatchZ, value) ? 1 : 0) : 0) +
                 w.Terminals.Sum(t => (Same(t.X, value) ? 1 : 0) + (Same(t.Z, value) ? 1 : 0)) +
                 w.Players.Sum(p => (Same(p.X, value) ? 1 : 0) + (Same(p.Z, value) ? 1 : 0) + (Same(p.Yaw, value) ? 1 : 0) +
                     (Same(p.StatusTimer, value) ? 1 : 0));
@@ -294,12 +296,11 @@ public sealed class LineOfSightTests
             AssertKiller(m[0].Last<S2C_WorldState>(), KillerTruth(m));
         }
         m.Tick(30); // the killer keeps standing 1 m away
-        // Out of reach, then a fresh touch eliminates.
-        for (int i = 0; i < 20; i++) { m[0].Move(0, 1); m.Tick(); }
-        m[0].Move(0, 0);
-        m.Tick();
-        m.WalkTo(m.Killer, 5, 26.2f, GameConstants.KillerSpeed);
+        // GDD v2 §4 (2026-11-03): touches never advance a Lagging survivor; its timers (60 s + 30 s) eliminate it.
+        m.WalkTo(m.Killer, 5, 20f, GameConstants.KillerSpeed);
+        for (int i = 0; i < 1900 && m.Truth(m[0]).Status == (byte)PlayerStatus.Lagging; i++) m.Tick();
         Assert.Equal((byte)PlayerStatus.Eliminated, m.Truth(m[0]).Status);
+        m.WalkTo(m.Killer, 5, 26.2f, GameConstants.KillerSpeed);
         for (int i = 0; i < 40; i++)
         {
             if (i % 10 == 0) m.Killer.Move(i % 20 == 0 ? 1 : -1, 0);
