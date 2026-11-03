@@ -88,7 +88,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
         [Test]
         public void WorldView_Accept_ImmediatelyBreaksOnKillerRole()
         {
-            string code = QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs"));
+            string code = QaSource.StripComments(QaPaths.ReadScript(WorldSources.Characters));
             string accept = QaSource.MethodText(code, "public void Accept(");
             Assert.That(accept, Is.Not.Null);
 

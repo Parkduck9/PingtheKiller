@@ -340,7 +340,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheWorldViewStopsBeforeReadingAnyEntryFieldOnAKillerClient()
         {
-            string accept = QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs")), "public void Accept(");
+            string accept = QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript(WorldSources.Characters)), "public void Accept(");
             Assert.That(accept, Is.Not.Null);
             int stop = accept.IndexOf("role == Role.Killer) break;", StringComparison.Ordinal);
             Assert.That(stop, Is.GreaterThanOrEqualTo(0), "the Killer client leaves the entry loop before building anything");

@@ -59,7 +59,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheMapRendersThroughOneMaterialPathWorldViewMakeMaterial()
         {
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             Assert.That(Regex.Matches(world, @"new Material\(").Count, Is.EqualTo(2), "template copy and the URP/Lit fallback only");
             Assert.That(world, Does.Contain("Resources.Load<Material>"));
             Assert.That(Regex.Matches(world, @"CreatePrimitive\(").Count, Is.EqualTo(1), "all primitives come from Primitive(), which assigns MakeMaterial");
@@ -160,7 +160,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ATerminalIsMadeOfSquareCubesAndNeverOfACylinderOrCapsule()
         {
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             string make = QaSource.MethodText(world, "Terminal MakeTerminal(");
             Assert.That(make, Is.Not.Null);
             Assert.That(make, Does.Not.Contain("PrimitiveType.Cylinder"));
@@ -178,7 +178,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TerminalColoursAreMutedAndNeverAmberAndDoneIsTheTeamTealOnTheSurvivorClientNotSignalAmber()
         {
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             foreach (string name in new[] { "Plinth", "PanelIdle" })
             {
                 Match color = Regex.Match(world, @"Color\s+" + name + @"\s*=\s*new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*255\s*\)");
@@ -190,7 +190,7 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(amber, Is.False, name + " must not be amber (reserved for Signal)");
                 Assert.That(brightness, Is.GreaterThan(0.25f), name + " is readable against the floor (26,28,31)");
             }
-            string accept = QaSource.MethodText(world, "void Accept(");
+            string accept = QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript(WorldSources.Props)), "void Accept(");
             Assert.That(accept, Does.Match(@"Panel\.color\s*=[^;]*terminal\.Progress == 100[^;]*\bSurvivor\b[^;]*PanelIdle"),
                 "on the Survivor client done is the team tint (the statement may also branch on the role)");
             Match ally = Regex.Match(world, @"Color\s+Survivor\s*=\s*new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*255\s*\)");
@@ -202,7 +202,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheFloorWallsAndTerminalsStayDistinguishableByValue()
         {
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             float floor = Luma(Regex.Match(world, @"""Floor""[^;]*?new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)"));
             float wall = Luma(Regex.Match(world, @"""Wall""[^;]*?new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)"));
             float plinth = Luma(Regex.Match(world, @"Color\s+Plinth\s*=\s*new Color32\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)"));

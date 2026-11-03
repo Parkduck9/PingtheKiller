@@ -162,7 +162,7 @@ namespace PingTheKiller.Client.QA.Tests
             string app = Squash(QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs")));
             Assert.That(app, Does.Contain("exitOpen=state.ExitOpen!=0&&state.ExitLocked==0;"),
                 "ClientApp: firewall-locked (1,1) must read as locked, never as open");
-            string world = Squash(QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs")));
+            string world = Squash(QaSource.StripComments(WorldSources.ReadAll()));
             Assert.That(world, Does.Contain("boolopen=state.ExitOpen!=0&&state.ExitLocked==0;"), "WorldView ring uses the same rule");
             string dev = Squash(QaSource.StripComments(QaPaths.ReadScript("Dev/DevCapture.cs")));
             Assert.That(dev, Does.Contain("exitOpen=state.ExitOpen!=0&&state.ExitLocked==0;"), "the dev log HUD text uses the same rule");
@@ -217,7 +217,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ASurvivorClientDropsTheKillerEntryBeforeCreatingAnyAvatar()
         {
-            string world = Squash(QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs")));
+            string world = Squash(QaSource.StripComments(QaPaths.ReadScript(WorldSources.Characters)));
             int accept = world.IndexOf("publicvoidAccept(", StringComparison.Ordinal);
             Assert.That(accept, Is.GreaterThanOrEqualTo(0));
             int guard = world.IndexOf("if(role==Role.Survivor&&player.Role==(byte)Role.Killer)continue;", accept, StringComparison.Ordinal);

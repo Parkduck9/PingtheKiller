@@ -87,7 +87,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheWorldViewBuildsFromTheSharedMap()
         {
-            string source = QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs"));
+            string source = QaSource.StripComments(WorldSources.ReadAll());
             Assert.That(source, Does.Contain("SharedMap.Map"));
             Assert.That(source, Does.Contain("map.Walls"));
             Assert.That(source, Does.Contain("map.TerminalPositions"));

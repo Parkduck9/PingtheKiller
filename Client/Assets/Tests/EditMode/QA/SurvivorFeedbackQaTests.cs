@@ -158,9 +158,9 @@ namespace PingTheKiller.Client.QA.Tests
                 string code = QaSource.StripComments(File.ReadAllText(path));
                 if (code.Contains("Role.Killer") && Regex.IsMatch(code, @"\.Players\b")) readers.Add(Path.GetFileName(path));
             }
-            // WorldView/SnapshotBuffer: the Survivor model; ClientApp: own-entry lookup (Killer client by Role); KillerScene: the
+            // CharacterViews/SnapshotBuffer: the Survivor model; ClientApp: own-entry lookup (Killer client by Role); KillerScene: the
             // Killer client's own entry; DevCapture: dev only (FakeKiller takes the list as a parameter). Any new file here is a new Killer-entry consumer.
-            Assert.That(readers.ToArray(), Is.EquivalentTo(new[] { "ClientApp.cs", "DevCapture.cs", "KillerScene.cs", "SnapshotBuffer.cs", "WorldView.cs" }), "found: " + string.Join(",", readers));
+            Assert.That(readers.ToArray(), Is.EquivalentTo(new[] { "ClientApp.cs", "DevCapture.cs", "KillerScene.cs", "SnapshotBuffer.cs", "CharacterViews.cs" }), "found: " + string.Join(",", readers));
         }
 
         [Test]
@@ -173,20 +173,20 @@ namespace PingTheKiller.Client.QA.Tests
                 if (Regex.IsMatch(code, @"\.ThreatLevel\b"))
                     Assert.That(new[] { "ClientApp.cs", "DevCapture.cs" }, Does.Contain(file), file + " reads ThreatLevel");
             }
-            foreach (string file in new[] { "World/WorldView.cs", "World/SnapshotBuffer.cs" })
+            foreach (string file in new List<string>(WorldSources.All) { "World/SnapshotBuffer.cs" })
             {
                 string code = Code(file);
                 foreach (string forbidden in new[] { "ThreatLevel", "SkillEffect", "AudioSource", "PlayOneShot", "ThreatAudio", "AudioClip" })
                     Assert.That(code, Does.Not.Contain(forbidden), file + " must not use " + forbidden);
             }
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             Assert.That(world, Does.Contain("if (role == Role.Survivor) killerModel = MakeKillerModel();"), "only a Survivor client builds the model");
             Assert.That(Regex.Matches(world, @"(?<![=!<>])killerModel\s*=(?!=)").Count, Is.EqualTo(1), "one creation site");
             // Nothing outside the world view builds a Killer-looking object (primitive capsule named Killer).
             foreach (string path in QaPaths.AllScripts())
             {
                 string file = Path.GetFileName(path);
-                if (file == "WorldView.cs") continue;
+                if (new List<string>(WorldSources.FileNames()).Contains(file)) continue;
                 Assert.That(QaSource.StripComments(File.ReadAllText(path)), Does.Not.Contain("\"Killer body\""), file);
             }
         }
@@ -199,7 +199,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(layer, Does.Not.Match(@"\bStatusTimer\b"));
             Assert.That(layer, Does.Not.Match(@"\bCaptureCount\b"));
             Assert.That(layer, Does.Not.Match(@"\.Yaw\b"), "facing comes from matched motion (view.FacingYaw), never an entry Yaw");
-            string world = Code("World/WorldView.cs");
+            string world = QaSource.StripComments(WorldSources.ReadAll());
             Assert.That(world, Does.Contain("if (role == Role.Killer) break;"), "the Killer view builds no character from an entry");
             Assert.That(world, Does.Contain("if (role == Role.Survivor) killerModel"));
         }

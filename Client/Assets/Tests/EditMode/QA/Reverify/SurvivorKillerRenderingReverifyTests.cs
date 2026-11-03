@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
         [Test]
         public void KillerModel_HasNoMarkerOutlineOrThroughWallIndicators()
         {
-            string code = QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs"));
+            string code = QaSource.StripComments(QaPaths.ReadScript(WorldSources.Characters));
             string makeModel = QaSource.MethodText(code, "private KillerModel MakeKillerModel(");
             Assert.That(makeModel, Is.Not.Null);
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using PingTheKiller.Client.Dev;
@@ -121,7 +122,7 @@ namespace PingTheKiller.Client.Tests
         [Test]
         public void TheKillerModelIsPlacedOnlyFromTheKillerEntryOfTheSnapshots()
         {
-            string world = Strip(Read("World/WorldView.cs"));
+            string world = Strip(string.Join('\n', WorldFiles.Select(Read)));
             string render = Method(world, "private void RenderKiller(");
             Assert.That(render, Is.Not.Null);
             Assert.That(render, Does.Contain("snapshots.SampleKiller(now, out Vector3 position, out float yaw, out float alpha)"));
@@ -137,7 +138,7 @@ namespace PingTheKiller.Client.Tests
             foreach (string path in Directory.GetFiles(Path.Combine(Application.dataPath, "Scripts"), "*.cs", SearchOption.AllDirectories))
             {
                 string name = Path.GetFileName(path);
-                if (name == "WorldView.cs" || name == "SnapshotBuffer.cs") continue;
+                if (WorldFiles.Select(Path.GetFileName).Contains(name) || name == "SnapshotBuffer.cs") continue;
                 string code = Strip(File.ReadAllText(path));
                 Assert.That(code, Does.Not.Contain("SampleKiller("), name);
                 Assert.That(code, Does.Not.Contain("killerModel"), name);
@@ -690,6 +691,9 @@ namespace PingTheKiller.Client.Tests
         }
 
         // ---- helpers ----------------------------------------------------------------------------------------------------
+
+        // The world view is split over four files; checks about it as a whole read them together.
+        private static readonly string[] WorldFiles = { "World/WorldView.cs", "World/CharacterViews.cs", "World/WorldProps.cs", "World/WorldMaterials.cs" };
 
         private static string Read(string relative) => File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", relative));
 

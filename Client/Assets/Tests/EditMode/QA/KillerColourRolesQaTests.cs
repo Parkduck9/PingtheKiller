@@ -13,7 +13,9 @@ namespace PingTheKiller.Client.QA.Tests
     [Category("U4cQaA1")]
     public sealed class KillerColourRolesQaTests
     {
-        private static string WorldAccept() => QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript("World/WorldView.cs")), "public void Accept(");
+        // The terminal and Exit colouring is WorldProps.Accept; the avatar building is CharacterViews.Accept.
+        private static string AcceptOf(string file) => QaSource.MethodText(QaSource.StripComments(QaPaths.ReadScript(file)), "public void Accept(");
+        private static string WorldAccept() => AcceptOf(WorldSources.Props);
 
         [Test]
         public void AKillerClientNeverPaintsACompletedTerminalWithTheAllyTeal()
@@ -39,14 +41,15 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void NeitherRoleEverSeesATerminalOrTheExitInSignalAmber()
         {
-            string accept = WorldAccept();
-            Assert.That(accept, Does.Not.Contain("Signal"));
+            Assert.That(WorldAccept(), Does.Not.Contain("Signal"));
+            Assert.That(AcceptOf(WorldSources.Characters), Does.Not.Contain("Signal"));
+            Assert.That(AcceptOf(WorldSources.View), Does.Not.Contain("Signal"));
         }
 
         [Test]
         public void TheKillerClientBuildsNoCharacterFromAnEntryInWorldViewSoNoAllyTealCharacterCanAppearThere()
         {
-            string accept = WorldAccept();
+            string accept = AcceptOf(WorldSources.Characters);
             int stop = accept.IndexOf("role == Role.Killer) break;", System.StringComparison.Ordinal);
             int tint = accept.IndexOf("Color tint =", System.StringComparison.Ordinal);
             Assert.That(stop, Is.GreaterThanOrEqualTo(0));
