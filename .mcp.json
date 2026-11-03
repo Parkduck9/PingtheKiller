@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "unity-editor": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["run", "--project", "Tools/UnityMcp", "-c", "Release"],
+      "env": {}
+    }
+  }
+}
