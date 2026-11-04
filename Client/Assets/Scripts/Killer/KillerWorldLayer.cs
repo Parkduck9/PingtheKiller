@@ -20,6 +20,7 @@ namespace PingTheKiller.Client.Killer
             public GameObject Root, Pose;
             public Transform Hull;
             public CharacterInstance Art;
+            public CharacterMotion Motion; // U4j: Status + matched speed only (HUD_SPEC 6.3)
         }
         private readonly Dictionary<int, Character> characters = new Dictionary<int, Character>();
         private readonly Stack<Character> pool = new Stack<Character>();
@@ -44,6 +45,7 @@ namespace PingTheKiller.Client.Killer
         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
         private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
         private bool lockKnown;
+        private KillerAttackKick kick; // U4j: first-person attack feedback on the own capture
         public int InView { get; private set; }
         public int Occluded { get; private set; }
         public int Edges { get; private set; }
@@ -62,6 +64,7 @@ namespace PingTheKiller.Client.Killer
             else Debug.LogWarning("[killer] outline shader missing; in-view Survivors are drawn without the signal outline");
             hud.Begin(skillId);
             cueRules.Begin(now);
+            if (kick == null) kick = gameObject.AddComponent<KillerAttackKick>();
         }
 
         private Material Lit(Color color)
@@ -78,6 +81,7 @@ namespace PingTheKiller.Client.Killer
             scene.Accept(state, now);
             last = state;
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
+            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) kick.Play();
             cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
             cueRules.OnSignalCount(scene.Blips.Count, now);
             lastTarget = scene.NearestLagging(out lastDistance);
@@ -218,6 +222,8 @@ namespace PingTheKiller.Client.Killer
             {
                 bool lagging = view.Status == BlipStatus.Lagging;
                 Character character = Get(view.Handle);
+                // U4j: the motion tracks every matched instance (also undrawn) from its Status and matched speed only.
+                character.Motion?.Observe(now, (byte)view.Status, 0, 0, character.Art != null ? character.Art.Speed : 0);
                 bool drawn = view.ModelVisible;
                 if (character.Root.activeSelf != drawn) character.Root.SetActive(drawn);
                 if (drawn)
@@ -225,6 +231,8 @@ namespace PingTheKiller.Client.Killer
                     Vector3 ground = Pose(character, view, pose, now, pixel, lagging);
                     // U4d F-02: the head point follows the drawn pose (stepped position, 25 deg Lagging tilt).
                     Vector3 headPoint = HeadPoint(ground, view.FacingYaw, lagging);
+                    // U4j: a knocked-down / crawling body carries its Lagging tag just above it (head bone + 0.25 m, at least 0.7 m).
+                    if (character.Motion != null && character.Motion.TagHeight(HeadHeight, out float top)) headPoint = ground + Vector3.up * top;
                     bool hasHead = Project(pose, headPoint, screen, out Vector2 head);
                     bool hasFeet = Project(pose, ground, screen, out Vector2 feet);
                     if (!view.OutOfFrustum) InView++;
@@ -313,7 +321,11 @@ namespace PingTheKiller.Client.Killer
             if (character.Art != null)
             {
                 character.Pose.transform.localRotation = Quaternion.Euler(lagging ? LaggingTilt : 0, 0, 0);
+                // U4j: the knock-down / crawl clips replace the Lagging lean (a crawling body tilted 25 deg sinks its head).
+                if (character.Motion != null && character.Motion.Drives) character.Pose.transform.localRotation = Quaternion.identity;
+                character.Motion?.Drive(now);
                 character.Art.Animate(view.Position, now, lagging, true, view.Walking);
+                character.Motion?.Ground();
                 return position;
             }
             float bob = view.Walking ? Mathf.Abs(Mathf.Sin((float)(t * 2 * System.Math.PI * 1.6))) * .05f : 0;
@@ -342,6 +354,7 @@ namespace PingTheKiller.Client.Killer
                 Character reused = pool.Pop();
                 reused.Root.SetActive(true);
                 reused.Art?.ResetMotion();
+                reused.Motion?.Reset();
                 reused.Root.SetActive(false);
                 characters.Add(handle, reused);
                 return reused;
@@ -353,6 +366,7 @@ namespace PingTheKiller.Client.Killer
             if (art != null && art.SurvivorPrefab != null)
             {
                 GameObject model = Instantiate(art.SurvivorPrefab, pose.transform);
+                CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Killer); // U4j: before CharacterInstance binds it
                 var instance = new CharacterInstance(model, true);
                 foreach (Renderer renderer in instance.Renderers)
                 {
@@ -375,6 +389,7 @@ namespace PingTheKiller.Client.Killer
                 }
                 root.SetActive(false);
                 var imported = new Character { Root = root, Pose = pose, Art = instance };
+                imported.Motion = motion;
                 characters.Add(handle, imported);
                 return imported;
             }
@@ -405,6 +420,9 @@ namespace PingTheKiller.Client.Killer
             audioOut?.Silence();
             if (markers != null) { markers.Clear(MarkerLayer.Static); markers.Commit(MarkerLayer.Static); markers.Clear(MarkerLayer.Signals); markers.Commit(MarkerLayer.Signals); }
             foreach (Material material in materials) if (material != null) Destroy(material);
+            foreach (Character character in characters.Values) character.Motion?.Dispose();
+            foreach (Character character in pool) character.Motion?.Dispose();
+            if (kick != null) { kick.Restore(); Destroy(kick); kick = null; } // U4j: camera back to the rig's placement
         }
     }
 }
