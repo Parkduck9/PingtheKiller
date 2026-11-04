@@ -15,11 +15,11 @@ namespace PingTheKiller.Client.Tests
     public sealed class KillerSceneTests
     {
         // The scene is written in the legacy 60 m numbers: Killer at (10, 23) looking +x, a wall x 18..20, z 14..32 between it and
-        // x = 25. On the 80 m map the same scene stands 8 m west of the building FixedMap.Walls[11] (x 56..66, z 24..34): MapX/MapZ
-        // move a legacy point there (x below 19 is in front of the wall, +38; from 19 on is behind it, +46; z + 6), so the wall
-        // faces 18 and 20 land on the building faces 56 and 66. (The QA assembly has the same helper in QaSupport.cs.)
-        private static float MapX(float legacyX) => legacyX < 19 ? legacyX + 38 : legacyX + 46;
-        private static float MapZ(float legacyZ) => legacyZ + 6;
+        // x = 25. On the 80 m map the same scene stands 8 m west of the building FixedMap.Walls[16] (x 24..31, z 40..54): MapX/MapZ
+        // move a legacy point there (x below 19 is in front of the wall, +6; from 19 on is behind it, +11; z + 20), so the wall
+        // faces 18 and 20 land on the building faces 24 and 31. (The QA assembly has the same helper in QaSupport.cs.)
+        private static float MapX(float legacyX) => legacyX < 19 ? legacyX + 6 : legacyX + 11;
+        private static float MapZ(float legacyZ) => legacyZ + 20;
         private static readonly float KillerAtX = MapX(10), KillerAtZ = MapZ(23);
         private static readonly ViewPose Pose = new ViewPose(new Vector3(KillerAtX, KillerViewRig.EyeHeight, KillerAtZ), 90, 0, KillerViewRig.VerticalFov, 16f / 9);
 
@@ -27,8 +27,8 @@ namespace PingTheKiller.Client.Tests
         public void TheSceneHasTheWallBetweenTheKillerAndTheSurvivorsBehindIt()
         {
             FixedMap map = SharedMap.Map;
-            Assert.That(map.Walls[11].MinX, Is.EqualTo(MapX(18)));
-            Assert.That(map.Walls[11].MaxX, Is.EqualTo(MapX(20)));
+            Assert.That(map.Walls[16].MinX, Is.EqualTo(MapX(18)));
+            Assert.That(map.Walls[16].MaxX, Is.EqualTo(MapX(20)));
             Assert.That(map.CanStand(KillerAtX, KillerAtZ), Is.True);
             Assert.That(MapGeometry.SegmentBlocked(map, KillerAtX, KillerAtZ, MapX(15), MapZ(20)), Is.False, "in front of the wall");
             Assert.That(MapGeometry.SegmentBlocked(map, KillerAtX, KillerAtZ, MapX(25), MapZ(21)), Is.True, "behind the wall");

@@ -179,10 +179,10 @@ public sealed class U2dQaFairnessTests
         // Place players specifically:
         // Killer at (5, 5)
         // Survivor A at (5, 15): Clear LOS to (5, 5)
-        // Survivor B at (20, 33): Behind walls from (5, 5)
+        // Survivor B at (20.5, 26): Behind walls from (5, 5)
         server.PlaceForTests(killer.Id, 5f, 5f);
         server.PlaceForTests(survivorA.Id, 5f, 15f);
-        server.PlaceForTests(survivorB.Id, 26f, 33f);
+        server.PlaceForTests(survivorB.Id, 20.5f, 26f);
 
         var killerInSightOf = typeof(GameServer).GetMethod("KillerInSightOf", All)!;
         bool sightA = (bool)killerInSightOf.Invoke(server, new object[] { survivorA })!;

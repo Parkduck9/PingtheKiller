@@ -62,27 +62,27 @@ public sealed class U2eAdversarialTests
     // ------------------------------------------------------------------ 1. geometry
 
     [Theory]
-    [InlineData(12f,14f,12f,34f,true)]
-    [InlineData(24f,14f,24f,34f,true)]
-    [InlineData(10f,12f,26f,12f,true)]
+    [InlineData(12f,26f,12f,35f,true)]
+    [InlineData(18f,26f,18f,35f,true)]
+    [InlineData(10f,24f,26f,24f,true)]
     [InlineData(0f,5f,0f,50f,true)]
     [InlineData(5f,0f,55f,0f,true)]
-    [InlineData(11.999999f,14f,11.999999f,34f,false)]
-    [InlineData(24.000002f,14f,24.000002f,34f,false)]
-    [InlineData(10f,11.999999f,26f,11.999999f,false)]
-    [InlineData(10f,14f,14f,10f,true)]
-    [InlineData(10f,14f,14f,9.999999f,false)]
-    [InlineData(10f,14f,14f,10.000001f,true)]
+    [InlineData(11.999999f,26f,11.999999f,35f,false)]
+    [InlineData(18.000002f,26f,18.000002f,35f,false)]
+    [InlineData(10f,23.999998f,26f,23.999998f,false)]
+    [InlineData(10f,26f,14f,22f,true)]
+    [InlineData(10f,26f,14f,21.999998f,false)]
+    [InlineData(10f,26f,14f,22.000002f,true)]
     [InlineData(0.5f,0.5f,-3f,-3f,true)]
-    [InlineData(12f,20f,10f,20f,true)]
-    [InlineData(10f,20f,12f,20f,true)]
-    [InlineData(24f,20f,26f,20f,true)]
-    [InlineData(19f,12f,19f,5f,true)]
-    [InlineData(11.999999f,20f,10f,20f,false)]
-    [InlineData(19f,20f,10f,20f,true)]
-    [InlineData(19f,20f,19f,25f,true)]
-    [InlineData(19f,20f,37f,40f,true)]
-    [InlineData(28f,40f,28f,40.5f,true)]
+    [InlineData(12f,30f,10f,30f,true)]
+    [InlineData(10f,30f,12f,30f,true)]
+    [InlineData(18f,30f,20f,30f,true)]
+    [InlineData(15f,24f,15f,17f,true)]
+    [InlineData(11.999999f,30f,10f,30f,false)]
+    [InlineData(15f,30f,10f,30f,true)]
+    [InlineData(15f,30f,15f,35f,true)]
+    [InlineData(15f,30f,37f,40f,true)]
+    [InlineData(28f,45f,28f,45.5f,true)]
     [InlineData(-5f,-5f,-3f,-3f,false)]
     [InlineData(-5f,10f,5f,10f,true)]
     [InlineData(-100f,-100f,-50f,200f,false)]
@@ -394,11 +394,11 @@ public sealed class U2eAdversarialTests
     public void SameTick_MovingKillerAndMovingSurvivor_EntryFollowsTheSnapshotPositionsExactly()
     {
         using var m = Duel.Start(2);
-        // Survivor 0 walks north along x = 14 while the killer stands east of the (18,14)-(20,32) wall; survivor 1 walks the
-        // opposite way past the wall's far side; then the killer walks past the wall edges itself.
-        m.Place(m.K, 26, 20);
-        m.Place(m.S[0], 14, 6);
-        m.Place(m.S[1], 42, 50);
+        // Survivor 0 walks north along x = 9 while the killer stands east of the (12,24)-(18,37) wall; survivor 1 walks the
+        // opposite way along x = 6; then the killer walks round the wall's loop itself.
+        m.Place(m.K, 20.375f, 28.625f);
+        m.Place(m.S[0], 9, 6);
+        m.Place(m.S[1], 6, 38);
         m.Tick();
         var last = new bool?[2];
         int[] flips = new int[2], seen = new int[2], hidden = new int[2];
@@ -423,8 +423,8 @@ public sealed class U2eAdversarialTests
         var truthPhase2 = m.S.Select(p => p.Self()).ToArray();
         for (int phase = 0; phase < 3; phase++)
         {
-            // The killer circles the wall's far end: its snapshot position crosses the sight edges while it moves.
-            var targets = new[] { (26f, 10f), (8f, 10f), (8f, 44f), (42f, 44f), (42f, 10f), (26f, 10f) };
+            // The killer circles the wall: its snapshot position crosses the sight edges while it moves.
+            var targets = new[] { (19.5f, 22.5f), (10f, 22.5f), (10f, 38.5f), (19.5f, 38.5f), (19.5f, 22.5f) };
             foreach (var (gx, gz) in targets)
                 for (int i = 0; i < 400; i++)
                 {
@@ -446,12 +446,12 @@ public sealed class U2eAdversarialTests
     public void SameTick_OneFloatStepAcrossACornerFlipsTheEntryOnThatTickAndBack()
     {
         using var m = Duel.Start(1);
-        // Survivor (16,16); the killer sits on the line through corner (18,14): exactly on it blocks, one step below is clear.
-        m.Place(m.K, 14, 10);
-        m.Place(m.S[0], 10, 14);
+        // Survivor (10,26); the killer sits on the line through corner (12,24): exactly on it blocks, one step below is clear.
+        m.Place(m.K, 14, 22);
+        m.Place(m.S[0], 10, 26);
         var seq = new List<(float z, bool expectEntry)>
         {
-            (12f, false), (Down(12f), true), (12f, false), (Up(12f), false), (Down(12f, 3), true), (12.5f, false), (11f, true), (12f, false)
+            (24f, false), (Down(24f), true), (24f, false), (Up(24f), false), (Down(24f, 3), true), (24.5f, false), (23.5f, true), (24f, false)
         };
         foreach (var (z, entry) in seq)
         {
@@ -545,7 +545,7 @@ public sealed class U2eAdversarialTests
         Assert.False(CheckFrame(m, 0, "reconnected eliminated survivor"));
 
         // Reconnect of an active survivor: the first frame obeys the same rule, clear and blocked.
-        foreach (var (kx, kz, expect) in new[] { (10f, 30f, true), (26.5f, 25f, false), (10f, 30f, true) })
+        foreach (var (kx, kz, expect) in new[] { (10f, 30f, true), (20.5f, 26f, false), (10f, 30f, true) })
         {
             ulong token = m.S[1].Last<S2C_JoinResult>().ReconnectToken;
             m.S[1].Dispose();
@@ -707,19 +707,19 @@ public sealed class U2eAdversarialTests
     public void ThreatLevelIsTheDistanceBandWithAndWithoutLineOfSight()
     {
         using var m = Duel.Start(2);
-        // Same distance (5 m), one pair with the wall in between and one in the open: both threat 3.
-        m.Place(m.K, 53, 38);
-        m.Place(m.S[0], 43, 38);   // wall between
-        m.Place(m.S[1], 53, 48);   // open
+        // Same distance (10 m), one pair with the wall in between and one in the open: both threat 2.
+        m.Place(m.K, 19, 30);
+        m.Place(m.S[0], 9, 30);    // wall between
+        m.Place(m.S[1], 19, 40);   // open
         m.Tick();
         Assert.False(CheckFrame(m, 0, "wall"));
         Assert.True(CheckFrame(m, 1, "open"));
         Assert.Equal(2, m.S[0].World().ThreatLevel);
         Assert.Equal(2, m.S[1].World().ThreatLevel);
         // 13 m: band 1 behind the wall and in the open.
-        m.Place(m.K, 26f, 20);
-        m.Place(m.S[0], 10f, 20);
-        m.Place(m.S[1], 26f, 33);
+        m.Place(m.K, 20.5f, 26);
+        m.Place(m.S[0], 7.5f, 26);
+        m.Place(m.S[1], 20.5f, 39);
         m.Tick();
         Assert.False(CheckFrame(m, 0, "wall far"));
         Assert.True(CheckFrame(m, 1, "open far"));

@@ -63,6 +63,8 @@ public sealed class SkillTests
     public void OverclockGivesOnePointFiveSpeedForThreeSecondsThenOneSecondStandstill()
     {
         using var m = RulesMatch.Start(1, SkillIds.Overclock);
+        m.F.Server.PlaceForTests(m.Killer.Id, 3, 2); // the open south edge street: 25 m of straight run
+        m.Tick();
         float step = GameConstants.KillerSpeed / GameConstants.TickRate;
         var steps = new List<float>();
         float x = m.Killer.Self().X;

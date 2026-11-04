@@ -99,6 +99,9 @@ internal sealed class ScenarioServer : IAsyncDisposable
     // CaptureCount 0) only for a Normal/Lagging recipient whose segment to the killer hits no wall (FakeSight). Players get a
     // Yaw from their move direction in this mode.
     public bool LineOfSight { get; init; }
+    // The killer, A and every terminal stand in the wall-free rectangle at the exit's corner (OpenRoad), so A, who also walks
+    // only inside it, never loses sight of the killer; B still starts at its spawn point.
+    public bool OpenRoad { get; init; }
     public int KillerEntriesSent { get; private set; }
     public int BlockedWorldsSent { get; private set; }
     private bool Los => LineOfSight || fault >= H6Fault.LosWhileBlocked;
@@ -248,11 +251,20 @@ internal sealed class ScenarioServer : IAsyncDisposable
         {
             p.Role = p.Id == 1 ? Role.Killer : Role.Survivor;
             // Keep A initially visible and B occluded so single-frame and per-recipient leak mutations remain non-vacuous.
-            var point = p.Role == Role.Killer ? map.SpawnPoints[0] : spawn++ == 1 ? new MapPoint(8,44) : map.SpawnPoints[2];
+            // A stands 10 m east of the killer spawn, on the open street towards terminal 4.
+            var point = p.Role == Role.Killer ? map.SpawnPoints[0] : spawn++ == 1 ? new MapPoint(map.SpawnPoints[0].X + 10, map.SpawnPoints[0].Z + .5f) : map.SpawnPoints[2];
+            if (OpenRoad && p.Role == Role.Killer) point = RoadPoint(.5f, .5f);
+            else if (OpenRoad && spawn == 2) point = RoadPoint(.5f, .33f);
             (p.X, p.Z) = (point.X, point.Z);
             p.Peer?.Send(new S2C_MatchStart { Role = (byte)p.Role, SkillId = 0, Seed = 4242 });
         }
         terminals = map.CreateTerminals(players.Count - 1, out required);
+        if (OpenRoad)
+            for (int i = 0; i < terminals.Length; i++)
+            {
+                var spot = RoadPoint(i % 2 == 0 ? .25f : .75f, .15f + .05f * i);
+                (terminals[i].X, terminals[i].Z) = (spot.X, spot.Z);
+            }
         progress = new double[terminals.Length];
     }
 
@@ -282,6 +294,15 @@ internal sealed class ScenarioServer : IAsyncDisposable
     private bool Signal(Player p) => now - p.LastSignal < GameConstants.SignalHoldSeconds - 1e-7;
     private Player Killer => players[0];
     private IEnumerable<Player> Survivors => players.Skip(1);
+    // A point of the wall-free rectangle at the exit's corner, as fractions of its size: from x = 0 to the nearest building face
+    // in the south half, and from z = 0 to the first building reaching into that band. Walls are the only line-of-sight blockers.
+    private MapPoint RoadPoint(float fx, float fz)
+    {
+        float east = map.Walls.Skip(4).Where(w => w.MinZ < FixedMap.Size / 2).Min(w => w.MinX);
+        float north = map.Walls.Skip(4).Where(w => w.MinX < east).Min(w => w.MinZ);
+        return new MapPoint(east * fx, north * fz);
+    }
+
     private static float Distance(Player p, float x, float z) => MathF.Sqrt((p.X - x) * (p.X - x) + (p.Z - z) * (p.Z - z));
 
     // U2b order: inputs (applied on receipt) -> movement -> statuses/timers -> capture -> rescue -> hacking

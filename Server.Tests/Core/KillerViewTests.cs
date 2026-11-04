@@ -163,7 +163,8 @@ public sealed class KillerViewTests
         var map = new FixedMap();
         float maxStep = GameConstants.SurvivorSpeed / GameConstants.TickRate + 1e-4f;
         int moving = 0, standing = 0, finalFrames = 0, whiteNoiseCasts = 0, dummies = 0;
-        foreach (int seed in new[] { 3, 50, 90, 130 })
+        // Seed 170 adds White Noise casts; the bots of the first four seeds cast only nine skills between them on map v2.1.
+        foreach (int seed in new[] { 3, 50, 90, 130, 170 })
         {
             using var r = new KillerMatchRecorder(seed);
             var terminals = r.Killer.Last<S2C_WorldState>().Terminals.ToList();

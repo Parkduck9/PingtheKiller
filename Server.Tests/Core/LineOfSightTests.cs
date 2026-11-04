@@ -17,18 +17,18 @@ public sealed class LineOfSightTests
     // ------------------------------------------------------------------ FixedMap.SegmentBlocked
 
     [Theory]
-    // The southwest building is the closed box (12,12)-(24,36).
-    [InlineData(10f,11.9f,26f,11.9f,false)]
-    [InlineData(10f,12f,26f,12f,true)]
-    [InlineData(11.9f,14f,11.9f,34f,false)]
-    [InlineData(12f,14f,12f,34f,true)]
-    [InlineData(10f,20f,12f,20f,true)]
-    [InlineData(10f,20f,11.99f,20f,false)]
-    [InlineData(10f,14f,14f,10f,true)]
-    [InlineData(10f,14f,14f,9.75f,false)]
-    [InlineData(10f,14f,14f,10.25f,true)]
-    [InlineData(16f,20f,10f,20f,true)]
-    [InlineData(16f,20f,20f,25f,true)]
+    // The west-lane building is the closed box (12,24)-(18,37); a 3 m alley runs below it.
+    [InlineData(10f,23.9f,26f,23.9f,false)]
+    [InlineData(10f,24f,26f,24f,true)]
+    [InlineData(11.9f,26f,11.9f,35f,false)]
+    [InlineData(12f,26f,12f,35f,true)]
+    [InlineData(10f,30f,12f,30f,true)]
+    [InlineData(10f,30f,11.99f,30f,false)]
+    [InlineData(10f,26f,14f,22f,true)]
+    [InlineData(10f,26f,14f,21.75f,false)]
+    [InlineData(10f,26f,14f,22.25f,true)]
+    [InlineData(15f,30f,10f,30f,true)]
+    [InlineData(15f,30f,20f,35f,true)]
     [InlineData(1f,1f,79f,79f,true)]
     [InlineData(1f,1f,79f,1f,false)]
     [InlineData(5f,26f,5f,5f,false)]
@@ -171,12 +171,12 @@ public sealed class LineOfSightTests
     public void BlockedLineOfSightLeavesNoKillerEntryAndNoKillerCoordinateBytes()
     {
         using var m = RulesMatch.Start(2);
-        // Both survivors are west of the (18,14)-(20,32) wall, the killer east of it.
-        Setup(m, (26.375f, 20.625f), (5, 26), (10, 26));
+        // Both survivors are west of the (12,24)-(18,37) wall, the killer east of it.
+        Setup(m, (20.375f, 28.625f), (5, 26), (10, 26));
         for (int i = 0; i < 10; i++)
         {
             var killer = KillerTruth(m);
-            Assert.Equal(26.375f, killer.X);
+            Assert.Equal(20.375f, killer.X);
             foreach (var s in new[] { m[0], m[1] })
             {
                 var w = s.Last<S2C_WorldState>();
@@ -191,15 +191,15 @@ public sealed class LineOfSightTests
     public void TouchingAWallCornerBlocksEndToEnd()
     {
         using var m = RulesMatch.Start(2);
-        // Survivor 0 at (16,16); the segment to (20,12) touches only the corner (18,14).
-        Setup(m, (14, 10), (10, 14), (5, 36));
+        // Survivor 0 at (10,26); the segment to the killer at (14,22) touches only the corner (12,24).
+        Setup(m, (14, 22), (10, 26), (5, 36));
         AssertNoKiller(m[0].Last<S2C_WorldState>(), KillerTruth(m));
         // A quarter metre lower passes the corner in the open: the entry appears on that tick.
-        Place(m, m.Killer, 14, 9.75f);
+        Place(m, m.Killer, 14, 21.75f);
         m.Tick();
         AssertKiller(m[0].Last<S2C_WorldState>(), KillerTruth(m));
         // A quarter metre higher cuts the corner: gone again on that tick.
-        Place(m, m.Killer, 14, 10.25f);
+        Place(m, m.Killer, 14, 22.25f);
         m.Tick();
         AssertNoKiller(m[0].Last<S2C_WorldState>(), KillerTruth(m));
     }
@@ -208,8 +208,8 @@ public sealed class LineOfSightTests
     public void OneSurvivorsLineOfSightNeverRevealsTheKillerToAnother()
     {
         using var m = RulesMatch.Start(2);
-        // Survivor 0 at (5,26) sees the killer at (5.125,5.375); survivor 1 at (25.5,26) is behind the long wall.
-        Setup(m, (5.125f, 5.375f), (5, 26), (25.5f, 26));
+        // Survivor 0 at (5,26) sees the killer at (5.125,5.375); survivor 1 at (20.375,28.625) is behind the SW loop.
+        Setup(m, (5.125f, 5.375f), (5, 26), (20.375f, 28.625f));
         for (int i = 0; i < 10; i++)
         {
             var killer = KillerTruth(m);
@@ -224,8 +224,8 @@ public sealed class LineOfSightTests
     {
         using var m = RulesMatch.Start(2);
         Setup(m, (5, 5), (5, 26), (5, 36));
-        // The killer walks east under the wall and back; from (5,26) the wall hides it east of about x = 13.
-        var route = new[] { (26f, 10f), (5f, 5f), (26f, 10f) };
+        // The killer walks east under the SW loop and back; from (5,26) the loop hides it east of about x = 13.
+        var route = new[] { (21.5f, 5f), (5f, 5f), (21.5f, 5f) };
         bool? previous = null;
         int appear = 0, disappear = 0, sight = 0, blocked = 0;
         foreach (var (gx, gz) in route)
@@ -258,12 +258,12 @@ public sealed class LineOfSightTests
     public void ThreatLevelIgnoresLineOfSight()
     {
         using var m = RulesMatch.Start(2);
-        // Five metres apart (threat 3) with the wall in between, then five metres apart in the open.
-        Setup(m, (53, 38), (43, 38), (5, 36));
+        // Ten metres apart (threat 2) with the (12,24)-(18,37) wall in between, then ten metres apart in the open.
+        Setup(m, (19, 30), (9, 30), (5, 36));
         var w = m[0].Last<S2C_WorldState>();
         AssertNoKiller(w, KillerTruth(m));
         Assert.Equal(2, w.ThreatLevel);
-        Place(m, m.Killer, 43, 48);
+        Place(m, m.Killer, 9, 40);
         m.Tick();
         w = m[0].Last<S2C_WorldState>();
         AssertKiller(w, KillerTruth(m));

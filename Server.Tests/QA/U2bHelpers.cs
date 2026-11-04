@@ -72,9 +72,9 @@ internal sealed class QaRig : IDisposable
         foreach (var s in S) Assert.Equal((byte)Role.Survivor, s.Last<S2C_MatchStart>().Role);
         SetSkill(K, 255);
         foreach (var s in S) SetSkill(s, 255);
-        // Park everybody far apart: killer in the SW corner, survivors on the east side.
+        // Park everybody far apart: killer in the SW corner, survivors at the centre crossroads behind the south blocks.
         Place(K, 5, 5);
-        for (int i = 0; i < survivors; i++) Place(S[i], 50 + (i % 4) * 2f, 50 + (i / 4) * 2f);
+        for (int i = 0; i < survivors; i++) Place(S[i], 38 + (i % 4) * 2f, 31 + (i / 4) * 2f);
     }
 
     // Ends the running match by time-up, then starts the next one with the same lobby (killer role kept) and parks everybody again.
@@ -92,7 +92,7 @@ internal sealed class QaRig : IDisposable
         SetSkill(K, 255);
         foreach (var s in S) SetSkill(s, 255);
         Place(K, 5, 5);
-        for (int i = 0; i < S.Length; i++) Place(S[i], 50 + (i % 4) * 2f, 50 + (i / 4) * 2f);
+        for (int i = 0; i < S.Length; i++) Place(S[i], 38 + (i % 4) * 2f, 31 + (i / 4) * 2f);
     }
 
     internal float Dt = 0.05f;

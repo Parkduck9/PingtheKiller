@@ -100,6 +100,8 @@ public sealed class ReconnectAndBotTests
         PlayerState? previous = null;
         int previousTick = 0;
         var truthBefore = f.Server.PlayerSnapshot().Single(p => p.Id == botId);
+        var goal = host.Last<S2C_WorldState>().Terminals
+            .OrderBy(t => (t.X - truthBefore.X) * (t.X - truthBefore.X) + (t.Z - truthBefore.Z) * (t.Z - truthBefore.Z)).First();
         bool hacked = false;
         // The bot pauses Silently between bursts (opening pause up to 8 s), so allow it up to 30 s to start hacking.
         for (int i = 0; i < 600 && !hacked; ++i)
@@ -121,11 +123,11 @@ public sealed class ReconnectAndBotTests
             previous = state;
             previousTick = (int)world.Tick;
         }
-        // Spawn (5,26): the nearest terminal is #0 at (10,25); the bot walks there and hacks it.
+        // The bot walks to the placed terminal nearest its production spawn and hacks it.
         Assert.True(hacked, "the bot never started hacking");
         var final = f.Server.PlayerSnapshot().Single(p => p.Id == botId);
-        Assert.True(MathF.Sqrt((final.X - 10) * (final.X - 10) + (final.Z - 25) * (final.Z - 25)) <= GameConstants.TerminalRadius);
+        Assert.True(MathF.Sqrt((final.X - goal.X) * (final.X - goal.X) + (final.Z - goal.Z) * (final.Z - goal.Z)) <= GameConstants.TerminalRadius);
         Assert.NotNull(previous);
-        Assert.InRange(MathF.Sqrt(MathF.Pow(previous.Value.X - 10, 2) + MathF.Pow(previous.Value.Z - 25, 2)), 0, GameConstants.TerminalRadius);
+        Assert.InRange(MathF.Sqrt(MathF.Pow(previous.Value.X - goal.X, 2) + MathF.Pow(previous.Value.Z - goal.Z, 2)), 0, GameConstants.TerminalRadius);
     }
 }

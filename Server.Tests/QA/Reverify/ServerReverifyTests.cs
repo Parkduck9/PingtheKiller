@@ -413,11 +413,11 @@ public sealed class ServerReverifyTests
 
     [Theory]
     // Closed box: segment grazing face or touching corner is BLOCKED
-    [InlineData(12f, 12f, 24f, 36f, true)] // Collinear with wall edge
-    [InlineData(10f, 14f, 14f, 10f, true)] // Touches corner (18, 14)
-    [InlineData(10f, 14f, 14f, 9.999f, false)] // Barely misses corner outside
-    [InlineData(10f, 20f, 12f, 20f, true)] // Touches west face
-    [InlineData(10f, 20f, 11.999f, 20f, false)] // Barely short of face
+    [InlineData(12f, 24f, 18f, 37f, true)] // Diagonal of the (12,24)-(18,37) wall
+    [InlineData(10f, 26f, 14f, 22f, true)] // Touches corner (12, 24)
+    [InlineData(10f, 26f, 14f, 21.999f, false)] // Barely misses corner outside
+    [InlineData(10f, 30f, 12f, 30f, true)] // Touches west face
+    [InlineData(10f, 30f, 11.999f, 30f, false)] // Barely short of face
     [InlineData(19f, 20f, 19f, 20f, false)] // Zero-length: NEVER BLOCKED
     [InlineData(5f, 5f, 5f, 5f, false)] // Zero-length outside: NEVER BLOCKED
     public void U2e_Contract1_SegmentBlocked_EdgeCases(float ax, float az, float bx, float bz, bool expectedBlocked)

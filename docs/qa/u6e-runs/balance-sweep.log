@@ -1,0 +1,474 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  Shared -> C:\Unity\MultiPlayGame\PtK-work\u6e\artifacts\bin\Shared\debug\Shared.dll
+  Server.Core -> C:\Unity\MultiPlayGame\PtK-work\u6e\artifacts\bin\Server.Core\debug\Server.Core.dll
+  Server.Tests -> C:\Unity\MultiPlayGame\PtK-work\u6e\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+C:\Unity\MultiPlayGame\PtK-work\u6e\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+C:\Unity\MultiPlayGame\PtK-work\u6e\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.06]   Discovering: Server.Tests
+[xUnit.net 00:00:00.16]   Discovered:  Server.Tests
+[xUnit.net 00:00:00.19]   Starting:    Server.Tests
+[xUnit.net 00:00:00.64]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [FAIL]
+[xUnit.net 00:00:00.65]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:00.65]       Range:  (0.20000000000000001 - 0.80000000000000004)
+[xUnit.net 00:00:00.65]       Actual: 0.025000000000000001
+[xUnit.net 00:00:00.65]       Stack Trace:
+[xUnit.net 00:00:00.65]         C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\QA\U2d\U2dQaSweepTests.cs(197,0): at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare)
+[xUnit.net 00:00:00.65]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.65]            at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:00.65]       Output:
+[xUnit.net 00:00:00.65]         === QA INDEPENDENT SWEEP: 1v1 (Seeds 1001..1040) ===
+[xUnit.net 00:00:00.65]         | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+[xUnit.net 00:00:00.65]         | 1v1 | 3% | 182 s (112/278) | AllSurvivorsDown 39, escaped 1 | 0.93 | 0.98 / 0.00 / 0.00 | 0% | 0% |
+[xUnit.net 00:00:00.65]         Lagging timeouts per match: 0.00; elapsed: 0.4 s
+[xUnit.net 00:00:00.79]     PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1) [FAIL]
+[xUnit.net 00:00:00.79]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:00.79]       Range:  (0.25 - 0.75)
+[xUnit.net 00:00:00.79]       Actual: 0.050000000000000003
+[xUnit.net 00:00:00.79]       Stack Trace:
+[xUnit.net 00:00:00.79]         C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs(38,0): at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax)
+[xUnit.net 00:00:00.79]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.79]            at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:00.79]       Output:
+[xUnit.net 00:00:00.79]         seed   1:  221.6s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 1) res 1 exe 1 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   2:  245.3s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   3:  171.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   4:  331.4s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   5:  182.8s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   6:  158.7s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   7:  132.9s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   8:  254.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed   9:  247.0s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  10:  153.5s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  11:   65.8s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  12:  174.5s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  13:  130.2s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  14:  266.2s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  15:  285.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.79]         seed  16:  389.9s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  17:  438.5s Killer   AllSurvivorsDown terminals 2/4 cap 4 (2nd 1) res 1 exe 1 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  18:  419.9s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  19:  307.7s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  20:  284.5s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 1) res 1 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  21:  516.8s Killer   AllSurvivorsDown terminals 4/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  22:  159.7s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  23:  446.9s Survivor SurvivorEscaped  terminals 4/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+[xUnit.net 00:00:00.80]         seed  24:  506.6s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  25:  284.6s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  26:  237.5s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  27:  349.5s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 1 lagTimeout 1 escaped 0
+[xUnit.net 00:00:00.80]         seed  28:  294.3s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  29:  158.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  30:  126.8s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  31:  137.6s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  32:  600.0s Killer   TimeUp           terminals 3/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  33:  457.2s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  34:  438.6s Survivor SurvivorEscaped  terminals 4/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+[xUnit.net 00:00:00.80]         seed  35:  292.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  36:   66.0s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  37:  298.5s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  38:  228.4s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  39:  439.7s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         seed  40:  375.9s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+[xUnit.net 00:00:00.80]         | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+[xUnit.net 00:00:00.80]         | 1v3 | 5% | 275 s (169/379) | all down 37, escaped 2, time up 1 | 1.73 | 3.00 / 0.08 / 1.93 | 3% | 8% |
+[xUnit.net 00:00:00.80]         lagging timeouts per match 0.03; sweep 0.6 s
+[xUnit.net 00:00:01.25]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [FAIL]
+[xUnit.net 00:00:01.25]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:01.25]       Range:  (0.25 - 0.75)
+[xUnit.net 00:00:01.25]       Actual: 0.125
+[xUnit.net 00:00:01.25]       Stack Trace:
+[xUnit.net 00:00:01.25]         C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\QA\U2d\U2dQaSweepTests.cs(197,0): at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare)
+[xUnit.net 00:00:01.25]            at InvokeStub_U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(Object, Span`1)
+[xUnit.net 00:00:01.25]            at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:01.25]       Output:
+[xUnit.net 00:00:01.25]         === QA INDEPENDENT SWEEP: 1v3 (Seeds 1001..1040) ===
+[xUnit.net 00:00:01.25]         | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+[xUnit.net 00:00:01.25]         | 1v3 | 13% | 299 s (226/372) | AllSurvivorsDown 34, escaped 5, time 1 | 1.90 | 3.00 / 0.23 / 1.80 | 3% | 20% |
+[xUnit.net 00:00:01.25]         Lagging timeouts per match: 0.00; elapsed: 0.6 s
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [428 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.20000000000000001 - 0.80000000000000004)
+Actual: 0.025000000000000001
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 197
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v1 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v1 | 3% | 182 s (112/278) | AllSurvivorsDown 39, escaped 1 | 0.93 | 0.98 / 0.00 / 0.00 | 0% | 0% |
+ Lagging timeouts per match: 0.00; elapsed: 0.4 s
+
+
+  실패 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1) [587 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.25 - 0.75)
+Actual: 0.050000000000000003
+  스택 추적:
+     at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax) in C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs:line 38
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ seed   1:  221.6s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 1) res 1 exe 1 lagTimeout 0 escaped 0
+ seed   2:  245.3s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   3:  171.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   4:  331.4s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   5:  182.8s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   6:  158.7s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   7:  132.9s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   8:  254.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed   9:  247.0s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  10:  153.5s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  11:   65.8s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  12:  174.5s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  13:  130.2s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  14:  266.2s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  15:  285.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  16:  389.9s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  17:  438.5s Killer   AllSurvivorsDown terminals 2/4 cap 4 (2nd 1) res 1 exe 1 lagTimeout 0 escaped 0
+ seed  18:  419.9s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  19:  307.7s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  20:  284.5s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 1) res 1 exe 2 lagTimeout 0 escaped 0
+ seed  21:  516.8s Killer   AllSurvivorsDown terminals 4/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  22:  159.7s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  23:  446.9s Survivor SurvivorEscaped  terminals 4/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+ seed  24:  506.6s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  25:  284.6s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  26:  237.5s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  27:  349.5s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 1 lagTimeout 1 escaped 0
+ seed  28:  294.3s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  29:  158.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  30:  126.8s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  31:  137.6s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  32:  600.0s Killer   TimeUp           terminals 3/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  33:  457.2s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  34:  438.6s Survivor SurvivorEscaped  terminals 4/4 cap 2 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+ seed  35:  292.8s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  36:   66.0s Killer   AllSurvivorsDown terminals 0/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  37:  298.5s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  38:  228.4s Killer   AllSurvivorsDown terminals 1/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  39:  439.7s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ seed  40:  375.9s Killer   AllSurvivorsDown terminals 3/4 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 0
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v3 | 5% | 275 s (169/379) | all down 37, escaped 2, time up 1 | 1.73 | 3.00 / 0.08 / 1.93 | 3% | 8% |
+ lagging timeouts per match 0.03; sweep 0.6 s
+
+
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [603 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.25 - 0.75)
+Actual: 0.125
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 197
+   at InvokeStub_U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v3 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v3 | 13% | 299 s (226/372) | AllSurvivorsDown 34, escaped 5, time 1 | 1.90 | 3.00 / 0.23 / 1.80 | 3% | 20% |
+ Lagging timeouts per match: 0.00; elapsed: 0.6 s
+
+
+[xUnit.net 00:00:02.30]     PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1) [FAIL]
+[xUnit.net 00:00:02.30]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:02.30]       Range:  (0.20000000000000001 - 0.80000000000000004)
+[xUnit.net 00:00:02.30]       Actual: 0.050000000000000003
+[xUnit.net 00:00:02.30]       Stack Trace:
+[xUnit.net 00:00:02.30]         C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs(38,0): at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax)
+[xUnit.net 00:00:02.30]            at InvokeStub_BotBalanceTests.BalanceSweepMeetsTheTargets(Object, Span`1)
+[xUnit.net 00:00:02.30]            at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:02.30]       Output:
+[xUnit.net 00:00:02.30]         seed   1:  123.5s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   2:  367.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   3:   43.4s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   4:  142.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   5:   89.2s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   6:  398.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   7:  294.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   8:  270.0s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed   9:  369.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  10:  584.0s Survivor SurvivorEscaped  terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+[xUnit.net 00:00:02.30]         seed  11:  124.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  12:  218.6s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  13:  450.9s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  14:  124.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  15:  257.6s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  16:  577.0s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  17:   21.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  18:   62.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  19:  177.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  20:   38.8s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  21:  600.0s Killer   TimeUp           terminals 2/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  22:  198.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  23:   19.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  24:  459.2s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  25:   46.8s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  26:   98.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  27:  374.7s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  28:  528.1s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  29:   77.6s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  30:  366.4s Survivor SurvivorEscaped  terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+[xUnit.net 00:00:02.30]         seed  31:  104.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  32:  170.7s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  33:  217.2s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  34:  261.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  35:  351.8s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  36:  355.2s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  37:  108.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  38:  398.1s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  39:  109.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         seed  40:  109.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+[xUnit.net 00:00:02.30]         | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+[xUnit.net 00:00:02.30]         | 1v1 | 5% | 208 s (108/368) | all down 37, escaped 2, time up 1 | 1.03 | 0.93 / 0.00 / 0.00 | 3% | 0% |
+[xUnit.net 00:00:02.30]         lagging timeouts per match 0.00; sweep 0.6 s
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 120, medianMax: 360, timeoutMax: 1) [892 ms]
+  표준 출력 메시지:
+ seed   1:  268.1s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   2:  256.4s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   3:  240.8s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   4:  259.2s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   5:  287.9s Survivor SurvivorEscaped  terminals 5/5 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 1
+ seed   6:  339.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   7:  263.6s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed   8:  361.4s Survivor SurvivorEscaped  terminals 5/5 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 1
+ seed   9:  265.9s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  10:  228.3s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  11:  276.4s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  12:  290.5s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  13:  336.4s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  14:  289.3s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  15:  273.3s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  16:  248.4s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  17:  311.4s Survivor SurvivorEscaped  terminals 5/5 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 1
+ seed  18:  299.5s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  19:  291.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  20:  246.9s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  21:  278.7s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  22:  277.4s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  23:  256.2s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  24:  290.5s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  25:  260.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  26:  289.8s Survivor SurvivorEscaped  terminals 5/5 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  27:  314.7s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  28:  322.2s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  29:  253.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  30:  294.3s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  31:  600.0s Killer   TimeUp           terminals 3/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  32:  318.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  33:  296.9s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  34:  255.0s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  35:  275.6s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  36:  274.8s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  37:  326.9s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  38:  264.6s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  39:  280.6s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  40:  325.2s Survivor SurvivorEscaped  terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | idle killer + 7 | 98% | 280 s (263/302) | escaped 39, time up 1 | 4.95 | 0.10 / 0.03 / 0.00 | 3% | 3% |
+ lagging timeouts per match 0.05; sweep 0.9 s
+
+
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v7", survivors: 7, winMin: 0.34999999999999998, winMax: 0.65000000000000002, medianMin: 180, medianMax: 480, timeoutMax: 0.14999999999999999, reqRescueShare: 0.29999999999999999) [955 ms]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 | 45% | 341 s (289/392) | AllSurvivorsDown 22, escaped 18 | 4.00 | 6.65 / 0.55 / 5.10 | 0% | 43% |
+ Lagging timeouts per match: 0.00; elapsed: 1.0 s
+
+
+  실패 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1) [610 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.20000000000000001 - 0.80000000000000004)
+Actual: 0.050000000000000003
+  스택 추적:
+     at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax) in C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs:line 38
+   at InvokeStub_BotBalanceTests.BalanceSweepMeetsTheTargets(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ seed   1:  123.5s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   2:  367.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   3:   43.4s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   4:  142.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   5:   89.2s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   6:  398.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   7:  294.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   8:  270.0s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed   9:  369.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  10:  584.0s Survivor SurvivorEscaped  terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  11:  124.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  12:  218.6s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  13:  450.9s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  14:  124.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  15:  257.6s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  16:  577.0s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  17:   21.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  18:   62.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  19:  177.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  20:   38.8s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  21:  600.0s Killer   TimeUp           terminals 2/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  22:  198.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  23:   19.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  24:  459.2s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  25:   46.8s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  26:   98.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  27:  374.7s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  28:  528.1s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  29:   77.6s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  30:  366.4s Survivor SurvivorEscaped  terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1
+ seed  31:  104.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  32:  170.7s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  33:  217.2s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  34:  261.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  35:  351.8s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  36:  355.2s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  37:  108.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  38:  398.1s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  39:  109.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ seed  40:  109.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v1 | 5% | 208 s (108/368) | all down 37, escaped 2, time up 1 | 1.03 | 0.93 / 0.00 / 0.00 | 3% | 0% |
+ lagging timeouts per match 0.00; sweep 0.6 s
+
+
+[xUnit.net 00:00:03.80]     PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v7", survivors: 7, winMin: 0.34999999999999998, winMax: 0.65000000000000002, medianMin: 180, medianMax: 480, timeoutMax: 0.14999999999999999) [FAIL]
+[xUnit.net 00:00:03.80]       Assert.InRange() Failure: Value not in range
+[xUnit.net 00:00:03.80]       Range:  (0.34999999999999998 - 0.65000000000000002)
+[xUnit.net 00:00:03.80]       Actual: 0.32500000000000001
+[xUnit.net 00:00:03.80]       Stack Trace:
+[xUnit.net 00:00:03.80]         C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs(38,0): at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax)
+[xUnit.net 00:00:03.80]            at InvokeStub_BotBalanceTests.BalanceSweepMeetsTheTargets(Object, Span`1)
+[xUnit.net 00:00:03.80]            at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+[xUnit.net 00:00:03.80]       Output:
+[xUnit.net 00:00:03.80]         seed   1:  302.4s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   2:  168.2s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   3:  271.6s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   4:  372.7s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 5 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed   5:  341.6s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   6:  430.3s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   7:  306.7s Survivor SurvivorEscaped  terminals 5/5 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed   8:  432.0s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed   9:  486.3s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  10:  409.1s Survivor SurvivorEscaped  terminals 5/5 cap 8 (2nd 2) res 3 exe 3 lagTimeout 0 escaped 2
+[xUnit.net 00:00:03.80]         seed  11:  380.8s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  12:  373.2s Survivor SurvivorEscaped  terminals 5/5 cap 6 (2nd 1) res 2 exe 3 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  13:  279.1s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  14:  285.7s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 4 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  15:  486.9s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  16:  345.3s Survivor SurvivorEscaped  terminals 5/5 cap 3 (2nd 0) res 0 exe 3 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  17:  356.0s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 1) res 1 exe 3 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  18:  515.1s Survivor SurvivorEscaped  terminals 5/5 cap 6 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  19:  276.4s Killer   AllSurvivorsDown terminals 2/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  20:  238.5s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  21:  396.6s Survivor SurvivorEscaped  terminals 5/5 cap 9 (2nd 4) res 4 exe 1 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  22:  489.2s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  23:  340.6s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  24:  426.0s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 1 exe 4 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  25:  364.4s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  26:  343.2s Survivor SurvivorEscaped  terminals 5/5 cap 7 (2nd 1) res 3 exe 3 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  27:  352.2s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  28:  363.2s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  29:  514.8s Survivor SurvivorEscaped  terminals 5/5 cap 7 (2nd 1) res 2 exe 4 lagTimeout 0 escaped 2
+[xUnit.net 00:00:03.80]         seed  30:  379.9s Killer   AllSurvivorsDown terminals 4/5 cap 9 (2nd 2) res 2 exe 4 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  31:  427.9s Killer   AllSurvivorsDown terminals 4/5 cap 9 (2nd 2) res 2 exe 4 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  32:  453.1s Killer   AllSurvivorsDown terminals 5/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  33:  398.3s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  34:  576.9s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  35:  373.1s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 4 lagTimeout 0 escaped 1
+[xUnit.net 00:00:03.80]         seed  36:  347.8s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  37:  528.1s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  38:  428.2s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  39:  526.1s Killer   AllSurvivorsDown terminals 5/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         seed  40:  430.6s Killer   AllSurvivorsDown terminals 4/5 cap 10 (2nd 3) res 3 exe 4 lagTimeout 0 escaped 0
+[xUnit.net 00:00:03.80]         | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+[xUnit.net 00:00:03.80]         | 1v7 | 33% | 377 s (343/431) | all down 27, escaped 13 | 4.00 | 7.03 / 0.85 / 4.83 | 0% | 53% |
+[xUnit.net 00:00:03.80]         lagging timeouts per match 0.00; sweep 1.5 s
+[xUnit.net 00:00:03.81]   Finished:    Server.Tests
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 120, medianMax: 360, timeoutMax: 1, reqRescueShare: 0) [1 s]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: idle killer + 7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | idle killer + 7 | 95% | 278 s (260/299) | escaped 38, time 2 | 4.93 | 0.03 / 0.00 / 0.00 | 5% | 0% |
+ Lagging timeouts per match: 0.00; elapsed: 1.1 s
+
+
+  실패 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v7", survivors: 7, winMin: 0.34999999999999998, winMax: 0.65000000000000002, medianMin: 180, medianMax: 480, timeoutMax: 0.14999999999999999) [1 s]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.34999999999999998 - 0.65000000000000002)
+Actual: 0.32500000000000001
+  스택 추적:
+     at PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax) in C:\Unity\MultiPlayGame\PtK-work\u6e\Server.Tests\Core\BotBalanceTests.cs:line 38
+   at InvokeStub_BotBalanceTests.BalanceSweepMeetsTheTargets(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ seed   1:  302.4s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed   2:  168.2s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 5 lagTimeout 0 escaped 0
+ seed   3:  271.6s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed   4:  372.7s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 5 lagTimeout 0 escaped 1
+ seed   5:  341.6s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed   6:  430.3s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed   7:  306.7s Survivor SurvivorEscaped  terminals 5/5 cap 3 (2nd 0) res 0 exe 2 lagTimeout 0 escaped 1
+ seed   8:  432.0s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed   9:  486.3s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed  10:  409.1s Survivor SurvivorEscaped  terminals 5/5 cap 8 (2nd 2) res 3 exe 3 lagTimeout 0 escaped 2
+ seed  11:  380.8s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+ seed  12:  373.2s Survivor SurvivorEscaped  terminals 5/5 cap 6 (2nd 1) res 2 exe 3 lagTimeout 0 escaped 1
+ seed  13:  279.1s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+ seed  14:  285.7s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 4 lagTimeout 0 escaped 1
+ seed  15:  486.9s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  16:  345.3s Survivor SurvivorEscaped  terminals 5/5 cap 3 (2nd 0) res 0 exe 3 lagTimeout 0 escaped 1
+ seed  17:  356.0s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 1) res 1 exe 3 lagTimeout 0 escaped 1
+ seed  18:  515.1s Survivor SurvivorEscaped  terminals 5/5 cap 6 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 1
+ seed  19:  276.4s Killer   AllSurvivorsDown terminals 2/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed  20:  238.5s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  21:  396.6s Survivor SurvivorEscaped  terminals 5/5 cap 9 (2nd 4) res 4 exe 1 lagTimeout 0 escaped 1
+ seed  22:  489.2s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+ seed  23:  340.6s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed  24:  426.0s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 1 exe 4 lagTimeout 0 escaped 1
+ seed  25:  364.4s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  26:  343.2s Survivor SurvivorEscaped  terminals 5/5 cap 7 (2nd 1) res 3 exe 3 lagTimeout 0 escaped 1
+ seed  27:  352.2s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  28:  363.2s Killer   AllSurvivorsDown terminals 3/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed  29:  514.8s Survivor SurvivorEscaped  terminals 5/5 cap 7 (2nd 1) res 2 exe 4 lagTimeout 0 escaped 2
+ seed  30:  379.9s Killer   AllSurvivorsDown terminals 4/5 cap 9 (2nd 2) res 2 exe 4 lagTimeout 0 escaped 0
+ seed  31:  427.9s Killer   AllSurvivorsDown terminals 4/5 cap 9 (2nd 2) res 2 exe 4 lagTimeout 0 escaped 0
+ seed  32:  453.1s Killer   AllSurvivorsDown terminals 5/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  33:  398.3s Killer   AllSurvivorsDown terminals 3/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  34:  576.9s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 5 lagTimeout 0 escaped 0
+ seed  35:  373.1s Survivor SurvivorEscaped  terminals 5/5 cap 5 (2nd 0) res 0 exe 4 lagTimeout 0 escaped 1
+ seed  36:  347.8s Killer   AllSurvivorsDown terminals 2/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  37:  528.1s Killer   AllSurvivorsDown terminals 4/5 cap 8 (2nd 1) res 1 exe 6 lagTimeout 0 escaped 0
+ seed  38:  428.2s Killer   AllSurvivorsDown terminals 4/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  39:  526.1s Killer   AllSurvivorsDown terminals 5/5 cap 7 (2nd 0) res 0 exe 6 lagTimeout 0 escaped 0
+ seed  40:  430.6s Killer   AllSurvivorsDown terminals 4/5 cap 10 (2nd 3) res 3 exe 4 lagTimeout 0 escaped 0
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 | 33% | 377 s (343/431) | all down 27, escaped 13 | 4.00 | 7.03 / 0.85 / 4.83 | 0% | 53% |
+ lagging timeouts per match 0.00; sweep 1.5 s
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 8
+     통과: 3
+     실패: 5
+ 총 시간: 4.2586 초

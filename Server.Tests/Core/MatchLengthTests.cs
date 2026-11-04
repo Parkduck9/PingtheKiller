@@ -106,12 +106,12 @@ public sealed class MatchLengthTests
     // sidesteps cannot leave a wall whose span contains the target coordinate; in seed 5 a ThreatLevel 2 freeze with
     // the killer bot stuck on the other side of the same wall never released.
     [Theory]
-    [InlineData(24.6f, 16.1f, 10f, 25f)]
-    [InlineData(24.6f, 22.5f, 10f, 25f)]
+    [InlineData(19.6f, 17f, 10f, 25f)]
+    [InlineData(18.6f, 30f, 10f, 25f)]
     [InlineData(11.4f, 22.3f, 4f, 4f)]
-    [InlineData(26f, 34f, 26f, 60f)]
-    [InlineData(42f, 30f, 54f, 44f)]
-    [InlineData(5f, 5f, 49f, 25f)]
+    [InlineData(31f, 12f, 25f, 63f)]
+    [InlineData(41.6f, 23f, 57.5f, 44f)]
+    [InlineData(5f, 5f, 58f, 27f)]
     public void RouteReachesGoalsBehindWalls(float x, float z, float tx, float tz)
     {
         var map = new PingTheKiller.ServerCore.Map.FixedMap();

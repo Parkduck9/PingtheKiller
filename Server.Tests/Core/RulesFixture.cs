@@ -80,7 +80,7 @@ internal sealed class RulesMatch : IDisposable
                 f.Server.SyncChecksEnabled = false;
                 // Arrange legacy rule scenarios in the west open lane, independently of production spawn clusters.
                 f.Server.PlaceForTests(killer.Id, 5, 5);
-                var positions = new[] { (5f,26f), (10f,26f), (5f,36f), (10f,36f), (48f,48f), (70f,50f), (70f,55f) };
+                var positions = new[] { (5f,26f), (10f,26f), (5f,36f), (10f,36f), (44f,50f), (76f,50f), (76f,55f) };
                 for (int i=0;i<list.Length;i++) f.Server.PlaceForTests(list[i].Id,positions[i].Item1,positions[i].Item2);
                 f.Tick();
                 return new RulesMatch(f, killer, list, seed);

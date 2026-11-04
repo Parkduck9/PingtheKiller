@@ -26,7 +26,7 @@ namespace PingTheKiller.ServerCore
             internal double LastVisibleAt = double.NegativeInfinity;
             internal float VisibleX, VisibleZ;
             internal readonly PathFollower Route = new PathFollower();
-            // A White Noise walker first follows its landmark segment to the far end; afterwards it heads for terminals.
+            // A White Noise walker first follows its landmark route to the far end; afterwards it heads for terminals.
             internal bool Headed;
             internal float HeadX, HeadZ;
         }
@@ -55,7 +55,9 @@ namespace PingTheKiller.ServerCore
 
         private readonly List<Phantom> _decoys = new List<Phantom>();
         private readonly List<MapPoint> _landmarks = new List<MapPoint>();
-        private readonly List<KeyValuePair<int, int>> _segments = new List<KeyValuePair<int, int>>();
+        // NavGrid routes between landmark cells, found on first use. The landmarks never move, so a route is kept for the
+        // whole server lifetime; an empty route means the pair is not connected.
+        private readonly Dictionary<long, List<MapPoint>> _landmarkRoutes = new Dictionary<long, List<MapPoint>>();
         private int _nextPhantomSerial = 1;
 
         internal double Now => _now;
@@ -142,8 +144,8 @@ namespace PingTheKiller.ServerCore
             return count;
         }
 
-        // Plausible spots: next to an incomplete terminal (still), or 0-4 m along a straight walkable segment between two
-        // landmarks (terminals, the exit, survivor spawns), walking on along it. Points keep clear of the killer and of
+        // Plausible spots: next to an incomplete terminal (still), or 0-4 m along the NavGrid route from one landmark
+        // (terminals, the exit, survivor spawns) to another, walking on along it. Points keep clear of the killer and of
         // each other; the spacing relaxes only if the map cannot hold five spaced points.
         private bool TryPlaceWhiteNoise(bool atTerminal, List<MapPoint> placed, out float x, out float z, out float goalX, out float goalZ)
         {
@@ -163,16 +165,17 @@ namespace PingTheKiller.ServerCore
                 }
                 else
                 {
-                    if (_segments.Count == 0) break;
-                    var segment = _segments[_decoyRandom.Next(_segments.Count)];
-                    var a = _landmarks[segment.Key];
-                    var b = _landmarks[segment.Value];
-                    float length = (float)Math.Sqrt(DistanceSquared(a.X, a.Z, b.X, b.Z));
+                    if (_landmarks.Count < 2) break;
+                    int a = _decoyRandom.Next(_landmarks.Count);
+                    int b = _decoyRandom.Next(_landmarks.Count - 1);
+                    if (b >= a) ++b;
+                    var route = LandmarkRoute(_landmarks[a], _landmarks[b]);
+                    float length = RouteLength(route);
                     float along = (float)(_decoyRandom.NextDouble() * Math.Min(WhiteNoiseSegmentReach, length));
-                    x = a.X + (b.X - a.X) * along / length;
-                    z = a.Z + (b.Z - a.Z) * along / length;
-                    goalX = b.X;
-                    goalZ = b.Z;
+                    if (length <= 0) continue;
+                    PointAlong(route, along, out x, out z);
+                    goalX = _landmarks[b].X;
+                    goalZ = _landmarks[b].Z;
                 }
                 if (!Map.CanStand(x, z)) continue;
                 if (_killer != null && DistanceSquared(x, z, _killer.X, _killer.Z) < WhiteNoiseKillerClearance * WhiteNoiseKillerClearance) continue;
@@ -188,15 +191,44 @@ namespace PingTheKiller.ServerCore
         private void BuildLandmarks()
         {
             _landmarks.Clear();
-            _segments.Clear();
             foreach (var terminal in _terminals) _landmarks.Add(new MapPoint(terminal.X, terminal.Z));
             foreach (var exit in Map.Exits) _landmarks.Add(exit);
             for (int i = 1; i < Map.SpawnPoints.Count; i++) _landmarks.Add(Map.SpawnPoints[i]);
-            for (int a = 0; a < _landmarks.Count; a++)
-                for (int b = 0; b < _landmarks.Count; b++)
-                    if (a != b && Map.CanStand(_landmarks[a].X, _landmarks[a].Z) &&
-                        Nav.LineClear(_landmarks[a].X, _landmarks[a].Z, _landmarks[b].X, _landmarks[b].Z))
-                        _segments.Add(new KeyValuePair<int, int>(a, b));
+        }
+
+        private List<MapPoint> LandmarkRoute(MapPoint from, MapPoint to)
+        {
+            long key = (long)NavGrid.Cell(from.X, from.Z) * NavGrid.NodeCount + NavGrid.Cell(to.X, to.Z);
+            if (_landmarkRoutes.TryGetValue(key, out var route)) return route;
+            route = new List<MapPoint>();
+            if (!Map.CanStand(from.X, from.Z) || !Nav.FindPath(from.X, from.Z, to.X, to.Z, route)) route.Clear();
+            _landmarkRoutes[key] = route;
+            return route;
+        }
+
+        private static float RouteLength(List<MapPoint> route)
+        {
+            float length = 0;
+            for (int i = 1; i < route.Count; i++)
+                length += (float)Math.Sqrt(DistanceSquared(route[i - 1].X, route[i - 1].Z, route[i].X, route[i].Z));
+            return length;
+        }
+
+        private static void PointAlong(List<MapPoint> route, float along, out float x, out float z)
+        {
+            x = route[route.Count - 1].X;
+            z = route[route.Count - 1].Z;
+            for (int i = 1; i < route.Count; i++)
+            {
+                float leg = (float)Math.Sqrt(DistanceSquared(route[i - 1].X, route[i - 1].Z, route[i].X, route[i].Z));
+                if (along <= leg && leg > 0)
+                {
+                    x = route[i - 1].X + (route[i].X - route[i - 1].X) * along / leg;
+                    z = route[i - 1].Z + (route[i].Z - route[i - 1].Z) * along / leg;
+                    return;
+                }
+                along -= leg;
+            }
         }
 
         private bool NearIncompleteTerminal(float x, float z, float radius)
