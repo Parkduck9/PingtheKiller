@@ -135,7 +135,17 @@ namespace PingTheKiller.Client.QA.Tests
             // U4h brief spec 7: shadows are allowed on the key light only.
             Assert.That(Regex.Match(lighting, @"Directional\(\s*parent\s*,\s*""Fill light""[^;]*;").Value, Does.Contain("LightShadows.None"), "the fill casts no shadows");
             Assert.That(Regex.Matches(lighting, @"LightShadows\.(Hard|Soft)").Count, Is.LessThanOrEqualTo(1), "at most one shadow-casting light (the key)");
-            Assert.That(Regex.Match(lighting, @"Directional\(\s*parent\s*,\s*""Key light""[^;]*;").Value, Does.Not.Contain("LightShadows.Soft"), "hard shadows: no soft-shadow filtering cost");
+            // U4i attempt 2 (orchestrator fix list): hard shadows showed a texel saw-tooth, so the key light may use soft
+            // shadows. The filtering cost stays bounded: soft only on that one light, the pipeline must actually support
+            // soft shadows (else the light silently renders hard), and at most two cascades.
+            string keyLine = Regex.Match(lighting, @"Directional\(\s*parent\s*,\s*""Key light""[^;]*;").Value;
+            if (keyLine.Contains("LightShadows.Soft"))
+            {
+                string asset = File.ReadAllText(Path.Combine(Application.dataPath, "Settings/PC_RPAsset.asset"));
+                Assert.That(asset, Does.Match(@"m_SoftShadowsSupported:\s*1"), "the pipeline supports the key light's soft shadows");
+                int cascades = int.Parse(Regex.Match(asset, @"m_ShadowCascadeCount:\s*(\d+)").Groups[1].Value);
+                Assert.That(cascades, Is.InRange(1, 2), "soft-shadow cost bounded: at most two cascades");
+            }
         }
 
         [Test]

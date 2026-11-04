@@ -474,6 +474,8 @@ Decoys are classified and rendered by exactly the same rules (§6.3).
 
 **Draw order**, back to front: terminal and exit markers, Signal markers and edge indicators, then the cluster. Markers never use glow (SLOP V3). Only Survivors get the `signal` outline.
 
+**Shading (U4i, 2026-11-03).** Characters and world art use flat toon bands (`PingTheKiller/Toon`, the Toon Shaders Pro URP shader with its double-albedo multiply fixed): two bands for world art (ground with a soft shadow edge), three for characters, a cool dark shadow tint that is never black. No outline pass, no rim light, no specular; the `signal` hull above stays the only outline. Lit windows and signs stay unlit colours; the Exit marker keeps its particle material.
+
 ### 6.3 Anonymous blips (normative; decoy safety)
 Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borrow the Id of an absent Survivor (U2b rule 9). The server sets the `Afterimage` flag only on real Survivors. Per the 2026-10-27 decision (§11 Q8), U2c may replace Ids in the Killer view with per-snapshot indices. These rules work either way:
 1. **Read only `Role`, `Status`, `Flags.Signal`, `X`, `Z`** of Survivor entries. Never `Id`, `Yaw`, `StatusTimer`, `CaptureCount`, `Flags.Hacking`, `Flags.Rescuing`, `Flags.Stealthed` or the `Afterimage` flag. Entries with `Afterimage` set render exactly like the others; they get the `signal` outline although they are no longer transmitting, because to the Killer amber means "reported by the server" (§11 Q8).

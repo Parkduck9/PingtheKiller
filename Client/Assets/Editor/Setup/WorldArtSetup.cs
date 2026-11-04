@@ -68,6 +68,8 @@ namespace PingTheKiller.Editor.Setup
             catalog.Backdrop = Backdrop();
             catalog.Terminal = Terminal();
             catalog.ExitMarker = ExitMarker();
+            Templates();
+            ConvertLeftovers();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
             Debug.Log("[WorldArtSetup] WorldArt catalog ready: " + map.Walls.Count + " buildings, " + map.Obstacles.Count + " obstacles.");
@@ -77,12 +79,12 @@ namespace PingTheKiller.Editor.Setup
 
         private static class Palette
         {
-            public static Material Asphalt => Lit("Asphalt", new Color32(27, 28, 31, 255), .25f);
-            public static Material Paving => Lit("Paving", new Color32(47, 47, 49, 255), .1f);
-            public static Material PlazaA => Lit("Plaza A", new Color32(54, 52, 50, 255), .1f);
-            public static Material PlazaB => Lit("Plaza B", new Color32(48, 47, 46, 255), .1f);
-            public static Material Kerb => Lit("Kerb", new Color32(78, 78, 80, 255), .1f);
-            public static Material Marking => Lit("Marking", new Color32(118, 116, 108, 255), .1f);
+            public static Material Asphalt => Lit("Asphalt", new Color32(27, 28, 31, 255), .25f, ToonShading.Kind.Ground);
+            public static Material Paving => Lit("Paving", new Color32(47, 47, 49, 255), .1f, ToonShading.Kind.Ground);
+            public static Material PlazaA => Lit("Plaza A", new Color32(54, 52, 50, 255), .1f, ToonShading.Kind.Ground);
+            public static Material PlazaB => Lit("Plaza B", new Color32(48, 47, 46, 255), .1f, ToonShading.Kind.Ground);
+            public static Material Kerb => Lit("Kerb", new Color32(78, 78, 80, 255), .1f, ToonShading.Kind.Ground);
+            public static Material Marking => Lit("Marking", new Color32(118, 116, 108, 255), .1f, ToonShading.Kind.Ground);
             public static Material Roof => Lit("Roof", new Color32(42, 43, 46, 255), .05f);
             public static Material Frame => Lit("Frame", new Color32(34, 36, 39, 255), .3f);
             public static Material Glass => Lit("Glass dark", new Color32(22, 26, 32, 255), .75f);
@@ -109,29 +111,32 @@ namespace PingTheKiller.Editor.Setup
             new Color32(52, 54, 58, 255), new Color32(84, 66, 58, 255), new Color32(60, 68, 82, 255), new Color32(72, 80, 68, 255)
         };
 
-        private static Material Lit(string name, Color color, float smoothness, Color emission = default)
+        // Opaque world material. U4i: toon (two bands, no rim, no specular) when the toon shader is available, else URP Lit.
+        private static Material Lit(string name, Color color, float smoothness, ToonShading.Kind kind = ToonShading.Kind.World)
         {
             if (made.TryGetValue(name, out Material cached)) return cached;
             string path = Root + "/Materials/" + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            Shader toon = ToonShading.Find();
+            Shader shader = toon != null ? toon : Shader.Find("Universal Render Pipeline/Lit");
             if (material == null)
             {
-                material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                material = new Material(shader);
                 AssetDatabase.CreateAsset(material, path);
             }
-            material.shader = Shader.Find("Universal Render Pipeline/Lit");
-            material.SetColor("_BaseColor", color);
-            material.SetFloat("_Smoothness", smoothness);
-            material.SetFloat("_Metallic", 0);
-            material.SetFloat("_EnvironmentReflections", 0);
-            if (emission.maxColorComponent > 0)
+            if (material.shader != shader)
             {
-                material.EnableKeyword("_EMISSION");
-                material.SetColor("_EmissionColor", emission);
-                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                material.shader = shader;
+                material.shaderKeywords = new string[0];
             }
+            // Attempt 2: the night grade is applied here, to the palette colour, so material names and GUIDs never change.
+            material.SetColor("_BaseColor", kind == ToonShading.Kind.Character ? color : ToonShading.NightGrade(color));
+            if (toon != null) ToonShading.Configure(material, kind);
             else
             {
+                material.SetFloat("_Smoothness", smoothness);
+                material.SetFloat("_Metallic", 0);
+                material.SetFloat("_EnvironmentReflections", 0);
                 material.DisableKeyword("_EMISSION");
                 material.SetColor("_EmissionColor", Color.black);
             }
@@ -139,6 +144,48 @@ namespace PingTheKiller.Editor.Setup
             EditorUtility.SetDirty(material);
             made[name] = material;
             return material;
+        }
+
+        // Materials no current piece uses (earlier map versions, the orphan Barricade 3 model) still get the toon look, so no
+        // URP Lit material is left under Art/World.
+        private static void ConvertLeftovers()
+        {
+            if (ToonShading.Find() == null) return;
+            foreach (string guid in AssetDatabase.FindAssets("t:Material", new[] { Root + "/Materials" }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (material == null || material.shader == null || material.shader.name != "Universal Render Pipeline/Lit") continue;
+                Lit(Path.GetFileNameWithoutExtension(path), material.GetColor("_BaseColor"), 0);
+            }
+        }
+
+        // The runtime templates (WorldMaterials.NewMaterial): opaque and fade. Being in Resources, they also put the toon
+        // shader with the world variant into the player build.
+        private static void Templates()
+        {
+            Shader toon = ToonShading.Find();
+            if (toon == null) { Debug.LogWarning("[WorldArtSetup] Toon shader missing; runtime materials stay URP Lit."); return; }
+            foreach (bool fade in new[] { false, true })
+            {
+                string path = "Assets/Resources/" + (fade ? ToonShading.FadeTemplate : ToonShading.Template) + ".mat";
+                var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (material == null)
+                {
+                    material = new Material(toon);
+                    AssetDatabase.CreateAsset(material, path);
+                }
+                material.shader = toon;
+                material.shaderKeywords = new string[0];
+                material.SetColor("_BaseColor", Color.white);
+                ToonShading.Configure(material, ToonShading.Kind.World);
+                material.SetFloat("_Surface", fade ? 1 : 0);
+                material.SetFloat("_SrcBlend", (float)(fade ? BlendMode.SrcAlpha : BlendMode.One));
+                material.SetFloat("_DstBlend", (float)(fade ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
+                material.SetFloat("_ZWrite", fade ? 0 : 1);
+                material.renderQueue = fade ? (int)RenderQueue.Transparent : -1;
+                EditorUtility.SetDirty(material);
+            }
         }
 
         private static Material Unlit(string name, Color color)
@@ -961,6 +1008,18 @@ namespace PingTheKiller.Editor.Setup
                 copy = new Material(source);
                 AssetDatabase.CreateAsset(copy, path);
             }
+            // U4i: the copies are toon too; base map, colour and normal map come from the vendor material.
+            Shader toon = ToonShading.Find();
+            if (toon != null && copy.shader != toon)
+            {
+                copy.shader = toon;
+                copy.shaderKeywords = new string[0];
+                if (source.HasProperty("_BaseMap")) copy.SetTexture("_BaseMap", source.GetTexture("_BaseMap"));
+                if (source.HasProperty("_BaseColor")) copy.SetColor("_BaseColor", source.GetColor("_BaseColor"));
+                if (source.HasProperty("_BumpMap")) copy.SetTexture("_BumpMap", source.GetTexture("_BumpMap"));
+            }
+            if (toon != null) ToonShading.Configure(copy, ToonShading.Kind.World);
+            EditorUtility.SetDirty(copy);
             return copy;
         }
 
