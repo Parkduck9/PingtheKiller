@@ -15,12 +15,15 @@ namespace PingTheKiller.Client.UI
         public const float Width = 320, Margin = 24;
         private readonly VisualElement root, cluster, intro, menu, prompt, info, effect, skill, timeBar, effectBar;
         private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
-        private readonly Button resume, leave;
+        private readonly Button resume, settings, leave;
         private readonly SkillRing ring;
         private readonly VisualElement[] blocks;
         public MarkerLayer Markers { get; }
         public event Action Resume;
+        public event Action OpenSettings;
         public event Action LeaveMatch;
+        // Skill + effect + Resume, Settings and Leave match (HUD_SPEC 6.6).
+        public const float MenuHeight = 256;
         public bool MenuOpen => menu.style.display == DisplayStyle.Flex;
 
         public KillerHud(VisualElement parent, Font font)
@@ -44,6 +47,9 @@ namespace PingTheKiller.Client.UI
             resume = new Button(() => Resume?.Invoke()) { text = KillerHudCopy.Resume };
             resume.AddToClassList("primary"); resume.AddToClassList("kbutton");
             menu.Add(resume);
+            settings = new Button(() => OpenSettings?.Invoke()) { text = SettingsCopy.Title };
+            settings.AddToClassList("kbutton");
+            menu.Add(settings);
             leave = new Button(() => LeaveMatch?.Invoke()) { text = KillerHudCopy.LeaveMatch };
             leave.AddToClassList("kbutton"); leave.AddToClassList("klast");
             menu.Add(leave);
@@ -121,6 +127,7 @@ namespace PingTheKiller.Client.UI
         public void SetIntro(bool visible) => Show(intro, visible && !MenuOpen);
 
         // HUD_SPEC 6.6: the menu replaces the intro and prompt area; Resume takes focus.
+        public void FocusMenu() { if (MenuOpen) settings.Focus(); }
         public void SetMenu(bool open)
         {
             Show(menu, open);
@@ -171,7 +178,8 @@ namespace PingTheKiller.Client.UI
         public Rect ClusterRect(float screenHeight)
         {
             float height = 72 + 8 + 72; // info + skill
-            if (Visible(intro) || Visible(menu)) height += 208 + 8;
+            if (Visible(intro)) height += 208 + 8;
+            else if (Visible(menu)) height += MenuHeight + 8;
             if (Visible(prompt)) height += 56 + 8;
             if (Visible(effect)) height += 32 + 8;
             return new Rect(Margin, screenHeight - Margin - height, Width, height);

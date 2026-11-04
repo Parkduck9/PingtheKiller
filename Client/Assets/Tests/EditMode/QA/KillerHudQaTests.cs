@@ -372,7 +372,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(Shown(Block(root, "kintro"), root), Is.False, "the intro timer cannot bring the intro back over the menu");
             var buttons = new List<string>();
             foreach (Button b in Block(root, "kmenu").Query<Button>().ToList()) buttons.Add(b.text);
-            Assert.That(buttons, Is.EqualTo(new[] { "Resume", "Leave match" }));
+            Assert.That(buttons, Is.EqualTo(new[] { "Resume", "Settings", "Leave match" }));
             Assert.That(LabelShown(Block(root, "kmenu"), "Firewall block"), Is.True, "the menu names the skill");
             Assert.That(LabelShown(Block(root, "kmenu"), "Locks the open Exit for 5 s."), Is.True, "and states its effect");
             Assert.That(Shown(Block(root, "kinfo"), root), Is.True);
@@ -405,9 +405,9 @@ namespace PingTheKiller.Client.QA.Tests
             Rect worst = hud.ClusterRect(900);
             Assert.That(worst.height, Is.EqualTo(472f), "everything shown");
             Assert.That(worst.yMin, Is.EqualTo(404f), "HUD_SPEC 6.1: the top edge sits at 900 - 24 - 472 = 404 u");
-            // The play menu uses the same 208 u slot as the intro.
+            // The play menu is 256 u (U7a: Resume, Settings, Leave match), 48 u taller than the intro slot.
             hud.SetMenu(true);
-            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(472f - 64), "menu replaces the intro; the prompt is hidden while the menu is open");
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(472f - 64 + 48), "menu replaces the intro; the prompt is hidden while the menu is open");
         }
 
         // ---- 8. execution guidance (pure) -------------------------------------------------------------------------------------

@@ -16,6 +16,8 @@ namespace PingTheKiller.Client.World
         public const float DitherBelow = 1f;
         private readonly BoomFollow boom = new BoomFollow(Boom, EaseSeconds);
         public float Pitch { get; private set; } = DefaultPitch;
+        // The vertical FOV in use: the spec value unless the player's setting says otherwise.
+        public float Fov { get; set; } = VerticalFov;
         public float BoomLength => boom.Length;
         // Below 1 m the own character is drawn with the screen-door dither so it never blocks the view.
         public bool Dither => boom.Length < DitherBelow;
@@ -33,8 +35,8 @@ namespace PingTheKiller.Client.World
             Vector3 target = Target(ground), back = Back(yaw, Pitch);
             float clear = MapGeometry.SphereCast(SharedMap.Map, target, back, Boom, ProbeRadius);
             float length = boom.Update(clear, dt);
-            var pose = new ViewPose(target + back * length, yaw, Pitch, VerticalFov, camera.aspect);
-            camera.fieldOfView = VerticalFov;
+            var pose = new ViewPose(target + back * length, yaw, Pitch, Fov, camera.aspect);
+            camera.fieldOfView = Fov;
             camera.transform.SetPositionAndRotation(pose.Eye, pose.Rotation);
             return pose;
         }

@@ -1,4 +1,5 @@
 using System;
+using PingTheKiller.Client.Settings;
 using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -29,6 +30,8 @@ namespace PingTheKiller.Client.UI
         private Button join, cancel, offline, minus, plus, start, back, resultLeave;
         private Label botCount, roleChoice;
         private readonly Button[] roleButtons = new Button[3];
+        private SettingsScreen settingsScreen;
+        private Button openSettings;
         private PanelSettings panel;
         private Vector2Int scaledFor;
         public event Action<string> Join;
@@ -41,6 +44,9 @@ namespace PingTheKiller.Client.UI
         public string Address { get => address.value; set => address.value = value; }
         public bool Playing { get; private set; }
         public bool InResult { get; private set; }
+        // U7a: the player's options, loaded from PlayerPrefs; the Settings screen edits them.
+        public GameSettings Options { get; private set; }
+        public bool SettingsOpen => settingsScreen != null && settingsScreen.Visible;
         public KillerHud Killer { get; private set; }
         public SurvivorHud Survivor { get; private set; }
         public VisualElement StutterBack { get; private set; }
@@ -75,6 +81,10 @@ namespace PingTheKiller.Client.UI
             StutterBack = Box(root, "stutter"); StutterFront = Box(root, "stutter");
             StutterBack.pickingMode = PickingMode.Ignore; StutterFront.pickingMode = PickingMode.Ignore;
             BuildMenu(); BuildLobby(); BuildResult(); BuildPlay(font);
+            Options = GameSettings.Load(new PlayerPrefsStore());
+            settingsScreen = new SettingsScreen(root, Options, () => Playing);
+            settingsScreen.Closed += SettingsClosed;
+            Killer.OpenSettings += ShowSettings;
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
             root.Query<TextElement>().ForEach(element => element.style.unityFontDefinition = FontDefinition.FromFont(font));
             ShowMenu(string.Empty);
@@ -133,6 +143,8 @@ namespace PingTheKiller.Client.UI
             cancel = Action(actions, "Cancel connection", () => Leave?.Invoke());
             offline = Action(menu, "Offline", () => Offline?.Invoke());
             Text(menu, "Play against bots on this PC. No network needed.", "note");
+            openSettings = Action(menu, SettingsCopy.Title, ShowSettings);
+            openSettings.AddToClassList("set-open");
         }
         private void BuildLobby()
         {
@@ -182,6 +194,7 @@ namespace PingTheKiller.Client.UI
         }
         private void Phase(VisualElement visible)
         {
+            settingsScreen?.Hide();
             Show(menu, visible == menu);
             Show(lobby, visible == lobby);
             Show(result, visible == result);
@@ -197,7 +210,7 @@ namespace PingTheKiller.Client.UI
         }
         public void SetConnecting(bool value)
         {
-            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value);
+            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value); openSettings.SetEnabled(!value);
             Show(cancel, value);
             if (value) { message.text = "Connecting to " + address.value + "…"; cancel.Focus(); }
         }
@@ -242,6 +255,19 @@ namespace PingTheKiller.Client.UI
             Killer.SetVisible(role == Role.Killer);
             Show(exit, false);
             root.focusController?.focusedElement?.Blur();
+        }
+        // Opened from the main menu (it replaces the menu) or from the Killer play menu (it sits over the match).
+        public void ShowSettings()
+        {
+            if (SettingsOpen) return;
+            if (!Playing) Show(menu, false);
+            settingsScreen.Show();
+        }
+        public void CloseSettings() => settingsScreen.Close();
+        private void SettingsClosed()
+        {
+            if (Playing) { Killer.FocusMenu(); return; }
+            Show(menu, true); openSettings.Focus();
         }
         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
         // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.

@@ -8,22 +8,25 @@ namespace PingTheKiller.Client.World
     // off-screen texture; at 8 Hz (StutterClock) that image is copied out and shown full-screen behind the HUD, blended over
     // the previous presented frame at 30 % (two stacked UI layers: previous at full opacity, newest at 70 %, so the result
     // is 0.7 newest + 0.3 previous). The HUD (UI Toolkit, drawn on top) and the audio stay at full rate. No shake, no flash.
-    // Reduced (-ptk-reduce-stutter): a new frame every frame, still blended 30 %, no hold and no border.
+    // Reduced (the Reduced motion setting, or -ptk-reduce-stutter which forces it on): a new frame every frame, still blended 30 %, no hold and no border.
     public sealed class LaggingStutter : MonoBehaviour
     {
         private Camera view;
         private VisualElement back, front;
         private RenderTexture live, newest, previous;
         private readonly StutterClock clock = new StutterClock();
-        private bool reduced, active, primed;
+        private bool flagReduced, optionReduced, reduced, active, primed;
         private int startFrame;
         public bool Active => active;
+        // Reduced if the dev flag forced it on at start or the player's Reduced motion setting is on.
+        public bool Reduced => reduced;
+        public void SetReducedOption(bool on) { optionReduced = on; reduced = flagReduced || optionReduced; }
         // Frames presented since the stutter started (dev log and tests).
         public int Presented { get; private set; }
 
         public void Initialize(Camera camera, VisualElement backLayer, VisualElement frontLayer, bool reduce)
         {
-            view = camera; back = backLayer; front = frontLayer; reduced = reduce;
+            view = camera; back = backLayer; front = frontLayer; flagReduced = reduce; reduced = flagReduced || optionReduced;
             front.style.unityBackgroundImageTintColor = new Color(1, 1, 1, 1 - StutterClock.PreviousWeight);
             Show(false);
         }
@@ -38,7 +41,7 @@ namespace PingTheKiller.Client.World
                 Allocate();
                 view.targetTexture = live;
                 startFrame = Time.frameCount;
-                Debug.Log("[client] Lagging stutter on (" + (reduced ? "reduced: blend only" : "8 Hz hold + 30 % blend") + ")");
+                Debug.Log("[client] Lagging stutter on (" + (Reduced ? "reduced: blend only" : "8 Hz hold + 30 % blend") + ")");
             }
             else
             {
