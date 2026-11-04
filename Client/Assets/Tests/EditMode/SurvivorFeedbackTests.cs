@@ -6,6 +6,7 @@ using NUnit.Framework;
 using PingTheKiller.Client.Dev;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -310,9 +311,9 @@ namespace PingTheKiller.Client.Tests
         [TestCase(.05f, EliminationReason.TimedOut)]
         [TestCase(0f, EliminationReason.TimedOut)]
         [TestCase(.2f, EliminationReason.TimedOut)]
-        [TestCase(.25f, EliminationReason.Executed)]
-        [TestCase(41f, EliminationReason.Executed)]
-        public void LaggingToEliminatedIsATimeoutAtOrBelowTwoTenthsAndOtherwiseAnExecution(float lastTimer, EliminationReason expected)
+        [TestCase(.25f, EliminationReason.None)]
+        [TestCase(41f, EliminationReason.None)]
+        public void LaggingToEliminatedIsATimeoutAtOrBelowTwoTenthsAndOtherwiseNotInferredWithoutACollapse(float lastTimer, EliminationReason expected)
         {
             var watch = new CaptureWatch();
             watch.Observe(PlayerStatus.Normal, 0, 0, 0);
@@ -323,23 +324,26 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void ANormalSurvivorCapturedOnceWhoIsEliminatedDirectlyWasCaughtASecondTime()
+        public void ANormalSurvivorCapturedTwiceWhoIsEliminatedDirectlyWasCaughtAThirdTime()
         {
+            // GDD v2 4 (U6c-wire S5): the elimination is the third capture; one capture before it leaves the Survivor Lagging.
             var watch = new CaptureWatch();
-            watch.Observe(PlayerStatus.Normal, 0, 1, 0);
-            watch.Observe(PlayerStatus.Eliminated, 0, 2, .05);
-            Assert.That(watch.Reason, Is.EqualTo(EliminationReason.SecondCapture));
+            watch.Observe(PlayerStatus.Normal, 0, 2, 0);
+            watch.Observe(PlayerStatus.Eliminated, 0, 3, .05);
+            Assert.That(watch.Reason, Is.EqualTo(EliminationReason.ThirdCapture));
+            Assert.That(CaptureWatch.Infer(PlayerStatus.Normal, 0, 1), Is.EqualTo(EliminationReason.None), "captured once: a capture only lags");
             Assert.That(CaptureWatch.Infer(PlayerStatus.Normal, 0, 0), Is.EqualTo(EliminationReason.None), "never captured: nothing is claimed");
         }
 
         [Test]
-        public void TheThreeReasonsUseTheSpecCopyOnTheMeterAndOnTheResultScreen()
+        public void TheThreeReasonsUseTheSpecCopyOnTheMeter()
         {
-            Assert.That(CaptureWatch.ReasonText(EliminationReason.Executed), Is.EqualTo("Executed: the Killer touched you while Lagging."));
-            Assert.That(CaptureWatch.ReasonText(EliminationReason.TimedOut), Is.EqualTo("Disconnected: no rescue within 60 s."));
-            Assert.That(CaptureWatch.ReasonText(EliminationReason.SecondCapture), Is.EqualTo("Executed: caught a second time."));
+            // GDD v2 4 (U6c-wire S5): no execution wording; the result screen (13.7) names the outcome only.
+            Assert.That(CaptureWatch.ReasonText(EliminationReason.Collapse), Is.EqualTo("Disconnected: the collapse reached you."));
+            Assert.That(CaptureWatch.ReasonText(EliminationReason.TimedOut), Is.EqualTo("Disconnected: no rescue in the second Lagging stage (30 s)."));
+            Assert.That(CaptureWatch.ReasonText(EliminationReason.ThirdCapture), Is.EqualTo("Disconnected: caught a third time."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.None), Is.Null);
-            foreach (EliminationReason reason in new[] { EliminationReason.Executed, EliminationReason.TimedOut, EliminationReason.SecondCapture })
+            foreach (EliminationReason reason in new[] { EliminationReason.Collapse, EliminationReason.TimedOut, EliminationReason.ThirdCapture })
             {
                 string text = CaptureWatch.ReasonText(reason);
                 MeterState m = SurvivorReadout.Meter(new OwnEntry { Status = PlayerStatus.Eliminated }, null, 0, 0, text);
@@ -348,15 +352,15 @@ namespace PingTheKiller.Client.Tests
                 Assert.That(m.Wrap, Is.True, "up to two lines in rows B-C (no bar)");
                 Assert.That(m.ReasonMuted, Is.False);
                 Assert.That(text.Length * 8.3f, Is.LessThanOrEqualTo(2 * 288), "fits two S lines of 288 u");
-                var result = new S2C_GameResult { Reason = (byte)GameEndReason.AllSurvivorsDown, WinnerRole = (byte)Role.Killer };
-                Assert.That(ResultCopy.Outcome(result, OwnId, Role.Survivor, PlayerStatus.Eliminated, text), Is.EqualTo("You were eliminated. " + text));
+                Assert.That(text, Does.Not.Contain("Executed"));
             }
             MeterState plain = SurvivorReadout.Meter(new OwnEntry { Status = PlayerStatus.Eliminated }, null, 0, 0, null);
             Assert.That(plain.Reason, Is.EqualTo("Watching until the match ends."), "no inferred reason: the old line");
             Assert.That(plain.Wrap, Is.False);
             var down = new S2C_GameResult { Reason = (byte)GameEndReason.AllSurvivorsDown, WinnerRole = (byte)Role.Killer };
-            Assert.That(ResultCopy.Outcome(down, OwnId, Role.Survivor, PlayerStatus.Lagging, CaptureWatch.Executed), Is.EqualTo("You were still Lagging when the match ended."), "only an eliminated line carries a reason");
-            Assert.That(ResultCopy.Outcome(down, OwnId, Role.Killer, PlayerStatus.Normal, CaptureWatch.Executed), Is.EqualTo("You won as the Killer."));
+            down.EliminatedIds.Add(OwnId);
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(down, null, OwnId, Role.Survivor)), Is.EqualTo("You were eliminated."));
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(down, null, 99, Role.Killer)), Is.EqualTo("You eliminated 1 of 1 Survivors."));
         }
 
         [Test]
@@ -365,8 +369,8 @@ namespace PingTheKiller.Client.Tests
             var hud = new SurvivorHud(new VisualElement(), Resources.Load<Font>("Fonts/Inter-Regular"));
             try
             {
-                hud.SetMeter(SurvivorReadout.Meter(new OwnEntry { Status = PlayerStatus.Eliminated }, null, 0, 0, CaptureWatch.Executed));
-                Assert.That(hud.Reason, Is.EqualTo(CaptureWatch.Executed));
+                hud.SetMeter(SurvivorReadout.Meter(new OwnEntry { Status = PlayerStatus.Eliminated }, null, 0, 0, CaptureWatch.Collapse));
+                Assert.That(hud.Reason, Is.EqualTo(CaptureWatch.Collapse));
                 Assert.That(hud.ReasonWraps, Is.True);
                 Assert.That(hud.MeterBarShown, Is.False);
                 hud.SetMeter(SurvivorReadout.Meter(new OwnEntry { Status = PlayerStatus.Lagging, StatusTimer = 40 }, null, 0, 0, null));

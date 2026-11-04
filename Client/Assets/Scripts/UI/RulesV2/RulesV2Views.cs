@@ -72,7 +72,7 @@ namespace PingTheKiller.Client.UI.RulesV2
 
     public struct ResultRow
     {
-        public byte PlayerId;
+        public int PlayerId;
         public string Name;
         public bool Escaped;
         public bool Self;
@@ -96,6 +96,12 @@ namespace PingTheKiller.Client.UI.RulesV2
         // Rows in the given slot order (escaped and eliminated ids together); ids in neither list are skipped.
         public static ResultV2View FromIds(byte winnerRole, byte reason, IReadOnlyList<byte> escapedIds, IReadOnlyList<byte> eliminatedIds,
             IReadOnlyList<byte> slotOrder, System.Func<byte, string> name, byte ownId, Role ownRole)
+            => FromIds(winnerRole, reason, Widen(escapedIds), Widen(eliminatedIds), Widen(slotOrder),
+                name == null ? (System.Func<int, string>)null : id => name((byte)id), ownId, ownRole);
+
+        // S2C_GameResult carries int player ids; the same rule with the wire's id type.
+        public static ResultV2View FromIds(byte winnerRole, byte reason, IReadOnlyList<int> escapedIds, IReadOnlyList<int> eliminatedIds,
+            IReadOnlyList<int> slotOrder, System.Func<int, string> name, int ownId, Role ownRole)
         {
             var view = new ResultV2View
             {
@@ -103,7 +109,8 @@ namespace PingTheKiller.Client.UI.RulesV2
                 Reason = reason <= (byte)ResultReasonV2.Collapse ? (ResultReasonV2)reason : ResultReasonV2.AllResolved,
                 OwnRole = ownRole
             };
-            foreach (byte id in slotOrder)
+            if (slotOrder == null) return view;
+            foreach (int id in slotOrder)
             {
                 bool escaped = Contains(escapedIds, id);
                 if (!escaped && !Contains(eliminatedIds, id)) continue;
@@ -112,7 +119,15 @@ namespace PingTheKiller.Client.UI.RulesV2
             return view;
         }
 
-        private static bool Contains(IReadOnlyList<byte> ids, byte id)
+        private static List<int> Widen(IReadOnlyList<byte> ids)
+        {
+            if (ids == null) return null;
+            var list = new List<int>(ids.Count);
+            foreach (byte id in ids) list.Add(id);
+            return list;
+        }
+
+        private static bool Contains(IReadOnlyList<int> ids, int id)
         {
             if (ids == null) return false;
             for (int i = 0; i < ids.Count; i++) if (ids[i] == id) return true;

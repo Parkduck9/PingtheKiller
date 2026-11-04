@@ -1,5 +1,6 @@
 using System;
 using PingTheKiller.Client.Killer;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using UnityEngine;
@@ -8,17 +9,22 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // HUD_SPEC 6.1 bottom-left cluster (320 u wide, margin 24 u), stacked from the top: intro (3 s) or play menu,
-    // execution prompt, info, effect line, skill block. Under it, the world marker layer (6.2). Every block has a `panel`
+    // interact prompt or the hold block (13.3), the collapse block (13.5), info, effect line, skill block. Under it, the
+    // world marker layer (6.2) and the rules v2 world layer (13.4, 13.6). Every block has a `panel`
     // fill and a 1 u `line` border; corner radius 0. The HUD itself has no focusable element (only the play menu does).
     public sealed class KillerHud
     {
         public const float Width = 320, Margin = 24;
         private readonly VisualElement root, cluster, intro, menu, prompt, info, effect, skill, timeBar, effectBar;
-        private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
+        private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
         private readonly Button resume, settings, leave;
         private readonly SkillRing ring;
         private readonly VisualElement[] blocks;
         public MarkerLayer Markers { get; }
+        // HUD_SPEC 13.4 / 13.6: exit markers, Regressing tags and the Overloaded alert.
+        public V2MarkerLayer V2Markers { get; }
+        public HoldActionBar Hold { get; }
+        public CollapseTimer Collapse { get; }
         public event Action Resume;
         public event Action OpenSettings;
         public event Action LeaveMatch;
@@ -33,6 +39,8 @@ namespace PingTheKiller.Client.UI
             parent.Add(root);
             Markers = new MarkerLayer(font);
             root.Add(Markers);
+            V2Markers = new V2MarkerLayer(font);
+            root.Add(V2Markers);
             cluster = Box(root, "killer-cluster");
 
             intro = Box(cluster, "kblock", "kintro");
@@ -55,8 +63,12 @@ namespace PingTheKiller.Client.UI
             menu.Add(leave);
 
             prompt = Box(cluster, "kblock", "kprompt");
-            Text(prompt, KillerHudCopy.LaggingTitle, "ks", "kbold");
-            promptLine = Text(prompt, string.Empty, "ks");
+            promptTitle = Text(prompt, string.Empty, "ks", "kbold");
+            promptLine = Text(prompt, string.Empty, "ks", "kmuted");
+            Hold = new HoldActionBar(Role.Killer, font);
+            cluster.Add(Hold);
+            Collapse = new CollapseTimer(Role.Killer, font);
+            cluster.Add(Collapse);
 
             info = Box(cluster, "kblock", "kinfo");
             VisualElement timeRow = Box(info, "krow");
@@ -78,7 +90,7 @@ namespace PingTheKiller.Client.UI
             skillState = Text(column, string.Empty, "ks", "kmuted");
             skillKey = Text(column, "[Q]", "ks", "kmuted");
 
-            blocks = new[] { intro, menu, prompt, info, effect, skill };
+            blocks = new[] { intro, menu, prompt, info, effect, skill, Hold, Collapse };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             foreach (Button button in root.Query<Button>().ToList()) button.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(root, false);
@@ -120,7 +132,8 @@ namespace PingTheKiller.Client.UI
             introEffect.text = menuEffect.text = KillerHudCopy.SkillEffect(skillId);
             skillName.text = KillerHudCopy.SkillName(skillId);
             Show(skillKey, skillId != SkillIds.PacketAfterimage);
-            Show(intro, true); Show(menu, false); Show(prompt, false); Show(effect, false);
+            Show(intro, true); Show(menu, false); Show(prompt, false); Show(effect, false); Hold.Hide();
+            Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Show(root, true);
         }
 
@@ -131,7 +144,7 @@ namespace PingTheKiller.Client.UI
         public void SetMenu(bool open)
         {
             Show(menu, open);
-            if (open) { Show(intro, false); Show(prompt, false); resume.Focus(); }
+            if (open) { Show(intro, false); Show(prompt, false); Hold.Hide(); resume.Focus(); }
             else resume.Blur();
         }
 
@@ -152,22 +165,33 @@ namespace PingTheKiller.Client.UI
             Show(effectBar, danger);
         }
 
-        public void SetPrompt(ExecutionPrompt state, float graceLeft)
+        // HUD_SPEC 13.3: the hold block takes the prompt slot while a kick or a hatch close runs; otherwise the interact
+        // prompt (kick, hatch close) shows when in reach. Both hide while the play menu is open.
+        public void SetPrompt(InteractPrompt interact, in HoldActionView hold)
         {
-            string line = KillerHudCopy.PromptLine(state, graceLeft);
-            Show(prompt, line != null && !MenuOpen);
-            if (line != null && promptLine.text != line) promptLine.text = line;
+            bool holding = hold.Kind != HoldKind.None && !MenuOpen;
+            if (holding) Hold.Set(hold, "[E]"); else Hold.Hide();
+            bool visible = !holding && !MenuOpen && !string.IsNullOrEmpty(interact.Text);
+            Show(prompt, visible);
+            if (!visible) return;
+            if (promptTitle.text != interact.Text) promptTitle.text = interact.Text;
+            SetText(promptLine, interact.Hint);
         }
 
+        public string PromptText => prompt.style.display == DisplayStyle.None ? null : promptTitle.text;
+
+        // HUD_SPEC 13.5: the global collapse clock (hidden while it does not run).
+        public void SetCollapse(in CollapseView view) => Collapse.Set(view);
+
         // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready / Passive /
-        // After the Exit opens only.
-        public void SetSkill(byte skillId, bool exitOpen, ISelfState self, float activeFraction)
+        // Needs an Exit switch in progress only.
+        public void SetSkill(byte skillId, bool switchInProgress, ISelfState self, float activeFraction)
         {
             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;
-            string state = KillerHudCopy.SkillState(skillId, exitOpen, cooldown);
+            string state = KillerHudCopy.SkillState(skillId, switchInProgress, cooldown);
             if (skillState.text != state) skillState.text = state;
             SkillRing.State ringState = skillId == SkillIds.PacketAfterimage ? SkillRing.State.Passive
-                : skillId == SkillIds.FirewallBlock && !exitOpen ? SkillRing.State.Disabled
+                : skillId == SkillIds.FirewallBlock && !switchInProgress ? SkillRing.State.Disabled
                 : cooldown.HasValue && cooldown.Value > 0 ? SkillRing.State.Cooldown : SkillRing.State.Ready;
             float fraction = cooldown.HasValue ? cooldown.Value / GameConstants.KillerSkillCooldownSeconds : 0;
             ring.Set(skillId, ringState, fraction, activeFraction, false);
@@ -181,6 +205,8 @@ namespace PingTheKiller.Client.UI
             if (Visible(intro)) height += 208 + 8;
             else if (Visible(menu)) height += MenuHeight + 8;
             if (Visible(prompt)) height += 56 + 8;
+            if (Visible(Hold)) height += 72 + 8;
+            if (Visible(Collapse)) height += 32 + 8;
             if (Visible(effect)) height += 32 + 8;
             return new Rect(Margin, screenHeight - Margin - height, Width, height);
         }
@@ -196,7 +222,7 @@ namespace PingTheKiller.Client.UI
                 block.style.borderTopWidth = border; block.style.borderBottomWidth = border;
                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
             }
-            Markers.Scale = scale; ring.Scale = scale;
+            Markers.Scale = scale; ring.Scale = scale; V2Markers.Scale = scale;
             Markers.MarkDirtyRepaint(); ring.MarkDirtyRepaint();
         }
     }

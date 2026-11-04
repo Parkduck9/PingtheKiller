@@ -8,6 +8,9 @@ namespace PingTheKiller.Client.Dev
 {
     public enum KillerLook : byte { None, Nearest, Away, Fixed, Occluded }
 
+    // -ptk-auto-sync: where the scripted press lands on each sync check (miss never presses).
+    public enum AutoSync : byte { None, Great, Good, Miss }
+
     // Dev capture flags (-ptk-*). Inert when none is present. Invalid or missing values disable that flag and add an error.
     public sealed class DevArgs
     {
@@ -58,11 +61,19 @@ namespace PingTheKiller.Client.Dev
         public string PreviewV2Hud { get; private set; }
         // Screenshots of the Settings screen: opened from the main menu after the menu shot, and from the play menu (needs -ptk-menu).
         public bool Settings { get; private set; }
+        // Survivor autopilot (rules v2 screenshots): walk (NavGrid route, normal MoveInput) to the nearest unfinished terminal
+        // and hold Interact there for this many seconds in total, re-targeting when a terminal completes. Off by default.
+        public float DevHack { get; private set; }
+        // Survivor autopilot, after the exits are powered: hold the nearest unopened exit's switch, then walk into an open
+        // exit. Sends only MoveInput and Interact, like a player.
+        public bool DevSwitch { get; private set; }
+        // Presses Space's path (SyncCheckTracker.TryPress) at the great part, inside the rest of the zone, or never.
+        public AutoSync AutoSync { get; private set; }
         public List<string> Errors { get; } = new List<string>();
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
-            || Settings;
+            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -77,11 +88,12 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
                 if (flag == "-ptk-rescue") { result.Rescue = true; continue; }
                 if (flag == "-ptk-settings") { result.Settings = true; continue; }
+                if (flag == "-ptk-dev-switch") { result.DevSwitch = true; continue; }
                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
                     || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
-                    || flag == "-ptk-preview-v2-hud";
+                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -143,6 +155,17 @@ namespace PingTheKiller.Client.Dev
                     string scenario = value.ToLowerInvariant();
                     if (!UI.RulesV2.RulesV2Preview.Known(scenario)) return false;
                     PreviewV2Hud = scenario; return true;
+                case "-ptk-dev-hack":
+                    if (!Seconds(value, out float hack)) return false;
+                    DevHack = hack; return true;
+                case "-ptk-auto-sync":
+                    switch (value.ToLowerInvariant())
+                    {
+                        case "great": AutoSync = AutoSync.Great; return true;
+                        case "good": AutoSync = AutoSync.Good; return true;
+                        case "miss": AutoSync = AutoSync.Miss; return true;
+                        default: return false;
+                    }
                 case "-ptk-shots":
                     Shots = value; return true;
                 case "-ptk-preview-motion":

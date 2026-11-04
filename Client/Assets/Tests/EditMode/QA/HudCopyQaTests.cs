@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
@@ -79,21 +80,22 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TheTerminalsLineReadsCompletedOverRequiredAndTheExitState()
+        // U6c-wire S5: the v1 single-exit suffix is gone (two exits live in the objective row, HUD_SPEC 13.1).
+        public void TheTerminalsLineReadsCompletedOverRequiredWithoutAnExitSuffix()
         {
             TerminalState[] terminals = { Terminal(0, 100), Terminal(1, 99), Terminal(2, 0), Terminal(3, 100) };
-            Assert.That(HudCopy.TerminalsLine(terminals, 3, false), Is.EqualTo("Terminals 2/3 " + Dot + " Exit locked"));
-            Assert.That(HudCopy.TerminalsLine(terminals, 2, true), Is.EqualTo("Terminals 2/2 " + Dot + " Exit open"));
-            Assert.That(HudCopy.TerminalsLine(new[] { Terminal(0, 99) }, 2, false), Is.EqualTo("Terminals 0/2 " + Dot + " Exit locked"));
-            Assert.That(HudCopy.TerminalsLine(null, 4, false), Is.EqualTo("Terminals 0/4 " + Dot + " Exit locked"));
-            Assert.That(HudCopy.TerminalsLine(new TerminalState[0], 2, true), Is.EqualTo("Terminals 0/2 " + Dot + " Exit open"));
+            Assert.That(HudCopy.TerminalsLine(terminals, 3), Is.EqualTo("Terminals 2/3"));
+            Assert.That(HudCopy.TerminalsLine(terminals, 2), Is.EqualTo("Terminals 2/2"));
+            Assert.That(HudCopy.TerminalsLine(new[] { Terminal(0, 99) }, 2), Is.EqualTo("Terminals 0/2"));
+            Assert.That(HudCopy.TerminalsLine(null, 4), Is.EqualTo("Terminals 0/4"));
+            Assert.That(HudCopy.TerminalsLine(new TerminalState[0], 2), Does.Not.Contain("Exit"));
         }
 
         [Test]
         public void TheRequiredCountComesFromTheServerNotFromTheNumberOfPlacedTerminals()
         {
             TerminalState[] placed = { Terminal(0, 100), Terminal(1, 100), Terminal(2, 0), Terminal(3, 0), Terminal(4, 0) };
-            Assert.That(HudCopy.TerminalsLine(placed, 3, false), Does.Contain("2/3"));
+            Assert.That(HudCopy.TerminalsLine(placed, 3), Does.Contain("2/3"));
         }
 
         [Test]
@@ -117,10 +119,11 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
+        // U6c-wire: the v1 single Exit label became the per-exit tag (HUD_SPEC 13.4).
         public void TheExitLabelUsesTheFixedVocabulary()
         {
-            Assert.That(HudCopy.ExitLabel(false), Is.EqualTo("Exit " + Dot + " Locked"));
-            Assert.That(HudCopy.ExitLabel(true), Is.EqualTo("Exit " + Dot + " Open"));
+            Assert.That(ExitCopy.Tag(ExitView.FromWire(0, 0, 0)), Is.EqualTo("Exit 1 " + Dot + " No power"));
+            Assert.That(ExitCopy.Tag(ExitView.FromWire(1, 3, 100)), Is.EqualTo("Exit 2 " + Dot + " Open"));
         }
 
         // ---- skill names (GDD 4 order) ------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -21,7 +22,9 @@ namespace PingTheKiller.Client.Tests
             public float SkillCooldown { get; set; }
             public float RescueProgress { get; set; }
             public float InvulnerableLeft { get; set; }
-            public float ExecutionGraceLeft { get; set; }
+            public float CollapseLeft { get; set; } = -1;
+            public ActionKind ActionKind { get; set; }
+            public float ActionProgress { get; set; }
         }
 
         private static OwnEntry Own(PlayerStatus status = PlayerStatus.Normal, float x = 10, float z = 10)
@@ -164,12 +167,13 @@ namespace PingTheKiller.Client.Tests
             Assert.That(e.Scanned(30.5), Is.EqualTo(1f).Within(1e-5f));
             e.Accept(1, SkillIds.FirewallBlock, 5f, 40, 7, false);
             Assert.That(e.Locked(41).Value, Is.EqualTo(4f).Within(1e-5f));
-            Assert.That(SurvivorReadout.ExitText(ExitLine.LockedByKiller, e.Locked(41)), Is.EqualTo("Locked 4 s"));
-            Assert.That(SurvivorReadout.ExitText(ExitLine.LockedByKiller, e.Locked(50)), Is.EqualTo("Exit Locked"));
-            Assert.That(SurvivorReadout.ExitText(ExitLine.Open, null), Is.EqualTo("Exit Open"));
-            Assert.That(SurvivorReadout.Exit(1, 0), Is.EqualTo(ExitLine.Open));
-            Assert.That(SurvivorReadout.Exit(1, 1), Is.EqualTo(ExitLine.LockedByKiller));
-            Assert.That(SurvivorReadout.Exit(0, 1), Is.EqualTo(ExitLine.Locked));
+            // HUD_SPEC 13.4 (U6c-wire S3): the Killer's Firewall block seconds reach the Locked exit cell; the v1 line 3 is gone.
+            var world = new S2C_WorldState();
+            world.Exits.Add(new ExitState { Id = 0, Flags = 1 | 4, SwitchProgress = 40 });
+            world.Exits.Add(new ExitState { Id = 1, Flags = 1 | 2, SwitchProgress = 100 });
+            Assert.That(ExitCopy.State(V2Wire.Exits(world, e.Locked(41) ?? -1)[0]), Is.EqualTo("Locked 4 s"));
+            Assert.That(ExitCopy.State(V2Wire.Exits(world, e.Locked(50) ?? -1)[0]), Is.EqualTo("Locked"));
+            Assert.That(ExitCopy.State(V2Wire.Exits(world)[1]), Is.EqualTo("Open"));
             e.Reset();
             Assert.That(e.Locked(41).HasValue, Is.False);
         }

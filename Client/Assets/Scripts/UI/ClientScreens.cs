@@ -1,5 +1,6 @@
 using System;
 using PingTheKiller.Client.Settings;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -9,9 +10,10 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // State list before layout: menu = endpoint/validation/connecting, Offline; lobby = eight slots, host permissions,
-    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, team terminals + Exit, hacking %,
-    // skill, cursor hint; killer: skill (Exit state lives on the exit in the world); result = winner + reason, own
-    // outcome, lobby reopened or not; dev line (F3) = RTT online / offline marker.
+    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, terminals, the rules v2 stack (sync
+    // check, hold row, both exits + collapse), skill, cursor hint; killer: skill, hold and collapse blocks (exit states
+    // live on the exits in the world); result = the rules v2 result (HUD_SPEC 13.7) + lobby reopened or not; dev line
+    // (F3) = RTT online / offline marker.
     // Layout rule: every label is one line (nowrap, see ClientUI.uss); only .message wraps, at a fixed width.
     public sealed class ClientScreens : MonoBehaviour
     {
@@ -21,9 +23,10 @@ namespace PingTheKiller.Client.UI
         public const float MaxScale = 1f;
         // HUD_SPEC 0.3: S text renders at max(14 u x scale, 12 px).
         public const float SmallText = 14, SmallFloorPixels = 12;
-        private VisualElement root, menu, lobby, result, play;
-        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, exit;
-        private Label resultHeadline, resultOutcome, resultPreview, resultMessage;
+        private VisualElement root, menu, lobby, play;
+        private ResultV2Panel result;
+        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev;
+        private Label resultPreview, resultMessage;
         private readonly Label[] slots = new Label[Protocol.LobbySlotCount];
         private readonly VisualElement[] slotRows = new VisualElement[Protocol.LobbySlotCount];
         private TextField address;
@@ -75,12 +78,13 @@ namespace PingTheKiller.Client.UI
             root = document.rootVisualElement;
             root.AddToClassList("root");
             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
+            root.styleSheets.Add(Resources.Load<StyleSheet>("RulesV2"));
             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
             // Lagging stutter layers (HUD_SPEC 4.5): the held world image, behind every screen and the HUD.
             StutterBack = Box(root, "stutter"); StutterFront = Box(root, "stutter");
             StutterBack.pickingMode = PickingMode.Ignore; StutterFront.pickingMode = PickingMode.Ignore;
-            BuildMenu(); BuildLobby(); BuildResult(); BuildPlay(font);
+            BuildMenu(); BuildLobby(); BuildResult(font); BuildPlay(font);
             Options = GameSettings.Load(new PlayerPrefsStore());
             settingsScreen = new SettingsScreen(root, Options, () => Playing);
             settingsScreen.Closed += SettingsClosed;
@@ -173,24 +177,23 @@ namespace PingTheKiller.Client.UI
             start = Action(actions, "Start", () => StartMatch?.Invoke(), true);
             Action(actions, "Leave", () => Leave?.Invoke());
         }
-        private void BuildResult()
+        // HUD_SPEC 13.7: the rules v2 result body; 7.5 Back to lobby and 7.6 Leave go into its Actions.
+        private void BuildResult(Font font)
         {
-            result = Box(root, "screen");
-            Text(result, "Match result", "title");
-            resultHeadline = Text(result, string.Empty, "headline");
-            resultOutcome = Text(result, string.Empty, "outcome");
-            resultPreview = Text(result, "Preview: synthetic result from a dev flag, not sent by a server.", "note");
-            resultMessage = Text(result, string.Empty, "message");
-            var actions = Box(result, "row");
-            back = Action(actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
-            resultLeave = Action(actions, "Leave", () => Leave?.Invoke());
+            result = new ResultV2Panel(font);
+            root.Add(result);
+            resultMessage = Text(result.Notes, string.Empty);
+            resultPreview = Text(result.Notes, ResultCopy.PreviewNote);
+            back = Action(result.Actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
+            resultLeave = Action(result.Actions, "Leave", () => Leave?.Invoke());
+            resultLeave.AddToClassList("v2-secondary");
         }
+        public ResultV2Panel Result => result;
         private void BuildPlay(Font font)
         {
             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
             Survivor = new SurvivorHud(play, font);
             Killer = new KillerHud(play, font);
-            exit = Text(play, HudCopy.ExitLabel(false), "exit");
         }
         private void Phase(VisualElement visible)
         {
@@ -253,7 +256,6 @@ namespace PingTheKiller.Client.UI
             Survivor.SetVisible(role == Role.Survivor);
             if (role == Role.Survivor) Survivor.Begin(skillId);
             Killer.SetVisible(role == Role.Killer);
-            Show(exit, false);
             root.focusController?.focusedElement?.Blur();
         }
         // Opened from the main menu (it replaces the menu) or from the Killer play menu (it sits over the match).
@@ -270,21 +272,10 @@ namespace PingTheKiller.Client.UI
             Show(menu, true); openSettings.Focus();
         }
         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
-        // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.
-        public void SetExit(Camera camera, Vector3 anchor, bool open)
-        {
-            Vector3 screen = camera.WorldToScreenPoint(anchor);
-            bool visible = screen.z > 0 && screen.x >= 0 && screen.x <= Screen.width && screen.y >= 0 && screen.y <= Screen.height;
-            Show(exit, visible);
-            exit.text = HudCopy.ExitLabel(open);
-            exit.style.left = screen.x / Screen.width * root.resolvedStyle.width;
-            exit.style.top = (1 - screen.y / Screen.height) * root.resolvedStyle.height;
-        }
-        public void ShowResult(string headline, string outcome, bool preview)
+        public void ShowResult(ResultV2View view, bool preview)
         {
             Phase(result);
-            resultHeadline.text = headline;
-            resultOutcome.text = outcome;
+            result.Set(view);
             Show(resultPreview, preview);
             root.focusController?.focusedElement?.Blur();
         }

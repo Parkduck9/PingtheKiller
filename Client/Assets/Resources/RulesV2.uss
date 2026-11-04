@@ -94,6 +94,15 @@
 }
 .root .v2-result-row.v2-self { border-left-width: 4px; border-left-color: #E8E6E1; padding-left: 12px; }
 .root .unity-label.v2-result-name { flex-shrink: 1; overflow: hidden; }
+.root .v2-result-notes { width: 560px; margin-bottom: 8px; }
+.root .v2-result-notes .unity-label { margin: 0; margin-bottom: 4px; font-size: 14px; color: #9A9890; }
+.root.s-floor .v2-result-notes .unity-label { font-size: 15px; }
 .root .v2-result-actions { flex-direction: row; align-items: flex-start; }
 .root .v2-result-actions .unity-button.primary { min-width: 280px; }
 .root .v2-result-actions .unity-button.v2-secondary { min-width: 160px; height: 40px; margin-left: 4px; }
+
+/* Wired placement (U6c-wire). Killer: the hold block and the collapse block sit in the 6.1 cluster column (prompt slot,
+   then collapse, then info), with the cluster's 8 u gap below each. Survivor: the 4.3 prompt row joins the bottom-center
+   stack (13.1) instead of its fixed 104 u offset, so it moves up with the objective row. */
+.root .killer-cluster > .v2-hold, .root .killer-cluster > .v2-collapse-killer { margin-bottom: 8px; flex-shrink: 0; }
+.root .v2-survivor-stack > .sprompt { position: relative; bottom: auto; left: auto; translate: 0 0; }

@@ -1,4 +1,5 @@
 using PingTheKiller.Client.Killer;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Shared.Game;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -6,16 +7,17 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // HUD_SPEC 4.0 Survivor cluster: bottom-center, 24 u above the bottom edge, 672x72 u, `panel` fill, 1 u `line` border,
-    // three blocks [8] skill 168 [8] transmit meter 304 [8] info 168 [8]; the prompt row (672x40) 8 u above it, only when
-    // a prompt applies. Every value comes from SurvivorReadout; this class only displays it.
+    // three blocks [8] skill 168 [8] transmit meter 304 [8] info 168 [8]. Above it the HUD_SPEC 13.1 stack, bottom-up with
+    // 8 u gaps: the objective row (exits + collapse, 672x48), the prompt row or the hold row (672x40), the sync check ring
+    // (144x144); each only while it applies. Every value comes from SurvivorReadout / V2Wire; this class only displays it.
     public sealed class SurvivorHud
     {
         public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
         private static readonly Color32 Danger = new Color32(229, 72, 77, 255);
-        private readonly VisualElement root, cluster, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar, exitBar;
+        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar;
         private readonly VisualElement threatStrip;
         private readonly VisualElement[] bands = new VisualElement[4]; // top, bottom, left, right (HUD_SPEC 4.2 level 3)
-        private readonly Label skillName, word, tag, reason, time, terminals, exit, promptText;
+        private readonly Label skillName, word, tag, reason, time, terminals, promptText;
         private readonly SkillRing ring;
         private readonly VisualElement[] bordered;
         private readonly Texture2D[] noise = new Texture2D[5]; // strip + four bands, rebuilt only when the mask is re-rolled
@@ -25,11 +27,21 @@ namespace PingTheKiller.Client.UI
         private Vector2 shownCanvas;
         private float scale = 1;
 
+        public SyncCheckTracker Sync { get; } = new SyncCheckTracker();
+        public SyncCheckRing SyncRing { get; }
+        public HoldActionBar Hold { get; }
+        public ObjectiveRow Objective { get; }
+
         public SurvivorHud(VisualElement parent, Font font)
         {
             root = Box(parent, "survivor-hud");
             for (int i = 0; i < bands.Length; i++) { bands[i] = Box(root, "sband"); Show(bands[i], false); }
-            prompt = Box(root, "sprompt");
+            V2Markers = new V2MarkerLayer(font);
+            root.Add(V2Markers);
+            stack = Box(root, "v2-survivor-stack");
+            SyncRing = new SyncCheckRing(Sync.State, font);
+            stack.Add(SyncRing);
+            prompt = Box(stack, "sprompt");
             VisualElement promptLine = Box(prompt, "krow");
             promptBar = Box(promptLine, "kbar");
             promptBar.AddToClassList("danger");
@@ -37,6 +49,10 @@ namespace PingTheKiller.Client.UI
             Show(promptBar, false);
             promptTrack = Box(prompt, "sprompt-track");
             promptFill = Box(promptTrack, "sfill");
+            Hold = new HoldActionBar(Role.Survivor, font);
+            stack.Add(Hold);
+            Objective = new ObjectiveRow(font);
+            stack.Add(Objective);
 
             cluster = Box(root, "scluster");
             VisualElement skill = Box(cluster, "sskill");
@@ -62,13 +78,11 @@ namespace PingTheKiller.Client.UI
             timeBar = Box(line1, "kbar");
             time = Text(line1, "0:00", "km", "kbold");
             terminals = Text(info, string.Empty, "km");
-            VisualElement line3 = Box(info, "krow");
-            exitBar = Box(line3, "kbar");
-            exit = Text(line3, string.Empty, "km");
 
-            bordered = new[] { cluster, prompt, meterTrack };
+            bordered = new[] { cluster, prompt, meterTrack, Hold, Objective };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(prompt, false);
+            SyncRing.Refresh();
         }
 
         public VisualElement Root => root;
@@ -111,10 +125,52 @@ namespace PingTheKiller.Client.UI
         }
 
         // Match start: the skill name (HUD_SPEC 8, max 2 lines in 80 u) and the key glyph; no prompt.
+        // HUD_SPEC 13.6 world layer: the Survivor's Regressing tags (drawn under the cluster and the stack).
+        public V2MarkerLayer V2Markers { get; }
+        public int RegressingShown { get; private set; }
+
+        public const float TerminalPointHeight = 1.5f;
+
+        // Every frame: a Regressing tag above each Regressing terminal whose 1.5 m point is on screen, kept out of the cluster
+        // and stack keep-out; nothing off screen and no edge indicator.
+        public void DrawTerminalFlags(PingTheKiller.Shared.Packets.S2C_WorldState world, World.ViewPose pose)
+        {
+            Vector2 screen = new Vector2(V2Markers.layout.width, V2Markers.layout.height);
+            if (float.IsNaN(screen.x) || screen.x <= 0 || float.IsNaN(screen.y) || screen.y <= 0)
+                screen = new Vector2(Screen.width, Screen.height) / Mathf.Max(.01f, scale);
+            DrawTerminalFlags(world, pose, screen);
+        }
+
+        public void DrawTerminalFlags(PingTheKiller.Shared.Packets.S2C_WorldState world, World.ViewPose pose, Vector2 screen)
+        {
+            V2Markers.Begin();
+            RegressingShown = 0;
+            if (world?.Terminals != null)
+            {
+                Rect safe = EdgePlacement.SafeRect(screen, false), keepOut = EdgePlacement.KeepOut(ClusterRect(screen));
+                foreach (TerminalState terminal in world.Terminals)
+                {
+                    TerminalFlagsView flags = V2Wire.Terminal(terminal);
+                    if (!flags.Regressing) continue;
+                    if (!pose.ToViewport(new Vector3(terminal.X, TerminalPointHeight, terminal.Z), out Vector2 v) || v.x < 0 || v.x > 1 || v.y < 0 || v.y > 1) continue;
+                    var p = new Vector2(v.x * screen.x, (1 - v.y) * screen.y);
+                    if (!safe.Contains(p)) continue;
+                    V2Markers.Regressing(EdgePlacement.ClampOutside(p, keepOut, safe), flags, Role.Survivor);
+                    RegressingShown++;
+                }
+            }
+            V2Markers.End();
+        }
+
         public void Begin(byte skillId)
         {
+            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
+            Hold.Hide();
+            Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
+            Sync.Reset();
+            SyncRing.Refresh();
         }
 
         public void SetMeter(MeterState m)
@@ -164,11 +220,27 @@ namespace PingTheKiller.Client.UI
             element.style.left = left; element.style.top = top; element.style.width = width; element.style.height = height;
         }
 
+        // The meter strip keeps the mask's cells but stacks each column from the bottom (texture row 0), so it reads as a
+        // ragged interference bar rising off the meter, not as a line of tiny red glyphs pressed against the cluster's top
+        // border (U6c-wire B1). The density and the seed's column counts are unchanged.
+        public static bool[] Columns(bool[] mask, int w, int h)
+        {
+            var stacked = new bool[mask.Length];
+            for (int x = 0; x < w; x++)
+            {
+                int count = 0;
+                for (int y = 0; y < h; y++) if (mask[y * w + x]) count++;
+                for (int y = 0; y < count; y++) stacked[y * w + x] = true;
+            }
+            return stacked;
+        }
+
         // One 1-bit texture: `danger` texels or fully transparent ones, point-filtered (no blend of palette colors).
         private void Paint(VisualElement element, int slot, int seed, float width, float height, float cell, float density)
         {
             int w = Mathf.Max(1, Mathf.CeilToInt(width / cell)), h = Mathf.Max(1, Mathf.CeilToInt(height / cell));
             bool[] mask = ThreatVisual.Mask(seed, w, h, density);
+            if (slot == 0) mask = Columns(mask, w, h);
             var pixels = new Color32[w * h];
             for (int i = 0; i < pixels.Length; i++) pixels[i] = mask[i] ? Danger : new Color32(0, 0, 0, 0);
             Texture2D texture = noise[slot];
@@ -206,18 +278,23 @@ namespace PingTheKiller.Client.UI
         public bool MeterBarShown => meterTrack.style.display != DisplayStyle.None;
         public bool PromptDanger => promptBar.style.display != DisplayStyle.None;
 
-        // Info block: time (4.9), terminals (4.3), exit (4.7).
-        public void SetInfo(float timeLeft, int done, int needed, ExitLine line, float? lockedLeft)
+        // Info block: time (4.9), terminals (4.3). The v1 line 3 (`Exit …`) is gone; the objective row replaces it (13.1).
+        public void SetInfo(float timeLeft, int done, int needed)
         {
             SetText(time, KillerHudCopy.Time(timeLeft));
             Show(timeBar, KillerHudCopy.TimePressure(timeLeft));
             SetText(terminals, SurvivorReadout.TerminalsLine(done, needed));
             terminals.EnableInClassList("kbold", needed > 0 && done >= needed);
-            SetText(exit, SurvivorReadout.ExitText(line, lockedLeft));
-            exit.EnableInClassList("kmuted", line == ExitLine.Locked);
-            Show(exitBar, line != ExitLine.Locked);
-            exitBar.EnableInClassList("fill-ally", line == ExitLine.Open);
-            exitBar.EnableInClassList("danger", line == ExitLine.LockedByKiller);
+        }
+
+        // HUD_SPEC 13.1 / 13.4 / 13.5: both exits and the collapse clock, shown once an exit is Powered or Open or a clock runs.
+        public void SetObjective(ExitView[] exits, in CollapseView collapse) => Objective.Set(exits, collapse);
+
+        // HUD_SPEC 13.2: the ring follows the tracker (call after Sync.Tick). glyph: "Space" or "A".
+        public void SetSync(string glyph)
+        {
+            SyncRing.SetGlyph(glyph);
+            SyncRing.Refresh();
         }
 
         // 4.8: cooldown = SelfState.SkillCooldown when available (null: no cooldown ring). activeFraction < 0 = none.
@@ -227,6 +304,19 @@ namespace PingTheKiller.Client.UI
             ring.Set(skillId, state, fraction, activeFraction, signalArc);
             ring.SetCount(state == SkillRing.State.Cooldown && cooldown.HasValue ? SurvivorReadout.Ceil(cooldown.Value).ToString() : null);
             skillName.EnableInClassList("kmuted", state == SkillRing.State.Disabled);
+        }
+
+        // The prompt row, or the 13.3 hold row in its place while the own exit switch hold runs.
+        public void SetPrompt(PromptState p, in HoldActionView hold)
+        {
+            if (hold.Kind != HoldKind.None)
+            {
+                Show(prompt, false);
+                Hold.Set(hold, "[E]");
+                return;
+            }
+            Hold.Hide();
+            SetPrompt(p);
         }
 
         public void SetPrompt(PromptState p)
@@ -246,16 +336,21 @@ namespace PingTheKiller.Client.UI
         public string Reason => reason.text;
         public string Tag => tag.style.display == DisplayStyle.None ? null : tag.text;
         public string PromptText => prompt.style.display == DisplayStyle.None ? null : promptText.text;
+        public string HoldText => Hold.style.display == DisplayStyle.None ? null : Hold.Text;
+        public bool ObjectiveShown => Objective.style.display != DisplayStyle.None;
         public float MeterFillPercent => meterFill.style.width.value.value;
         public float PromptFillPercent => promptFill.style.width.value.value;
         public bool MeterFillHas(string kind) => meterFill.ClassListContains(kind);
         public bool PromptFillHas(string kind) => promptFill.ClassListContains(kind);
         public string SkillCount => ring.Count;
 
-        // The cluster plus the prompt row, in panel units (for the edge markers' keep-out, HUD_SPEC 4.6).
+        // The cluster plus the 13.1 stack, in panel units (for the edge markers' keep-out, HUD_SPEC 4.6).
         public Rect ClusterRect(Vector2 screen)
         {
-            float height = Height + (prompt.style.display == DisplayStyle.None ? 0 : PromptHeight + Gap);
+            float height = Height;
+            if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
+            if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
+            if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;
             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);
         }
 
@@ -272,6 +367,8 @@ namespace PingTheKiller.Client.UI
                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
             }
             ring.Scale = scale; ring.MarkDirtyRepaint();
+            V2Markers.Scale = scale;
+            SyncRing.Scale = scale;
         }
     }
 }

@@ -6,8 +6,10 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -25,7 +27,9 @@ namespace PingTheKiller.Client.QA.Tests
             public float SkillCooldown { get; set; }
             public float RescueProgress { get; set; }
             public float InvulnerableLeft { get; set; }
-            public float ExecutionGraceLeft { get; set; }
+            public float CollapseLeft { get; set; } = -1;
+            public ActionKind ActionKind { get; set; }
+            public float ActionProgress { get; set; }
         }
 
         private static KillerHud NewHud(out VisualElement parent)
@@ -93,7 +97,7 @@ namespace PingTheKiller.Client.QA.Tests
                 for (int done = 0; done <= needed + 1; done++)
                 {
                     string line = KillerHudCopy.OneMoreLine(done, needed);
-                    if (done == needed - 1) Assert.That(line, Is.EqualTo("One more opens the Exit."), done + " of " + needed);
+                    if (done == needed - 1) Assert.That(line, Is.EqualTo("One more powers the Exits."), done + " of " + needed);
                     else Assert.That(line, Is.Null, done + " of " + needed);
                 }
             Assert.That(KillerHudCopy.OneMoreLine(0, 0), Is.Null, "no requirement known yet");
@@ -120,8 +124,8 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, true, 12f), Is.EqualTo("Cooldown 12 s"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, false, null), Is.EqualTo("Passive " + Dash + " always on"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, true, 5f), Is.EqualTo("Passive " + Dash + " always on"), "a passive skill has no cooldown");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("After the Exit opens"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 3f), Is.EqualTo("After the Exit opens"), "disabled until the Exit opens");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("Needs an Exit switch in progress"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 3f), Is.EqualTo("Needs an Exit switch in progress"), "disabled until an Exit switch is in progress");
             Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, null), Is.EqualTo("Ready"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 4.5f), Is.EqualTo("Cooldown 5 s"));
         }
@@ -135,7 +139,7 @@ namespace PingTheKiller.Client.QA.Tests
                 "Shows the nearest Survivor for 1.5 s.",
                 "1.5× speed for 3 s, then 1 s unable to move.",
                 "Passive: Survivors stay visible 1 s after their Signal ends.",
-                "Locks the open Exit for 5 s.",
+                "Locks the Exit switch in progress for 5 s.", // U6c-wire: v2 Firewall block locks a switch, not an open Exit
             };
             for (byte id = 0; id < SkillIds.KillerSkillCount; id++)
             {
@@ -148,12 +152,14 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheExitAndTerminalTagsFollowTheSpecAndNeverCarryAPercentage()
         {
             for (byte id = 0; id < 6; id++) Assert.That(KillerHudCopy.Terminal(id), Is.EqualTo("Terminal " + (id + 1)));
-            Assert.That(KillerHudCopy.ExitLocked, Is.EqualTo("Exit Locked"));
-            Assert.That(KillerHudCopy.ExitOpen, Is.EqualTo("Exit Open"));
-            Assert.That(KillerHudCopy.ExitLockedFor(4.0f), Is.EqualTo("Exit Locked 4 s"));
-            Assert.That(KillerHudCopy.ExitLockedFor(.2f), Is.EqualTo("Exit Locked 1 s"));
-            Assert.That(KillerHudCopy.ExitLockedFor(null), Is.EqualTo("Exit Locked"), "no effect received, for example after a reconnect");
-            Assert.That(KillerHudCopy.ExitLockedFor(0f), Is.EqualTo("Exit Locked"));
+            // U6c-wire: two exits, one tag each (HUD_SPEC 13.4); the lock seconds come from the own Firewall block effect.
+            ExitView locked = ExitView.FromWire(1, 1 | 4, 30);
+            Assert.That(ExitCopy.Tag(locked), Is.EqualTo("Exit 2 " + Dot + " Locked"), "no effect received, for example after a reconnect");
+            locked.LockedLeft = 4.0f;
+            Assert.That(ExitCopy.Tag(locked), Is.EqualTo("Exit 2 " + Dot + " Locked 4 s"));
+            locked.LockedLeft = .2f;
+            Assert.That(ExitCopy.Tag(locked), Is.EqualTo("Exit 2 " + Dot + " Locked 1 s"));
+            Assert.That(ExitCopy.Tag(ExitView.FromWire(0, 1 | 2, 100)), Is.EqualTo("Exit 1 " + Dot + " Open"));
             Assert.That(KillerHudCopy.Distance(23.6f), Is.EqualTo("24 m"));
             Assert.That(KillerHudCopy.Distance(.4f), Is.EqualTo("0 m"));
             Assert.That(KillerHudCopy.LaggingDistance(24), Is.EqualTo("Lagging " + Dot + " 24 m"));
@@ -167,7 +173,7 @@ namespace PingTheKiller.Client.QA.Tests
                 if (f.FieldType == typeof(string)) texts.Add((string)f.GetRawConstantValue());
             for (byte id = 0; id < 8; id++) { texts.Add(KillerHudCopy.SkillName(id)); texts.Add(KillerHudCopy.SkillEffect(id)); texts.Add(KillerHudCopy.Terminal(id)); }
             texts.Add(KillerHudCopy.Time(123)); texts.Add(KillerHudCopy.Overclock(1)); texts.Add(KillerHudCopy.Recovering(1)); texts.Add(KillerHudCopy.Slowed(1));
-            foreach (ExecutionPrompt p in Enum.GetValues(typeof(ExecutionPrompt))) texts.Add(KillerHudCopy.PromptLine(p, 1.2f));
+            texts.Add(InteractCopy.Kick(2)); texts.Add(InteractCopy.HatchClose); texts.Add(InteractCopy.KickHint); texts.Add(InteractCopy.HatchCloseHint);
             Assert.That(texts.Count, Is.GreaterThan(20));
             foreach (string text in texts)
             {
@@ -179,23 +185,20 @@ namespace PingTheKiller.Client.QA.Tests
             }
         }
 
+        // U6c-wire K1: the execution prompt lines are gone (GDD v2); the prompt slot's lines fit the 320 u block instead.
         [Test]
-        public void ExecutionPromptLinesFitTheThirtyFiveCharacterBudgetAtTheLongestGrace()
+        public void ThePromptSlotLinesFitTheBlock()
         {
-            Assert.That(KillerHudCopy.LaggingTitle, Is.EqualTo("Lagging Survivor"));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Grace, 1.64f), Is.EqualTo("Wait 1.6 s, step back, touch again."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Grace, 2.0f).Length, Is.LessThanOrEqualTo(35), "the server grace is 2 s");
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.StepBack, 0), Is.EqualTo("Step back 1.2 m, then touch again."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.StepBack, 0).Length, Is.LessThanOrEqualTo(35));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Ready, 0), Is.EqualTo("Touch again to eliminate."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.None, 0), Is.Null);
+            Assert.That(typeof(KillerHudCopy).GetMethod("PromptLine"), Is.Null);
+            foreach (string line in new[] { InteractCopy.Kick(7), InteractCopy.HatchClose, InteractCopy.KickHint, InteractCopy.HatchCloseHint })
+                Assert.That(line.Length, Is.LessThanOrEqualTo(38), line);
         }
 
         [Test]
         public void TheIntroCopyIsTheSpecCopy()
         {
             Assert.That(KillerHudCopy.IntroTitle, Is.EqualTo("You are the Killer"));
-            Assert.That(KillerHudCopy.IntroRules, Is.EqualTo("Only Signal Survivors show, even through walls. Catch every Survivor before one reaches the Exit."));
+            Assert.That(KillerHudCopy.IntroRules, Is.EqualTo("Only Signal Survivors show, even through walls. Eliminate more than half of the Survivors to win."));
         }
 
         // ---- 7. the HUD widget itself ----------------------------------------------------------------------------------------
@@ -221,7 +224,7 @@ namespace PingTheKiller.Client.QA.Tests
             KillerHud hud = NewHud(out VisualElement root);
             hud.Begin(SkillIds.PingScanner);
             VisualElement info = Block(root, "kinfo");
-            Label hint = LabelWithText(root, "One more opens the Exit.");
+            Label hint = LabelWithText(root, "One more powers the Exits.");
             Assert.That(hint, Is.Not.Null);
 
             hud.SetInfo(582, 1, 3);
@@ -327,7 +330,7 @@ namespace PingTheKiller.Client.QA.Tests
 
             hud.Begin(SkillIds.FirewallBlock);
             hud.SetSkill(SkillIds.FirewallBlock, false, null, -1);
-            Assert.That(LabelShown(skill, "After the Exit opens"), Is.True);
+            Assert.That(LabelShown(skill, "Needs an Exit switch in progress"), Is.True);
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Disabled"));
             Assert.That(LabelShown(skill, "[Q]"), Is.True);
             hud.SetSkill(SkillIds.FirewallBlock, true, null, -1);
@@ -335,27 +338,28 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"));
         }
 
+        // U6c-wire K1/K2: the prompt block now carries the kick / hatch-close prompt; it hides with the menu or without one.
         [Test]
-        public void TheExecutionPromptBlockShowsTheTitleAndTheLineAndHidesWithTheMenuOrWithoutATarget()
+        public void ThePromptBlockShowsTheInteractPromptAndHidesWithTheMenuOrWithoutOne()
         {
             KillerHud hud = NewHud(out VisualElement root);
             hud.Begin(SkillIds.PingScanner);
             VisualElement prompt = Block(root, "kprompt");
-            hud.SetPrompt(ExecutionPrompt.Grace, 1.64f);
+            var kick = new InteractPrompt { Text = InteractCopy.Kick(2), Hint = InteractCopy.KickHint };
+            hud.SetPrompt(kick, default);
             Assert.That(Shown(prompt, root), Is.True);
-            Assert.That(LabelShown(prompt, "Lagging Survivor"), Is.True);
-            Assert.That(LabelShown(prompt, "Wait 1.6 s, step back, touch again."), Is.True);
-            hud.SetPrompt(ExecutionPrompt.StepBack, 0);
-            Assert.That(LabelShown(prompt, "Step back 1.2 m, then touch again."), Is.True);
-            hud.SetPrompt(ExecutionPrompt.Ready, 0);
-            Assert.That(LabelShown(prompt, "Touch again to eliminate."), Is.True);
-            hud.SetPrompt(ExecutionPrompt.None, 0);
+            Assert.That(LabelShown(prompt, "Hold [E] to kick Terminal 3"), Is.True);
+            Assert.That(LabelShown(prompt, InteractCopy.KickHint), Is.True);
+            hud.SetPrompt(new InteractPrompt { Text = InteractCopy.HatchClose, Hint = InteractCopy.HatchCloseHint }, default);
+            Assert.That(LabelShown(prompt, InteractCopy.HatchClose), Is.True);
+            hud.SetPrompt(default, default);
             Assert.That(Shown(prompt, root), Is.False);
-            hud.SetPrompt(ExecutionPrompt.Ready, 0);
+            hud.SetPrompt(kick, default);
             hud.SetMenu(true);
             Assert.That(Shown(prompt, root), Is.False, "the play menu replaces the prompt area");
-            hud.SetPrompt(ExecutionPrompt.Ready, 0);
+            hud.SetPrompt(kick, new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .5f });
             Assert.That(Shown(prompt, root), Is.False, "and a prompt cannot reappear over the open menu");
+            Assert.That(hud.Hold.style.display.value, Is.EqualTo(DisplayStyle.None), "nor the hold block");
             hud.SetMenu(false);
         }
 
@@ -374,7 +378,7 @@ namespace PingTheKiller.Client.QA.Tests
             foreach (Button b in Block(root, "kmenu").Query<Button>().ToList()) buttons.Add(b.text);
             Assert.That(buttons, Is.EqualTo(new[] { "Resume", "Settings", "Leave match" }));
             Assert.That(LabelShown(Block(root, "kmenu"), "Firewall block"), Is.True, "the menu names the skill");
-            Assert.That(LabelShown(Block(root, "kmenu"), "Locks the open Exit for 5 s."), Is.True, "and states its effect");
+            Assert.That(LabelShown(Block(root, "kmenu"), "Locks the Exit switch in progress for 5 s."), Is.True, "and states its effect");
             Assert.That(Shown(Block(root, "kinfo"), root), Is.True);
             Assert.That(Shown(Block(root, "kskill"), root), Is.True);
             hud.SetMenu(false);
@@ -398,7 +402,7 @@ namespace PingTheKiller.Client.QA.Tests
             hud.SetEffect("Overclock", false);
             Assert.That(hud.ClusterRect(900).height, Is.EqualTo(192f), "normal play with the effect line");
             hud.SetEffect(null, false);
-            hud.SetPrompt(ExecutionPrompt.Ready, 0);
+            hud.SetPrompt(new InteractPrompt { Text = InteractCopy.Kick(0), Hint = InteractCopy.KickHint }, default);
             Assert.That(hud.ClusterRect(900).height, Is.EqualTo(152f + 64));
             hud.SetEffect("Overclock", false);
             hud.SetIntro(true);
@@ -410,98 +414,91 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(hud.ClusterRect(900).height, Is.EqualTo(472f - 64 + 48), "menu replaces the intro; the prompt is hidden while the menu is open");
         }
 
-        // ---- 8. execution guidance (pure) -------------------------------------------------------------------------------------
+        // ---- 8. rules v2 Killer readouts (pure). U6c-wire K1: these seven tests checked the v1 execution guidance, which
+        // GDD v2 removed; each now checks a Killer readout that took its place (HUD_SPEC 13.3-13.6).
 
-        [Test]
-        public void ExecutionGuidanceFollowsTheServerRulesAcrossACaptureAndAnEliminatingTouch()
+        private static S2C_WorldState WorldWith(params ExitState[] exits)
         {
-            var g = new ExecutionGuidance();
-            // The capture: the Lagging Survivor is in contact, 2 s of grace left.
-            for (float grace = 2.0f; grace > 0; grace -= .05f)
-            {
-                Assert.That(g.Update(4, .8f, true, grace), Is.EqualTo(ExecutionPrompt.Grace), "grace " + grace);
-                Assert.That(g.Armed, Is.False);
-            }
-            Assert.That(g.Update(4, .8f, true, 0), Is.EqualTo(ExecutionPrompt.StepBack), "the grace is over but the Killer never left contact");
-            Assert.That(g.Update(4, 1.5f, true, 0), Is.EqualTo(ExecutionPrompt.Ready), "out of contact: armed");
-            Assert.That(g.Update(4, .8f, true, 0), Is.EqualTo(ExecutionPrompt.Ready), "touching again eliminates");
-            Assert.That(g.Armed, Is.True);
+            var world = new S2C_WorldState();
+            world.Exits.AddRange(exits);
+            return world;
         }
 
         [Test]
-        public void ATouchDuringTheGraceIsSpentAndNeedsAnotherStepBack()
+        public void FirewallBlockIsUsableOnlyWhileAnUnopenedExitHasSwitchProgress()
         {
-            var g = new ExecutionGuidance();
-            g.Update(4, .8f, true, 2.0f);
-            g.Update(4, 2.0f, true, 1.5f);          // stepped out during the grace: armed, but the grace still shows
-            Assert.That(g.Armed, Is.True);
-            Assert.That(g.Update(4, 2.0f, true, 1.4f), Is.EqualTo(ExecutionPrompt.Grace));
-            g.Update(4, .8f, true, 1.2f);           // the in-grace touch
-            Assert.That(g.Armed, Is.False, "spent");
-            Assert.That(g.Update(4, .8f, true, 0), Is.EqualTo(ExecutionPrompt.StepBack), "after the grace it asks for one more step back");
-            Assert.That(g.Update(4, 1.3f, true, 0), Is.EqualTo(ExecutionPrompt.Ready));
+            Assert.That(V2Wire.SwitchInProgress(null), Is.False);
+            Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 1 })), Is.False, "powered, nobody on the switch");
+            Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 1, SwitchProgress = 1 })), Is.True);
+            Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 3, SwitchProgress = 100 })), Is.False, "an open exit is no target");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo(KillerHudCopy.NeedsSwitch));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, null), Is.EqualTo(KillerHudCopy.Ready));
         }
 
         [Test]
-        public void TheTargetIsTheNearestLaggingInstanceWithinThreeMetresAndAFreshTargetStartsDisarmed()
+        public void TheKillerCollapseBlockShowsTheGlobalClockOnlyAndIsUrgentAtThirtySeconds()
         {
-            var g = new ExecutionGuidance();
-            Assert.That(g.Update(1, 3.0f, true, 0), Is.Not.EqualTo(ExecutionPrompt.None), "exactly 3 m is still in range");
-            Assert.That(g.Target, Is.EqualTo(1));
-            Assert.That(g.Update(1, 3.001f, true, 0), Is.EqualTo(ExecutionPrompt.None), "beyond 3 m there is no target");
-            Assert.That(g.Target, Is.EqualTo(-1));
-            Assert.That(g.Update(-1, 0, true, 0), Is.EqualTo(ExecutionPrompt.None));
-            Assert.That(g.Update(2, float.NaN, true, 0), Is.EqualTo(ExecutionPrompt.None), "a garbage distance never makes a prompt");
-
-            // A new instance becoming the target starts disarmed; if it is already out of contact the same snapshot arms it.
-            g.Update(5, 2.0f, true, 0);
-            Assert.That(g.Armed, Is.True);
-            g.Update(6, 1.0f, true, 0);
-            Assert.That(g.Armed, Is.False, "a different instance became the nearest");
-            g.Update(7, 2.0f, true, 0);
-            Assert.That(g.Armed, Is.True, "...but one that is out of contact on arrival is armed by the same snapshot rule");
-
-            // Losing the target and finding it again (a new capture or a reconnect) is a new target.
-            g.Update(7, 2.0f, true, 0);
-            g.Update(-1, 0, true, 0);
-            g.Update(7, 1.0f, true, 0);
-            Assert.That(g.Armed, Is.False);
+            CollapseView view = V2Wire.KillerCollapse(31, 12);
+            Assert.That(view.PersonalLeft, Is.EqualTo(-1f), "the Killer has no personal clock");
+            Assert.That(CollapseCopy.Main(view), Is.EqualTo("Collapse 0:31"));
+            Assert.That(CollapseCopy.Urgent(view), Is.False);
+            Assert.That(CollapseCopy.Urgent(V2Wire.KillerCollapse(30, -1)), Is.True);
+            Assert.That(V2Wire.KillerCollapse(-1, -1).Running, Is.False);
+            Assert.That(V2Wire.KillerCollapse(-1, 40).GlobalLeft, Is.EqualTo(40f), "the SelfState clock fills in before the next WorldState");
         }
 
         [Test]
-        public void TheContactDistanceIsTheServerCaptureRadiusAndExactlyOnePointTwoIsStillContact()
+        public void TheOverloadedAlertTagNamesTheTerminalAndTheDistance()
         {
-            Assert.That(ExecutionGuidance.Contact, Is.EqualTo(GameConstants.CaptureRadius));
-            Assert.That(GameConstants.CaptureRadius, Is.EqualTo(1.2f));
-            var g = new ExecutionGuidance();
-            Assert.That(g.Update(3, 1.2f, true, 0), Is.EqualTo(ExecutionPrompt.StepBack), "1.2 m is contact: not armed");
-            Assert.That(g.Update(3, 1.21f, true, 0), Is.EqualTo(ExecutionPrompt.Ready));
+            var terminal = new TerminalState { Id = 2, Progress = 0, Flags = 2 };
+            TerminalFlagsView flags = V2Wire.Terminal(terminal);
+            Assert.That(TerminalFlagCopy.ShowOverloaded(flags, Role.Killer), Is.True);
+            Assert.That(TerminalFlagCopy.ShowOverloaded(flags, Role.Survivor), Is.False, "Survivors see their own Fail on the ring");
+            Assert.That(TerminalFlagCopy.Overloaded(flags, 19.6f), Is.EqualTo("Terminal 3 overloaded " + Dot + " 20 m"));
         }
 
         [Test]
-        public void WithoutSelfStateNoPromptIsShownButNothingThrowsAndTheFlagKeepsTracking()
+        public void TheKillersRegressingTagCarriesNoPercentage()
         {
-            var g = new ExecutionGuidance();
-            Assert.That(g.Update(3, 2.0f, false, 0), Is.EqualTo(ExecutionPrompt.None));
-            Assert.That(g.Update(3, 1.0f, false, 1.5f), Is.EqualTo(ExecutionPrompt.None), "even with a grace value on the wire, no SelfState means no prompt");
-            Assert.That(g.Prompt, Is.EqualTo(ExecutionPrompt.None));
-            // SelfState arrives: the prompt appears at once.
-            Assert.That(g.Update(3, 1.0f, true, 1.5f), Is.EqualTo(ExecutionPrompt.Grace));
-            // Garbage grace values are treated as zero.
-            Assert.That(g.Update(3, 1.0f, true, float.NaN), Is.EqualTo(ExecutionPrompt.StepBack));
-            Assert.That(g.Update(3, 1.0f, true, -2f), Is.EqualTo(ExecutionPrompt.StepBack));
+            TerminalFlagsView flags = V2Wire.Terminal(new TerminalState { Id = 0, Progress = 40, Flags = 1 });
+            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Killer), Is.EqualTo("Terminal 1 " + Dot + " Regressing"));
+            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Killer), Does.Not.Contain("%"));
+            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Survivor), Is.EqualTo("Terminal 1 " + Dot + " 40% " + Dot + " Regressing"));
         }
 
         [Test]
-        public void ResetForgetsTheTargetAndTheArmedFlag()
+        public void ExitMarkersReadEachExitsOwnFlagsInPrecedenceOrder()
         {
-            var g = new ExecutionGuidance();
-            g.Update(3, 2.0f, true, 0);
-            Assert.That(g.Armed, Is.True);
-            g.Reset();
-            Assert.That(g.Target, Is.EqualTo(-1));
-            Assert.That(g.Armed, Is.False);
-            Assert.That(g.Prompt, Is.EqualTo(ExecutionPrompt.None));
+            ExitView[] exits = V2Wire.Exits(WorldWith(new ExitState { Id = 0, Flags = 1 | 4, SwitchProgress = 50 }, new ExitState { Id = 1, Flags = 0 }));
+            Assert.That(exits.Length, Is.EqualTo(2));
+            Assert.That(ExitCopy.Phase(exits[0]), Is.EqualTo(ExitPhase.Locked), "Locked beats Switching");
+            Assert.That(ExitCopy.Phase(exits[1]), Is.EqualTo(ExitPhase.NoPower));
+            Assert.That(V2Wire.Exits(WorldWith(new ExitState { Flags = 1 | 2 | 4 }))[0].Open, Is.True);
+            Assert.That(ExitCopy.Phase(V2Wire.Exits(WorldWith(new ExitState { Flags = 1 | 2 | 4 }))[0]), Is.EqualTo(ExitPhase.Open), "Open beats Locked");
+            Assert.That(V2Wire.Exits(WorldWith(new ExitState { Flags = 1 | 4 }), 3.5f)[0].LockedLeft, Is.EqualTo(3.5f));
+        }
+
+        [Test]
+        public void TheKillerReadsNoLaggingTouchPrompt()
+        {
+            // GDD v2: touching a Lagging Survivor does nothing, so the Killer client has no execution source at all.
+            string layer = QaSource.StripComments(QaPaths.ReadScript("Killer/KillerWorldLayer.cs"));
+            Assert.That(layer, Does.Not.Contain("ExecutionGuidance"));
+            Assert.That(layer, Does.Not.Contain("ExecutionGraceLeft"));
+            Assert.That(layer, Does.Not.Contain("NearestLagging"));
+        }
+
+        [Test]
+        public void TheHoldBlockHidesForNoActionAndShowsTheKickProgress()
+        {
+            KillerHud hud = NewHud(out VisualElement root);
+            hud.Begin(SkillIds.PingScanner);
+            hud.SetIntro(false);
+            hud.SetPrompt(default, new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .55f });
+            Assert.That(hud.Hold.Text, Is.EqualTo("Kicking the Terminal " + Dot + " 55%"));
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(152f + 80), "the 72 u hold block and its 8 u gap");
+            hud.SetPrompt(default, default);
+            Assert.That(hud.Hold.style.display.value, Is.EqualTo(DisplayStyle.None));
         }
 
         [Test]
@@ -509,13 +506,13 @@ namespace PingTheKiller.Client.QA.Tests
         {
             var holder = new SelfStateHolder();
             Assert.That(holder.Available, Is.False, "nothing is available before the first packet of a match");
-            Assert.That(holder.ExecutionGraceLeft, Is.EqualTo(0f));
-            holder.Feed(float.NaN, 5f, -3f, float.PositiveInfinity);
+            Assert.That(holder.CollapseLeft, Is.EqualTo(-1f));
+            holder.Feed(float.NaN, 5f, -3f, float.PositiveInfinity, 0, 0);
             Assert.That(holder.Available, Is.True);
             Assert.That(holder.SkillCooldown, Is.EqualTo(0f));
             Assert.That(holder.RescueProgress, Is.EqualTo(1f), "clamped to 0..1");
             Assert.That(holder.InvulnerableLeft, Is.EqualTo(0f));
-            Assert.That(holder.ExecutionGraceLeft, Is.LessThanOrEqualTo(3600f).And.GreaterThanOrEqualTo(0f));
+            Assert.That(holder.CollapseLeft, Is.LessThanOrEqualTo(3600f).And.GreaterThanOrEqualTo(0f));
             holder.Reset();
             Assert.That(holder.Available, Is.False);
             Assert.That(holder.SkillCooldown, Is.EqualTo(0f));
@@ -600,12 +597,14 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TheExitMarkerHasThreeStatesAndLockedByTheKillerUsesTheOwnFirewallDuration()
+        // U6c-wire K4: both exits get their own v2 marker (HUD_SPEC 13.4); the lock seconds still come from the own effect.
+        public void EachExitMarkerReadsItsOwnFlagsAndLockedUsesTheOwnFirewallDuration()
         {
             string code = QaSource.StripComments(QaPaths.ReadScript("Killer/KillerWorldLayer.cs"));
             string statics = QaSource.MethodText(code, "private void DrawStatic(");
-            Assert.That(statics, Does.Match(@"WorldExits\.AnyOpen\(last\) \? ExitMark\.Open : WorldExits\.AnyLocked\(last\) \? ExitMark\.LockedByKiller : ExitMark\.Locked"));
-            Assert.That(statics, Does.Contain("KillerHudCopy.ExitLockedFor("));
+            Assert.That(statics, Does.Contain("ExitView[] exits = exitCache.For(last, lockedLeft);"), "U6c-wire a2: one exit buffer per WorldState");
+            Assert.That(statics, Does.Contain("v2.Exit("));
+            Assert.That(statics, Does.Contain("lockKnown && now < lockedEnd"));
             Assert.That(QaSource.MethodText(code, "public void OnEffect("), Does.Contain("effect.CasterId == playerId"), "seconds come from the Killer's own FirewallBlock effect");
         }
 

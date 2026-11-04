@@ -7,6 +7,7 @@ using NUnit.Framework;
 using PingTheKiller.Client.Dev;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -407,8 +408,8 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(reconnect.Banners, Is.EqualTo(0));
             Assert.That(reconnect.BannerVisible(10.5), Is.False);
             // ... and its elimination is still explained from that baseline.
-            Assert.That(reconnect.Observe(PlayerStatus.Eliminated, 0, 1, 40), Is.EqualTo(StatusEvent.Eliminated));
-            Assert.That(reconnect.Reason, Is.EqualTo(EliminationReason.Executed));
+            Assert.That(reconnect.Observe(PlayerStatus.Eliminated, 0, 1, 40, true), Is.EqualTo(StatusEvent.Eliminated));
+            Assert.That(reconnect.Reason, Is.EqualTo(EliminationReason.Collapse), "GDD v2: no execution; with the collapse running it is the collapse");
 
             var others = new (PlayerStatus from, PlayerStatus to)[]
             {
@@ -487,30 +488,31 @@ namespace PingTheKiller.Client.QA.Tests
         [TestCase(0f, EliminationReason.TimedOut)]
         [TestCase(.05f, EliminationReason.TimedOut)]
         [TestCase(.2f, EliminationReason.TimedOut)]
-        [TestCase(.21f, EliminationReason.Executed)]
-        [TestCase(1f, EliminationReason.Executed)]
-        [TestCase(30f, EliminationReason.Executed)]
-        [TestCase(59.9f, EliminationReason.Executed)]
+        [TestCase(.21f, EliminationReason.None)]
+        [TestCase(1f, EliminationReason.None)]
+        [TestCase(30f, EliminationReason.None)]
+        [TestCase(59.9f, EliminationReason.None)]
         public void LaggingToEliminated_UsesTheLastLaggingTimer_NotTheEliminatedSnapshots(float lastLaggingTimer, EliminationReason expected)
         {
             Assert.That(Eliminate(lastLaggingTimer).Reason, Is.EqualTo(expected));
         }
 
         [Test]
-        public void NormalToEliminated_AfterARescue_IsTheSecondCapture_AndOtherwiseNothingIsInferred()
+        // GDD v2 4 (U6c-wire S5): the third capture eliminates; this test checked the v1 second capture.
+        public void NormalToEliminated_AfterTwoCaptures_IsTheThirdCapture_AndOtherwiseNothingIsInferred()
         {
             var watch = new CaptureWatch();
             watch.Observe(PlayerStatus.Normal, 0, 0, 1);
             watch.Observe(PlayerStatus.Lagging, 60, 1, 2);
-            watch.Observe(PlayerStatus.Normal, 0, 1, 20);
+            watch.Observe(PlayerStatus.Normal, 0, 2, 20);
             Assert.That(watch.Reason, Is.EqualTo(EliminationReason.None), "nothing is inferred before an elimination");
-            Assert.That(watch.Observe(PlayerStatus.Eliminated, 0, 1, 30), Is.EqualTo(StatusEvent.Eliminated));
-            Assert.That(watch.Reason, Is.EqualTo(EliminationReason.SecondCapture));
+            Assert.That(watch.Observe(PlayerStatus.Eliminated, 0, 3, 30), Is.EqualTo(StatusEvent.Eliminated));
+            Assert.That(watch.Reason, Is.EqualTo(EliminationReason.ThirdCapture));
 
             var direct = new CaptureWatch();
-            direct.Observe(PlayerStatus.Normal, 0, 1, 1);
-            direct.Observe(PlayerStatus.Eliminated, 0, 1, 2);
-            Assert.That(direct.Reason, Is.EqualTo(EliminationReason.SecondCapture), "Normal with CaptureCount 1 -> Eliminated, directly");
+            direct.Observe(PlayerStatus.Normal, 0, 2, 1);
+            direct.Observe(PlayerStatus.Eliminated, 0, 2, 2);
+            Assert.That(direct.Reason, Is.EqualTo(EliminationReason.ThirdCapture), "Normal with CaptureCount 2 -> Eliminated, directly");
 
             var unexplained = new CaptureWatch();
             unexplained.Observe(PlayerStatus.Normal, 0, 0, 1);
@@ -520,15 +522,17 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TheThreeReasonLines_HaveTheSpecCopy_AndMatchOnMeterAndResultScreen()
+        // GDD v2 (U6c-wire S5, R1): the reasons have no execution wording; the 13.7 result names the outcome only.
+        public void TheThreeReasonLines_HaveTheSpecCopy_OnTheMeter_AndTheResultNamesTheOutcome()
         {
             var cases = new (EliminationReason reason, string text)[]
             {
-                (EliminationReason.TimedOut, "Disconnected: no rescue within 60 s."),
-                (EliminationReason.Executed, "Executed: the Killer touched you while Lagging."),
-                (EliminationReason.SecondCapture, "Executed: caught a second time."),
+                (EliminationReason.TimedOut, "Disconnected: no rescue in the second Lagging stage (30 s)."),
+                (EliminationReason.Collapse, "Disconnected: the collapse reached you."),
+                (EliminationReason.ThirdCapture, "Disconnected: caught a third time."),
             };
             var result = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllSurvivorsDown };
+            result.EliminatedIds.Add(OwnId);
             foreach (var c in cases)
             {
                 Assert.That(CaptureWatch.ReasonText(c.reason), Is.EqualTo(c.text), c.reason.ToString());
@@ -536,9 +540,7 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(meter.Word, Is.EqualTo("Eliminated"));
                 Assert.That(meter.Reason, Is.EqualTo(c.text), "the meter shows the reason");
                 Assert.That(meter.Wrap, Is.True);
-                string line = ResultCopy.Outcome(result, OwnId, Role.Survivor, PlayerStatus.Eliminated, c.text);
-                Assert.That(line, Is.EqualTo("You were eliminated. " + c.text), "the result screen's personal line");
-                Assert.That(line, Does.EndWith(meter.Reason), "result line == meter reason");
+                Assert.That(ResultV2Copy.Outcome(V2Wire.Result(result, null, OwnId, Role.Survivor)), Is.EqualTo("You were eliminated."), "the result screen's personal line");
             }
             Assert.That(CaptureWatch.ReasonText(EliminationReason.None), Is.Null);
         }
@@ -546,13 +548,11 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ReasonLine_IsOnlyForAnEliminatedSurvivor()
         {
-            const string reason = "Executed: caught a second time.";
+            const string reason = "Disconnected: caught a third time.";
             var killerWins = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.TimeUp };
-            Assert.That(ResultCopy.Outcome(killerWins, OwnId, Role.Survivor, PlayerStatus.Eliminated, null), Is.EqualTo("You were eliminated."));
-            Assert.That(ResultCopy.Outcome(killerWins, OwnId, Role.Survivor, PlayerStatus.Eliminated, string.Empty), Is.EqualTo("You were eliminated."));
-            Assert.That(ResultCopy.Outcome(killerWins, OwnId, Role.Killer, PlayerStatus.Normal, reason), Does.Not.Contain(reason), "Killer client");
-            Assert.That(ResultCopy.Outcome(killerWins, OwnId, Role.Survivor, PlayerStatus.Escaped, reason), Does.Not.Contain(reason), "escaped");
-            Assert.That(ResultCopy.Outcome(killerWins, OwnId, Role.Survivor, PlayerStatus.Normal, reason), Does.Not.Contain(reason), "still Normal");
+            killerWins.EliminatedIds.Add(OwnId);
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(killerWins, null, OwnId, Role.Survivor)), Is.EqualTo("You were eliminated."));
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(killerWins, null, 77, Role.Killer)), Does.Not.Contain(reason), "Killer client");
             foreach (PlayerStatus status in new[] { PlayerStatus.Normal, PlayerStatus.Lagging, PlayerStatus.Escaped })
                 Assert.That(SurvivorReadout.Meter(Own(status, 30, 1), null, 0, 0, reason).Reason, Is.Not.EqualTo(reason), "meter, " + status);
             Assert.That(SurvivorReadout.Meter(Own(PlayerStatus.Eliminated), null, 0, 0, null).Reason, Is.EqualTo("Watching until the match ends."), "no reason: the old line");
@@ -563,9 +563,9 @@ namespace PingTheKiller.Client.QA.Tests
         {
             string spec = DocsFile(Path.Combine("ui", "HUD_SPEC.md"));
             if (spec == null) Assert.Ignore("docs/ui/HUD_SPEC.md not reachable from Application.dataPath");
-            Assert.That(spec, Does.Contain(CaptureWatch.Executed));
+            Assert.That(spec, Does.Contain(CaptureWatch.Collapse));
             Assert.That(spec, Does.Contain(CaptureWatch.TimedOut));
-            Assert.That(spec, Does.Contain(CaptureWatch.SecondCapture));
+            Assert.That(spec, Does.Contain(CaptureWatch.ThirdCapture));
             Assert.That(spec, Does.Contain(CaptureWatch.Banner));
         }
 

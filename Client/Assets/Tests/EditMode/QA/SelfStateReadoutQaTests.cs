@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.World;
@@ -22,7 +23,9 @@ namespace PingTheKiller.Client.QA.Tests
             public float SkillCooldown { get; set; }
             public float RescueProgress { get; set; }
             public float InvulnerableLeft { get; set; }
-            public float ExecutionGraceLeft { get; set; }
+            public float CollapseLeft { get; set; } = -1;
+            public ActionKind ActionKind { get; set; }
+            public float ActionProgress { get; set; }
         }
 
         private static OwnEntry Own(PlayerStatus status = PlayerStatus.Normal) => new OwnEntry { Status = status, X = 10, Z = 10 };
@@ -195,8 +198,8 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, true, 11.99f), Is.EqualTo("Cooldown 12 s"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, true, 5f), Is.EqualTo("Passive " + Dash + " always on"), "the passive skill has no cooldown");
             Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, false, null), Is.EqualTo("Passive " + Dash + " always on"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 4f), Is.EqualTo("After the Exit opens"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("After the Exit opens"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 4f), Is.EqualTo("Needs an Exit switch in progress"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("Needs an Exit switch in progress"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 4f), Is.EqualTo("Cooldown 4 s"));
             Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 0f), Is.EqualTo("Ready"));
         }
@@ -224,93 +227,68 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Ready"));
         }
 
-        // ---- Killer: execution guidance (6.4) -------------------------------------------------------------------------------
+        // ---- Killer: the prompt slot (GDD v2 has no execution; U6c-wire K1/K2, HUD_SPEC 13.3) ---------------------------
+        // These six tests checked the v1 execution guidance (6.4). Each now checks the part of the prompt slot that replaced it.
+
+        private static List<TerminalState> Terminals() => new List<TerminalState>
+        {
+            new TerminalState { Id = 0, X = 10, Z = 10, Progress = 40 },
+            new TerminalState { Id = 1, X = 12, Z = 10, Progress = 100 },
+            new TerminalState { Id = 4, X = 30, Z = 30, Progress = 0 }
+        };
 
         [Test]
-        public void TheThreePromptLinesAreTheSpecCopyAndLineTwoFitsThirtyFiveCharacters()
+        public void TheKillerPromptLinesAreTheSpecCopyAndFitTheBlock()
         {
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Grace, 1.6f), Is.EqualTo("Wait 1.6 s, step back, touch again."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Grace, 2f), Is.EqualTo("Wait 2.0 s, step back, touch again."), "one decimal");
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Grace, .04f), Is.EqualTo("Wait 0.0 s, step back, touch again."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.StepBack, 0f), Is.EqualTo("Step back 1.2 m, then touch again."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.Ready, 0f), Is.EqualTo("Touch again to eliminate."));
-            Assert.That(KillerHudCopy.PromptLine(ExecutionPrompt.None, 0f), Is.Null);
-            foreach (ExecutionPrompt prompt in new[] { ExecutionPrompt.Grace, ExecutionPrompt.StepBack, ExecutionPrompt.Ready })
-                Assert.That(KillerHudCopy.PromptLine(prompt, 2f).Length, Is.LessThanOrEqualTo(35), prompt.ToString());
+            Assert.That(InteractCopy.Kick(2), Is.EqualTo("Hold [E] to kick Terminal 3"));
+            Assert.That(InteractCopy.HatchClose, Is.EqualTo("Hold [E] to close the Hatch"));
+            foreach (string line in new[] { InteractCopy.Kick(7), InteractCopy.HatchClose, InteractCopy.KickHint, InteractCopy.HatchCloseHint })
+                Assert.That(line.Length, Is.LessThanOrEqualTo(38), line);
+            Assert.That(typeof(KillerHudCopy).GetMethod("PromptLine"), Is.Null, "the execution lines are gone");
         }
 
         [Test]
-        public void GraceThenStepBackThenReadyFollowsTheRearmRuleAt1Point2Metres()
+        public void TheHoldBlockFloorsThePercentSoItNeverShowsAHundredEarly()
         {
-            var g = new ExecutionGuidance();
-            // Capture: touching at 0.9 m with 2 s of grace.
-            Assert.That(g.Update(4, .9f, true, 2f), Is.EqualTo(ExecutionPrompt.Grace));
-            Assert.That(g.Armed, Is.False);
-            // Still touching, grace running down.
-            Assert.That(g.Update(4, .9f, true, .8f), Is.EqualTo(ExecutionPrompt.Grace));
-            // Grace over, never stepped out: Step back.
-            Assert.That(g.Update(4, .9f, true, 0f), Is.EqualTo(ExecutionPrompt.StepBack));
-            Assert.That(g.Armed, Is.False);
-            // Exactly 1.2 m is still contact ("more than 1.2 m" arms).
-            Assert.That(g.Update(4, 1.2f, true, 0f), Is.EqualTo(ExecutionPrompt.StepBack));
-            Assert.That(g.Armed, Is.False);
-            // Beyond 1.2 m: armed, and the touch after the grace eliminates.
-            Assert.That(g.Update(4, 1.21f, true, 0f), Is.EqualTo(ExecutionPrompt.Ready));
-            Assert.That(g.Armed, Is.True);
-            // Coming back to touch after the grace keeps it armed.
-            Assert.That(g.Update(4, .5f, true, 0f), Is.EqualTo(ExecutionPrompt.Ready));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .999f }), Is.EqualTo("Kicking the Terminal " + Dot + " 99%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.CloseHatch, Progress01 = .7f }), Is.EqualTo("Closing the Hatch " + Dot + " 70%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.None, Progress01 = .5f }), Is.Empty);
         }
 
         [Test]
-        public void ATouchInsideTheGraceIsSpentAndASteppedOutKillerStaysArmedForTheWholeGrace()
+        public void TheHatchCloseComesBeforeTheKickWhenBothAreInReach()
         {
-            var g = new ExecutionGuidance();
-            g.Update(9, 2.0f, true, 1.5f);              // target appears 2 m away during the grace
-            Assert.That(g.Armed, Is.True);
-            Assert.That(g.Update(9, 2.0f, true, 1.0f), Is.EqualTo(ExecutionPrompt.Grace));
-            Assert.That(g.Update(9, 1.0f, true, .5f), Is.EqualTo(ExecutionPrompt.Grace), "in-grace touch: disarmed (spent)");
-            Assert.That(g.Armed, Is.False);
-            Assert.That(g.Update(9, 1.0f, true, 0f), Is.EqualTo(ExecutionPrompt.StepBack));
-            Assert.That(g.Update(9, 2.5f, true, 0f), Is.EqualTo(ExecutionPrompt.Ready));
+            InteractPrompt prompt = InteractCopy.Killer(10.5f, 10, Terminals(), true, 10, 11);
+            Assert.That(prompt.Text, Is.EqualTo(InteractCopy.HatchClose));
+            Assert.That(prompt.Hint, Is.EqualTo(InteractCopy.HatchCloseHint));
+            Assert.That(InteractCopy.Killer(10.5f, 10, Terminals(), false, 10, 11).Text, Is.EqualTo("Hold [E] to kick Terminal 1"), "an unseen hatch is not offered");
         }
 
         [Test]
-        public void ANewTargetStartsDisarmedAndLosingTheTargetOrBeyondThreeMetresHidesThePrompt()
+        public void ADoneTerminalOrOneOutOfReachGivesNoPrompt()
         {
-            var g = new ExecutionGuidance();
-            g.Update(1, 2.0f, true, 0f);
-            Assert.That(g.Armed, Is.True);
-            Assert.That(g.Update(2, 1.0f, true, 0f), Is.EqualTo(ExecutionPrompt.StepBack), "a different instance became the target: safe default");
-            Assert.That(g.Armed, Is.False);
-            Assert.That(g.Update(2, 3.01f, true, 0f), Is.EqualTo(ExecutionPrompt.None), "beyond 3 m there is no target");
-            Assert.That(g.Target, Is.EqualTo(-1));
-            Assert.That(g.Update(-1, 0f, true, 0f), Is.EqualTo(ExecutionPrompt.None));
-            // Exactly 3 m is a target again (new instance: disarmed), but 3 m is more than 1.2 m, so the same snapshot arms it.
-            Assert.That(g.Update(2, 3.0f, true, 0f), Is.EqualTo(ExecutionPrompt.Ready));
-            Assert.That(g.Target, Is.EqualTo(2));
+            Assert.That(InteractCopy.Killer(12, 10.4f, new List<TerminalState> { Terminals()[1] }, false, 0, 0).Text, Is.Null, "done");
+            Assert.That(InteractCopy.Killer(30, 31.51f, Terminals(), false, 0, 0).Text, Is.Null, "1.51 m is out of the 1.5 m reach");
+            Assert.That(InteractCopy.Killer(30, 31.5f, Terminals(), false, 0, 0).Text, Is.EqualTo("Hold [E] to kick Terminal 5"), "exactly 1.5 m is in reach");
         }
 
         [Test]
-        public void WithoutASelfStateThereIsNoPromptEvenWithATarget()
+        public void WithoutASelfStateThereIsNoHoldBlock()
         {
-            var g = new ExecutionGuidance();
-            Assert.That(g.Update(3, .9f, false, 0f), Is.EqualTo(ExecutionPrompt.None));
-            Assert.That(g.Display(2f), Is.EqualTo(ExecutionPrompt.None));
-            Assert.That(g.Update(3, .9f, true, 1.2f), Is.EqualTo(ExecutionPrompt.Grace), "the prompt appears with the first SelfState");
+            Assert.That(V2Wire.Hold(null).Kind, Is.EqualTo(HoldKind.None));
+            var self = new Self { Available = false, ActionKind = ActionKind.Kick, ActionProgress = .5f };
+            Assert.That(V2Wire.Hold(self).Kind, Is.EqualTo(HoldKind.None), "not received this match");
+            self.Available = true;
+            Assert.That(V2Wire.Hold(self).Kind, Is.EqualTo(HoldKind.KickTerminal));
+            Assert.That(V2Wire.Hold(self).Progress01, Is.EqualTo(.5f));
         }
 
         [Test]
-        public void TheLocalGraceCountdownTurnsGraceIntoStepBackOrReadyBetweenSnapshots()
+        public void TheHoldHintsNameWhatCancelsTheHold()
         {
-            var g = new ExecutionGuidance();
-            g.Update(5, .9f, true, 1.2f);
-            Assert.That(g.Display(1.2f), Is.EqualTo(ExecutionPrompt.Grace));
-            Assert.That(g.Display(.05f), Is.EqualTo(ExecutionPrompt.Grace));
-            Assert.That(g.Display(0f), Is.EqualTo(ExecutionPrompt.StepBack));
-            Assert.That(g.Display(-1f), Is.EqualTo(ExecutionPrompt.StepBack), "negative reads as 0");
-            Assert.That(g.Display(float.NaN), Is.EqualTo(ExecutionPrompt.StepBack), "NaN reads as 0");
-            g.Update(5, 1.5f, true, .3f);
-            Assert.That(g.Display(0f), Is.EqualTo(ExecutionPrompt.Ready));
+            Assert.That(HoldCopy.Hint(HoldKind.KickTerminal, "[E]"), Is.EqualTo("Hold [E] " + Dot + " moving cancels the kick"));
+            Assert.That(HoldCopy.Hint(HoldKind.CloseHatch, "[E]"), Is.EqualTo("Hold [E] " + Dot + " releasing cancels"));
+            Assert.That(HoldCopy.Hint(HoldKind.ExitSwitch, "[E]"), Is.Empty, "the Survivor row has no hint line");
         }
     }
 }

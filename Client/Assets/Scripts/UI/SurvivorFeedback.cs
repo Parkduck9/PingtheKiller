@@ -53,7 +53,7 @@ namespace PingTheKiller.Client.UI
     }
 
     public enum StatusEvent : byte { None, Captured, Rescued, Eliminated, Escaped }
-    public enum EliminationReason : byte { None, Executed, TimedOut, SecondCapture }
+    public enum EliminationReason : byte { None, Collapse, TimedOut, ThirdCapture }
 
     // Own-status transitions on a Survivor client (HUD_SPEC 4.1 `captured`, 4.5, (10/30) capture banner and elimination
     // reason), pure. Fed with the own entry of every WorldState. The first entry of a match only sets the baseline, so a
@@ -63,58 +63,76 @@ namespace PingTheKiller.Client.UI
         public const double BannerSeconds = 3;
         public const float TimeoutAtOrBelow = .2f;
         // Starts with the meter's state word (U4e Q-04), so the banner and the meter name the same state.
-        public static readonly string Banner = "Lagging. A Survivor within " + Num(GameConstants.RescueRadius) + " m for " + Num(GameConstants.RescueTimeSeconds)
-            + " s rescues you " + SurvivorReadout.Dot + " " + Num(GameConstants.LaggingTimeoutSeconds) + " s left";
-        public const string Executed = "Executed: the Killer touched you while Lagging.";
-        public const string SecondCapture = "Executed: caught a second time.";
-        public static readonly string TimedOut = "Disconnected: no rescue within " + Num(GameConstants.LaggingTimeoutSeconds) + " s.";
+        // The seconds left come from the stage (SurvivorReadout.LaggingTotal): 60 s on the first capture, 30 s on the second
+        // capture or when the first stage runs out and escalates.
+        public static readonly string Banner = BannerText(SurvivorReadout.LaggingTotal(1));
+        public static readonly string SecondBanner = BannerText(SurvivorReadout.LaggingTotal(2));
+        private static string BannerText(float seconds) => "Lagging. A Survivor within " + Num(GameConstants.RescueRadius) + " m for "
+            + Num(GameConstants.RescueTimeSeconds) + " s rescues you " + SurvivorReadout.Dot + " " + Num(seconds) + " s left";
+        public static string BannerFor(byte captureCount) => SurvivorReadout.SecondStage(captureCount) ? SecondBanner : Banner;
+        // GDD v2 4: no execution. The second Lagging stage running out, a third capture, or the collapse eliminates.
+        public const string Collapse = "Disconnected: the collapse reached you.";
+        public const string ThirdCapture = "Disconnected: caught a third time.";
+        public static readonly string TimedOut = "Disconnected: no rescue in the second Lagging stage (" + Num(GameConstants.SecondLaggingTimeoutSeconds) + " s).";
         private bool known;
         private PlayerStatus last;
         private float lastTimer;
         private byte lastCaptures;
         private double bannerUntil = double.NegativeInfinity;
+        private byte bannerCaptures;
         public EliminationReason Reason { get; private set; }
         public int Banners { get; private set; }
 
         public void Reset()
         {
             known = false; last = PlayerStatus.Normal; lastTimer = 0; lastCaptures = 0;
-            bannerUntil = double.NegativeInfinity; Reason = EliminationReason.None; Banners = 0;
+            bannerUntil = double.NegativeInfinity; bannerCaptures = 0; Reason = EliminationReason.None; Banners = 0;
         }
 
-        public StatusEvent Observe(PlayerStatus status, float statusTimer, byte captureCount, double now)
+        // collapseRunning: the own collapse clock runs (SelfState.CollapseLeft >= 0), so an elimination without a timeout or
+        // a third capture is the collapse.
+        public StatusEvent Observe(PlayerStatus status, float statusTimer, byte captureCount, double now, bool collapseRunning = false)
         {
             StatusEvent result = StatusEvent.None;
             if (known && status != last)
             {
                 if (status == PlayerStatus.Lagging && last == PlayerStatus.Normal)
                 {
-                    result = StatusEvent.Captured; bannerUntil = now + BannerSeconds; Banners++;
+                    result = StatusEvent.Captured; bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
                 }
                 else if (status == PlayerStatus.Eliminated)
                 {
                     result = StatusEvent.Eliminated;
-                    Reason = Infer(last, lastTimer, lastCaptures);
+                    Reason = Infer(last, lastTimer, lastCaptures, collapseRunning);
                 }
                 else if (status == PlayerStatus.Normal && last == PlayerStatus.Lagging) result = StatusEvent.Rescued;
                 else if (status == PlayerStatus.Escaped) result = StatusEvent.Escaped;
                 if (status != PlayerStatus.Lagging) bannerUntil = double.NegativeInfinity;
+            }
+            else if (known && status == PlayerStatus.Lagging && !SurvivorReadout.SecondStage(lastCaptures) && SurvivorReadout.SecondStage(captureCount))
+            {
+                // The first stage ran out and the server escalated to the second: the banner again, now with 30 s left.
+                bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
             }
             known = true; last = status; lastCaptures = captureCount;
             lastTimer = float.IsNaN(statusTimer) ? 0 : statusTimer;
             return result;
         }
 
-        // Lagging -> Eliminated: the last Lagging StatusTimer at or below 0.2 s means the 60 s ran out, otherwise an
-        // execution. Normal -> Eliminated with CaptureCount >= 1: the second capture. Anything else is not inferred.
-        public static EliminationReason Infer(PlayerStatus before, float lastTimer, byte captureCount)
+        // Lagging -> Eliminated: the last Lagging StatusTimer at or below 0.2 s means the second stage ran out. Normal ->
+        // Eliminated with CaptureCount >= 2: the third capture. Otherwise, while the collapse runs: the collapse. Anything
+        // else (the 900 s timeout) is not inferred.
+        public static EliminationReason Infer(PlayerStatus before, float lastTimer, byte captureCount, bool collapseRunning = false)
         {
-            if (before == PlayerStatus.Lagging) return lastTimer <= TimeoutAtOrBelow ? EliminationReason.TimedOut : EliminationReason.Executed;
-            if (before == PlayerStatus.Normal && captureCount >= 1) return EliminationReason.SecondCapture;
-            return EliminationReason.None;
+            if (before == PlayerStatus.Lagging && lastTimer <= TimeoutAtOrBelow) return EliminationReason.TimedOut;
+            if (before == PlayerStatus.Normal && captureCount >= GameConstants.EliminatingCaptureCount - 1) return EliminationReason.ThirdCapture;
+            return collapseRunning ? EliminationReason.Collapse : EliminationReason.None;
         }
 
         public bool BannerVisible(double now) => now < bannerUntil;
+
+        // The banner for the stage it was shown for (BannerFor).
+        public PromptState Prompt => new PromptState { Text = BannerFor(bannerCaptures), Danger = true };
 
         // The banner takes the prompt row (bottom-center, never a modal) for BannerSeconds, ahead of every prompt.
         public static PromptState BannerPrompt => new PromptState { Text = Banner, Danger = true };
@@ -124,9 +142,9 @@ namespace PingTheKiller.Client.UI
         {
             switch (reason)
             {
-                case EliminationReason.Executed: return Executed;
+                case EliminationReason.Collapse: return Collapse;
                 case EliminationReason.TimedOut: return TimedOut;
-                case EliminationReason.SecondCapture: return SecondCapture;
+                case EliminationReason.ThirdCapture: return ThirdCapture;
                 default: return null;
             }
         }

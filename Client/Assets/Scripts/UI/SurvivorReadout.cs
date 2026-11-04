@@ -48,10 +48,7 @@ namespace PingTheKiller.Client.UI
         public float Width;
     }
 
-    // HUD_SPEC 4.7 info block line 3.
-    public enum ExitLine : byte { Locked, Open, LockedByKiller }
-
-    // Survivor-bound S2C_SkillEffect timing (HUD_SPEC 4.1 rows 5-6, 4.7, 4.8 Active). Skill ids are role-local, so an
+    // Survivor-bound S2C_SkillEffect timing (HUD_SPEC 4.1 rows 5-6, 13.4 lock seconds, 4.8 Active). Skill ids are role-local, so an
     // effect is the Killer's only when its caster is neither this player nor a Survivor of the last WorldState.
     public sealed class SurvivorEffects
     {
@@ -146,7 +143,7 @@ namespace PingTheKiller.Client.UI
                     {
                         float timer = float.IsNaN(own.StatusTimer) ? 0 : own.StatusTimer;
                         m.Reason = "Always visible " + Dot + " " + Ceil(timer) + " s left"; m.Fill = BarFill.Danger;
-                        m.Width = Clamp01(timer / GameConstants.LaggingTimeoutSeconds);
+                        m.Width = Clamp01(timer / LaggingTotal(own.CaptureCount));
                     }
                     break;
                 default:
@@ -165,9 +162,16 @@ namespace PingTheKiller.Client.UI
             }
             // Capture tag (row A right): Protected while the post-rescue immunity runs, else Captured once.
             if (known && self.InvulnerableLeft > 0) m.Tag = "Protected " + Seconds1(self.InvulnerableLeft);
-            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = "Captured once"; m.TagMuted = true; }
+            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = own.CaptureCount >= 2 ? "Captured twice" : "Captured once"; m.TagMuted = true; }
             return m;
         }
+
+        // GDD v2 4: the first Lagging stage lasts 60 s, the second 30 s.
+        public static float LaggingTotal(byte captureCount)
+            => SecondStage(captureCount) ? GameConstants.SecondLaggingTimeoutSeconds : GameConstants.LaggingTimeoutSeconds;
+
+        // The second Lagging stage: the second capture, or the first stage running out (the server sets CaptureCount = 2).
+        public static bool SecondStage(byte captureCount) => captureCount >= 2;
 
         // HUD_SPEC 4.8 ring state. cooldown = SelfState.SkillCooldown when available, else null (no cooldown ring).
         public static SkillRing.State SkillState(byte skillId, PlayerStatus status, float? cooldown, bool restoreHasTarget)
@@ -178,25 +182,8 @@ namespace PingTheKiller.Client.UI
             return SkillRing.State.Ready;
         }
 
-        // HUD_SPEC 4.9 / 4.3 / 4.7 info lines.
+        // HUD_SPEC 4.9 / 4.3 info lines (the v1 Exit line 3 is replaced by the objective row, 13.1).
         public static string TerminalsLine(int done, int needed) => "Terminals " + done + "/" + needed;
-
-        public static ExitLine Exit(byte exitOpen, byte exitLocked)
-            => exitOpen == 0 ? ExitLine.Locked : exitLocked != 0 ? ExitLine.LockedByKiller : ExitLine.Open;
-
-        // Protocol v0.4: any open exit reads Open; otherwise a switch locked by Firewall Block reads LockedByKiller.
-        public static ExitLine Exit(S2C_WorldState world)
-            => WorldExits.AnyOpen(world) ? ExitLine.Open : WorldExits.AnyLocked(world) ? ExitLine.LockedByKiller : ExitLine.Locked;
-
-        public static string ExitText(ExitLine line, float? lockedLeft)
-        {
-            switch (line)
-            {
-                case ExitLine.Open: return "Exit Open";
-                case ExitLine.LockedByKiller: return lockedLeft.HasValue && lockedLeft.Value > 0 ? "Locked " + Ceil(lockedLeft.Value) + " s" : "Exit Locked";
-                default: return "Exit Locked";
-            }
-        }
 
         public static string Ellipsize(string name)
         {
