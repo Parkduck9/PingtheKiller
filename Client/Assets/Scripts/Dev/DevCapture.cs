@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
@@ -56,6 +57,8 @@ namespace PingTheKiller.Client.Dev
         private bool rescueFound;
         private byte threatLevel;
         private Vector3 rescueAt;
+        // -ptk-preview-v2-hud: the rules v2 widget preview (its own panel; requests its shots through EventShot).
+        private RulesV2Preview v2;
         public event Action<string> Join;
         public event Action Offline;
         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
@@ -407,6 +410,12 @@ namespace PingTheKiller.Client.Dev
                 if (orbitAt >= 0 && !taken.Contains("survivor-behind.png") && t >= orbitAt + .6 && taken.Add("survivor-behind.png")) { Shot("survivor-behind.png"); return; }
                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
             }
+            if (args.PreviewV2Hud != null && match == 1 && matchAt >= 0 && resultAt < 0 && v2 == null && t >= matchAt + (shots ? 5 : 2) && (!shots || play4))
+            {
+                v2 = new GameObject("Rules v2 preview").AddComponent<RulesV2Preview>();
+                v2.Begin(args.PreviewV2Hud, role, name => EventShot(name, 0));
+            }
+            if (v2 != null && v2.Done && doneAt < 0) doneAt = t;
             if (SelfShots(t)) return;
             if (MotionShots(t)) return;
             // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.

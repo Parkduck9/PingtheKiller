@@ -53,10 +53,13 @@ namespace PingTheKiller.Client.Dev
         // character's motion inputs (or the injected Killer model attacks once) and DevCapture shoots motion-<clip>.png;
         // killer-down shoots a Killer-view frame 1.2 s after a real capture. Nothing is sent.
         public MotionPreviewClip PreviewMotion { get; private set; }
+        // Rules v2 HUD preview (screenshots only): one of RulesV2Preview.Scenarios, shown with fake view-model data over
+        // the running match from match second 2 (5 with -ptk-shots).
+        public string PreviewV2Hud { get; private set; }
         public List<string> Errors { get; } = new List<string>();
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
-            || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None;
+            || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -73,7 +76,8 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
-                    || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion";
+                    || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
+                    || flag == "-ptk-preview-v2-hud";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -131,6 +135,10 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-fake-killer":
                     if (!Seconds(value, out float metres) || metres > 30) return false;
                     FakeKiller = metres; return true;
+                case "-ptk-preview-v2-hud":
+                    string scenario = value.ToLowerInvariant();
+                    if (!UI.RulesV2.RulesV2Preview.Known(scenario)) return false;
+                    PreviewV2Hud = scenario; return true;
                 case "-ptk-shots":
                     Shots = value; return true;
                 case "-ptk-preview-motion":
