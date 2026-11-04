@@ -25,6 +25,7 @@ namespace PingTheKiller.Client.UI
         public float X, Z;
         public PlayerStatus Status;
         public bool Hacking;
+        public bool Stealthed; // HUD_SPEC 14.2.6: the Stealth relay count
     }
 
     // HUD_SPEC 4.1 transmit meter: row A word + capture tag, row B reason, row C bar.

@@ -69,11 +69,15 @@ namespace PingTheKiller.Client.Dev
         public bool DevSwitch { get; private set; }
         // Presses Space's path (SyncCheckTracker.TryPress) at the great part, inside the rest of the zone, or never.
         public AutoSync AutoSync { get; private set; }
+        // HUD_SPEC 14 skill feedback shots: an offline match whose own skill is not this id is left at once and a new offline
+        // match is started (the server draws skills at random), at most WantSkillTries times.
+        public byte? WantSkill { get; private set; }
+        public const int WantSkillTries = 30;
         public List<string> Errors { get; } = new List<string>();
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
-            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None;
+            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None || WantSkill.HasValue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -93,7 +97,7 @@ namespace PingTheKiller.Client.Dev
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
                     || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
-                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync";
+                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync" || flag == "-ptk-want-skill";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -142,6 +146,9 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-menu":
                     if (!Seconds(value, out float menu)) return false;
                     Menu = menu; return true;
+                case "-ptk-want-skill":
+                    if (!byte.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out byte want) || want >= SkillIds.SurvivorSkillCount) return false;
+                    WantSkill = want; return true;
                 case "-ptk-skill-at":
                     if (!Seconds(value, out float skillAt)) return false;
                     SkillAt = skillAt; return true;

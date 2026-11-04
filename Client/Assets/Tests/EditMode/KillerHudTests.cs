@@ -84,8 +84,8 @@ namespace PingTheKiller.Client.Tests
             Assert.That(KillerHudCopy.OneMoreLine(2, 3), Is.EqualTo("One more powers the Exits."));
             Assert.That(KillerHudCopy.OneMoreLine(1, 3), Is.Null);
             Assert.That(KillerHudCopy.OneMoreLine(3, 3), Is.Null);
-            Assert.That(KillerHudCopy.Overclock(2.14f), Is.EqualTo("Overclock " + Dot + " 2.1 s"));
-            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering " + Dot + " 0.8 s"));
+            Assert.That(KillerHudCopy.Overclock(2.14f), Is.EqualTo("Overclock: 1.5× speed " + Dot + " 2.1 s"));
+            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: cannot move " + Dot + " 0.8 s"));
             Assert.That(KillerHudCopy.Slowed(1.6f), Is.EqualTo("Slowed by traffic overload " + Dot + " 1.6 s"));
             Assert.That(KillerHudCopy.Distance(23.6f), Is.EqualTo("24 m"));
             Assert.That(KillerHudCopy.LaggingDistance(24), Is.EqualTo("Lagging " + Dot + " 24 m"));

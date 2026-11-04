@@ -158,12 +158,18 @@ namespace PingTheKiller.Client.UI
             oneMore.style.visibility = KillerHudCopy.OneMoreLine(done, needed) != null ? Visibility.Visible : Visibility.Hidden;
         }
 
-        public void SetEffect(string text, bool danger)
+        // muted: a HUD_SPEC 14.3 reason line (no bar, `muted` text).
+        public void SetEffect(string text, bool danger, bool muted = false)
         {
             Show(effect, !string.IsNullOrEmpty(text));
             if (!string.IsNullOrEmpty(text) && effectText.text != text) effectText.text = text;
             Show(effectBar, danger);
+            effectText.EnableInClassList("kmuted", muted && !danger);
         }
+
+        public string EffectText => effect.style.display == DisplayStyle.None ? null : effectText.text;
+        public bool EffectMuted => effectText.ClassListContains("kmuted");
+        public bool EffectDanger => effectBar.style.display != DisplayStyle.None;
 
         // HUD_SPEC 13.3: the hold block takes the prompt slot while a kick or a hatch close runs; otherwise the interact
         // prompt (kick, hatch close) shows when in reach. Both hide while the play menu is open.

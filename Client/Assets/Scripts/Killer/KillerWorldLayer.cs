@@ -45,7 +45,7 @@ namespace PingTheKiller.Client.Killer
         private int playerId;
         private byte skillId;
         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
-        private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
+        private double lockedEnd = double.NegativeInfinity;
         private bool lockKnown;
         private KillerAttackKick kick; // U4j: first-person attack feedback on the own capture
         public int InView { get; private set; }
@@ -101,19 +101,22 @@ namespace PingTheKiller.Client.Killer
         // Overloaded alerts drawn this frame (on screen or at the edge).
         public int Overloaded { get; private set; }
 
-        // Own effects (CasterId = own id) drive the active arc, the Overclock line and the Exit lock seconds; the
-        // Killer-bound TrafficOverload drives the slowed line. Only these fields are read.
+        // HUD_SPEC 14.0 Killer rule: own effects (CasterId = own id) drive the active arc, the 6.1c line and the Exit lock
+        // seconds; the Killer-bound TrafficOverload (CasterId 0) drives the slowed line. Anything else is ignored. The
+        // returned record (Viewer None when ignored) is played by SkillFx; its cue replaces skill_use (14.1 Sound).
+        public KillerFxState Fx { get; } = new KillerFxState();
+
+        public FxRecord LastEffect { get; private set; }
+
         public void OnEffect(S2C_SkillEffect effect, double now)
         {
-            float duration = float.IsNaN(effect.Duration) || effect.Duration < 0 ? 0 : Mathf.Min(effect.Duration, 60);
-            if (effect.CasterId == playerId)
+            LastEffect = Fx.OnEffect(playerId, effect.CasterId, effect.SkillId, effect.X, effect.Z, effect.Duration, now);
+            if (effect.CasterId == playerId && LastEffect.Viewer == FxViewer.Caster)
             {
-                cueRules.OnOwnEffect();
+                float duration = SkillFeedback.Clamp(effect.Duration);
                 activeStart = now; activeEnd = now + duration;
-                if (effect.SkillId == SkillIds.Overclock) overclockEnd = now + duration;
                 if (effect.SkillId == SkillIds.FirewallBlock) { lockedEnd = now + duration; lockKnown = true; }
             }
-            else if (effect.SkillId == SkillIds.TrafficOverload) slowedEnd = now + duration;
         }
 
         // The nearest rendered instance, or the nearest one behind a wall (dev killer-look only).
@@ -165,10 +168,8 @@ namespace PingTheKiller.Client.Killer
             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
             exitCache.For(last);
             hud.SetSkill(skillId, exitCache.SwitchInProgress, self, active);
-            if (now < slowedEnd) hud.SetEffect(KillerHudCopy.Slowed((float)(slowedEnd - now)), true);
-            else if (now < overclockEnd) hud.SetEffect(KillerHudCopy.Overclock((float)(overclockEnd - now)), false);
-            else if (now < overclockEnd + SkillIds.OverclockRecoverySeconds) hud.SetEffect(KillerHudCopy.Recovering((float)(overclockEnd + SkillIds.OverclockRecoverySeconds - now)), false);
-            else hud.SetEffect(null, false);
+            FxLine line = Fx.Line(now);
+            hud.SetEffect(line.Text, line.Tone == LineTone.Danger, line.Tone == LineTone.Reason);
             InteractPrompt interact = last == null ? default
                 : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
             hud.SetPrompt(interact, V2Wire.Hold(self));

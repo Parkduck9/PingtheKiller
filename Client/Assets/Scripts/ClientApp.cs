@@ -49,6 +49,13 @@ namespace PingTheKiller.Client
         private LaggingStutter stutter;
         private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
         private readonly ExitCache exitCache = new ExitCache(); // HUD_SPEC 13.4: one exit buffer per WorldState
+        // HUD_SPEC 14 skill feedback: the pooled world effects and skill sounds (kept across matches), the Survivor-side
+        // line, relay and refused-press state (the Killer side lives in KillerWorldLayer.Fx).
+        private SkillFx skillFx;
+        private readonly SurvivorFxState survivorFx = new SurvivorFxState();
+        private readonly List<FxRecord> fxOut = new List<FxRecord>();
+        private readonly HashSet<int> loggedFx = new HashSet<int>();
+        private bool reduceArg;
         private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
         private Role role;
         private byte skillId;
@@ -109,6 +116,10 @@ namespace PingTheKiller.Client
             // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
             screens.Survivor.Sync.State.Press += SendSyncPress;
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
+            var fxObject = new GameObject("Skill FX");
+            fxObject.transform.SetParent(transform, false);
+            skillFx = fxObject.AddComponent<SkillFx>();
+            reduceArg = devArgs.ReduceStutter;
             stutter = gameObject.AddComponent<LaggingStutter>();
             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
             options = screens.Options;
@@ -124,12 +135,14 @@ namespace PingTheKiller.Client
                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
                 dev.PreviewResult += Preview;
             }
+            if (dev != null) dev.Reroll += () => Disconnect(string.Empty); // -ptk-want-skill: leave and start a new offline match
         }
         // FOV, sensitivity and Invert Y are read by the rig each frame; the rest is pushed here at start and on every change.
         private void ApplyOptions()
         {
             AudioListener.volume = options.Volume01;
             stutter.SetReducedOption(options.ReducedMotion);
+            skillFx.Reduced = options.ReducedMotion || reduceArg; // HUD_SPEC 14.1 Reduced motion
         }
         private void OnApplicationQuit() => options?.Save();
         private bool IsHost()
@@ -201,6 +214,7 @@ namespace PingTheKiller.Client
                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
                     selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
+                    skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
                     rig.Begin(role); screens.ShowPlay(role, skillId);
@@ -244,7 +258,13 @@ namespace PingTheKiller.Client
                             if (nearest >= 0) hackingTerminal = new Vector3(state.Terminals[nearest].X, 0, state.Terminals[nearest].Z);
                         }
                     }
-                    if (role == Role.Survivor) { CollectMates(state); OnOwnSnapshot(state.ThreatLevel, received.Time); }
+                    if (role == Role.Survivor)
+                    {
+                        CollectMates(state); OnOwnSnapshot(state.ThreatLevel, received.Time);
+                        survivorFx.OnWorld(Frame(), Spectating, received.Time, fxOut);
+                        foreach (FxRecord record in fxOut) PlayFx(record);
+                        fxOut.Clear();
+                    }
                     else threat.SetLevel(0);
                     dev?.OnWorld(state, playerId);
                     break;
@@ -267,9 +287,12 @@ namespace PingTheKiller.Client
                     dev?.OnSyncResult(sync, matched);
                     break;
                 case S2C_SkillEffect effect:
-                    killerLayer?.OnEffect(effect, received.Time);
+                    if (killerLayer != null) { killerLayer.OnEffect(effect, received.Time); PlayFx(killerLayer.LastEffect); }
                     if (role == Role.Survivor && playing)
+                    {
                         effects.Accept(effect.CasterId, effect.SkillId, effect.Duration, received.Time, playerId, IsSurvivorEntry(effect.CasterId));
+                        PlayFx(survivorFx.OnEffect(Frame(), Spectating, effect.CasterId, effect.SkillId, effect.X, effect.Z, effect.Duration, received.Time));
+                    }
                     if (loggedEffects.Add(effect.SkillId)) Debug.Log("[net] SkillEffect skill=" + effect.SkillId + (role == Role.Killer ? " (killer HUD)" : " (survivor HUD)"));
                     break;
                 case S2C_GameResult result:
@@ -282,6 +305,7 @@ namespace PingTheKiller.Client
             bool wasPlaying = playing;
             playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
+            skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
             DestroyWorld();
@@ -415,8 +439,10 @@ namespace PingTheKiller.Client
                 screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
             }
             bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
-            if (SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill))
-                link.Send(skill);
+            bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
+            if (sent) link.Send(skill);
+            if (pressed) OnSkillPress(sent, now);
+            SkillFeedbackFrame(now, position);
             // TODO: client-side prediction for the local camera (it renders 100 ms in the past).
             if (located) rig.Place(position, dt);
             if (survivor) world.SetLocalLook(facingYaw, rig.Dither);
@@ -450,13 +476,78 @@ namespace PingTheKiller.Client
             threat.SetLevel(ThreatVisual.Effective(threatLevel, own.Status));
         }
 
+        // HUD_SPEC 14.3: a press the client consumes itself shows its reason at once; only a press sent while the client
+        // derived Ready arms the 0.5 s refused-press watch (never passive, not-Normal or cooldown presses).
+        private void OnSkillPress(bool sent, double now)
+        {
+            float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
+            bool survivor = role == Role.Survivor;
+            bool precondition = survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
+                : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+            string reason = SkillFeedback.PressReason(role, skillId, localStatus, cooldown, precondition, out bool watch);
+            if (survivor)
+            {
+                // A reason the prompt row already shows steadily (4.8 Disabled) is not repeated on the result line.
+                if (reason != null && reason != screens.Survivor.PromptText) survivorFx.OnReason(reason, now);
+                survivorFx.Press.OnPress(now, sent && watch);
+            }
+            else if (killerLayer != null)
+            {
+                killerLayer.Fx.OnReason(reason, now);
+                killerLayer.Fx.Press.OnPress(now, sent && watch);
+            }
+            Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
+        }
+
+        // Every playing frame: the refused-press inference, the result lines, the Recovering cue and the Overclock FOV.
+        private void SkillFeedbackFrame(double now, Vector3 position)
+        {
+            float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
+            if (role == Role.Survivor)
+            {
+                if (survivorFx.Press.Tick(now, cooldown)) { survivorFx.OnReason(SkillFeedback.SurvivorRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
+                screens.Survivor.SetResult(survivorFx.Line.Current(now));
+                return;
+            }
+            if (killerLayer == null) return;
+            KillerFxState fx = killerLayer.Fx;
+            if (fx.Press.Tick(now, cooldown)) { fx.OnReason(SkillFeedback.KillerRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
+            if (fx.TakeRecoverCue(now)) skillFx.Play(SkillFeedback.RecoverCue(), position);
+            rig.KillerFovOffset = fx.FovOffset(now, skillFx.Reduced);
+        }
+
+        private bool Spectating => own.Status == PlayerStatus.Eliminated || own.Status == PlayerStatus.Escaped;
+
+        private SurvivorFrame Frame() => new SurvivorFrame
+        {
+            OwnId = playerId, Own = own, Mates = mates, Names = NameOf,
+            ActionKind = selfState.Available ? (byte)selfState.ActionKind : (byte)0
+        };
+
+        // Resolves the record's anchor (HUD_SPEC 14.0: never a Killer position on a Survivor client) and plays it.
+        private void PlayFx(FxRecord record)
+        {
+            if (record.Viewer == FxViewer.None || world == null) return;
+            // The own rendered position, for FxAnchor.Own only; SkillFx places everything else at the effect's point.
+            if (!world.LocalPosition(LinkClock.Now, out Vector3 self)) self = new Vector3(own.X, 0, own.Z);
+            self.y = 0;
+            skillFx.Play(record, self);
+            dev?.OnSkillFx(record);
+            int key = (record.KillerSkill ? 100 : 0) + record.SkillId * 10 + (int)record.Viewer;
+            if (loggedFx.Add(key))
+                Debug.Log("[fx] " + (record.KillerSkill ? "killer" : "survivor") + " skill=" + record.SkillId + " viewer=" + record.Viewer
+                    + " line=\"" + record.Line.Text + "\" visual=" + record.Visual.Kind + (record.Visual.Prefab != FxPrefab.None ? "/" + record.Visual.Prefab : string.Empty)
+                    + " sound=" + record.Sound.Clip + (record.Sound.Positional ? " (positional)" : string.Empty) + " reduced=" + skillFx.Reduced);
+        }
+
         // Survivor client only (HUD_SPEC 0.1: Survivors receive every Survivor): the others, for rescue and co-hacking prompts.
         private void CollectMates(S2C_WorldState state)
         {
             mates.Clear();
             foreach (PlayerState mate in state.Players)
                 if (mate.Role == (byte)Role.Survivor && mate.Id != playerId)
-                    mates.Add(new Mate { Id = mate.Id, X = mate.X, Z = mate.Z, Status = (PlayerStatus)mate.Status, Hacking = (mate.Flags & (byte)PlayerFlags.Hacking) != 0 });
+                    mates.Add(new Mate { Id = mate.Id, X = mate.X, Z = mate.Z, Status = (PlayerStatus)mate.Status, Hacking = (mate.Flags & (byte)PlayerFlags.Hacking) != 0,
+                        Stealthed = (mate.Flags & (byte)PlayerFlags.Stealthed) != 0 });
         }
         // Survivor client only: whether an effect's caster is a Survivor of the last snapshot (skill ids are role-local).
         private bool IsSurvivorEntry(int casterId)
@@ -524,6 +615,7 @@ namespace PingTheKiller.Client
             Release();
             playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
+            skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0;
             DestroyWorld();
             screens.ShowMenu(notice);
         }
