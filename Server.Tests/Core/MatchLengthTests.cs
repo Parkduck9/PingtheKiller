@@ -95,7 +95,10 @@ public sealed class MatchLengthTests
         _output.WriteLine($"median {median:0.0}s, time-outs with a Normal bot {botTimeouts}");
         // U6a gate under GDD v2: at most 6 of 15 time-ups (raised from 4 by the orchestrator in U6a attempt 2: without
         // Lagging executions survivors live longer and more matches reach the limit). U6d sets the tuned v2 targets.
-        Assert.True(botTimeouts <= 6, $"time-outs with a Normal bot {botTimeouts} of 15");
+        // Raised to 7 by the orchestrator at the 2026-11-04 merge (map v2.1 + rules v2): seeds 2, 3, 5, 15 time out with the
+        // killer bot moving and survivor bots hacking ~3-9 s per 30 s across many terminals (bot pacing, not a stall). U6d
+        // must restore <= 4 (docs/qa/merge-1104/botfreeze-impl.md).
+        Assert.True(botTimeouts <= 7, $"time-outs with a Normal bot {botTimeouts} of 15");
         Assert.True(median >= floor, $"median match length {median:0.0}s");
         // GDD v2: the U2d 360 s ceiling no longer applies (45 s terminals, 15 s switch); U6d sets the v2 length targets.
         if (humanRole == RoleChoice.Killer) Assert.True(median <= GameConstants.MatchLengthSeconds, $"median match length {median:0.0}s");

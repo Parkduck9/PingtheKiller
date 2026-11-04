@@ -775,7 +775,7 @@ namespace PingTheKiller.Editor.Setup
             bool alongX = hx > hz;
             var pad = new MeshBuilder();
             pad.Box(Palette.Kerb, new Vector3(-hx, 0, -hz), new Vector3(hx, .08f, hz), Palette.Paving);
-            MeshObject("Parking pad", root, pad, "Parking pad " + (alongX ? "x" : "z"), false);
+            MeshObject("Parking pad", root, pad, "Parking pad " + index, false); // one mesh per obstacle: pad sizes differ
             string model = index % 2 == 0 ? "Red Car" : "Gray Car";
             int yaw = model == "Red Car" ? (alongX ? 0 : 90) : (alongX ? 90 : 0);
             float length = (alongX ? hx : hz) * 2 - .12f;

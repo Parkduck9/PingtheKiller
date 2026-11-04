@@ -13,6 +13,9 @@ public sealed class RulesV2Tests
 {
     private const float Dt = 1f / GameConstants.TickRate;
     private const double HackPerTick = Dt * 100.0 / GameConstants.TerminalHackTimeSeconds;
+    // Parking spot for a bystander survivor: open street east of the (42,16)-(53,30) block on map v2.1, >= 8 m from
+    // every terminal and > 20 m from every hatch point, exit and switch. (Map v2's (48.5, 25) is inside that block now.)
+    private const float ParkX = 54f, ParkZ = 20f;
 
     private static Player P(RulesMatch m, Peer peer) => (Player)Spy.Player(m.F.Server, peer.Id);
     private static double Now(RulesMatch m) => Spy.Server<double>(m.F.Server, "_now");
@@ -394,7 +397,7 @@ public sealed class RulesV2Tests
         var srv = m.F.Server; var a = m[0]; var b = m[1];
         var sw = srv.Map.ExitSwitches[0]; var exit = srv.Map.Exits[0];
         srv.PlaceForTests(a.Id, sw.X, sw.Z);
-        srv.PlaceForTests(b.Id, 48.5f, 25);
+        srv.PlaceForTests(b.Id, ParkX, ParkZ);
         Hold(a, true);
         for (int i = 0; i < 400 && !World(a).Open(0); i++) m.Tick();
         Assert.True(World(a).Open(0));
@@ -477,11 +480,11 @@ public sealed class RulesV2Tests
     {
         using var m = RulesMatch.Start(2);
         var srv = m.F.Server; var a = m[0]; var b = m[1];
-        srv.PlaceForTests(a.Id, 48.5f, 25);
+        srv.PlaceForTests(a.Id, ParkX, ParkZ);
         srv.SetStatusForTests(b.Id, PlayerStatus.Eliminated);
         m.Tick();
         var hatch = srv.HatchForTests();
-        var next = FindPoint(srv.Map, hatch.X, hatch.Z, (x, z) => Distance(x, z, hatch.X, hatch.Z) < 1.4f && Distance(x, z, 48.5f, 25) > 5);
+        var next = FindPoint(srv.Map, hatch.X, hatch.Z, (x, z) => Distance(x, z, hatch.X, hatch.Z) < 1.4f && Distance(x, z, ParkX, ParkZ) > 5);
         srv.PlaceForTests(m.Killer.Id, next.X, next.Z);
         m.Tick();
         Assert.Equal(1, World(m.Killer).HatchVisible);
@@ -525,7 +528,7 @@ public sealed class RulesV2Tests
         using var m = RulesMatch.Start(2);
         var srv = m.F.Server; var s = m[0];
         srv.PlaceForTests(s.Id, 5, 36);
-        srv.PlaceForTests(m[1].Id, 48.5f, 25);
+        srv.PlaceForTests(m[1].Id, ParkX, ParkZ);
         srv.PlaceForTests(m.Killer.Id, 6, 36);
         P(m, s).CaptureCount = 1;
         m.Tick();
@@ -547,7 +550,7 @@ public sealed class RulesV2Tests
         using var m = RulesMatch.Start(2);
         var srv = m.F.Server; var s = m[0];
         srv.PlaceForTests(s.Id, 5, 36);
-        srv.PlaceForTests(m[1].Id, 48.5f, 25);
+        srv.PlaceForTests(m[1].Id, ParkX, ParkZ);
         srv.PlaceForTests(m.Killer.Id, 6, 36);
         m.Tick();
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(s).Status);

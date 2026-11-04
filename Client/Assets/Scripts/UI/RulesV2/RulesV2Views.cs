@@ -6,8 +6,7 @@ namespace PingTheKiller.Client.UI.RulesV2
     // View models for the rules v2 HUD (HUD_SPEC 13). They mirror protocol v0.4 (U6a) field for field, so the widgets
     // do not depend on packet classes; the wiring copies the packet values in. Numeric enum values equal the wire values.
 
-    // S2C_SyncResult.Result.
-    public enum SyncResult : byte { Fail = 0, Good = 1, Great = 2 }
+    // S2C_SyncResult.Result uses PingTheKiller.Shared.Game.SyncResult directly (one shared definition, AGENTS.md 1).
 
     // S2C_SelfState.ActionKind.
     public enum HoldKind : byte { None = 0, ExitSwitch = 1, KickTerminal = 2, CloseHatch = 3 }

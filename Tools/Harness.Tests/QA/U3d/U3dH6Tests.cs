@@ -29,8 +29,12 @@ internal static class U3dMut
         return true;
     };
 
-    // The same, for survivor B's stream only (A's own status must stay readable for the capture step).
-    public static Func<SurvCtx, bool> BlockedWorldsOfBBecomeSpectatorWorlds => c => c.Conn == 2 && BlockedWorldsBecomeSpectatorWorlds(c);
+    // The same, for survivor B's stream (A's own status must stay readable for the capture step) and for A once B has
+    // escaped: under rules v2 B holds the switch farthest from the killer, so on map v2.1 A's final walk to that exit leaves
+    // the open road behind walls (its capture and rescue are over by then).
+    public static Func<SurvCtx, bool> BlockedWorldsOfBAndOfAAfterBEscapedBecomeSpectatorWorlds => c =>
+        (c.Conn == 2 || c.World.Players.Exists(p => p.Role == (byte)Role.Survivor && p.Id != c.RecipientId && p.Status == (byte)PlayerStatus.Escaped)) &&
+        BlockedWorldsBecomeSpectatorWorlds(c);
 
     public static bool Insert(SurvCtx c, PlayerState? entry = null) { c.World.Players.Insert(0, entry ?? c.LegalEntry); return true; }
 
@@ -293,11 +297,12 @@ public sealed class U3dH6ExpectLosNeedsBlockedAndAbsentTests
     // read A as Eliminated before the capture. The H6 gate itself is private to the harness, so the full run stays: the fake puts
     // the killer, A and every terminal in the wall-free rectangle at the exit's corner (OpenRoad, derived from FixedMap), where A
     // never loses sight of the killer, and only B's blocked worlds (B hides behind a wall in the sight step) are mutated.
+    // Post-merge (rules v2 + map v2.1): A's last walk to the far exit is blocked too, so A's worlds after B escaped are mutated as well.
     [Fact]
     public async Task ExpectLosFailsWithoutAnyBlockedAndAbsentTick()
     {
         var (item, tap, _, _) = await U3dH6Run.RunAsync("expect-no-blocked",
-            _ => U3dMut.BlockedWorldsOfBBecomeSpectatorWorlds,
+            _ => U3dMut.BlockedWorldsOfBAndOfAAfterBEscapedBecomeSpectatorWorlds,
             expectLos: true, openRoad: true);
         Assert.True(tap.Applied > 50, $"premise: {tap.Applied}");
         Assert.False(item.Passed, item.Evidence);
@@ -311,7 +316,7 @@ public sealed class U3dH6ExpectLosNeedsBlockedAndAbsentTests
     public async Task WithoutTheFlagTheSameServerPasses()
     {
         var (item, _, _, _) = await U3dH6Run.RunAsync("no-flag-no-blocked",
-            _ => U3dMut.BlockedWorldsOfBBecomeSpectatorWorlds,
+            _ => U3dMut.BlockedWorldsOfBAndOfAAfterBEscapedBecomeSpectatorWorlds,
             expectLos: false, openRoad: true);
         Assert.True(item.Passed, item.Evidence);
     }

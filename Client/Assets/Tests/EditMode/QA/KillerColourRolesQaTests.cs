@@ -34,7 +34,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void AKillerClientNeverPaintsTheOpenExitRingWithTheAllyTeal()
         {
-            Assert.That(WorldAccept(), Does.Contain("SetExitLook(0, open ? ExitLook.Open : ExitLook.Closed);"), "Accept hands the open state to the look method");
+            Assert.That(WorldAccept(), Does.Contain("SetExitLook(i, open ? ExitLook.Open : ExitLook.Closed);"), "Accept hands the open state to the look method");
             Match ring = Regex.Match(PropsMethod("void SetExitLook("), @"RingMaterial\.color\s*=([^;]*);");
             Assert.That(ring.Success, Is.True, "the statement that colours the exit ring");
             Assert.That(ring.Groups[1].Value, Does.Match(@"\brole\b"),

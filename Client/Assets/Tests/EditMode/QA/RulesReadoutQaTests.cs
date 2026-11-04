@@ -161,7 +161,7 @@ namespace PingTheKiller.Client.QA.Tests
             string app = Squash(QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs")));
             Assert.That(app, Does.Contain("exitOpen=WorldExits.AnyOpen(state);"), "ClientApp reads the v0.4 exit flags");
             string world = Squash(QaSource.StripComments(WorldSources.ReadAll()));
-            Assert.That(world, Does.Contain("boolopen=WorldExits.AnyOpen(state);"), "WorldView ring uses the same rule");
+            Assert.That(world, Does.Contain("open=WorldExits.Has(exitState,ExitFlags.Open);"), "WorldView rings read each exit's own v0.4 Open flag");
             string dev = Squash(QaSource.StripComments(QaPaths.ReadScript("Dev/DevCapture.cs")));
             Assert.That(dev, Does.Contain("boolexitOpen=WorldExits.AnyOpen(state);"), "the dev log HUD text uses the same rule");
         }

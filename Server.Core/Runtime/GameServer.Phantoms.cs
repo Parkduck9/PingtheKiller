@@ -50,8 +50,9 @@ namespace PingTheKiller.ServerCore
         private const float WhiteNoiseSpacing = 6f;
         private const float WhiteNoiseTerminalJitter = 1f;
         private const float WhiteNoiseSegmentReach = 4f;
-        // GDD v2 (45 s hacks): over half of the real Signal tracks are hack bursts, so one to four of the five sit at terminals.
-        private const int WhiteNoiseMinTerminalPoints = 1, WhiteNoiseTerminalPointsSpread = 4;
+        // N or N+1 of the five start at a terminal. N=2 is the only range passing both phantom gates on map v2.1 + rules v2:
+        // U2c gated AUC 0.855 (< 0.86), Indistinguishability median-speed KS p=0.38 (1..4: 0.872 / 0.98; 1..2: 0.840 / 0).
+        private const int WhiteNoiseMinTerminalPoints = 2;
 
         private readonly List<Phantom> _decoys = new List<Phantom>();
         private readonly List<MapPoint> _landmarks = new List<MapPoint>();
@@ -114,8 +115,7 @@ namespace PingTheKiller.ServerCore
         {
             BuildLandmarks();
             var placed = new List<MapPoint>();
-            // About the share of real Signal tracks that are hack bursts sit at terminals.
-            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(WhiteNoiseTerminalPointsSpread);
+            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(2);
             for (int i = 0; i < SkillIds.WhiteNoiseSignalCount; i++)
             {
                 bool atTerminal = i < terminalPoints && IncompleteTerminalCount() > 0;

@@ -13,6 +13,9 @@ namespace PingTheKiller.Tests.QA.U6a;
 
 public sealed class QaU6aRulesTests
 {
+    // Parking spot for a bystander survivor: open street east of the (42,16)-(53,30) block on map v2.1, >= 8 m from
+    // every terminal and > 20 m from every hatch point, exit and switch. (Map v2's (48.5, 25) is inside that block now.)
+    private const float ParkX = 54f, ParkZ = 20f;
     private static void Hold(Peer peer, bool on) => peer.Send(new C2S_Interact { Active = (byte)(on ? 1 : 0) });
     private static bool Has(TerminalState t, TerminalFlags flag) => (t.Flags & (byte)flag) != 0;
     private static S2C_WorldState World(Peer peer) => peer.Last<S2C_WorldState>();
@@ -151,7 +154,7 @@ public sealed class QaU6aRulesTests
         var srv = m.F.Server;
         var a = m[0];
         var b = m[1];
-        srv.PlaceForTests(a.Id, 48.5f, 25f);
+        srv.PlaceForTests(a.Id, ParkX, ParkZ);
         srv.SetStatusForTests(b.Id, PlayerStatus.Eliminated);
         m.Tick();
 
@@ -274,7 +277,7 @@ public sealed class QaU6aRulesTests
         // Open exit 0 with a
         var sw = srv.Map.ExitSwitches[0];
         srv.PlaceForTests(a.Id, sw.X, sw.Z);
-        srv.PlaceForTests(b.Id, 48.5f, 25f);
+        srv.PlaceForTests(b.Id, ParkX, ParkZ);
         Hold(a, true);
         for (int i = 0; i < 400 && !World(a).Open(0); i++) m.Tick();
         Assert.True(World(a).Open(0));
@@ -321,7 +324,7 @@ public sealed class QaU6aRulesTests
         var srv = m.F.Server;
         var s = m[0];
         srv.PlaceForTests(s.Id, 5, 26);
-        srv.PlaceForTests(m[1].Id, 48.5f, 25);
+        srv.PlaceForTests(m[1].Id, ParkX, ParkZ);
         srv.PlaceForTests(m.Killer.Id, 5, 25); // contact
 
         // 1st capture -> Lagging, timer 60s, count 1
