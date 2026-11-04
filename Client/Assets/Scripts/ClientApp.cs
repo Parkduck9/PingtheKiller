@@ -5,6 +5,7 @@ using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.Net;
 using PingTheKiller.Client.Settings;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -47,11 +48,12 @@ namespace PingTheKiller.Client
         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
         private LaggingStutter stutter;
         private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
+        private readonly ExitCache exitCache = new ExitCache(); // HUD_SPEC 13.4: one exit buffer per WorldState
         private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
         private Role role;
         private byte skillId;
         private PlayerStatus localStatus;
-        private bool playing, exitOpen, releasedCursor, menuOpen;
+        private bool playing, releasedCursor, menuOpen;
         private Vector3? hackingTerminal;
         private double joinDeadline;
         private S2C_LobbyState lobby;
@@ -104,6 +106,8 @@ namespace PingTheKiller.Client
             // Killer play menu (HUD_SPEC 6.6): Resume, or leave the match like the lobby's Leave.
             screens.Killer.Resume += () => SetMenu(false);
             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
+            // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
+            screens.Survivor.Sync.State.Press += SendSyncPress;
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             stutter = gameObject.AddComponent<LaggingStutter>();
             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
@@ -195,8 +199,8 @@ namespace PingTheKiller.Client
                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
-                    selfState.Reset(); facing.Reset(0);
-                    capture.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
+                    selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
+                    capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
                     rig.Begin(role); screens.ShowPlay(role, skillId);
@@ -217,13 +221,15 @@ namespace PingTheKiller.Client
                     world.Accept(state, received.Time);
                     killerLayer?.Accept(state, received.Time);
                     lastWorld = state;
-                    exitOpen = WorldExits.AnyOpen(state);
                     foreach (PlayerState player in state.Players)
                     {
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
                         if (role == Role.Killer ? player.Role != (byte)Role.Killer : player.Id != playerId) continue;
                         localStatus = (PlayerStatus)player.Status;
                         if (role == Role.Killer) break;
+                        // HUD_SPEC 13.2: a sync check only exists while Normal (the server cancels it otherwise).
+                        if (localStatus != PlayerStatus.Normal) screens.Survivor.Sync.Clear();
+                        selfState.CollapseRate = localStatus == PlayerStatus.Lagging ? GameConstants.CollapseLaggingRate : 1;
                         byte flags = player.Flags;
                         own = new OwnEntry
                         {
@@ -245,10 +251,20 @@ namespace PingTheKiller.Client
                 case S2C_SelfState self:
                     // Own-only (HUD_SPEC 11 Q5/Q6/N5). Only inside a match: Available starts with the first packet after MatchStart.
                     if (!playing) break;
-                    selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, received.Time);
-                    killerLayer?.OnSelfState();
+                    selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
-                    dev?.OnSelfState(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, selfState.Received);
+                    dev?.OnSelfState(self, selfState.Received);
+                    break;
+                case S2C_SyncCheck check:
+                    // Own-only (U6a R3). Ignored outside a match, for the Killer, and while not Normal.
+                    if (!playing || role != Role.Survivor || localStatus != PlayerStatus.Normal) break;
+                    bool accepted = screens.Survivor.Sync.OnCheck(check, received.Time);
+                    dev?.OnSyncCheck(check, accepted);
+                    break;
+                case S2C_SyncResult sync:
+                    if (!playing || role != Role.Survivor) break;
+                    bool matched = screens.Survivor.Sync.OnResult(sync.CheckId, sync.Result, received.Time);
+                    dev?.OnSyncResult(sync, matched);
                     break;
                 case S2C_SkillEffect effect:
                     killerLayer?.OnEffect(effect, received.Time);
@@ -264,33 +280,51 @@ namespace PingTheKiller.Client
         private void EndMatch(S2C_GameResult result, bool preview)
         {
             bool wasPlaying = playing;
-            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset();
+            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
             DestroyWorld();
-            string headline = ResultCopy.Headline(result, lobby);
-            string outcome = ResultCopy.Outcome(result, playerId, role, localStatus, role == Role.Survivor ? capture.ReasonText() : null);
-            screens.ShowResult(headline, outcome, preview);
+            ResultV2View view = V2Wire.Result(result, lobby, playerId, role);
+            if (!ResultV2Copy.Consistent(view)) Debug.LogWarning("[client] result winner does not match the majority rule for the listed rows");
+            screens.ShowResult(view, preview);
             screens.SetResultLobby(false, link != null && link.IsOffline);
-            if (!preview) dev?.OnResult(result, headline, outcome);
+            if (!preview) dev?.OnResult(result, view);
         }
-        // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server.
+        // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server. Every lobby player
+        // but the Killer is a starting Survivor: a Survivors win lists half of them (rounded up, the own Survivor first) as
+        // escaped, a Killer win fewer than half.
         private void Preview(S2C_GameResult result)
         {
-            if (result.WinnerRole == (byte)Role.Survivor && result.EscapedIds.Count == 0)
-            {
-                if (role == Role.Survivor) result.EscapedIds.Add(playerId);
-                // The Killer client never reads a Survivor entry's Id (HUD_SPEC 6.3), so the preview names lobby slots instead.
-                if (role == Role.Survivor && lastWorld != null)
-                    foreach (PlayerState player in lastWorld.Players)
-                        if (player.Role == (byte)Role.Survivor && player.Id != playerId && result.EscapedIds.Count < 2) result.EscapedIds.Add(player.Id);
-                if (role == Role.Killer && lobby != null)
-                    foreach (Slot slot in lobby.Slots)
-                        if (slot.PlayerId != 0 && slot.PlayerId != playerId && result.EscapedIds.Count < 2) result.EscapedIds.Add(slot.PlayerId);
-            }
-            Debug.Log("[DEV] preview result reason=" + (GameEndReason)result.Reason + " (local only)");
+            if (result.EscapedIds.Count == 0 && result.EliminatedIds.Count == 0)
+                PreviewRows(result, SurvivorIds(), result.WinnerRole == (byte)Role.Survivor, role == Role.Survivor ? playerId : -1);
+            Debug.Log("[DEV] preview result reason=" + (GameEndReason)result.Reason + " escaped=" + result.EscapedIds.Count + " eliminated=" + result.EliminatedIds.Count + " (local only)");
             EndMatch(result, true);
+        }
+        // The starting Survivors this client can name: Survivor entries of the last snapshot (Survivor client), or every
+        // other lobby player (Killer client: it never reads a Survivor entry's Id, HUD_SPEC 6.3).
+        private List<int> SurvivorIds()
+        {
+            var ids = new List<int>();
+            if (role == Role.Survivor && lastWorld != null)
+                foreach (PlayerState player in lastWorld.Players) if (player.Role == (byte)Role.Survivor && !ids.Contains(player.Id)) ids.Add(player.Id);
+            if (role == Role.Survivor && !ids.Contains(playerId)) ids.Insert(0, playerId);
+            if (role == Role.Killer && lobby != null)
+                foreach (Slot slot in lobby.Slots) if (slot.PlayerId != 0 && slot.PlayerId != playerId) ids.Add(slot.PlayerId);
+            return ids;
+        }
+        public static void PreviewRows(S2C_GameResult result, List<int> survivors, bool survivorsWin, int ownId)
+        {
+            int escaped = survivorsWin ? ResultV2Copy.Needed(survivors.Count) : System.Math.Max(0, ResultV2Copy.Needed(survivors.Count) - 1);
+            var order = new List<int>(survivors);
+            if (order.Remove(ownId)) order.Insert(0, ownId);
+            for (int i = 0; i < order.Count; i++) (i < escaped ? result.EscapedIds : result.EliminatedIds).Add(order[i]);
+        }
+        private void SendSyncPress(uint checkId)
+        {
+            if (!playing || role != Role.Survivor || link == null || !link.IsConnected) return;
+            link.Send(new C2S_SyncPress { CheckId = checkId });
+            Debug.Log("[net] SyncPress check=" + checkId + " needle=" + screens.Survivor.Sync.State.PressFraction.ToString("0.000"));
         }
         // HUD_SPEC 6.6: the Killer play menu sends one zero MoveInput, releases the cursor, and the match keeps running.
         private void SetMenu(bool open)
@@ -364,8 +398,22 @@ namespace PingTheKiller.Client
             Vector3 move = held ? ClientMath.InputDirection(right, forward, rig.Yaw) : Vector3.zero;
             float facingYaw = survivor ? facing.Update(move, dt, position, hackingTerminal) : rig.Yaw;
             if (movement.TryCreate(held, right, forward, rig.Yaw, facingYaw, dt, out C2S_MoveInput input)) link.Send(input);
-            // Hold E (survivors): one press edge and one release edge; losing focus or the cursor counts as release.
-            if (survivor && interact.TryCreate(active && keyboard != null && keyboard.eKey.isPressed, out C2S_Interact use)) link.Send(use);
+            // Hold E (both roles: Survivors hack, hold a switch, take the hatch; the Killer kicks or closes the hatch): one
+            // press edge and one release edge; losing focus, the cursor or the play menu counts as release. -ptk-dev-hack
+            // holds it through the same path.
+            bool interactHeld = (active && keyboard != null && keyboard.eKey.isPressed) || (dev != null && dev.HoldInteract);
+            if (interact.TryCreate(interactHeld, out C2S_Interact use)) link.Send(use);
+            // HUD_SPEC 13.2: Space or gamepad A presses the sync check; nothing else is bound to them. -ptk-auto-sync presses
+            // through the same TryPress.
+            if (survivor)
+            {
+                SyncCheckTracker sync = screens.Survivor.Sync;
+                sync.Tick(now);
+                Gamepad pad = Gamepad.current;
+                bool syncKey = active && ((keyboard != null && keyboard.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame));
+                if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
+                screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
+            }
             bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
             if (SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill))
                 link.Send(skill);
@@ -377,13 +425,13 @@ namespace PingTheKiller.Client
             {
                 stutter.SetActive(own.Status == PlayerStatus.Lagging);
                 UpdateSurvivorHud(now);
-                screens.SetExit(view, SharedMap.Exit + Vector3.up * 2.6f, exitOpen);
-                dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha);
+                screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);
+                dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
             }
             else if (killerLayer != null && located)
             {
                 killerLayer.Render(rig.Pose, now, dt, menuOpen);
-                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt);
+                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
         // Survivor client, each WorldState after the own entry was read: own-status transitions (captured sound + banner,
@@ -391,7 +439,7 @@ namespace PingTheKiller.Client
         // the beep, both hidden while Eliminated or Escaped (HUD_SPEC 4.1, 4.2, 4.5).
         private void OnOwnSnapshot(byte threatLevel, double time)
         {
-            StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time);
+            StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time, selfState.Available && selfState.CollapseLeft >= 0);
             if (change == StatusEvent.Captured) { cueSource.PlayOneShot(survivorCues[SurvivorCue.Captured]); Debug.Log("[client] captured: banner + stutter"); }
             if (change == StatusEvent.Eliminated)
             {
@@ -423,7 +471,7 @@ namespace PingTheKiller.Client
             if (lobby != null) foreach (Slot slot in lobby.Slots) if (slot.PlayerId == id && slot.PlayerId != 0) return slot.Nickname;
             return null;
         }
-        // HUD_SPEC 4.0-4.9, every frame from the last snapshot, the SelfState clock and the effect timing.
+        // HUD_SPEC 4.0-4.9 and 13, every frame from the last snapshot, the SelfState clock and the effect timing.
         private void UpdateSurvivorHud(double now)
         {
             if (lastWorld == null) return;
@@ -432,11 +480,19 @@ namespace PingTheKiller.Client
             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
             hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now), capture.ReasonText()));
             hud.SetThreat(threatVisual.Effect, threatVisual.StripFraction, threatVisual.Seed);
-            hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired,
-                SurvivorReadout.Exit(lastWorld), effects.Locked(now));
+            hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired);
+            ExitView[] exits = exitCache.For(lastWorld, effects.Locked(now) ?? -1);
+            hud.SetObjective(exits, V2Wire.Collapse(lastWorld.CollapseLeft, selfState.Available ? selfState.CollapseLeft : -1, own.Status == PlayerStatus.Lagging));
             hud.SetSkill(skillId, SurvivorReadout.SkillState(skillId, own.Status, cooldown, restore), cooldown, effects.OwnActive(now), skillId == SkillIds.TrafficOverload);
-            hud.SetPrompt(capture.BannerVisible(now) ? CaptureWatch.BannerPrompt
-                : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));
+            PromptState prompt = capture.BannerVisible(now) ? capture.Prompt
+                : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore);
+            // HUD_SPEC 13.3: the exit switch and hatch prompts, when nothing more urgent (or only a muted skill reason) shows.
+            if (!releasedCursor && own.Status == PlayerStatus.Normal && !capture.BannerVisible(now) && (string.IsNullOrEmpty(prompt.Text) || prompt.Muted))
+            {
+                InteractPrompt reach = InteractCopy.Survivor(own.X, own.Z, exits, SharedMap.Map.ExitSwitches, lastWorld.HatchVisible == 1, lastWorld.HatchX, lastWorld.HatchZ);
+                if (!string.IsNullOrEmpty(reach.Text)) prompt = new PromptState { Text = reach.Text, Muted = reach.Muted };
+            }
+            hud.SetPrompt(prompt, V2Wire.Hold(selfState));
         }
         private void OnApplicationFocus(bool focused)
         {
@@ -466,7 +522,7 @@ namespace PingTheKiller.Client
         private void Disconnect(string notice)
         {
             Release();
-            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset();
+            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
             DestroyWorld();
             screens.ShowMenu(notice);

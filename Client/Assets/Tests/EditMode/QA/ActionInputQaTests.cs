@@ -146,11 +146,14 @@ namespace PingTheKiller.Client.QA.Tests
         // ---- survivors only (the pure class has no role, so the guard is checked where it lives: ClientApp) -------------
 
         [Test]
-        public void ClientAppOnlyEverFeedsInteractInputForSurvivors()
+        // U6c-wire K2: GDD v2 gives the Killer a hold-E (kick a terminal, close the hatch), so the survivor-only gate is gone;
+        // the focus / cursor gate stays for both roles.
+        public void ClientAppFeedsInteractInputForBothRolesOnlyWhileActive()
         {
             string source = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));
-            Assert.That(Regex.IsMatch(source, @"survivor\s*&&\s*interact\.TryCreate\("), Is.True,
-                "hold-E is gated on the survivor role");
+            Assert.That(Regex.IsMatch(source, @"survivor\s*&&\s*interact\.TryCreate\("), Is.False,
+                "hold-E is no longer survivor-only");
+            Assert.That(source, Does.Contain("if (interact.TryCreate(interactHeld, out C2S_Interact use)) link.Send(use);"));
             Assert.That(source, Does.Contain("bool survivor = role == Role.Survivor;"));
             Assert.That(source, Does.Contain("active && keyboard != null && keyboard.eKey.isPressed"),
                 "E counts only while the window is focused and the cursor is captured");

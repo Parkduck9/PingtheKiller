@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
@@ -75,10 +76,10 @@ namespace PingTheKiller.Client.QA.Tests
                 for (byte id = 0; id < 6; id++) generated.Add(HudCopy.SkillLine(role, id));
             foreach (PlayerStatus status in new[] { PlayerStatus.Normal, PlayerStatus.Lagging, PlayerStatus.Escaped, PlayerStatus.Eliminated })
                 generated.Add(HudCopy.StatusLine(status, 12.5f));
-            generated.Add(HudCopy.TerminalsLine(new TerminalState[0], 3, false));
-            generated.Add(HudCopy.TerminalsLine(new TerminalState[0], 3, true));
+            generated.Add(HudCopy.TerminalsLine(new TerminalState[0], 3));
             generated.Add(HudCopy.HackingLine(50));
-            generated.Add(HudCopy.ExitLabel(true)); generated.Add(HudCopy.ExitLabel(false));
+            // U6c-wire: the v1 single Exit label is gone; the two exit cells' copy takes its place.
+            generated.Add(ExitCopy.Tag(ExitView.FromWire(0, 1, 0))); generated.Add(ExitCopy.Tag(ExitView.FromWire(1, 3, 100)));
             generated.Add(LobbyCopy.Title(true)); generated.Add(LobbyCopy.Title(false));
             foreach (Slot slot in lobby.Slots) generated.Add(LobbyCopy.SlotText(slot, 1));
             foreach (byte choice in new byte[] { 0, 1, 255 }) { generated.Add(LobbyCopy.RoleLine(choice, true)); generated.Add(LobbyCopy.RoleLine(choice, false)); }

@@ -29,7 +29,6 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 "Killer/BlipTracker.cs",
                 "Killer/BlipSoundModel.cs",
                 "Killer/SurvivorSoundSynth.cs",
-                "Killer/ExecutionGuidance.cs",
                 "Killer/KillerCues.cs",
                 "Killer/KillerHudCopy.cs",
                 "Killer/KillerAudio.cs",
@@ -144,8 +143,10 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
         public void DevCapture_Preview_NeverReadsPlayerStateOnKillerRole()
         {
             string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));
-            string preview = QaSource.MethodText(code, "private void Preview(");
-            Assert.That(preview, Is.Not.Null, "Preview method found in ClientApp.cs");
+            // U6c-wire R1: the preview's id collection moved from Preview into SurvivorIds (both v2 id lists are filled).
+            Assert.That(QaSource.MethodText(code, "private void Preview("), Does.Contain("SurvivorIds()"));
+            string preview = QaSource.MethodText(code, "private List<int> SurvivorIds(");
+            Assert.That(preview, Is.Not.Null, "SurvivorIds method found in ClientApp.cs");
 
             int killerPreview = preview.IndexOf("role == Role.Killer && lobby != null", StringComparison.Ordinal);
             Assert.That(killerPreview, Is.GreaterThanOrEqualTo(0));
@@ -165,7 +166,6 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             {
                 "Killer/KillerScene.cs",
                 "Killer/KillerWorldLayer.cs",
-                "Killer/ExecutionGuidance.cs",
                 "Killer/KillerCues.cs",
                 "UI/KillerHud.cs"
             };

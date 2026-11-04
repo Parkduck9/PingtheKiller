@@ -63,7 +63,9 @@ namespace PingTheKiller.Client.QA.Tests
         public void ThePreviewReadsSurvivorEntryIdsOnlyOnASurvivorClientAndNamesLobbySlotsForTheKiller()
         {
             string source = Stripped("ClientApp.cs");
-            string preview = QaSource.MethodText(source, "private void Preview(");
+            // U6c-wire R1: the preview fills both v2 id lists, so the id collection moved from Preview into SurvivorIds.
+            Assert.That(QaSource.MethodText(source, "private void Preview("), Does.Contain("SurvivorIds()"));
+            string preview = QaSource.MethodText(source, "private List<int> SurvivorIds(");
             Assert.That(preview, Is.Not.Null);
             int loop = preview.IndexOf("lastWorld.Players", System.StringComparison.Ordinal);
             Assert.That(loop, Is.GreaterThan(0));

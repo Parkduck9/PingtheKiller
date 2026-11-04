@@ -214,7 +214,9 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(app, Does.Contain("screens.ShowResult("));
             Assert.That(app, Does.Contain(", preview);"), "the preview flag reaches the result screen");
             string screens = QaSource.StripComments(QaPaths.ReadScript("UI/ClientScreens.cs"));
-            Assert.That(screens, Does.Contain("Preview: synthetic result from a dev flag, not sent by a server."));
+            // U6c-wire R1: the note moved into ResultCopy with the rest of the result copy; the screen still shows it.
+            Assert.That(PingTheKiller.Client.UI.ResultCopy.PreviewNote, Is.EqualTo("Preview: synthetic result from a dev flag, not sent by a server."));
+            Assert.That(screens, Does.Contain("Text(result.Notes, ResultCopy.PreviewNote)"));
             Assert.That(screens, Does.Contain("Show(resultPreview, preview)"));
         }
     }

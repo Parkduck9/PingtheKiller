@@ -22,6 +22,7 @@ namespace PingTheKiller.Client.Dev
     {
         private DevArgs args;
         private ClientScreens screens;
+        private double overloadedAt = -1;
         private double origin = -1, lobbyAt = -1, matchAt = -1, previewAt = -1, laggingAt = -1, resultAt = -1, reopenedAt = -1;
         private double backAt = -1, doneAt = -1;
         private bool menuShot, joined, configured, lobbyShot, started, play1, play4, previewShot, quitting, host, capturing;
@@ -50,7 +51,7 @@ namespace PingTheKiller.Client.Dev
         private int skillPresses, selfLogged, maxTracked;
         private double nextSkillPress = -1, cooldownSeenAt = -1, countdownLogAt = -1;
         private bool skillUsed;
-        private ExecutionPrompt loggedPrompt;
+        private string loggedPrompt;
         // -ptk-chase / -ptk-rescue steering (dev only; the routes come from Server.Core's NavGrid over the shared map).
         private NavGrid nav;
         private int chaseTerminal;
@@ -61,6 +62,11 @@ namespace PingTheKiller.Client.Dev
         private Vector3 rescueAt;
         // -ptk-preview-v2-hud: the rules v2 widget preview (its own panel; requests its shots through EventShot).
         private RulesV2Preview v2;
+        // -ptk-dev-hack / -ptk-dev-switch autopilot and the rules v2 live shots.
+        private HackPilot pilot;
+        private S2C_WorldState world;
+        private PilotPhase loggedPhase;
+        private double objectiveAt = -1, collapseSeenAt = -1;
         public event Action<string> Join;
         public event Action Offline;
         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
@@ -72,7 +78,8 @@ namespace PingTheKiller.Client.Dev
             args = value; screens = ui; self = selfState;
             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
-            if (args.Chase > 0 || args.Rescue) nav = new NavGrid(SharedMap.Map);
+            if (args.Chase > 0 || args.Rescue || args.DevHack > 0 || args.DevSwitch) nav = new NavGrid(SharedMap.Map);
+            if (args.DevHack > 0 || args.DevSwitch) pilot = new HackPilot(args.DevHack, args.DevSwitch);
             MotionPreview.Active = args.PreviewMotion; // U4j: read by CharacterViews (own Survivor) only
         }
 
@@ -88,8 +95,12 @@ namespace PingTheKiller.Client.Dev
         // -ptk-preview-motion killer-down (U4j): after the first capture the chase stops; the Killer walks away from the
         // nearest instance for RetreatSeconds, then turns to face it, so the downed Survivor is framed at a few metres.
         private const double RetreatSeconds = 1.3, KillerDownShotSeconds = 2.4;
-        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && graceSeenAt >= 0 && resultAt < 0;
-        private bool Retreating => KillerDownStaging && Now - graceSeenAt < RetreatSeconds;
+        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && captureSeenAt >= 0 && resultAt < 0;
+        private bool Retreating => KillerDownStaging && Now - captureSeenAt < RetreatSeconds;
+        // -ptk-dev-hack / -ptk-dev-switch: the autopilot walks (the scripted W) and holds Interact, Survivor only.
+        private bool Piloting => pilot != null && role == Role.Survivor && match >= 1 && matchAt >= 0 && resultAt < 0 && Now - matchAt >= 2;
+        private bool PilotWalk => Piloting && located && pilot.Walk;
+        public bool HoldInteract => Piloting && pilot.Hold;
         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
         private const float RescueStop = 1f;
         // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
@@ -98,12 +109,23 @@ namespace PingTheKiller.Client.Dev
 
         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
         // -ptk-chase and -ptk-rescue walk through the same path.
-        public bool HoldForward => RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+        public bool HoldForward => PilotWalk || RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
 
         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
         public bool Steer(float currentYaw, float dt, out float yaw)
         {
             yaw = currentYaw;
+            if (Piloting)
+            {
+                pilot.Update(position.x, position.z, localStatus == (byte)PlayerStatus.Normal, world, SharedMap.Map.ExitSwitches, dt);
+                if (pilot.Phase != loggedPhase)
+                {
+                    loggedPhase = pilot.Phase;
+                    Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " autopilot " + pilot.Phase + " goal=" + Stamp(pilot.Goal.x) + "," + Stamp(pilot.Goal.z)
+                        + " held=" + Stamp(pilot.Held) + " pos=" + Stamp(position.x) + "," + Stamp(position.z));
+                }
+                if (PilotWalk) return Route(pilot.Goal, out yaw);
+            }
             if (RescueWalk) return Route(rescueAt, out yaw);
             if (!Wandering || !located) return false;
             if (wander == null) wander = new Wander(currentYaw);
@@ -134,13 +156,32 @@ namespace PingTheKiller.Client.Dev
         }
 
         // Every S2C_SelfState packet: the first, then any that carries a non-zero value (capped), with the countdown.
-        public void OnSelfState(float skillCooldown, float rescueProgress, float invulnerableLeft, float executionGraceLeft, int received)
+        public void OnSelfState(S2C_SelfState state, int received)
         {
-            bool interesting = received == 1 || skillCooldown > 0 || rescueProgress > 0 || invulnerableLeft > 0 || executionGraceLeft > 0;
+            bool interesting = received == 1 || state.SkillCooldown > 0 || state.RescueProgress > 0 || state.InvulnerableLeft > 0 || state.ActionKind != 0
+                || (state.CollapseLeft >= 0 && collapseSeenAt < 0);
+            if (state.CollapseLeft >= 0 && collapseSeenAt < 0) collapseSeenAt = Now;
             if (!interesting || selfLogged >= 300) return;
             selfLogged++;
-            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " selfstate #" + received + " skillCooldown=" + Stamp(skillCooldown) + " rescue=" + Stamp(rescueProgress)
-                + " invulnerable=" + Stamp(invulnerableLeft) + " grace=" + Stamp(executionGraceLeft));
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " selfstate #" + received + " skillCooldown=" + Stamp(state.SkillCooldown) + " rescue=" + Stamp(state.RescueProgress)
+                + " invulnerable=" + Stamp(state.InvulnerableLeft) + " collapse=" + Stamp(state.CollapseLeft) + " action=" + (ActionKind)state.ActionKind + ":" + Stamp(state.ActionProgress));
+        }
+
+        // HUD_SPEC 13.2 evidence: every S2C_SyncCheck / S2C_SyncResult and whether the tracker took it.
+        public void OnSyncCheck(S2C_SyncCheck check, bool accepted)
+            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync check id=" + check.CheckId + " terminal=" + check.TerminalId + " zone=" + Stamp(check.ZoneStart)
+                + "+" + Stamp(check.ZoneSize) + " accepted=" + accepted);
+
+        public void OnSyncResult(S2C_SyncResult result, bool matched)
+            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync result id=" + result.CheckId + " result=" + (SyncResult)result.Result + " matched=" + matched);
+
+        // -ptk-auto-sync: true on the frame the scripted press is due (the caller presses through the same TryPress as Space).
+        public bool PressSync(SyncCheckTracker sync)
+        {
+            if (args.AutoSync == AutoSync.None || sync == null || !sync.Current) return false;
+            SyncCheckState state = sync.State;
+            if (!state.Visible || state.Pressed || state.Result.HasValue) return false;
+            return HackPilot.SyncDue(args.AutoSync, sync.View, SyncCheckMath.NeedleFraction(sync.View.Elapsed, sync.View.Duration));
         }
 
         // -ptk-orbit: once at match start + 2 s, the orbit yaw becomes the character facing plus the offset.
@@ -219,8 +260,12 @@ namespace PingTheKiller.Client.Dev
         // tracked = instances in the tracker (Signal, Lagging and decoys alike); prompt = the execution guidance shown.
         // killer-crowd: the first frame with at least CrowdCount instances tracked at once.
         public const int CrowdCount = 6;
-        public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, ExecutionPrompt prompt = ExecutionPrompt.None)
+        public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, string prompt = null, int captures = 0, int overloaded = 0)
         {
+            if (captures > 0 && captureSeenAt < 0 && args.PreviewMotion == MotionPreviewClip.KillerDown)
+            {
+                captureSeenAt = Now; Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " motion preview: capture seen");
+            }
             int counts = tracked * 1000000 + inView * 10000 + occluded * 100 + edges;
             if (counts != killerCounts && Now - countsAt >= .5)
             {
@@ -236,9 +281,15 @@ namespace PingTheKiller.Client.Dev
             if (prompt != loggedPrompt)
             {
                 loggedPrompt = prompt;
-                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " execution prompt=" + prompt + " grace=" + Stamp(self != null ? self.ExecutionGraceLeft : 0));
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " killer prompt=\"" + prompt + "\"");
             }
             if (capturing || pending.Count > 0 || args.Shots == null) return;
+            // 0.3 s after the alert first shows, so its pooled tag has been measured and clamped (HUD_SPEC 13.6).
+            if (overloaded <= 0) overloadedAt = -1;
+            else if (overloadedAt < 0) overloadedAt = Now;
+            if (overloaded > 0 && Now - overloadedAt >= .3 && !taken.Contains("v2-killer-overloaded.png")) { Debug.Log("[DEV] overloaded alerts=" + overloaded); EventShot("v2-killer-overloaded.png", 0); return; }
+            if (WorldPowered && !taken.Contains("v2-killer-powered.png") && Now - matchAt > 3) { EventShot("v2-killer-powered.png", 0); return; }
+            if (collapseSeenAt >= 0 && Now >= collapseSeenAt + 2 && !taken.Contains("v2-killer-collapse.png")) { EventShot("v2-killer-collapse.png", 0); return; }
             if (tracked >= CrowdCount && !taken.Contains("killer-crowd.png")) { EventShot("killer-crowd.png", 0); return; }
             if (inView > 0 && !taken.Contains("killer-inview.png")) EventShot("killer-inview.png", 0);
             else if (occluded > 0 && inView == 0 && edges == 0 && !taken.Contains("killer-occluded.png")) EventShot("killer-occluded.png", 0);
@@ -254,8 +305,9 @@ namespace PingTheKiller.Client.Dev
         private PlayerStatus shownStatus;
         private double threatSince = -1, capturedAt = -1, eliminatedAt = -1, killerSince = -1;
         private bool killerSeen, killerLogged;
-        public void OnSurvivorFrame(byte threat, PlayerStatus status, bool banner, int stutterFrames, float killerAlpha)
+        public void OnSurvivorFrame(byte threat, PlayerStatus status, bool banner, int stutterFrames, float killerAlpha, SurvivorHud hud = null)
         {
+            if (hud != null && V2SurvivorShots(hud)) return;
             if (matchAt < 0 || resultAt >= 0) return;
             double t = Now;
             if (threat != shownThreat) { shownThreat = threat; threatSince = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " threat visual level=" + threat); }
@@ -319,7 +371,7 @@ namespace PingTheKiller.Client.Dev
             matchAt = Now; match++; role = value; wander = null; located = false; orbitAt = aimAt = -1; menuWanted = false; movedLogged = 0; killerCounts = -1;
             laggingAt = resultAt = reopenedAt = backAt = -1; localStatus = 0; localHud = null; progress = Array.Empty<byte>(); exitState = -1;
             skillPresses = 0; skillUsed = false; nextSkillPress = cooldownSeenAt = countdownLogAt = chaseLogAt = -1; maxTracked = 0;
-            loggedPrompt = ExecutionPrompt.None; chaseTerminal = 0; terminalPoints.Clear(); rescueFound = false;
+            loggedPrompt = null; chaseTerminal = 0; world = null; loggedPhase = PilotPhase.Idle; objectiveAt = collapseSeenAt = captureSeenAt = -1; terminalPoints.Clear(); rescueFound = false;
             shownThreat = 0; shownStatus = PlayerStatus.Normal; threatSince = capturedAt = eliminatedAt = killerSince = -1; killerSeen = killerLogged = false;
             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
         }
@@ -328,6 +380,7 @@ namespace PingTheKiller.Client.Dev
         public void OnWorld(S2C_WorldState state, int localId)
         {
             double t = Now - matchAt;
+            world = state;
             bool hacking = false, changed = progress.Length != state.Terminals.Count;
             if (changed) progress = new byte[state.Terminals.Count];
             if (terminalPoints.Count != state.Terminals.Count)
@@ -350,8 +403,8 @@ namespace PingTheKiller.Client.Dev
                 foreach (TerminalState terminal in state.Terminals) line.Append(' ').Append(terminal.Id).Append(':').Append(terminal.Progress);
                 line.Append(" required=").Append(state.TerminalsRequired).Append(" exits=");
                 foreach (ExitState e in state.Exits) line.Append(e.Id).Append(':').Append(e.Flags).Append('/').Append(e.SwitchProgress).Append(' ');
-                line.Append("exitOpen=").Append(exitOpen ? 1 : 0)
-                    .Append(" hud=\"").Append(HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired, exitOpen)).Append('"');
+                line.Append("exitOpen=").Append(exitOpen ? 1 : 0).Append(" collapse=").Append(Stamp(state.CollapseLeft)).Append(" hatch=").Append(state.HatchVisible)
+                    .Append(" hud=\"").Append(HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired)).Append('"');
                 Debug.Log(line.ToString());
             }
             // World shots wait until the camera and avatars are placed (the first ~100 ms of a match render nothing yet).
@@ -372,13 +425,56 @@ namespace PingTheKiller.Client.Dev
             }
         }
 
-        public void OnResult(S2C_GameResult result, string headline, string outcome)
+        public void OnResult(S2C_GameResult result, ResultV2View view)
         {
             resultAt = Now;
             Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " match " + match + " end winner=" + (Role)result.WinnerRole + " reason=" + (GameEndReason)result.Reason
-                + " escaped=[" + string.Join(",", result.EscapedIds) + "] back to lobby enabled=" + (screens != null && screens.BackToLobbyEnabled));
-            Debug.Log("[DEV] result screen: \"" + headline + "\" / \"" + outcome + "\"");
+                + " escaped=[" + string.Join(",", result.EscapedIds) + "] eliminated=[" + string.Join(",", result.EliminatedIds) + "] back to lobby enabled="
+                + (screens != null && screens.BackToLobbyEnabled));
+            Debug.Log("[DEV] result screen: \"" + ResultV2Copy.Headline(view.Winner) + "\" / \"" + ResultV2Copy.Outcome(view) + "\" / \""
+                + ResultV2Copy.Rule(view.Escaped, view.Starting) + "\" rows=" + view.Rows.Count);
             EventShot("result.png");
+        }
+
+        private bool WorldPowered
+        {
+            get
+            {
+                if (world?.Exits == null) return false;
+                foreach (ExitState exit in world.Exits) if ((exit.Flags & 3) != 0) return true;
+                return false;
+            }
+        }
+
+        // Rules v2 live shots (Survivor, first match): the ring mid-sweep, the result word, the hold row, the objective row
+        // once an exit is powered and again with the collapse running. One per frame.
+        private bool V2SurvivorShots(SurvivorHud hud)
+        {
+            if (args.Shots == null || capturing || pending.Count > 0 || match != 1 || resultAt >= 0 || !located) return false;
+            SyncCheckState sync = hud.Sync.State;
+            if (sync.Visible && !sync.Result.HasValue && !sync.Pressed && sync.Needle >= .25f && sync.Needle <= .42f && !taken.Contains("v2-sync-check.png"))
+            {
+                EventShot("v2-sync-check.png", 0); return true;
+            }
+            if (sync.Visible && sync.Result.HasValue && !taken.Contains("v2-sync-result.png"))
+            {
+                Debug.Log("[DEV] sync result shown " + sync.Result + " needle=" + Stamp(sync.Needle));
+                EventShot("v2-sync-result.png", 0); return true;
+            }
+            if (hud.HoldText != null && !taken.Contains("v2-switch-hold.png") && self != null && self.ActionProgress >= .3f)
+            {
+                EventShot("v2-switch-hold.png", 0); return true;
+            }
+            if (hud.ObjectiveShown && objectiveAt < 0) objectiveAt = Now;
+            if (objectiveAt >= 0 && Now >= objectiveAt + 1 && !taken.Contains("v2-objective-powered.png"))
+            {
+                EventShot("v2-objective-powered.png", 0); return true;
+            }
+            if (collapseSeenAt >= 0 && Now >= collapseSeenAt + 1.5 && !taken.Contains("v2-objective-collapse.png"))
+            {
+                EventShot("v2-objective-collapse.png", 0); return true;
+            }
+            return false;
         }
 
         // -ptk-settings: open the Settings screen, wait for it to lay out, shoot, close. Stage 0 -> 1 -> 2 -> 3 (done).
@@ -468,7 +564,7 @@ namespace PingTheKiller.Client.Dev
 
         // The local SelfState countdown (logged each second while the cooldown runs) and the SelfState event shots, each
         // taken once while the match runs: survivor-cooldown 1.5 s into a cooldown, survivor-rescue once the rescue bar is
-        // at least RescueShotProgress (own rescue or as rescuer), killer-grace while ExecutionGraceLeft > 0.
+        // at least RescueShotProgress (own rescue or as rescuer).
         public const float RescueShotProgress = .2f;
         private bool SelfShots(double t)
         {
@@ -498,17 +594,13 @@ namespace PingTheKiller.Client.Dev
                 Debug.Log("[DEV] t=" + Stamp(m) + " rescue progress=" + Stamp(self.RescueProgress) + " invulnerable=" + Stamp(self.InvulnerableLeft));
                 EventShot("survivor-rescue.png"); return true;
             }
-            if (role == Role.Killer && self.ExecutionGraceLeft > 0 && !taken.Contains("killer-grace.png"))
-            {
-                EventShot("killer-grace.png"); return true;
-            }
             return false;
         }
 
         // -ptk-preview-motion: motion-<clip>.png at MotionPreview.ShotTimes (Survivor, first match; the second Death shot is
-        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first execution grace (1.3 s walking away, then facing it), with an
+        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first confirmed capture (1.3 s walking away, then facing it), with an
         // instance in view (the captured Survivor knocked down / crawling, Killer view).
-        private double graceSeenAt = -1;
+        private double captureSeenAt = -1;
         private int lastInView;
         private bool MotionShots(double t)
         {
@@ -516,9 +608,8 @@ namespace PingTheKiller.Client.Dev
             if (clip == MotionPreviewClip.None || args.Shots == null || match != 1 || matchAt < 0 || resultAt >= 0) return false;
             if (clip == MotionPreviewClip.KillerDown)
             {
-                if (role != Role.Killer || self == null || !self.Available) return false;
-                if (graceSeenAt < 0 && self.ExecutionGraceLeft > 0) { graceSeenAt = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " motion preview: capture seen (grace)"); }
-                if (graceSeenAt >= 0 && t >= graceSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
+                if (role != Role.Killer) return false;
+                if (captureSeenAt >= 0 && t >= captureSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
                 return false;
             }
             if (role != Role.Survivor || !located) return false;

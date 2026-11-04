@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using PingTheKiller.Client.QA.Tests;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
@@ -141,48 +142,42 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             // Case 1: Timeout (last Lagging StatusTimer <= 0.2 s)
             var reason1 = CaptureWatch.Infer(PlayerStatus.Lagging, 0.15f, 1);
             Assert.That(reason1, Is.EqualTo(EliminationReason.TimedOut));
-            Assert.That(CaptureWatch.ReasonText(reason1), Is.EqualTo("Disconnected: no rescue within 60 s."));
+            Assert.That(CaptureWatch.ReasonText(reason1), Is.EqualTo("Disconnected: no rescue in the second Lagging stage (30 s)."));
 
             var reason1Boundary = CaptureWatch.Infer(PlayerStatus.Lagging, 0.20f, 1);
             Assert.That(reason1Boundary, Is.EqualTo(EliminationReason.TimedOut));
 
-            // Case 2: Executed while Lagging (last Lagging StatusTimer > 0.2 s)
-            var reason2 = CaptureWatch.Infer(PlayerStatus.Lagging, 0.25f, 1);
-            Assert.That(reason2, Is.EqualTo(EliminationReason.Executed));
-            Assert.That(CaptureWatch.ReasonText(reason2), Is.EqualTo("Executed: the Killer touched you while Lagging."));
+            // Case 2 (GDD v2, no execution): Lagging -> Eliminated with time left is the collapse while it runs, else unknown
+            var reason2 = CaptureWatch.Infer(PlayerStatus.Lagging, 0.25f, 1, true);
+            Assert.That(reason2, Is.EqualTo(EliminationReason.Collapse));
+            Assert.That(CaptureWatch.ReasonText(reason2), Is.EqualTo("Disconnected: the collapse reached you."));
 
             var reason2Fresh = CaptureWatch.Infer(PlayerStatus.Lagging, 58.0f, 1);
-            Assert.That(reason2Fresh, Is.EqualTo(EliminationReason.Executed));
+            Assert.That(reason2Fresh, Is.EqualTo(EliminationReason.None));
 
-            // Case 3: Caught a second time (Normal -> Eliminated with CaptureCount >= 1)
-            var reason3 = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 1);
-            Assert.That(reason3, Is.EqualTo(EliminationReason.SecondCapture));
-            Assert.That(CaptureWatch.ReasonText(reason3), Is.EqualTo("Executed: caught a second time."));
+            // Case 3: Caught a third time (Normal -> Eliminated with CaptureCount >= 2)
+            var reason3 = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 2);
+            Assert.That(reason3, Is.EqualTo(EliminationReason.ThirdCapture));
+            Assert.That(CaptureWatch.ReasonText(reason3), Is.EqualTo("Disconnected: caught a third time."));
 
-            var reason3Multiple = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 2);
-            Assert.That(reason3Multiple, Is.EqualTo(EliminationReason.SecondCapture));
+            var reason3Once = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 1);
+            Assert.That(reason3Once, Is.EqualTo(EliminationReason.None), "one capture only lags");
 
             // Unhandled cases return None
             Assert.That(CaptureWatch.Infer(PlayerStatus.Normal, 0f, 0), Is.EqualTo(EliminationReason.None));
             Assert.That(CaptureWatch.Infer(PlayerStatus.Escaped, 0f, 0), Is.EqualTo(EliminationReason.None));
         }
 
+        // GDD v2 / HUD_SPEC 13.7 (U6c-wire R1): the v1 outcome line carried the inferred reason; the v2 result names the
+        // outcome only, and the reason stays on the meter.
         [Test]
-        public void ResultCopy_Outcome_IncludesInferredReasonForEliminatedSurvivor()
+        public void ResultV2_Outcome_NamesTheOwnOutcomeWithoutAReason()
         {
             var result = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllSurvivorsDown };
-
-            // Survivor eliminated with SecondCapture reason
-            string lineSecond = ResultCopy.Outcome(result, 1, Role.Survivor, PlayerStatus.Eliminated, CaptureWatch.SecondCapture);
-            Assert.That(lineSecond, Is.EqualTo("You were eliminated. Executed: caught a second time."));
-
-            // Survivor eliminated with TimedOut reason
-            string lineTimeout = ResultCopy.Outcome(result, 1, Role.Survivor, PlayerStatus.Eliminated, CaptureWatch.TimedOut);
-            Assert.That(lineTimeout, Is.EqualTo("You were eliminated. Disconnected: no rescue within 60 s."));
-
-            // Survivor eliminated without reason
-            string linePlain = ResultCopy.Outcome(result, 1, Role.Survivor, PlayerStatus.Eliminated, null);
-            Assert.That(linePlain, Is.EqualTo("You were eliminated."));
+            result.EliminatedIds.Add(1);
+            result.EscapedIds.Add(2);
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(result, null, 1, Role.Survivor)), Is.EqualTo("You were eliminated."));
+            Assert.That(ResultV2Copy.Outcome(V2Wire.Result(result, null, 2, Role.Survivor)), Is.EqualTo("You escaped."));
         }
     }
 }

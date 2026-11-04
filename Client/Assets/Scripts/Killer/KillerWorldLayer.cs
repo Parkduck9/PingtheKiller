@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PingTheKiller.Client.UI;
+using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -9,7 +10,8 @@ namespace PingTheKiller.Client.Killer
 {
     // The Killer's world layer and HUD feed (HUD_SPEC 6.1-6.6). KillerScene turns the anonymous stream into instances;
     // this component draws them (the shared Survivor character with a `signal` outline in view, through-wall diamonds,
-    // edge chevrons), the Terminal and Exit markers, feeds the cluster, plays the cues and the positional sound.
+    // edge chevrons), the Terminal markers, the rules v2 world layer (both Exits, Regressing tags, the Overloaded alert;
+    // HUD_SPEC 13.4, 13.6), feeds the cluster (prompt / hold block, collapse block), plays the cues and the positional sound.
     public sealed class KillerWorldLayer : MonoBehaviour
     {
         public const float IntroSeconds = 3, TagGap = 12, ChevronTagOffset = 30, DistanceTagBeyond = 20, TerminalTagOnlyWithin = 8;
@@ -29,18 +31,18 @@ namespace PingTheKiller.Client.Killer
         private readonly List<Material> materials = new List<Material>();
         private readonly System.Random rng = new System.Random(); // client-local; never seeded from wire data
         private readonly KillerCueRules cueRules = new KillerCueRules();
-        private readonly ExecutionGuidance guidance = new ExecutionGuidance();
         private KillerScene scene;
         private BlipSoundModel sound;
         private System.Func<int, bool> isVoiced;
         private KillerAudio audioOut;
         private KillerHud hud;
         private MarkerLayer markers;
+        private V2MarkerLayer v2;
+        private readonly ExitCache exitCache = new ExitCache();
         private ISelfState self;
         private Material body, visor, outline;
         private S2C_WorldState last;
-        private int playerId, lastTarget = -1;
-        private float lastDistance = float.PositiveInfinity;
+        private int playerId;
         private byte skillId;
         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
         private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
@@ -52,7 +54,7 @@ namespace PingTheKiller.Client.Killer
 
         public void Initialize(int ownId, byte skill, KillerHud killerHud, ISelfState selfState, double now)
         {
-            playerId = ownId; skillId = skill; hud = killerHud; markers = hud.Markers; self = selfState; startedAt = now;
+            playerId = ownId; skillId = skill; hud = killerHud; markers = hud.Markers; v2 = hud.V2Markers; self = selfState; startedAt = now;
             sound = new BlipSoundModel(new System.Random(rng.Next()));
             isVoiced = sound.IsVoiced;
             audioOut = gameObject.AddComponent<KillerAudio>();
@@ -81,26 +83,23 @@ namespace PingTheKiller.Client.Killer
             scene.Accept(state, now);
             last = state;
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
-            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) kick.Play();
+            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) { kick.Play(); Captures++; }
             cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
             cueRules.OnSignalCount(scene.Blips.Count, now);
-            lastTarget = scene.NearestLagging(out lastDistance);
-            guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
         }
 
-        // A SelfState arrives after the WorldState of its tick: re-run the guidance for that snapshot with the fresh grace,
-        // so a capture shows Grace at once instead of one snapshot of Step back.
-        public void OnSelfState()
-        {
-            if (scene != null) guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
-        }
+        // Captures confirmed by the tracker this match (dev staging of the knocked-down shot).
+        public int Captures { get; private set; }
 
         // The own cooldown reached 0 (the SelfState clock's ready edge, once per cooldown).
         public void OnSkillReady() => cueRules.OnSkillReady();
 
         // Instances tracked in the last snapshot (dev log and the crowd shot; counted by the tracker, never from entries).
         public int Tracked => scene == null ? 0 : scene.Blips.Count;
-        public ExecutionPrompt Prompt => guidance.Prompt;
+        // The interact prompt or hold label shown this frame (dev log); null when none.
+        public string Prompt => hud.Hold.style.display == UnityEngine.UIElements.DisplayStyle.None ? hud.PromptText : hud.Hold.Text;
+        // Overloaded alerts drawn this frame (on screen or at the edge).
+        public int Overloaded { get; private set; }
 
         // Own effects (CasterId = own id) drive the active arc, the Overclock line and the Exit lock seconds; the
         // Killer-bound TrafficOverload drives the slowed line. Only these fields are read.
@@ -138,10 +137,11 @@ namespace PingTheKiller.Client.Killer
             cueRules.Pending.Clear();
             Vector2 screen = new Vector2(markers.layout.width, markers.layout.height);
             if (float.IsNaN(screen.x) || screen.x <= 0) screen = new Vector2(Screen.width / Mathf.Max(.01f, markers.Scale), Screen.height / Mathf.Max(.01f, markers.Scale));
-            UpdateHud(now, menuOpen);
+            UpdateHud(now, menuOpen, pose.Eye);
             Rect safe = EdgePlacement.SafeRect(screen, false), keepOut = EdgePlacement.KeepOut(hud.ClusterRect(screen.y));
             markers.Clear(MarkerLayer.Static);
             markers.Clear(MarkerLayer.Signals);
+            v2.Begin();
             DrawStatic(pose, screen, safe, keepOut, now);
             InView = Occluded = Edges = 0;
             if (scene != null)
@@ -155,22 +155,26 @@ namespace PingTheKiller.Client.Killer
             markers.Layout(new Rect(0, 0, screen.x, screen.y), keepOut);
             markers.Commit(MarkerLayer.Static);
             markers.Commit(MarkerLayer.Signals);
+            v2.End();
         }
 
-        private void UpdateHud(double now, bool menuOpen)
+        private void UpdateHud(double now, bool menuOpen, Vector3 eye)
         {
             hud.SetIntro(now - startedAt < IntroSeconds && !menuOpen);
-            bool exitOpen = last != null && WorldExits.AnyOpen(last);
             if (last != null) hud.SetInfo(last.TimeLeft, HudDone(last), last.TerminalsRequired);
             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
-            hud.SetSkill(skillId, exitOpen, self, active);
+            exitCache.For(last);
+            hud.SetSkill(skillId, exitCache.SwitchInProgress, self, active);
             if (now < slowedEnd) hud.SetEffect(KillerHudCopy.Slowed((float)(slowedEnd - now)), true);
             else if (now < overclockEnd) hud.SetEffect(KillerHudCopy.Overclock((float)(overclockEnd - now)), false);
             else if (now < overclockEnd + SkillIds.OverclockRecoverySeconds) hud.SetEffect(KillerHudCopy.Recovering((float)(overclockEnd + SkillIds.OverclockRecoverySeconds - now)), false);
             else hud.SetEffect(null, false);
-            float grace = self.Available ? self.ExecutionGraceLeft : 0;
-            hud.SetPrompt(menuOpen ? ExecutionPrompt.None : guidance.Display(grace), grace);
+            InteractPrompt interact = last == null ? default
+                : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
+            hud.SetPrompt(interact, V2Wire.Hold(self));
+            hud.SetCollapse(V2Wire.KillerCollapse(last != null ? last.CollapseLeft : -1, self.Available ? self.CollapseLeft : -1));
         }
+
 
         private static int HudDone(S2C_WorldState state)
         {
@@ -187,31 +191,45 @@ namespace PingTheKiller.Client.Killer
             return true;
         }
 
-        // Terminal and Exit markers (drawn under the Signal markers).
+        // Terminal markers (drawn under the Signal markers), then the rules v2 layer: a Regressing tag replaces a terminal's
+        // tag, the Overloaded alert (HUD_SPEC 13.6) and both Exit markers (13.4; off-screen exits get no indicator).
         private void DrawStatic(ViewPose pose, Vector2 screen, Rect safe, Rect keepOut, double now)
         {
+            Overloaded = 0;
             if (last == null) return;
             foreach (TerminalState terminal in last.Terminals)
             {
-                if (terminal.Progress == 100) continue; // done: no marker
+                TerminalFlagsView flags = V2Wire.Terminal(terminal);
                 var at = new Vector3(terminal.X, TerminalMarkerHeight, terminal.Z);
-                if (!Project(pose, at, screen, out Vector2 p)) continue;
-                bool blocked = MapGeometry.SegmentBlocked(SharedMap.Map, pose.Eye.x, pose.Eye.z, terminal.X, terminal.Z);
                 float distance = new Vector2(terminal.X - pose.Eye.x, terminal.Z - pose.Eye.z).magnitude;
+                bool projected = Project(pose, at, screen, out Vector2 p);
+                if (TerminalFlagCopy.ShowOverloaded(flags, Role.Killer))
+                {
+                    Overloaded++;
+                    string alert = v2.OverloadedTag(flags, distance);
+                    if (projected && safe.Contains(p)) v2.Overloaded(EdgePlacement.ClampOutside(p, keepOut, safe), true, Vector2.zero, alert);
+                    else
+                    {
+                        Vector2 edge = EdgePlacement.Place(screen, EdgePlacement.Direction(pose.ToCamera(at)), safe, keepOut, false, out Vector2 pointing);
+                        v2.Overloaded(edge, false, pointing, alert);
+                    }
+                }
+                if (terminal.Progress == 100) continue; // done: no marker
+                if (!projected) continue;
+                bool blocked = MapGeometry.SegmentBlocked(SharedMap.Map, pose.Eye.x, pose.Eye.z, terminal.X, terminal.Z);
                 p = EdgePlacement.ClampOutside(p, keepOut, safe);
                 bool tagOnly = !blocked && distance <= TerminalTagOnlyWithin;
                 if (!tagOnly) markers.Square(MarkerLayer.Static, p);
+                if (flags.Regressing) { v2.Regressing(tagOnly ? p + new Vector2(0, TagGap) : p, flags, Role.Killer); continue; }
                 markers.Tag(MarkerLayer.Static, tagOnly ? p : p + new Vector2(0, TagGap), KillerHudCopy.Terminal(terminal.Id), TagStyle.Muted, tagOnly ? TagPivot.Center : TagPivot.Below, LayoutPriority.Terminal, !tagOnly);
             }
-            var exitAt = new Vector3(SharedMap.Map.Exit.X, ExitMarkerHeight, SharedMap.Map.Exit.Z);
-            if (Project(pose, exitAt, screen, out Vector2 e))
+            float lockedLeft = lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : -1;
+            ExitView[] exits = exitCache.For(last, lockedLeft);
+            for (int i = 0; i < exits.Length; i++)
             {
-                e = EdgePlacement.ClampOutside(e, keepOut, safe);
-                ExitMark state = WorldExits.AnyOpen(last) ? ExitMark.Open : WorldExits.AnyLocked(last) ? ExitMark.LockedByKiller : ExitMark.Locked;
-                markers.Exit(MarkerLayer.Static, e, state);
-                string tag = state == ExitMark.Locked ? KillerHudCopy.ExitLocked : state == ExitMark.Open ? KillerHudCopy.ExitOpen
-                    : KillerHudCopy.ExitLockedFor(lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : (float?)null);
-                markers.Tag(MarkerLayer.Static, e + new Vector2(0, TagGap), tag, state == ExitMark.Locked ? TagStyle.Muted : TagStyle.Text, TagPivot.Below, LayoutPriority.Exit, true);
+                ExitState wire = last.Exits[i];
+                if (!Project(pose, new Vector3(wire.X, ExitMarkerHeight, wire.Z), screen, out Vector2 e)) continue;
+                v2.Exit(EdgePlacement.ClampOutside(e, keepOut, safe), exits[i]);
             }
         }
 
@@ -419,6 +437,7 @@ namespace PingTheKiller.Client.Killer
         {
             audioOut?.Silence();
             if (markers != null) { markers.Clear(MarkerLayer.Static); markers.Commit(MarkerLayer.Static); markers.Clear(MarkerLayer.Signals); markers.Commit(MarkerLayer.Signals); }
+            if (v2 != null) { v2.Begin(); v2.End(); }
             foreach (Material material in materials) if (material != null) Destroy(material);
             foreach (Character character in characters.Values) character.Motion?.Dispose();
             foreach (Character character in pool) character.Motion?.Dispose();

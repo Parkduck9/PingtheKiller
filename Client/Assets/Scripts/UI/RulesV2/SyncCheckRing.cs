@@ -38,6 +38,12 @@ namespace PingTheKiller.Client.UI.RulesV2
             Visible = resultAt >= 0 ? flashing : present;
         }
 
+        // Hides at once and forgets the check (a new match, the own status left Normal, the link went).
+        public void Reset()
+        {
+            started = false; Pressed = false; PressFraction = 0; Result = null; resultAt = -1; Visible = false; View = default;
+        }
+
         public bool TryPress()
         {
             if (!Visible || Pressed || Result.HasValue) return false;
@@ -57,7 +63,7 @@ namespace PingTheKiller.Client.UI.RulesV2
     public sealed class SyncCheckRing : VisualElement
     {
         public const float Size = 144;
-        private const float BandRadius = 56, BandWidth = 10, GreatWidth = 22, NeedleInner = 40, NeedleOuter = 70;
+        public const float BandRadius = 56, BandWidth = 10, GreatWidth = 22, NeedleInner = 30, NeedleOuter = 80, NeedleWidth = 3, NeedleKeyline = 7, GreatGap = 2;
         private readonly Label centre;
         private readonly SyncCheckState state;
         private string glyph = "Space";
@@ -115,14 +121,24 @@ namespace PingTheKiller.Client.UI.RulesV2
             {
                 p.strokeColor = Palette.Text; p.lineWidth = Palette.Stroke(GreatWidth, Scale);
                 p.BeginPath(); p.Arc(c, BandRadius, Angle.Degrees(Degrees(zoneStart)), Angle.Degrees(Degrees(greatEnd))); p.Stroke();
+                if (zoneEnd > greatEnd)
+                {
+                    // A 2 u `bg` cut between Great and Good: two separate blocks, not one tapered shape that reads as an arrow.
+                    float g = Degrees(greatEnd) * Mathf.Deg2Rad;
+                    var r = new Vector2(Mathf.Cos(g), Mathf.Sin(g));
+                    p.lineWidth = Palette.Stroke(GreatGap, Scale); p.strokeColor = Palette.Panel;
+                    p.BeginPath(); p.MoveTo(c + r * (BandRadius - GreatWidth * .5f - 1)); p.LineTo(c + r * (BandRadius + GreatWidth * .5f + 1)); p.Stroke();
+                }
             }
             float a = Degrees(state.Needle) * Mathf.Deg2Rad;
             var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
-            // `bg` keyline under the needle so it stays visible where it crosses the `text` zone.
-            p.lineWidth = Palette.Stroke(6, Scale); p.strokeColor = Palette.Bg;
-            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * (NeedleOuter - hair)); p.Stroke();
-            p.lineWidth = Palette.Stroke(3, Scale); p.strokeColor = Palette.Text;
-            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * (NeedleOuter - hair)); p.Stroke();
+            // The moving hand: a 3 u `text` line from radius 30 (inside the band) to 80 (8 u past the disc edge), on a 7 u
+            // `bg` keyline so it stays visible where it crosses the `text` zone. 50 u long, more than twice the Great head; its tip
+            // ends exactly in the 8 u stack gap, so it never reaches the prompt row below.
+            p.lineWidth = Palette.Stroke(NeedleKeyline, Scale); p.strokeColor = Palette.Bg;
+            p.BeginPath(); p.MoveTo(c + d * (NeedleInner - 2)); p.LineTo(c + d * NeedleOuter); p.Stroke();
+            p.lineWidth = Palette.Stroke(NeedleWidth, Scale); p.strokeColor = Palette.Text;
+            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * NeedleOuter); p.Stroke();
         }
     }
 

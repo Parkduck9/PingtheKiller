@@ -4,22 +4,20 @@ using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Client.Killer
 {
-    // Killer HUD copy (HUD_SPEC 3, 6.1, 6.2, 6.4, 6.6, 8). Pure; KillerHud and KillerWorldLayer only display it.
+    // Killer HUD copy (HUD_SPEC 3, 6.1, 6.2, 6.6, 8, 13). Pure; KillerHud and KillerWorldLayer only display it.
     public static class KillerHudCopy
     {
         public const string Dot = "·";
         public const string IntroTitle = "You are the Killer";
-        public const string IntroRules = "Only Signal Survivors show, even through walls. Catch every Survivor before one reaches the Exit.";
-        public const string OneMore = "One more opens the Exit.";
+        public const string IntroRules = "Only Signal Survivors show, even through walls. Eliminate more than half of the Survivors to win.";
+        public const string OneMore = "One more powers the Exits.";
         public const string Ready = "Ready";
         public const string Passive = "Passive — always on";
-        public const string AfterExitOpens = "After the Exit opens";
+        public const string NeedsSwitch = "Needs an Exit switch in progress";
         public const string Resume = "Resume";
         public const string LeaveMatch = "Leave match";
         public const string LaggingTitle = "Lagging Survivor";
         public const string Lagging = "Lagging";
-        public const string ExitLocked = "Exit Locked";
-        public const string ExitOpen = "Exit Open";
 
         // HUD_SPEC 8 names (sentence case) and effect lines.
         public static string SkillName(byte skillId)
@@ -41,7 +39,7 @@ namespace PingTheKiller.Client.Killer
                 case SkillIds.PingScanner: return "Shows the nearest Survivor for 1.5 s.";
                 case SkillIds.Overclock: return "1.5× speed for 3 s, then 1 s unable to move.";
                 case SkillIds.PacketAfterimage: return "Passive: Survivors stay visible 1 s after their Signal ends.";
-                case SkillIds.FirewallBlock: return "Locks the open Exit for 5 s.";
+                case SkillIds.FirewallBlock: return "Locks the Exit switch in progress for 5 s.";
                 default: return string.Empty;
             }
         }
@@ -68,10 +66,11 @@ namespace PingTheKiller.Client.Killer
         public static string Slowed(float left) => "Slowed by traffic overload " + Dot + " " + Seconds1(left);
 
         // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.
-        public static string SkillState(byte skillId, bool exitOpen, float? cooldown)
+        // switchInProgress: an unopened Exit with switch progress (Firewall block's only target, GDD v2 3).
+        public static string SkillState(byte skillId, bool switchInProgress, float? cooldown)
         {
             if (skillId == SkillIds.PacketAfterimage) return Passive;
-            if (skillId == SkillIds.FirewallBlock && !exitOpen) return AfterExitOpens;
+            if (skillId == SkillIds.FirewallBlock && !switchInProgress) return NeedsSwitch;
             if (cooldown.HasValue && cooldown.Value > 0) return "Cooldown " + (int)Math.Ceiling(cooldown.Value) + " s";
             return Ready;
         }
@@ -79,19 +78,5 @@ namespace PingTheKiller.Client.Killer
         public static string Distance(float metres) => (int)Math.Round(Math.Max(0, metres), MidpointRounding.AwayFromZero) + " m";
         public static string LaggingDistance(float metres) => Lagging + " " + Dot + " " + Distance(metres);
         public static string Terminal(byte id) => "Terminal " + (id + 1);
-
-        public static string ExitLockedFor(float? left)
-            => left.HasValue && left.Value > 0 ? ExitLocked + " " + (int)Math.Ceiling(left.Value) + " s" : ExitLocked;
-
-        public static string PromptLine(ExecutionPrompt prompt, float graceLeft)
-        {
-            switch (prompt)
-            {
-                case ExecutionPrompt.Grace: return "Wait " + Seconds1(graceLeft) + ", step back, touch again.";
-                case ExecutionPrompt.StepBack: return "Step back 1.2 m, then touch again.";
-                case ExecutionPrompt.Ready: return "Touch again to eliminate.";
-                default: return null;
-            }
-        }
     }
 }

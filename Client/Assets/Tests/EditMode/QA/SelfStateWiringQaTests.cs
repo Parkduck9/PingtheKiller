@@ -119,7 +119,7 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheKillerPathStillReadsNoSurvivorIdYawStatusTimerCaptureCountOrForbiddenFlags()
         {
             // Files of the Killer path (the dev capture is excluded: it is behind DevArgs and U4c F-05 tracks it).
-            string[] files = { "Killer/KillerScene.cs", "Killer/KillerWorldLayer.cs", "Killer/BlipTracker.cs", "Killer/BlipSoundModel.cs", "Killer/ExecutionGuidance.cs", "Killer/KillerCues.cs", "UI/KillerHud.cs" };
+            string[] files = { "Killer/KillerScene.cs", "Killer/KillerWorldLayer.cs", "Killer/BlipTracker.cs", "Killer/BlipSoundModel.cs", "Killer/KillerCues.cs", "UI/KillerHud.cs" };
             foreach (string relative in files)
             {
                 string code = Stripped(relative);

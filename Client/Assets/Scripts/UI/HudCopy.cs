@@ -64,8 +64,8 @@ namespace PingTheKiller.Client.UI
             return done;
         }
 
-        public static string TerminalsLine(IReadOnlyList<TerminalState> terminals, byte required, bool exitOpen)
-            => "Terminals " + CompletedTerminals(terminals) + "/" + required + " · Exit " + (exitOpen ? "open" : "locked");
+        public static string TerminalsLine(IReadOnlyList<TerminalState> terminals, byte required)
+            => "Terminals " + CompletedTerminals(terminals) + "/" + required;
 
         // Index of the terminal closest to (x, z), or -1 when there is none.
         public static int NearestTerminal(IReadOnlyList<TerminalState> terminals, float x, float z)
@@ -81,7 +81,5 @@ namespace PingTheKiller.Client.UI
         }
 
         public static string HackingLine(byte progress) => "Hacking · " + Math.Min((int)progress, 100) + "%";
-
-        public static string ExitLabel(bool open) => open ? "Exit · Open" : "Exit · Locked";
     }
 }
