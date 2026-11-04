@@ -604,7 +604,7 @@ namespace PingTheKiller.Client.QA.Tests
         {
             string code = QaSource.StripComments(QaPaths.ReadScript("Killer/KillerWorldLayer.cs"));
             string statics = QaSource.MethodText(code, "private void DrawStatic(");
-            Assert.That(statics, Does.Match(@"last\.ExitOpen == 0 \? ExitMark\.Locked : last\.ExitLocked != 0 \? ExitMark\.LockedByKiller : ExitMark\.Open"));
+            Assert.That(statics, Does.Match(@"WorldExits\.AnyOpen\(last\) \? ExitMark\.Open : WorldExits\.AnyLocked\(last\) \? ExitMark\.LockedByKiller : ExitMark\.Locked"));
             Assert.That(statics, Does.Contain("KillerHudCopy.ExitLockedFor("));
             Assert.That(QaSource.MethodText(code, "public void OnEffect("), Does.Contain("effect.CasterId == playerId"), "seconds come from the Killer's own FirewallBlock effect");
         }

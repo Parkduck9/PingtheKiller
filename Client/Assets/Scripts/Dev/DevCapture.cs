@@ -323,21 +323,23 @@ namespace PingTheKiller.Client.Dev
                 if (value >= 1 && value <= 99) hacking = true;
                 if (progress[i] != value) { progress[i] = value; changed = true; }
             }
-            bool exitOpen = state.ExitOpen != 0 && state.ExitLocked == 0;
-            int exit = (state.ExitOpen != 0 ? 1 : 0) + (state.ExitLocked != 0 ? 2 : 0);
+            bool exitOpen = WorldExits.AnyOpen(state);
+            int exit = (exitOpen ? 1 : 0) + (WorldExits.AnyLocked(state) ? 2 : 0) + (WorldExits.Powered(state) ? 4 : 0);
             if (changed || exit != exitState)
             {
                 exitState = exit;
                 var line = new StringBuilder("[DEV] t=").Append(Stamp(t)).Append(" terminals");
                 foreach (TerminalState terminal in state.Terminals) line.Append(' ').Append(terminal.Id).Append(':').Append(terminal.Progress);
-                line.Append(" required=").Append(state.TerminalsRequired).Append(" exitOpen=").Append(state.ExitOpen).Append(" exitLocked=").Append(state.ExitLocked)
+                line.Append(" required=").Append(state.TerminalsRequired).Append(" exits=");
+                foreach (ExitState e in state.Exits) line.Append(e.Id).Append(':').Append(e.Flags).Append('/').Append(e.SwitchProgress).Append(' ');
+                line.Append("exitOpen=").Append(exitOpen ? 1 : 0)
                     .Append(" hud=\"").Append(HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired, exitOpen)).Append('"');
                 Debug.Log(line.ToString());
             }
             // World shots wait until the camera and avatars are placed (the first ~100 ms of a match render nothing yet).
             threatLevel = state.ThreatLevel;
             if (hacking && located) EventShot("hacking.png");
-            if (state.ExitOpen != 0 && located) EventShot("exit-open.png");
+            if (exitOpen && located) EventShot("exit-open.png");
             // Survivor client only: the Killer client never reads a Survivor entry (its view logs blip counts from the tracker).
             if (role != Role.Survivor) return;
             foreach (PlayerState player in state.Players)
@@ -404,7 +406,7 @@ namespace PingTheKiller.Client.Dev
             if (match == 1 && args.PreviewResult.HasValue && previewAt < 0 && t >= matchAt + 5 && (!shots || play4))
             {
                 previewAt = t;
-                PreviewResult?.Invoke(new S2C_GameResult { WinnerRole = (byte)(args.PreviewResult == (byte)GameEndReason.SurvivorEscaped ? Role.Survivor : Role.Killer), Reason = args.PreviewResult.Value });
+                PreviewResult?.Invoke(new S2C_GameResult { WinnerRole = (byte)(args.PreviewResult == (byte)GameEndReason.AllResolved ? Role.Survivor : Role.Killer), Reason = args.PreviewResult.Value });
             }
             if (previewAt >= 0 && shots && !previewShot && t >= previewAt + 1)
             {

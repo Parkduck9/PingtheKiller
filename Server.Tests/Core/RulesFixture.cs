@@ -76,6 +76,8 @@ internal sealed class RulesMatch : IDisposable
                 ok = survivorSkills[i] < 0 || list[i].Last<S2C_MatchStart>().SkillId == survivorSkills[i];
             if (ok)
             {
+                // Rule scenarios run without sync checks (an unanswered check costs progress); RulesV2Tests turns them on.
+                f.Server.SyncChecksEnabled = false;
                 // Arrange legacy rule scenarios in the west open lane, independently of production spawn clusters.
                 f.Server.PlaceForTests(killer.Id, 5, 5);
                 var positions = new[] { (5f,26f), (10f,26f), (5f,36f), (10f,36f), (48f,48f), (70f,50f), (70f,55f) };
@@ -139,8 +141,9 @@ internal sealed class RulesMatch : IDisposable
 
     internal static float Distance(PlayerState a, float x, float z) => MathF.Sqrt((a.X - x) * (a.X - x) + (a.Z - z) * (a.Z - z));
 
-    // Complete three real terminals using the current layout and the unchanged 10 s / co-hack rules.
-    internal void OpenExitWithTwoSurvivors()
+    // Complete three real terminals with two co-hackers (GDD v2: 45 s alone, 1.8x for two, so 25 s each): both exits
+    // get power.
+    internal void PowerExitsWithTwoSurvivors()
     {
         var a=Survivors[0]; var b=Survivors[1];
         F.Server.PlaceForTests(Killer.Id,76,76); Tick();
@@ -149,12 +152,25 @@ internal sealed class RulesMatch : IDisposable
             var t=F.Server.Map.TerminalPositions[id];
             WalkTo(a,t.X-.5f,t.Z,GameConstants.SurvivorSpeed);
             WalkTo(b,t.X+.5f,t.Z,GameConstants.SurvivorSpeed);
-            a.Send(new C2S_Interact {Active=1}); b.Send(new C2S_Interact {Active=1}); Tick(101);
+            a.Send(new C2S_Interact {Active=1}); b.Send(new C2S_Interact {Active=1}); Tick(501);
             Assert.Equal(100,Killer.Last<S2C_WorldState>().Terminals[id].Progress);
             a.Send(new C2S_Interact {Active=0}); b.Send(new C2S_Interact {Active=0});
-            if(id!=3) Assert.Equal(0,Killer.Last<S2C_WorldState>().ExitOpen);
+            if(id!=3) Assert.False(Killer.Last<S2C_WorldState>().Powered());
         }
-        Assert.Equal(1,Killer.Last<S2C_WorldState>().ExitOpen);
-        Assert.Equal(0,Killer.Last<S2C_WorldState>().ExitLocked);
+        Assert.True(Killer.Last<S2C_WorldState>().Powered());
+        Assert.False(Killer.Last<S2C_WorldState>().AnyOpen());
+    }
+
+    // Powers the exits, then survivor 0 holds the switch of exit 0 for the full 15 s: exit 0 (4,4) opens and the
+    // collapse starts. Survivor 0 is left at that switch, survivor 1 at terminal 3.
+    internal void OpenExitWithTwoSurvivors()
+    {
+        PowerExitsWithTwoSurvivors();
+        var a=Survivors[0]; var point=F.Server.Map.ExitSwitches[0];
+        WalkTo(a,point.X,point.Z,GameConstants.SurvivorSpeed);
+        a.Send(new C2S_Interact {Active=1}); Tick(301);
+        a.Send(new C2S_Interact {Active=0}); Tick();
+        Assert.True(Killer.Last<S2C_WorldState>().Open(0));
+        Assert.False(Killer.Last<S2C_WorldState>().Open(1));
     }
 }

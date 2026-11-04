@@ -18,7 +18,8 @@ internal static class U3bRun
     }
 }
 
-// A broken fake must score 0 on H6, with evidence that names the broken step. One class per fake so xUnit runs
+// A broken fake must score 0 on H6, with evidence that names the broken step. GDD v2 (U6a): the H6 bounds of
+// 60 s or more were raised by 150 s (45 s hack waits, the 15 s switch step and two escape walks). One class per fake so xUnit runs
 // the ~50 s scenarios in parallel.
 public abstract class U3bBrokenFake
 {
@@ -26,7 +27,7 @@ public abstract class U3bBrokenFake
     private readonly string[] expected;
     private readonly TimeSpan limit;
 
-    private protected U3bBrokenFake(Func<Knobs> make, params string[] expected) : this(make, TimeSpan.FromSeconds(150), expected) { }
+    private protected U3bBrokenFake(Func<Knobs> make, params string[] expected) : this(make, TimeSpan.FromSeconds(300), expected) { }
 
     private protected U3bBrokenFake(Func<Knobs> make, TimeSpan limit, params string[] expected)
     {
@@ -66,7 +67,7 @@ public sealed class U3bControlTests
         Assert.Equal(0, server.Executions);
         Assert.Equal(1, server.MatchStarts);
         Assert.Equal(3, server.ResultsSent);
-        Assert.True(elapsed < TimeSpan.FromSeconds(150));
+        Assert.True(elapsed < TimeSpan.FromSeconds(300));
         Assert.DoesNotContain("skipped", h6.Evidence, StringComparison.OrdinalIgnoreCase);
     }
 }
@@ -91,7 +92,7 @@ public sealed class U3bNeverMovesTests() : U3bBrokenFake(() => new Knobs { Never
     "stuck on leg", "target (", "after ");
 
 // A server at 20 % speed is far outside the 1.5x + 3 s leg slack: the mover must be declared stuck (and quickly).
-public sealed class U3bFifthSpeedStuckTests() : U3bBrokenFake(() => new Knobs { SpeedFactor = 0.2f }, TimeSpan.FromSeconds(60), "stuck on leg");
+public sealed class U3bFifthSpeedStuckTests() : U3bBrokenFake(() => new Knobs { SpeedFactor = 0.2f }, TimeSpan.FromSeconds(210), "stuck on leg");
 
 // ---- liveness / bounded time --------------------------------------------------------------------------------
 
@@ -101,51 +102,51 @@ public sealed class U3bSilentRightAfterMatchStartTests() : U3bBrokenFake(() => n
 public sealed class U3bSilentAfterTwoSecondsTests() : U3bBrokenFake(() => new Knobs { SilentAfterTick = 40 }, TimeSpan.FromSeconds(30),
     "3.0 s");
 
-public sealed class U3bSilentDuringCaptureTests() : U3bBrokenFake(() => new Knobs { SilentAfterTick = 700 }, TimeSpan.FromSeconds(60),
+public sealed class U3bSilentDuringCaptureTests() : U3bBrokenFake(() => new Knobs { SilentAfterTick = 700 }, TimeSpan.FromSeconds(210),
     "3.0 s");
 
 public sealed class U3bSurvivorSocketClosedDuringHackTests() : U3bBrokenFake(
     () => new Knobs { ClosePlayerWhen = s => s.MaxProgress >= 30 ? 3 : null }, TimeSpan.FromSeconds(40), "B:");
 
 public sealed class U3bSurvivorSocketClosedAfterCaptureTests() : U3bBrokenFake(
-    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 3 : null }, TimeSpan.FromSeconds(60), "B:");
+    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 3 : null }, TimeSpan.FromSeconds(210), "B:");
 
 public sealed class U3bLaggingSurvivorSocketClosedTests() : U3bBrokenFake(
-    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 2 : null }, TimeSpan.FromSeconds(60), "A:");
+    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 2 : null }, TimeSpan.FromSeconds(210), "A:");
 
 public sealed class U3bKillerSocketClosedAfterCaptureTests() : U3bBrokenFake(
-    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 1 : null }, TimeSpan.FromSeconds(60), "killer:");
+    () => new Knobs { ClosePlayerWhen = s => s.ALagging ? 1 : null }, TimeSpan.FromSeconds(210), "killer:");
 
 // ---- scenario steps faked or skipped ------------------------------------------------------------------------
 
-public sealed class U3bExitOpenAtTickZeroTests() : U3bBrokenFake(() => new Knobs { ForceExitOpenAtTick = 0 }, TimeSpan.FromSeconds(30), "ExitOpen");
+public sealed class U3bExitOpenAtTickZeroTests() : U3bBrokenFake(() => new Knobs { ForceExitOpenAtTick = 0 }, TimeSpan.FromSeconds(30), "exit powered without terminals");
 
 // The exit opens 5 s into the match although no terminal is complete. The brief requires H6 not to pass this.
 public sealed class U3bExitOpensWithoutTerminalsTests() : U3bBrokenFake(() => new Knobs { ForceExitOpenAtTick = 100 }, "exit");
 
-public sealed class U3bProgressNeverReaches100Tests() : U3bBrokenFake(() => new Knobs { ProgressCappedAt99 = true }, TimeSpan.FromSeconds(60),
+public sealed class U3bProgressNeverReaches100Tests() : U3bBrokenFake(() => new Knobs { ProgressCappedAt99 = true }, TimeSpan.FromSeconds(210),
     "Progress == 100");
 
-public sealed class U3bCaptureLeavesStatusNormalTests() : U3bBrokenFake(() => new Knobs { CaptureKeepsNormal = true }, TimeSpan.FromSeconds(90),
+public sealed class U3bCaptureLeavesStatusNormalTests() : U3bBrokenFake(() => new Knobs { CaptureKeepsNormal = true }, TimeSpan.FromSeconds(240),
     "[capture: killer to A]", "A captured");
 
-public sealed class U3bLaggingWithCaptureCountZeroTests() : U3bBrokenFake(() => new Knobs { CaptureCountOnCapture = 0 }, TimeSpan.FromSeconds(90),
+public sealed class U3bLaggingWithCaptureCountZeroTests() : U3bBrokenFake(() => new Knobs { CaptureCountOnCapture = 0 }, TimeSpan.FromSeconds(240),
     "CaptureCount=0", "expected Lagging/1/>0");
 
-public sealed class U3bLaggingWithCaptureCountTwoTests() : U3bBrokenFake(() => new Knobs { CaptureCountOnCapture = 2 }, TimeSpan.FromSeconds(90),
+public sealed class U3bLaggingWithCaptureCountTwoTests() : U3bBrokenFake(() => new Knobs { CaptureCountOnCapture = 2 }, TimeSpan.FromSeconds(240),
     "CaptureCount=2", "expected Lagging/1/>0");
 
-public sealed class U3bLaggingWithoutTimerTests() : U3bBrokenFake(() => new Knobs { LaggingTimerZero = true }, TimeSpan.FromSeconds(90),
+public sealed class U3bLaggingWithoutTimerTests() : U3bBrokenFake(() => new Knobs { LaggingTimerZero = true }, TimeSpan.FromSeconds(240),
     "StatusTimer=0", "expected Lagging/1/>0");
 
-public sealed class U3bKillerExecutesOnCaptureTests() : U3bBrokenFake(() => new Knobs { CaptureExecutes = true }, TimeSpan.FromSeconds(90),
+public sealed class U3bKillerExecutesOnCaptureTests() : U3bBrokenFake(() => new Knobs { CaptureExecutes = true }, TimeSpan.FromSeconds(240),
     "player 2 has status 3");
 
-public sealed class U3bRescueDropsCaptureCountTests() : U3bBrokenFake(() => new Knobs { RescueDropsCaptureCount = true }, TimeSpan.FromSeconds(120),
+public sealed class U3bRescueDropsCaptureCountTests() : U3bBrokenFake(() => new Knobs { RescueDropsCaptureCount = true }, TimeSpan.FromSeconds(270),
     "[rescue]", "A rescued");
 
-public sealed class U3bRescueFlipsTheRescuerTests() : U3bBrokenFake(() => new Knobs { RescueMakesPartnerLagging = true }, TimeSpan.FromSeconds(120),
-    "[rescue]", "early GameResult");
+public sealed class U3bRescueFlipsTheRescuerTests() : U3bBrokenFake(() => new Knobs { RescueMakesPartnerLagging = true }, TimeSpan.FromSeconds(270),
+    "[rescue]", "A rescued"); // GDD v2: two Lagging survivors no longer end the match, so the rescue step fails
 
 // The server ends the match with a perfectly valid SurvivorEscaped result ~1 s after the escaper starts walking,
 // long before anyone is in ExitRadius. H6 must not report pass (brief 3).
@@ -168,7 +169,7 @@ internal static class Results
     public static IReadOnlyList<(S2C_GameResult, int)> One(S2C_GameResult r) => new[] { (r, 0) };
     public static S2C_GameResult With(S2C_GameResult b, Action<S2C_GameResult> edit)
     {
-        var copy = new S2C_GameResult { WinnerRole = b.WinnerRole, Reason = b.Reason, EscapedIds = b.EscapedIds.ToList() };
+        var copy = new S2C_GameResult { WinnerRole = b.WinnerRole, Reason = b.Reason, EscapedIds = b.EscapedIds.ToList(), EliminatedIds = b.EliminatedIds.ToList() };
         edit(copy);
         return copy;
     }
@@ -198,12 +199,13 @@ public sealed class U3bEscapedIdsContainKillerTests() : U3bBrokenFake(
 public sealed class U3bEscapedIdsEmptyTests() : U3bBrokenFake(
     () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.EscapedIds.Clear())) }, "[GameResult]", "EscapedIds=[]");
 
-public sealed class U3bEscapedIdsBothSurvivorsTests() : U3bBrokenFake(
-    () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.EscapedIds = new List<int> { 2, 3 })) }, "[GameResult]", "EscapedIds=[2,3]");
+// GDD v2: both survivors escape, so a result naming only one of them, or naming an escaper as eliminated, fails.
+public sealed class U3bEscapedIdsOneSurvivorTests() : U3bBrokenFake(
+    () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.EscapedIds = new List<int> { 3 })) }, "[GameResult]", "EscapedIds=[3],");
 
-public sealed class U3bEscapedIdsWrongSurvivorTests() : U3bBrokenFake(
-    () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.EscapedIds = new List<int> { b.EscapedIds[0] == 2 ? 3 : 2 })) },
-    "[GameResult]", "expected exactly [");
+public sealed class U3bEliminatedIdsNameAnEscaperTests() : U3bBrokenFake(
+    () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.EliminatedIds = new List<int> { 2 })) },
+    "[GameResult]", "EliminatedIds=[2]", "expected escaped [");
 
 public sealed class U3bWinnerKillerTests() : U3bBrokenFake(
     () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => r.WinnerRole = (byte)Role.Killer)) }, "[GameResult]", "winner=1");
@@ -218,9 +220,9 @@ public sealed class U3bKillerWinsAllSurvivorsDownTests() : U3bBrokenFake(
     () => new Knobs { ResultPlan = (_, b) => Results.One(Results.With(b, r => { r.WinnerRole = (byte)Role.Killer; r.Reason = (byte)GameEndReason.AllSurvivorsDown; r.EscapedIds.Clear(); })) },
     "[GameResult]");
 
-// Copies differ between clients: the killer's and A's copies are right, B's lists both survivors.
+// Copies differ between clients: the killer's and A's copies are right, B's lists the same survivors in another order.
 public sealed class U3bCopiesDifferBetweenClientsTests() : U3bBrokenFake(
-    () => new Knobs { ResultPlan = (id, b) => Results.One(id == 3 ? Results.With(b, r => r.EscapedIds = new List<int> { 2, 3 }) : b) }, "[GameResult]");
+    () => new Knobs { ResultPlan = (id, b) => Results.One(id == 3 ? Results.With(b, r => r.EscapedIds = new List<int> { 3, 2 }) : b) }, "[GameResult]", "differs from the killer's copy");
 
 public sealed class U3bKillerCopyDiffersTests() : U3bBrokenFake(
     () => new Knobs { ResultPlan = (id, b) => Results.One(id == 1 ? Results.With(b, r => r.Reason = (byte)GameEndReason.TimeUp) : b) }, "[GameResult]");

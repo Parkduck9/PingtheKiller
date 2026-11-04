@@ -92,39 +92,77 @@ namespace PingTheKiller.Client.Tests
 
         private static S2C_GameResult Result(GameEndReason reason, params int[] escaped) => new S2C_GameResult
         {
-            WinnerRole = (byte)(reason == GameEndReason.SurvivorEscaped ? Role.Survivor : Role.Killer), Reason = (byte)reason,
+            WinnerRole = (byte)(reason == GameEndReason.AllResolved ? Role.Survivor : Role.Killer), Reason = (byte)reason,
             EscapedIds = new List<int>(escaped)
         };
 
         [Test]
         public void HeadlineStatesWinnerAndReasonForEveryReason()
         {
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1), Lobby()), Is.EqualTo("Survivors win. Mina reached the Exit."));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1, 3), Lobby()), Is.EqualTo("Survivors win. Mina and Bot 3 reached the Exit."));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1, 2, 3), Lobby()), Is.EqualTo("Survivors win. Mina, Bot 2 and Bot 3 reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1), Lobby()), Is.EqualTo("Survivors win. Mina reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1, 3), Lobby()), Is.EqualTo("Survivors win. Mina and Bot 3 reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1, 2, 3), Lobby()), Is.EqualTo("Survivors win. Mina, Bot 2 and Bot 3 reached the Exit."));
             Assert.That(ResultCopy.Headline(Result(GameEndReason.AllSurvivorsDown), Lobby()), Is.EqualTo("Killer wins. No survivor is left in play."));
             Assert.That(ResultCopy.Headline(Result(GameEndReason.TimeUp), Lobby()), Is.EqualTo("Killer wins. Time ran out."));
+        }
+
+        // v0.4 (GDD v2): the winner comes from WinnerRole (at least half escaped), whatever the reason; Collapse is new.
+        [Test]
+        public void HeadlineFollowsWinnerRoleForTheV04Reasons()
+        {
+            var killerWins = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllResolved, EscapedIds = new List<int> { 1 } };
+            Assert.That(ResultCopy.Headline(killerWins, Lobby()), Is.EqualTo("Killer wins. Too few survivors reached the Exit."));
+            var collapse = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.Collapse };
+            Assert.That(ResultCopy.Headline(collapse, Lobby()), Is.EqualTo("Killer wins. The network collapsed."));
+            var collapseSurvivors = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.Collapse, EscapedIds = new List<int> { 1 } };
+            Assert.That(ResultCopy.Headline(collapseSurvivors, Lobby()), Is.EqualTo("Survivors win. Mina reached the Exit."));
+            var timeUpSurvivors = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.TimeUp, EscapedIds = new List<int> { 2 } };
+            Assert.That(ResultCopy.Headline(timeUpSurvivors, Lobby()), Is.EqualTo("Survivors win. Bot 2 reached the Exit."));
+            Assert.That(ResultCopy.Outcome(timeUpSurvivors, 1, Role.Killer, PlayerStatus.Normal), Is.EqualTo("You lost as the Killer."));
+            Assert.That(ResultCopy.Outcome(killerWins, 3, Role.Killer, PlayerStatus.Normal), Is.EqualTo("You won as the Killer."));
+            Assert.That(ResultCopy.Outcome(killerWins, 1, Role.Survivor, PlayerStatus.Escaped), Is.EqualTo("You escaped."));
+        }
+
+        // v0.4: the exit line reads the per-exit flags (any Open, else a Firewall-locked switch, else closed).
+        [Test]
+        public void ExitLineReadsThePerExitFlags()
+        {
+            static S2C_WorldState World(params ExitFlags[] flags)
+            {
+                var world = new S2C_WorldState();
+                for (int i = 0; i < flags.Length; i++) world.Exits.Add(new ExitState { Id = (byte)i, Flags = (byte)flags[i] });
+                return world;
+            }
+            Assert.That(SurvivorReadout.Exit(World()), Is.EqualTo(ExitLine.Locked));
+            Assert.That(SurvivorReadout.Exit(World(0, 0)), Is.EqualTo(ExitLine.Locked));
+            Assert.That(SurvivorReadout.Exit(World(ExitFlags.Powered, ExitFlags.Powered)), Is.EqualTo(ExitLine.Locked));
+            Assert.That(SurvivorReadout.Exit(World(ExitFlags.Powered, ExitFlags.Powered | ExitFlags.Locked)), Is.EqualTo(ExitLine.LockedByKiller));
+            Assert.That(SurvivorReadout.Exit(World(ExitFlags.Powered | ExitFlags.Open, ExitFlags.Powered | ExitFlags.Locked)), Is.EqualTo(ExitLine.Open));
+            Assert.That(WorldExits.Powered(World(ExitFlags.Powered, ExitFlags.Powered)), Is.True);
+            Assert.That(WorldExits.Powered(World(ExitFlags.Powered, 0)), Is.False);
+            Assert.That(WorldExits.Powered(World()), Is.False);
+            Assert.That(WorldExits.AnyOpen(null), Is.False);
         }
 
         [Test]
         public void UnknownIdsAndMissingLobbyFallBackToPlayerId()
         {
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 9), Lobby()), Is.EqualTo("Survivors win. Player 9 reached the Exit."));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1), null), Is.EqualTo("Survivors win. Player 1 reached the Exit."));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped), Lobby()), Is.EqualTo("Survivors win. A survivor reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 9), Lobby()), Is.EqualTo("Survivors win. Player 9 reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1), null), Is.EqualTo("Survivors win. Player 1 reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved), Lobby()), Is.EqualTo("Survivors win. A survivor reached the Exit."));
         }
 
         [Test]
         public void OutcomeIsThePlayersOwn()
         {
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 1), 1, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("You escaped."));
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 2), 1, Role.Survivor, PlayerStatus.Escaped), Is.EqualTo("You escaped."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved, 1), 1, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("You escaped."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved, 2), 1, Role.Survivor, PlayerStatus.Escaped), Is.EqualTo("You escaped."));
             Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllSurvivorsDown), 1, Role.Survivor, PlayerStatus.Eliminated), Is.EqualTo("You were eliminated."));
             Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllSurvivorsDown), 1, Role.Survivor, PlayerStatus.Lagging), Is.EqualTo("You were still Lagging when the match ended."));
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 2), 1, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("Your team won. You did not reach the Exit."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved, 2), 1, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("Your team won. You did not reach the Exit."));
             Assert.That(ResultCopy.Outcome(Result(GameEndReason.TimeUp), 1, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("You did not escape."));
             Assert.That(ResultCopy.Outcome(Result(GameEndReason.TimeUp), 1, Role.Killer, PlayerStatus.Normal), Is.EqualTo("You won as the Killer."));
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 2), 1, Role.Killer, PlayerStatus.Normal), Is.EqualTo("You lost as the Killer."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved, 2), 1, Role.Killer, PlayerStatus.Normal), Is.EqualTo("You lost as the Killer."));
         }
 
         [Test]

@@ -169,7 +169,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 }
             }
 
-            Assert.That(s2cCount, Is.EqualTo(8), "Protocol v0.3 defines exactly 8 S2C packet types");
+            Assert.That(s2cCount, Is.EqualTo(10), "Protocol v0.4 defines exactly 10 S2C packet types (adds S2C_SyncCheck and S2C_SyncResult)");
         }
     }
 }

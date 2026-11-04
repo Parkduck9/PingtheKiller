@@ -24,7 +24,7 @@ public sealed class BotMatchTests
         bool killerFrames = human.Last<S2C_MatchStart>().Role == (byte)Role.Killer;
         int ticks = 0, worlds = 0;
         S2C_GameResult? result = null;
-        while (result == null && ticks <= 12001)
+        while (result == null && ticks <= 18001)
         {
             f.Tick();
             ++ticks;
@@ -48,7 +48,7 @@ public sealed class BotMatchTests
             human.Packets.Clear();
         }
         Assert.NotNull(result);
-        Assert.True(ticks <= 12000, "the match must end by the 600 s time limit");
+        Assert.True(ticks <= 18000, "the match must end by the 900 s time limit");
         if (result.WinnerRole == (byte)Role.Survivor) Assert.NotEmpty(result.EscapedIds);
         else Assert.Empty(result.EscapedIds);
         // After the end only lobby traffic follows, and no second result.

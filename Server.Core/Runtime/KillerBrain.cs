@@ -31,14 +31,10 @@ namespace PingTheKiller.ServerCore
         private const double ScannerDelaySeconds = 1;
         private const float OverclockMinDistance = 3f, OverclockMaxDistance = 10f;
         private const float FirewallExitDistance = 12f;
-        private const float ExecuteRange = 6f, ExecuteTrack = 3f, ExecuteWaitDistance = 1.8f, DeclineRadius = 4f;
-        // A big lobby (six terminals placed means six or seven survivors) is thinned out more eagerly.
-        private const double ExecuteChance = 0.6, BigLobbyExecuteChance = 0.85, ExecuteCampSeconds = 8, DeclineSeconds = 20;
-        private const int BigLobbyTerminals = 6;
+        // Closes a visible hatch from this close (inside GameConstants.HatchRadius).
+        private const float HatchReach = GameConstants.HatchRadius - 0.3f;
 
-        private double _thinkAt, _targetUntil, _lookUntil, _patrolUntil, _execUntil, _declinedUntil;
-        private bool _executing;
-        private float _execX, _execZ, _declinedX, _declinedZ;
+        private double _thinkAt, _targetUntil, _lookUntil, _patrolUntil;
         private double _lastBlipAt = double.NegativeInfinity;
         private bool _hasTarget;
         private float _targetX, _targetZ;
@@ -57,22 +53,20 @@ namespace PingTheKiller.ServerCore
             bool anyNormal = false;
             foreach (var blip in view.Blips) if (!blip.Lagging) anyNormal = true;
             if (anyNormal) _lastBlipAt = t;
-            if (t >= _thinkAt) { Look(view, random); WatchLagging(view, random); }
-            if (_executing && t >= _execUntil)
+            // GDD v2 §4: a Lagging survivor cannot be touched into the next stage, so Lagging blips are never targets.
+            if (t >= _thinkAt) Look(view, random);
+            if (view.HatchVisible)
             {
-                // Done camping: leave that Lagging survivor to its fate (or a rescue) for a while.
-                _executing = false;
-                _declinedX = _execX;
-                _declinedZ = _execZ;
-                _declinedUntil = t + DeclineSeconds;
-            }
-            if (_executing)
-            {
-                Execute(ref intent, view, nav, random);
+                // GDD v2 §3: a hatch in sight is closed at once (hold Interact standing still).
+                if (Distance(view.X, view.Z, view.HatchX, view.HatchZ) <= HatchReach)
+                {
+                    Stop(ref intent, view.X, view.Z);
+                    intent.Interact = true;
+                }
+                else MoveTo(ref intent, nav, view.X, view.Z, view.HatchX, view.HatchZ, HatchReach - 0.2f, view.Speed, t, random);
                 UseSkills(ref intent, view);
                 return intent;
             }
-
             if (_hasTarget && (Distance(view.X, view.Z, _targetX, _targetZ) < ArriveDistance || t >= _targetUntil))
             {
                 _hasTarget = false;
@@ -87,68 +81,6 @@ namespace PingTheKiller.ServerCore
             else Patrol(ref intent, view, nav, map, random);
             UseSkills(ref intent, view);
             return intent;
-        }
-
-        // A Lagging blip close by (usually the one just captured) is executed with ExecuteChance: the bot waits out the
-        // grace (SelfState.ExecutionGraceLeft) a step away, then touches it again. It camps at most ExecuteCampSeconds.
-        private void WatchLagging(KillerBotView view, Random random)
-        {
-            double t = view.Time;
-            float best = _executing ? ExecuteTrack : ExecuteRange;
-            float cx = _executing ? _execX : view.X, cz = _executing ? _execZ : view.Z;
-            bool found = false;
-            float bx = 0, bz = 0;
-            foreach (var blip in view.Blips)
-            {
-                if (!blip.Lagging) continue;
-                if (!_executing && t < _declinedUntil && Distance(blip.X, blip.Z, _declinedX, _declinedZ) <= DeclineRadius) continue;
-                float d = Distance(cx, cz, blip.X, blip.Z);
-                if (d > best) continue;
-                best = d;
-                bx = blip.X;
-                bz = blip.Z;
-                found = true;
-            }
-            if (_executing)
-            {
-                if (found) { _execX = bx; _execZ = bz; }
-                else _executing = false;
-                return;
-            }
-            if (!found) return;
-            if (random.NextDouble() < (view.TerminalCount >= BigLobbyTerminals ? BigLobbyExecuteChance : ExecuteChance))
-            {
-                _executing = true;
-                _execUntil = t + ExecuteCampSeconds;
-                _execX = bx;
-                _execZ = bz;
-                _hasTarget = false;
-            }
-            else
-            {
-                _declinedX = bx;
-                _declinedZ = bz;
-                _declinedUntil = t + DeclineSeconds;
-            }
-        }
-
-        private void Execute(ref BotIntent intent, KillerBotView view, NavGrid nav, Random random)
-        {
-            float d = Distance(view.X, view.Z, _execX, _execZ);
-            if (view.ExecutionGraceLeft > 0)
-            {
-                // Step out of contact while the grace runs; execution needs a fresh touch.
-                if (d < ExecuteWaitDistance && d > 0.01f)
-                    MoveTo(ref intent, nav, view.X, view.Z, _execX + (view.X - _execX) / d * ExecuteWaitDistance * 1.5f,
-                        _execZ + (view.Z - _execZ) / d * ExecuteWaitDistance * 1.5f, 0.1f, view.Speed, view.Time, random);
-                else
-                {
-                    Stop(ref intent, view.X, view.Z);
-                    Face(ref intent, YawOf(_execX - view.X, _execZ - view.Z));
-                }
-                return;
-            }
-            MoveTo(ref intent, nav, view.X, view.Z, _execX, _execZ, 0, view.Speed, view.Time, random);
         }
 
         private bool Noticed(KillerBotView view, float x, float z, Random random)
@@ -194,7 +126,7 @@ namespace PingTheKiller.ServerCore
             _targetUntil = t + ChaseMemorySeconds;
         }
 
-        // Terminals that are not done weigh three times as much as done ones; an open exit weighs most.
+        // Terminals that are not done weigh three times as much as done ones; powered exits weigh most.
         private void Patrol(ref BotIntent intent, KillerBotView view, NavGrid nav, FixedMap map, Random random)
         {
             double t = view.Time;
@@ -211,7 +143,8 @@ namespace PingTheKiller.ServerCore
             {
                 double total = 0;
                 for (int i = 0; i < view.TerminalCount; i++) total += view.Terminals[i].Done ? 1 : 3;
-                if (view.ExitOpen) total += 4;
+                bool powered = Powered(view);
+                if (powered) total += 4;
                 double pick = random.NextDouble() * total;
                 _patrol = view.TerminalCount;
                 for (int i = 0; i < view.TerminalCount; i++)
@@ -219,9 +152,16 @@ namespace PingTheKiller.ServerCore
                     pick -= view.Terminals[i].Done ? 1 : 3;
                     if (pick < 0) { _patrol = i; break; }
                 }
-                if (_patrol == view.TerminalCount && !view.ExitOpen) _patrol = view.TerminalCount - 1;
-                float cx = _patrol < view.TerminalCount ? view.Terminals[_patrol].X : view.Exit.X;
-                float cz = _patrol < view.TerminalCount ? view.Terminals[_patrol].Z : view.Exit.Z;
+                if (_patrol == view.TerminalCount && !powered) _patrol = view.TerminalCount - 1;
+                float cx, cz;
+                if (_patrol < view.TerminalCount) { cx = view.Terminals[_patrol].X; cz = view.Terminals[_patrol].Z; }
+                else
+                {
+                    // A powered exit: its switch, where survivors have to stand.
+                    var exit = view.Exits[random.Next(view.ExitCount)];
+                    cx = exit.SwitchX;
+                    cz = exit.SwitchZ;
+                }
                 // It checks a place from a few metres off (any standable side), not from on top of it.
                 _patrolX = cx;
                 _patrolZ = cz;
@@ -255,11 +195,21 @@ namespace PingTheKiller.ServerCore
                     }
                     break;
                 case SkillIds.FirewallBlock:
-                    if (!view.ExitOpen) break;
-                    foreach (var blip in view.Blips)
-                        if (!blip.Lagging && Distance(blip.X, blip.Z, view.Exit.X, view.Exit.Z) <= FirewallExitDistance) intent.UseSkill = true;
+                    for (int i = 0; i < view.ExitCount; i++)
+                    {
+                        var exit = view.Exits[i];
+                        if (exit.Open || exit.Progress == 0) continue;
+                        foreach (var blip in view.Blips)
+                            if (!blip.Lagging && Distance(blip.X, blip.Z, exit.SwitchX, exit.SwitchZ) <= FirewallExitDistance) intent.UseSkill = true;
+                    }
                     break;
             }
+        }
+
+        private static bool Powered(KillerBotView view)
+        {
+            for (int i = 0; i < view.ExitCount; i++) if (view.Exits[i].Powered) return true;
+            return false;
         }
     }
 }

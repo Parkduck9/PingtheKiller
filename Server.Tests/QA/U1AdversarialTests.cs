@@ -508,7 +508,9 @@ public sealed class U1AdversarialTests
         {
             Hex("0D0C0B0A"),   // Tick = 0x0A0B0C0D
             Hex("0000C03F"),   // TimeLeft = 1.5f  (0x3FC00000)
-            new byte[] { 0, 0, 1, 2 },  // ThreatLevel 0, ExitOpen 0, ExitLocked 1, TerminalsRequired 2
+            new byte[] { 0, 2 },  // ThreatLevel 0, TerminalsRequired 2
+            Hex("000080BF"),   // CollapseLeft = -1f (v0.4)
+            new byte[] { 0, 0 },  // no exits, HatchVisible 0 (v0.4)
             new byte[] { 0 },  // zero terminals
             new[] { declaredCount },
         };
@@ -533,8 +535,8 @@ public sealed class U1AdversarialTests
         Assert.Equal(0x0A0B0C0Du, w.Tick);
         Assert.Equal(1.5f, w.TimeLeft);
         Assert.Equal((byte)0, w.ThreatLevel);
-        Assert.Equal((byte)0, w.ExitOpen);
-        Assert.Equal((byte)1, w.ExitLocked);
+        Assert.False(w.Powered());
+        Assert.False(w.AnyOpen());
         Assert.Equal((byte)2, w.TerminalsRequired);
         Assert.Empty(w.Terminals);
         Assert.Equal(8, w.Players.Count);

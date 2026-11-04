@@ -17,10 +17,12 @@ public sealed class PacketCodecTests
         yield return new object[] { new S2C_JoinResult { PlayerId = -2147483648, ReconnectToken = ulong.MaxValue, Result = 255 } };
         yield return new object[] { new C2S_MoveInput { DirX = float.MaxValue, DirZ = -0f, Yaw = -123.5f, Seq = 4294967295U } };
         yield return new object[] { new C2S_UseSkill { SkillId = 255 } };
-        yield return new object[] { new S2C_WorldState { Tick = 1234567890U, TimeLeft = 599.5f, ExitLocked = 1, TerminalsRequired = 4, Players = new(), Terminals = new() } };
+        yield return new object[] { new S2C_WorldState { Tick = 1234567890U, TimeLeft = 599.5f, TerminalsRequired = 4, Players = new(), Terminals = new() } };
         yield return new object[] { new S2C_WorldState
         {
-            Tick = uint.MaxValue, TimeLeft = -0f, ThreatLevel = 3, ExitOpen = 1, ExitLocked = 0, TerminalsRequired = 3,
+            Tick = uint.MaxValue, TimeLeft = -0f, ThreatLevel = 3, TerminalsRequired = 3, CollapseLeft = 61.5f,
+            Exits = new() { new() { Id = 0, X = 4f, Z = 4f, Flags = 7, SwitchProgress = 100 }, new() { Id = 1, X = 76f, Z = -0f, Flags = 1, SwitchProgress = 0 } },
+            HatchVisible = 1, HatchX = 8f, HatchZ = -38f,
             Terminals = new()
             {
                 new() { Id = 0, X = float.MaxValue, Z = -0f, Progress = 0 },
@@ -198,8 +200,9 @@ public sealed class PacketCodecTests
         Assert.Equal(0, (byte)RoleChoice.Survivor);
         Assert.Equal(1, (byte)RoleChoice.Killer);
         Assert.Equal(255, (byte)RoleChoice.Random);
-        Assert.Equal(0, (byte)GameEndReason.SurvivorEscaped);
+        Assert.Equal(0, (byte)GameEndReason.AllResolved);
         Assert.Equal(1, (byte)GameEndReason.AllSurvivorsDown);
         Assert.Equal(2, (byte)GameEndReason.TimeUp);
+        Assert.Equal(3, (byte)GameEndReason.Collapse);
     }
 }

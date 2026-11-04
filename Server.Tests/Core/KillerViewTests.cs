@@ -72,8 +72,10 @@ public sealed class KillerViewTests
                     }
                     if (packet is not S2C_WorldState world) continue;
                     ++frames;
-                    // Byte offsets: header, 4+4+4 fixed fields, terminal count, 10 bytes per terminal, player count.
-                    int offset = HeaderBytes + 12 + 1 + 10 * world.Terminals.Count + 1;
+                    // v0.4 byte offsets: header, 14 fixed bytes (Tick, TimeLeft, Threat, Required, CollapseLeft), exits
+                    // (count + 11 bytes each), HatchVisible (+8 when 1), terminals (count + 11 bytes each), player count.
+                    int offset = HeaderBytes + 14 + 1 + 11 * world.Exits.Count + 1 + (world.HatchVisible == 1 ? 8 : 0) +
+                        1 + 11 * world.Terminals.Count + 1;
                     for (int i = 0; i < world.Players.Count; i++, offset += EntryBytes)
                     {
                         int id = BitConverter.ToInt32(bytes, offset);

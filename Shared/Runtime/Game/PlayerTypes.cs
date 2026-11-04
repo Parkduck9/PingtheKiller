@@ -6,7 +6,15 @@ namespace PingTheKiller.Shared.Game
     public enum Role : byte { Survivor = 0, Killer = 1 }
     public enum RoleChoice : byte { Survivor = 0, Killer = 1, Random = 255 }
     public enum PlayerStatus : byte { Normal = 0, Lagging = 1, Escaped = 2, Eliminated = 3 }
-    public enum GameEndReason : byte { SurvivorEscaped = 0, AllSurvivorsDown = 1, TimeUp = 2 }
+    // v0.4 (GDD v2 ¡×1): the match ends once every survivor escaped or was eliminated, or at the time limit.
+    public enum GameEndReason : byte { AllResolved = 0, AllSurvivorsDown = 1, TimeUp = 2, Collapse = 3 }
+    [Flags]
+    public enum TerminalFlags : byte { None = 0, Regressing = 1, Overloaded = 2 }
+    [Flags]
+    public enum ExitFlags : byte { None = 0, Powered = 1, Open = 2, Locked = 4 }
+    public enum SyncResult : byte { Fail = 0, Good = 1, Great = 2 }
+    // S2C_SelfState.ActionKind: the own hold action in progress.
+    public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3 }
     [Flags]
     public enum PlayerFlags : byte { None = 0, Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16 }
 
@@ -14,7 +22,11 @@ namespace PingTheKiller.Shared.Game
     {
         internal static byte ReadRole(ref PacketReader r) => r.ReadByte((byte)Role.Killer);
         internal static byte ReadStatus(ref PacketReader r) => r.ReadByte((byte)PlayerStatus.Eliminated);
-        internal static byte ReadReason(ref PacketReader r) => r.ReadByte((byte)GameEndReason.TimeUp);
+        internal static byte ReadReason(ref PacketReader r) => r.ReadByte((byte)GameEndReason.Collapse);
+        internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded));
+        internal static byte ReadExitFlags(ref PacketReader r) => r.ReadByte((byte)(ExitFlags.Powered | ExitFlags.Open | ExitFlags.Locked));
+        internal static byte ReadSyncResult(ref PacketReader r) => r.ReadByte((byte)SyncResult.Great);
+        internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.HatchClose);
         internal static byte ReadFlags(ref PacketReader r) => r.ReadByte(
             (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage | PlayerFlags.Stealthed | PlayerFlags.Hacking | PlayerFlags.Rescuing));
 
@@ -66,6 +78,8 @@ namespace PingTheKiller.Shared.Game
         public float X;
         public float Z;
         public byte Progress;
+        // v0.4: TerminalFlags (Regressing = 1, Overloaded = 2).
+        public byte Flags;
 
         public void Write(PacketWriter w)
         {
@@ -73,11 +87,38 @@ namespace PingTheKiller.Shared.Game
             w.WriteSingle(X);
             w.WriteSingle(Z);
             w.WriteByte(Progress);
+            w.WriteByte(Flags);
         }
 
         public static TerminalState Read(ref PacketReader r) => new TerminalState
         {
-            Id = r.ReadByte(), X = r.ReadSingle(), Z = r.ReadSingle(), Progress = r.ReadByte(100)
+            Id = r.ReadByte(), X = r.ReadSingle(), Z = r.ReadSingle(), Progress = r.ReadByte(100),
+            Flags = GameWireValues.ReadTerminalFlags(ref r)
+        };
+    }
+
+    // v0.4: one exit as every recipient sees it. X and Z are the exit point; SwitchProgress is 0..100.
+    public struct ExitState
+    {
+        public byte Id;
+        public float X;
+        public float Z;
+        public byte Flags;
+        public byte SwitchProgress;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteByte(Id);
+            w.WriteSingle(X);
+            w.WriteSingle(Z);
+            w.WriteByte(Flags);
+            w.WriteByte(SwitchProgress);
+        }
+
+        public static ExitState Read(ref PacketReader r) => new ExitState
+        {
+            Id = r.ReadByte(), X = r.ReadSingle(), Z = r.ReadSingle(), Flags = GameWireValues.ReadExitFlags(ref r),
+            SwitchProgress = r.ReadByte(100)
         };
     }
 

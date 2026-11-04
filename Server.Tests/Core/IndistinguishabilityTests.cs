@@ -15,7 +15,9 @@ public sealed class IndistinguishabilityTests
     private sealed class Track
     {
         // Excluded real tracks: Lagging (Status shows it), forced exposure (the killer's own Ping Scanner or the
-        // Traffic Overload notice explains it) and rescuing (a still blip beside a Lagging blip). Phantoms do none of these.
+        // Traffic Overload notice explains it), rescuing (a still blip beside a Lagging blip), holding an exit switch (a
+        // still blip on a known switch point while its progress rises, GDD v2) and tracks that end because the survivor
+        // escaped or was eliminated mid-match (GDD v2: the match goes on). Phantoms do none of these.
         internal bool Phantom, Lagging, Truncated, Excluded;
         internal readonly List<(float X, float Z)> Live = new();
         internal int Tail;
@@ -52,12 +54,18 @@ public sealed class IndistinguishabilityTests
                     tracks.Add(track);
                 }
                 if (entry.Status == (byte)PlayerStatus.Lagging) track.Lagging = true;
-                if (!sources[i].Phantom && truth.FirstOrDefault(p => p.Id == sources[i].Label) is var t && (t.Exposed || t.Rescuing))
+                if (!sources[i].Phantom && truth.FirstOrDefault(p => p.Id == sources[i].Label) is var t && (t.Exposed || t.Rescuing || t.Switching))
                     track.Excluded = true;
                 if (sources[i].Afterimage) track.Tail++;
                 else { track.Tail = 0; track.Live.Add((entry.X, entry.Z)); }
             }
-            foreach (var key in open.Keys.Where(k => !present.Contains(k)).ToList()) open.Remove(key);
+            foreach (var key in open.Keys.Where(k => !present.Contains(k)).ToList())
+            {
+                if (!key.Item1 && truth.FirstOrDefault(p => p.Id == key.Item2) is var gone &&
+                    (gone.Status == PlayerStatus.Escaped || gone.Status == PlayerStatus.Eliminated))
+                    open[key].Excluded = true;
+                open.Remove(key);
+            }
         });
         foreach (var track in open.Values) track.Truncated = true;
         return tracks;

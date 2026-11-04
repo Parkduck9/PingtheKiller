@@ -13,5 +13,8 @@ namespace PingTheKiller.Shared
         public const int MaxTerminals = 8;
         public const int LobbySlotCount = 8;
         public const int MaxEscapedIds = 8;
+        // v0.4: S2C_GameResult.EliminatedIds and S2C_WorldState exits.
+        public const int MaxEliminatedIds = 8;
+        public const int MaxExits = 2;
     }
 }

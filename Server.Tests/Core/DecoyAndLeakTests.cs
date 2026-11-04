@@ -285,7 +285,7 @@ public sealed class DecoyAndLeakTests
             Assert.True(sources[i].Afterimage, $"tick {tick}: entry {sources[i].Label} shown although neither Signal nor afterimage");
             stats.AfterimageEntries++;
         }
-        var sanitized = new S2C_WorldState { Tick = kWorld.Tick, TimeLeft = kWorld.TimeLeft, ExitOpen = kWorld.ExitOpen, Players = leftover };
+        var sanitized = new S2C_WorldState { Tick = kWorld.Tick, TimeLeft = kWorld.TimeLeft, CollapseLeft = kWorld.CollapseLeft, Players = leftover };
         byte[] killerBytes = PacketCodec.Encode(sanitized);
         foreach (var s in absent)
         {

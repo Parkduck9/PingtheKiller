@@ -43,10 +43,10 @@ public sealed class GameConstantsTests
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds);
         Assert.Equal(1.5f, GameConstants.TerminalRadius);
-        Assert.Equal(10f, GameConstants.TerminalHackTimeSeconds);
-        Assert.Equal(3, GameConstants.MaxCoHackMultiplier);
+        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);
+        Assert.Equal(new[] { 0f, 1f, 1.8f, 2.4f, 2.4f }, Enumerable.Range(0, 5).Select(GameConstants.CoHackRate));
         Assert.Equal(2f, GameConstants.ExitRadius);
-        Assert.Equal(600f, GameConstants.MatchLengthSeconds);
+        Assert.Equal(900f, GameConstants.MatchLengthSeconds);
         Assert.Equal(18f, GameConstants.ThreatLevel1Distance);
         Assert.Equal(12f, GameConstants.ThreatLevel2Distance);
         Assert.Equal(6f, GameConstants.ThreatLevel3Distance);

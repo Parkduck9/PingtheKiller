@@ -233,9 +233,9 @@ public sealed class U2dQaSweepTests
         Assert.Equal(2.0f, GameConstants.ExitRadius);
 
         // Timers & cooldowns
-        Assert.Equal(600f, GameConstants.MatchLengthSeconds);
+        Assert.Equal(900f, GameConstants.MatchLengthSeconds);
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);
-        Assert.Equal(2f, GameServer.ExecutionGraceSeconds);
+        Assert.Equal(30f, GameConstants.SecondLaggingTimeoutSeconds); // GDD v2 §4: the execution grace is gone
         Assert.Equal(3f, GameConstants.RescueTimeSeconds);
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds);
         Assert.Equal(12f, GameConstants.KillerSkillCooldownSeconds);

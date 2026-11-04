@@ -89,4 +89,13 @@ namespace PingTheKiller.Shared.Packets
         public void Write(PacketWriter w) => w.WriteByte(RoleChoice);
         public static C2S_SetRole Read(ref PacketReader r) => new C2S_SetRole { RoleChoice = GameWireValues.ReadRoleChoice(ref r) };
     }
+
+    // v0.4: the answer to one S2C_SyncCheck, sent at most once per check at the moment the player pressed.
+    public sealed class C2S_SyncPress : IPacket
+    {
+        public uint CheckId;
+        public PacketId Id => PacketId.C2S_SyncPress;
+        public void Write(PacketWriter w) => w.WriteUInt32(CheckId);
+        public static C2S_SyncPress Read(ref PacketReader r) => new C2S_SyncPress { CheckId = r.ReadUInt32() };
+    }
 }

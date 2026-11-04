@@ -12,21 +12,26 @@ namespace PingTheKiller.Client.UI
         public const string WaitingOffline = "Waiting for the lobby to reopen.";
         public const string LobbyOpen = "The lobby is open again.";
 
+        // v0.4 (GDD v2): Survivors win when at least half of them escaped, whatever ended the match; WinnerRole carries it.
         public static string Headline(S2C_GameResult result, S2C_LobbyState lobby)
         {
+            if (result.WinnerRole == (byte)Role.Survivor)
+            {
+                string names = Names(result.EscapedIds, lobby);
+                return names.Length == 0 ? "Survivors win. A survivor reached the Exit." : "Survivors win. " + names + " reached the Exit.";
+            }
             switch ((GameEndReason)result.Reason)
             {
-                case GameEndReason.SurvivorEscaped:
-                    string names = Names(result.EscapedIds, lobby);
-                    return names.Length == 0 ? "Survivors win. A survivor reached the Exit." : "Survivors win. " + names + " reached the Exit.";
                 case GameEndReason.AllSurvivorsDown: return "Killer wins. No survivor is left in play.";
+                case GameEndReason.AllResolved: return "Killer wins. Too few survivors reached the Exit.";
+                case GameEndReason.Collapse: return "Killer wins. The network collapsed.";
                 default: return "Killer wins. Time ran out.";
             }
         }
 
         public static string Outcome(S2C_GameResult result, int localId, Role localRole, PlayerStatus localStatus)
         {
-            bool survivorsWon = result.Reason == (byte)GameEndReason.SurvivorEscaped;
+            bool survivorsWon = result.WinnerRole == (byte)Role.Survivor;
             if (localRole == Role.Killer) return survivorsWon ? "You lost as the Killer." : "You won as the Killer.";
             if (result.EscapedIds != null && result.EscapedIds.Contains(localId) || localStatus == PlayerStatus.Escaped) return "You escaped.";
             if (localStatus == PlayerStatus.Eliminated) return "You were eliminated.";

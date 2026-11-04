@@ -23,7 +23,7 @@ namespace PingTheKiller.Client.Killer
             Pending.Add(KillerCue.MatchStart);
         }
 
-        // Each WorldState. exitOpen = S2C_WorldState.ExitOpen (locked or not).
+        // Each WorldState. exitOpen = any exit Open in the WorldState (protocol v0.4 exit flags).
         public void OnWorld(float timeLeft, bool exitOpen)
         {
             if (known && exitOpen && !exitWasOpen) Pending.Add(KillerCue.ExitOpen);

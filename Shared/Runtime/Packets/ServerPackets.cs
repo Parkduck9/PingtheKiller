@@ -29,9 +29,14 @@ namespace PingTheKiller.Shared.Packets
         public uint Tick;
         public float TimeLeft;
         public byte ThreatLevel;
-        public byte ExitOpen;
-        public byte ExitLocked;
         public byte TerminalsRequired;
+        // v0.4: seconds of the global collapse left, -1 while it is not running.
+        public float CollapseLeft = -1;
+        public List<ExitState> Exits = new List<ExitState>();
+        // v0.4: 1 only when the hatch is open and this recipient can see it; then HatchX and HatchZ follow on the wire.
+        public byte HatchVisible;
+        public float HatchX;
+        public float HatchZ;
         public List<TerminalState> Terminals = new List<TerminalState>();
         public List<PlayerState> Players = new List<PlayerState>();
         public PacketId Id => PacketId.S2C_WorldState;
@@ -42,12 +47,24 @@ namespace PingTheKiller.Shared.Packets
                 throw new PacketFormatException("Players cannot be null.");
             if (Terminals == null)
                 throw new PacketFormatException("Terminals cannot be null.");
+            if (Exits == null)
+                throw new PacketFormatException("Exits cannot be null.");
+            if (HatchVisible > 1)
+                throw new PacketFormatException("HatchVisible must be 0 or 1.");
             w.WriteUInt32(Tick);
             w.WriteSingle(TimeLeft);
             w.WriteByte(ThreatLevel);
-            w.WriteByte(ExitOpen);
-            w.WriteByte(ExitLocked);
             w.WriteByte(TerminalsRequired);
+            w.WriteSingle(CollapseLeft);
+            w.WriteCount(Exits.Count, Protocol.MaxExits);
+            for (int i = 0; i < Exits.Count; i++)
+                Exits[i].Write(w);
+            w.WriteByte(HatchVisible);
+            if (HatchVisible == 1)
+            {
+                w.WriteSingle(HatchX);
+                w.WriteSingle(HatchZ);
+            }
             w.WriteCount(Terminals.Count, Protocol.MaxTerminals);
             for (int i = 0; i < Terminals.Count; i++)
                 Terminals[i].Write(w);
@@ -61,8 +78,18 @@ namespace PingTheKiller.Shared.Packets
             var packet = new S2C_WorldState
             {
                 Tick = r.ReadUInt32(), TimeLeft = r.ReadSingle(), ThreatLevel = r.ReadByte(3),
-                ExitOpen = r.ReadByte(), ExitLocked = r.ReadByte(), TerminalsRequired = r.ReadByte()
+                TerminalsRequired = r.ReadByte(), CollapseLeft = r.ReadSingle()
             };
+            int exits = r.ReadCount(Protocol.MaxExits);
+            packet.Exits = new List<ExitState>(exits);
+            for (int i = 0; i < exits; i++)
+                packet.Exits.Add(ExitState.Read(ref r));
+            packet.HatchVisible = r.ReadByte(1);
+            if (packet.HatchVisible == 1)
+            {
+                packet.HatchX = r.ReadSingle();
+                packet.HatchZ = r.ReadSingle();
+            }
             int terminals = r.ReadCount(Protocol.MaxTerminals);
             packet.Terminals = new List<TerminalState>(terminals);
             for (int i = 0; i < terminals; i++)
@@ -105,17 +132,24 @@ namespace PingTheKiller.Shared.Packets
         public byte WinnerRole;
         public byte Reason;
         public List<int> EscapedIds = new List<int>();
+        // v0.4: the survivors who were eliminated, so every survivor learns its own outcome.
+        public List<int> EliminatedIds = new List<int>();
         public PacketId Id => PacketId.S2C_GameResult;
 
         public void Write(PacketWriter w)
         {
             if (EscapedIds == null)
                 throw new PacketFormatException("Escaped IDs cannot be null.");
+            if (EliminatedIds == null)
+                throw new PacketFormatException("Eliminated IDs cannot be null.");
             w.WriteByte(WinnerRole);
             w.WriteByte(Reason);
             w.WriteCount(EscapedIds.Count, Protocol.MaxEscapedIds);
             for (int i = 0; i < EscapedIds.Count; i++)
                 w.WriteInt32(EscapedIds[i]);
+            w.WriteCount(EliminatedIds.Count, Protocol.MaxEliminatedIds);
+            for (int i = 0; i < EliminatedIds.Count; i++)
+                w.WriteInt32(EliminatedIds[i]);
         }
 
         public static S2C_GameResult Read(ref PacketReader r)
@@ -125,6 +159,10 @@ namespace PingTheKiller.Shared.Packets
             packet.EscapedIds = new List<int>(count);
             for (int i = 0; i < count; i++)
                 packet.EscapedIds.Add(r.ReadInt32());
+            count = r.ReadCount(Protocol.MaxEliminatedIds);
+            packet.EliminatedIds = new List<int>(count);
+            for (int i = 0; i < count; i++)
+                packet.EliminatedIds.Add(r.ReadInt32());
             return packet;
         }
     }
@@ -200,7 +238,7 @@ namespace PingTheKiller.Shared.Packets
         };
     }
 
-    // Protocol v0.3: sent every tick only to the player it describes, never about another player.
+    // Protocol v0.3 (extended in v0.4): sent only to the player it describes, never about another player.
     public sealed class S2C_SelfState : IPacket
     {
         // Seconds until the own skill is ready; 0 when ready.
@@ -211,6 +249,11 @@ namespace PingTheKiller.Shared.Packets
         public float InvulnerableLeft;
         // Killer only: grace left for the nearest Lagging survivor within 3 m, else 0. Always 0 for survivors.
         public float ExecutionGraceLeft;
+        // v0.4: the own collapse clock (a survivor's personal one, the global one for the killer); -1 when not running.
+        public float CollapseLeft = -1;
+        // v0.4: 0..1 progress of the own hold action named by ActionKind (exit switch, kick or hatch close).
+        public float ActionProgress;
+        public byte ActionKind;
         public PacketId Id => PacketId.S2C_SelfState;
 
         public void Write(PacketWriter w)
@@ -219,12 +262,64 @@ namespace PingTheKiller.Shared.Packets
             w.WriteSingle(RescueProgress);
             w.WriteSingle(InvulnerableLeft);
             w.WriteSingle(ExecutionGraceLeft);
+            w.WriteSingle(CollapseLeft);
+            w.WriteSingle(ActionProgress);
+            w.WriteByte(ActionKind);
         }
 
         public static S2C_SelfState Read(ref PacketReader r) => new S2C_SelfState
         {
             SkillCooldown = r.ReadSingle(), RescueProgress = r.ReadSingle(),
-            InvulnerableLeft = r.ReadSingle(), ExecutionGraceLeft = r.ReadSingle()
+            InvulnerableLeft = r.ReadSingle(), ExecutionGraceLeft = r.ReadSingle(),
+            CollapseLeft = r.ReadSingle(), ActionProgress = r.ReadSingle(), ActionKind = GameWireValues.ReadActionKind(ref r)
+        };
+    }
+
+    // v0.4: a sync check for one hacking survivor, sent only to that survivor. The needle sweeps 0 -> 1 in Duration
+    // seconds; the zone is [ZoneStart, ZoneStart + ZoneSize] and its first GreatSize is the great part.
+    public sealed class S2C_SyncCheck : IPacket
+    {
+        public uint CheckId;
+        public byte TerminalId;
+        public float Duration;
+        public float ZoneStart;
+        public float ZoneSize;
+        public float GreatSize;
+        public PacketId Id => PacketId.S2C_SyncCheck;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteUInt32(CheckId);
+            w.WriteByte(TerminalId);
+            w.WriteSingle(Duration);
+            w.WriteSingle(ZoneStart);
+            w.WriteSingle(ZoneSize);
+            w.WriteSingle(GreatSize);
+        }
+
+        public static S2C_SyncCheck Read(ref PacketReader r) => new S2C_SyncCheck
+        {
+            CheckId = r.ReadUInt32(), TerminalId = r.ReadByte(), Duration = r.ReadSingle(),
+            ZoneStart = r.ReadSingle(), ZoneSize = r.ReadSingle(), GreatSize = r.ReadSingle()
+        };
+    }
+
+    // v0.4: the server verdict on one sync check (SyncResult: Fail = 0, Good = 1, Great = 2).
+    public sealed class S2C_SyncResult : IPacket
+    {
+        public uint CheckId;
+        public byte Result;
+        public PacketId Id => PacketId.S2C_SyncResult;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteUInt32(CheckId);
+            w.WriteByte(Result);
+        }
+
+        public static S2C_SyncResult Read(ref PacketReader r) => new S2C_SyncResult
+        {
+            CheckId = r.ReadUInt32(), Result = GameWireValues.ReadSyncResult(ref r)
         };
     }
 }

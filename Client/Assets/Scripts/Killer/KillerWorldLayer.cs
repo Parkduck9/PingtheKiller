@@ -79,7 +79,7 @@ namespace PingTheKiller.Client.Killer
             scene.Accept(state, now);
             last = state;
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
-            cueRules.OnWorld(state.TimeLeft, state.ExitOpen != 0);
+            cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
             cueRules.OnSignalCount(scene.Blips.Count, now);
             lastTarget = scene.NearestLagging(out lastDistance);
             guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.Killer
         private void UpdateHud(double now, bool menuOpen)
         {
             hud.SetIntro(now - startedAt < IntroSeconds && !menuOpen);
-            bool exitOpen = last != null && last.ExitOpen != 0;
+            bool exitOpen = last != null && WorldExits.AnyOpen(last);
             if (last != null) hud.SetInfo(last.TimeLeft, HudDone(last), last.TerminalsRequired);
             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
             hud.SetSkill(skillId, exitOpen, self, active);
@@ -204,7 +204,7 @@ namespace PingTheKiller.Client.Killer
             if (Project(pose, exitAt, screen, out Vector2 e))
             {
                 e = EdgePlacement.ClampOutside(e, keepOut, safe);
-                ExitMark state = last.ExitOpen == 0 ? ExitMark.Locked : last.ExitLocked != 0 ? ExitMark.LockedByKiller : ExitMark.Open;
+                ExitMark state = WorldExits.AnyOpen(last) ? ExitMark.Open : WorldExits.AnyLocked(last) ? ExitMark.LockedByKiller : ExitMark.Locked;
                 markers.Exit(MarkerLayer.Static, e, state);
                 string tag = state == ExitMark.Locked ? KillerHudCopy.ExitLocked : state == ExitMark.Open ? KillerHudCopy.ExitOpen
                     : KillerHudCopy.ExitLockedFor(lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : (float?)null);

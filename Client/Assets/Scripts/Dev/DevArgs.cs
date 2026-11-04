@@ -134,7 +134,10 @@ namespace PingTheKiller.Client.Dev
                 case "-ptk-preview-result":
                     switch (value.ToLowerInvariant())
                     {
-                        case "survivorescaped": PreviewResult = (byte)GameEndReason.SurvivorEscaped; return true;
+                        // v0.4: "survivorescaped" stays as an alias of AllResolved (a survivor win).
+                        case "survivorescaped":
+                        case "allresolved": PreviewResult = (byte)GameEndReason.AllResolved; return true;
+                        case "collapse": PreviewResult = (byte)GameEndReason.Collapse; return true;
                         case "allsurvivorsdown": PreviewResult = (byte)GameEndReason.AllSurvivorsDown; return true;
                         case "timeup": PreviewResult = (byte)GameEndReason.TimeUp; return true;
                         default: return false;

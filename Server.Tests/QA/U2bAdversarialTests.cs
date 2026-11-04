@@ -51,9 +51,16 @@ public sealed class U2bAdversarialTests
         while (r.Truth(r.S[0]).StatusTimer > 2f) r.Tick();
         r.Dt = 0.05f;
         Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
-        for (int i = 0; i < 200 && Is(r.Truth(r.S[0]), PlayerStatus.Lagging); i++) r.Tick();
+        for (int i = 0; i < 200 && r.Truth(r.S[0]).CaptureCount == 1; i++) r.Tick();
         double lived = r.Elapsed - captureAt;
         Assert.InRange(lived, 59.9, 60.11);
+        // GDD v2 §4: the first timeout advances to the second stage (30 s); the second timeout eliminates.
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
+        r.Dt = 1f;
+        while (r.Truth(r.S[0]).StatusTimer > 2f) r.Tick();
+        r.Dt = 0.05f;
+        for (int i = 0; i < 200 && Is(r.Truth(r.S[0]), PlayerStatus.Lagging); i++) r.Tick();
+        Assert.InRange(r.Elapsed - captureAt, 89.9, 90.11);
         var dead = r.Truth(r.S[0]);
         Assert.True(Is(dead, PlayerStatus.Eliminated));
         Assert.Equal(0f, dead.StatusTimer);
@@ -97,8 +104,9 @@ public sealed class U2bAdversarialTests
         Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
         r.Place(r.K, 12.0f, 10); // 1.0 m: fresh touch
         r.Tick();
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
-        Assert.Null(r.KillerSees(r.S[0]));
+        // GDD v2 §4 (2026-11-03): no execution; a fresh touch changes nothing either.
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
+        Assert.Equal(1, r.Truth(r.S[0]).CaptureCount);
     }
 
     [Fact]
@@ -121,9 +129,11 @@ public sealed class U2bAdversarialTests
         }
         r.Place(r.K, 14.5f, 10);
         r.Tick(8); // past 2 s
-        r.Place(r.K, 12.0f, 10); // fresh touch after the grace
+        r.Place(r.K, 12.0f, 10); // fresh touch after the old grace
         r.Tick();
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
+        // GDD v2 §4 (2026-11-03): no execution and no grace; the fresh touch changes nothing.
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
+        Assert.Equal(1, r.Truth(r.S[0]).CaptureCount);
     }
 
     [Fact]
@@ -156,13 +166,10 @@ public sealed class U2bAdversarialTests
         // Killer is 1.05 m from the rescued survivor and 2.05 m from the rescuer.
         r.Place(r.K, 8.95f, 10);
         int k = 0;
-        while (!Is(r.Truth(r.S[0]), PlayerStatus.Eliminated) && k < 120)
-        {
-            r.Tick();
-            k++;
-            var t = r.Truth(r.S[0]);
-            if (!Is(t, PlayerStatus.Eliminated)) Assert.True(Is(t, PlayerStatus.Normal), "must not become Lagging: a second capture eliminates");
-        }
+        while (Is(r.Truth(r.S[0]), PlayerStatus.Normal) && k < 120) { r.Tick(); k++; }
+        // GDD v2 §4: the second capture lags again, with the 30 s timer.
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
+        Assert.Equal(2, r.Truth(r.S[0]).CaptureCount);
         Assert.InRange(k, 39, 41); // 2 s of invulnerability = 40 ticks
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Normal));
     }
@@ -262,7 +269,7 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         int prev = 0, complete = -1;
-        for (int n = 1; n <= 230; n++)
+        for (int n = 1; n <= 930; n++)
         {
             r.Tick();
             int progress = r.SW.Terminals[0].Progress;
@@ -271,7 +278,7 @@ public sealed class U2bAdversarialTests
             if (progress == 100 && complete < 0) complete = n;
             if (complete < 0)
             {
-                Assert.InRange(progress, (int)MathF.Floor(n * 0.5f) - 1, Math.Min(99, (int)MathF.Floor(n * 0.5f) + 1));
+                Assert.InRange(progress, (int)MathF.Floor(n / 9f) - 1, Math.Min(99, (int)MathF.Floor(n / 9f) + 1));
                 var seen = r.KillerSees(r.S[0]);
                 Assert.NotNull(seen);
                 Assert.Equal((byte)PlayerFlags.Signal, seen!.Value.Flags);
@@ -281,18 +288,19 @@ public sealed class U2bAdversarialTests
             }
             prev = progress;
         }
-        Assert.InRange(complete, 199, 202);
+        Assert.InRange(complete, 899, 902); // GDD v2: 45 s
         Assert.Equal(100, r.KW.Terminals[0].Progress);
         Assert.Null(r.KillerSees(r.S[0])); // nothing left to hack, not moving: Silent again
         Assert.Equal(0, r.Truth(r.S[0]).Flags & (byte)PlayerFlags.Hacking);
     }
 
     [Theory]
-    [InlineData(1, 200)]
-    [InlineData(2, 100)]
-    [InlineData(3, 67)]
-    [InlineData(4, 67)]
-    [InlineData(6, 67)]
+    // GDD v2 §2: 1.0x / 1.8x / 2.4x of the 45 s solo time.
+    [InlineData(1, 900)]
+    [InlineData(2, 500)]
+    [InlineData(3, 375)]
+    [InlineData(4, 375)]
+    [InlineData(6, 375)]
     public void Hacking_CoHackRateIsCappedAtThreeHackers(int survivors, int expectedTicks)
     {
         using var r = new QaRig(survivors);
@@ -303,7 +311,7 @@ public sealed class U2bAdversarialTests
             r.Interact(r.S[i], true);
         }
         int n = 0;
-        while (r.SW.Terminals[0].Progress < 100 && n < 400) { r.Tick(); n++; }
+        while (r.SW.Terminals[0].Progress < 100 && n < 1000) { r.Tick(); n++; }
         Assert.InRange(n, expectedTicks - 1, expectedTicks + 1);
     }
 
@@ -313,7 +321,7 @@ public sealed class U2bAdversarialTests
         using var r = new QaRig(1);
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
-        r.Tick(80); // 4 s
+        r.Tick(360); // 18 s of 45 s
         Assert.InRange((int)r.SW.Terminals[0].Progress, 39, 41);
         r.Interact(r.S[0], false);
         r.Tick(30);
@@ -324,8 +332,8 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         int n = 0;
-        while (r.SW.Terminals[0].Progress < 100 && n < 300) { r.Tick(); n++; }
-        Assert.InRange(n, 118, 122); // the remaining 6 s
+        while (r.SW.Terminals[0].Progress < 100 && n < 700) { r.Tick(); n++; }
+        Assert.InRange(n, 538, 542); // the remaining 27 s
     }
 
     [Fact]
@@ -336,7 +344,7 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[1], 10.6f, 25.6f);
         r.Interact(r.S[0], true);
         r.Interact(r.S[1], true);
-        r.Tick(20); // 2 hackers: 2 s of progress = 20 %
+        r.Tick(100); // 2 hackers (1.8x): 5 s = 20 %
         Assert.InRange((int)r.SW.Terminals[0].Progress, 19, 21);
         r.Place(r.K, 11.7f, 25.6f); // 1.1 m from S1, 1.7 m from S0
         r.Tick();
@@ -349,14 +357,14 @@ public sealed class U2bAdversarialTests
         r.Tick(4);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Normal));
         int atRescue = r.SW.Terminals[0].Progress;
-        Assert.InRange(atRescue, 49, 53); // 20 % + ~3 s at 1x
-        r.Tick(20);
+        Assert.InRange(atRescue, 25, 28); // 20 % + ~3 s at 1x (2.2 %/s)
+        r.Tick(90);
         Assert.InRange(r.SW.Terminals[0].Progress - atRescue, 9, 11); // S1 does NOT hack again until it presses Interact
         r.Interact(r.S[1], true);
         r.Tick(1);
         int resumed = r.SW.Terminals[0].Progress;
-        r.Tick(20);
-        Assert.InRange(r.SW.Terminals[0].Progress - resumed, 19, 21);
+        r.Tick(50);
+        Assert.InRange(r.SW.Terminals[0].Progress - resumed, 9, 11); // 1.8x: 2.5 s = 10 %
     }
 
     [Fact]
@@ -403,109 +411,113 @@ public sealed class U2bAdversarialTests
                 }
                 else r.Place(r.S[i], 55 + (i % 3), 55 + (i / 3) * 1.5f);
             }
-            for (int n = 0; n < 400 && r.KW.Terminals[t].Progress < 100; n++)
+            for (int n = 0; n < 1000 && r.KW.Terminals[t].Progress < 100; n++)
             {
                 r.Tick();
                 if (r.KW.Terminals[t].Progress == 100) break;
-                Assert.Equal(0, r.KW.ExitOpen);
+                Assert.False(r.KW.Powered());
             }
             ++doneTerminals;
             var kw = r.KW;
             var sw = r.SW;
             Assert.Equal(100, kw.Terminals[t].Progress);
-            byte open = (byte)(doneTerminals >= required ? 1 : 0);
-            Assert.Equal(open, kw.ExitOpen);
-            Assert.Equal(open, sw.ExitOpen);
-            Assert.Equal((byte)(1 - open), kw.ExitLocked);
-            Assert.Equal((byte)(1 - open), sw.ExitLocked);
+            bool powered = doneTerminals >= required;
+            Assert.Equal(powered, kw.Powered());
+            Assert.Equal(powered, sw.Powered());
+            Assert.False(kw.AnyOpen());
+            Assert.False(sw.AnyOpen());
         }
     }
 
-    // ------------------------------------------------------------------ exit / FirewallBlock / win order
+    // ------------------------------------------------------------------ exit / FirewallBlock / win order (GDD v2)
 
     [Fact]
-    public void Exit_FirewallBlockLocksOpenExitForFiveSeconds_PreconditionDoesNotConsumeCooldown_EffectCarriesExitNotKiller()
+    public void Exit_FirewallBlockLocksTheSwitchInProgressForFiveSeconds_PreconditionDoesNotConsumeCooldown_EffectCarriesExitNotKiller()
     {
         using var r = new QaRig(2);
         r.SetSkill(r.K, SkillIds.FirewallBlock);
-        r.Use(r.K, SkillIds.FirewallBlock); // exit still closed
+        r.Use(r.K, SkillIds.FirewallBlock); // no switch in progress
         r.Tick(3);
         Assert.Empty(r.K.Since<S2C_SkillEffect>(0));
         r.OpenExitWithTwo();
-        Assert.Equal(1, r.KW.ExitOpen);
-        Assert.Equal(0, r.KW.ExitLocked);
-        var map = new FixedMap();
-        r.Place(r.S[0], 2.5f, 4); // 1.5 m from the exit, no Interact held
-        r.Place(r.S[1], 40, 55);
-        r.Use(r.K, SkillIds.FirewallBlock); // immediately usable: the failed attempt consumed nothing
+        Assert.True(r.KW.Powered());
+        Assert.False(r.KW.AnyOpen());
+        r.Use(r.K, SkillIds.FirewallBlock); // powered but no switch progress yet: still unusable
         r.Tick();
-        Assert.Equal(1, r.KW.ExitLocked);
-        Assert.Equal(1, r.SW.ExitLocked);
-        Assert.Equal(1, r.SW.ExitOpen);
+        Assert.Empty(r.K.Since<S2C_SkillEffect>(0));
+        var map = new FixedMap();
+        r.Place(r.S[0], map.ExitSwitches[0].X, map.ExitSwitches[0].Z);
+        r.Place(r.S[1], 40, 55);
+        r.Interact(r.S[0], true);
+        r.Tick(40);
+        byte before = r.KW.SwitchProgress(0);
+        Assert.InRange(before, 12, 14);
+        r.Use(r.K, SkillIds.FirewallBlock); // immediately usable: the failed attempts consumed nothing
+        r.Tick();
+        Assert.True(r.KW.Locked(0));
+        Assert.True(r.SW.Locked(0));
+        Assert.False(r.SW.Locked(1));
         var effect = r.S[1].Since<S2C_SkillEffect>(0).Single(e => e.SkillId == SkillIds.FirewallBlock);
         Assert.Equal(r.K.Id, effect.CasterId);
-        Assert.Equal(map.Exit.X, effect.X);
-        Assert.Equal(map.Exit.Z, effect.Z);
+        Assert.Equal(map.Exits[0].X, effect.X);
+        Assert.Equal(map.Exits[0].Z, effect.Z);
         Assert.Equal(5f, effect.Duration);
         Assert.Single(r.K.Since<S2C_SkillEffect>(0));
+        byte frozen = r.KW.SwitchProgress(0);
         int n = 1;
-        while (!r.S[0].Has<S2C_GameResult>() && n < 250) { r.Tick(); n++; if (n < 98) Assert.Equal(1, r.KW.ExitLocked); }
-        Assert.InRange(n, 99, 102); // 5 s lock, escape on the first unlocked tick
-        var result = r.S[0].Last<S2C_GameResult>();
-        Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
-        Assert.Equal(new[] { r.S[0].Id }, result.EscapedIds);
+        while (r.KW.Locked(0) && n < 250) { Assert.Equal(frozen, r.KW.SwitchProgress(0)); r.Tick(); n++; }
+        Assert.InRange(n, 99, 101); // 5 s lock
+        r.Tick(20);
+        Assert.True(r.KW.SwitchProgress(0) > frozen, "the switch progresses again after the lock");
     }
 
     [Fact]
-    public void Exit_LockExpiresAndOpenExitFlagsReturnToUnlocked()
+    public void Exit_LockExpiresAndTheFlagsReturnToUnlocked()
     {
         using var r = new QaRig(2);
         r.SetSkill(r.K, SkillIds.FirewallBlock);
-        r.OpenExitFlag();
+        r.ArmFirewall();
         r.Place(r.S[0], 40, 55);
         r.Place(r.S[1], 42, 55);
         r.Use(r.K, SkillIds.FirewallBlock);
         r.Tick();
-        Assert.Equal(1, r.KW.ExitLocked);
+        Assert.True(r.KW.Locked(0));
         int locked = 1;
-        while (r.KW.ExitLocked == 1 && locked < 200) { r.Tick(); locked++; }
+        while (r.KW.Locked(0) && locked < 200) { r.Tick(); locked++; }
         Assert.InRange(locked, 99, 101);
-        Assert.Equal(1, r.KW.ExitOpen);
-        Assert.Equal(0, r.SW.ExitLocked);
+        Assert.True(r.KW.Powered());
+        Assert.False(r.SW.AnyLocked());
     }
 
     [Fact]
-    public void Win_EscapeAndAllDownInTheSameTick_SurvivorsWin()
+    public void Win_EscapeWhileTheOtherSurvivorIsLagging_TheMatchGoesOn()
     {
         using var r = new QaRig(2);
-        r.OpenExitWithTwo();
+        r.OpenExitFlag();
         r.Place(r.S[1], 30, 5);
-        r.MakeLagging(r.S[1]); // nobody but S0 is Normal
+        r.MakeLagging(r.S[1]);
         r.Place(r.S[0], 2.5f, 4);
         r.Tick();
-        var result = r.K.Last<S2C_GameResult>();
-        Assert.Equal((byte)Role.Survivor, result.WinnerRole);
-        Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
-        Assert.Equal(new[] { r.S[0].Id }, result.EscapedIds);
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Escaped));
+        Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
+        Assert.False(r.K.Has<S2C_GameResult>());
     }
 
     [Fact]
-    public void Win_CaptureOfTheOtherSurvivorInTheSameTickAsEscape_StillSurvivorsWin()
+    public void Win_CaptureOfTheOtherSurvivorInTheSameTickAsEscape_TheMatchGoesOn()
     {
         using var r = new QaRig(2);
-        r.OpenExitWithTwo();
+        r.OpenExitFlag();
         r.Place(r.S[0], 2.5f, 4);
         r.Place(r.S[1], 30, 5);
         r.Place(r.K, 31.0f, 5); // captures S1 (1.0 m) in the very tick S0 reaches the exit
         r.Tick();
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
-        var result = r.S[1].Last<S2C_GameResult>();
-        Assert.Equal((byte)Role.Survivor, result.WinnerRole);
-        Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
+        Assert.False(r.S[1].Has<S2C_GameResult>());
     }
 
     [Fact]
-    public void Win_TwoSurvivorsEnterTheExitInOneTick_BothListedInEscapedIds()
+    public void Win_TwoSurvivorsEnterTheExitInOneTick_TheThirdLater_AllListedInEscapedIds()
     {
         using var r = new QaRig(3);
         r.Place(r.K,40,8);
@@ -514,25 +526,30 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[1], 4, 5.5f);
         r.Place(r.S[2], 40, 55);
         r.Tick();
+        Assert.False(r.S[2].Has<S2C_GameResult>());
+        r.Place(r.S[2], 5.5f, 4);
+        r.Tick();
         var result = r.S[2].Last<S2C_GameResult>();
-        Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
-        Assert.Equal(new[] { r.S[0].Id, r.S[1].Id }.OrderBy(i => i), result.EscapedIds.OrderBy(i => i));
+        Assert.Equal((byte)GameEndReason.AllResolved, result.Reason);
+        Assert.Equal((byte)Role.Survivor, result.WinnerRole);
+        Assert.Equal(new[] { r.S[0].Id, r.S[1].Id, r.S[2].Id }.OrderBy(i => i), result.EscapedIds.OrderBy(i => i));
+        Assert.Empty(result.EliminatedIds);
     }
 
     [Fact]
-    public void Win_EscapeAtTheExactTimeUpTick_SurvivorsWinNotTimeUp_AndNoEscapeMeansTimeUpAtSixHundredSeconds()
+    public void Win_EscapeAtTheExactTimeUpTick_SurvivorsWinNotTimeUp_AndNoEscapeMeansTimeUpAtNineHundredSeconds()
     {
         using var r = new QaRig(1);
         r.OpenExitFlag();
-        r.SetMatchTime(599.96);
+        r.SetMatchTime(899.96);
         r.Place(r.S[0], 2.5f, 4);
-        r.Tick(); // matchTime reaches 600.01 in this same tick as the escape
+        r.Tick(); // matchTime reaches 900.01 in this same tick as the escape
         var result = r.S[0].Last<S2C_GameResult>();
-        Assert.Equal((byte)GameEndReason.SurvivorEscaped, result.Reason);
+        Assert.Equal((byte)GameEndReason.AllResolved, result.Reason);
         Assert.Equal((byte)Role.Survivor, result.WinnerRole);
 
         using var c = new QaRig(1);
-        c.SetMatchTime(599.9);
+        c.SetMatchTime(899.9);
         c.Tick();
         Assert.False(c.S[0].Has<S2C_GameResult>());
         Assert.InRange(c.KW.TimeLeft, 0.04f, 0.06f);
@@ -541,24 +558,26 @@ public sealed class U2bAdversarialTests
         Assert.Equal((byte)GameEndReason.TimeUp, timeUp.Reason);
         Assert.Equal((byte)Role.Killer, timeUp.WinnerRole);
         Assert.Empty(timeUp.EscapedIds);
+        Assert.Equal(new[] { c.S[0].Id }, timeUp.EliminatedIds);
         Assert.Equal(0f, c.KW.TimeLeft);
     }
 
     [Fact]
-    public void Win_LastNormalSurvivorCapturedAtTheTimeUpTick_ReportsAllSurvivorsDownNotTimeUp()
+    public void Win_LastNormalSurvivorCapturedAtTheTimeUpTick_IsStillInPlay_SoTheTimeUpEliminatesIt()
     {
         using var r = new QaRig(1);
-        r.SetMatchTime(599.96);
+        r.SetMatchTime(899.96);
         r.Place(r.S[0], 13, 10);
         r.Place(r.K, 11.9f, 10);
         r.Tick();
         var result = r.S[0].Last<S2C_GameResult>();
-        Assert.Equal((byte)GameEndReason.AllSurvivorsDown, result.Reason);
+        Assert.Equal((byte)GameEndReason.TimeUp, result.Reason);
         Assert.Equal((byte)Role.Killer, result.WinnerRole);
+        Assert.Equal(new[] { r.S[0].Id }, result.EliminatedIds);
     }
 
     [Fact]
-    public void Win_AllSurvivorsLaggingOrEliminated_KillerWinsImmediately_LaggingSurvivorOnOpenExitDoesNotEscape()
+    public void Win_LaggingSurvivorsAreStillInPlay_NoResult_LaggingSurvivorOnOpenExitDoesNotEscape()
     {
         using var r = new QaRig(2);
         r.OpenExitFlag();
@@ -567,10 +586,9 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[1], 30, 5);
         r.Place(r.K, 31f, 5);
         r.Tick();
-        var result = r.K.Last<S2C_GameResult>();
-        Assert.Equal((byte)GameEndReason.AllSurvivorsDown, result.Reason);
-        Assert.Equal((byte)Role.Killer, result.WinnerRole);
-        Assert.Empty(result.EscapedIds);
+        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
+        Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
+        Assert.False(r.K.Has<S2C_GameResult>());
     }
 
     // ------------------------------------------------------------------ GameResult once, lobby, second match
@@ -613,15 +631,15 @@ public sealed class U2bAdversarialTests
         Assert.Equal(starts + 1, r.K.Packets.OfType<S2C_MatchStart>().Count());
         r.Tick(3);
         var w = r.KW;
-        Assert.InRange(w.TimeLeft, 599.5f, 600f);
-        Assert.Equal(0, w.ExitOpen);
-        Assert.Equal(1, w.ExitLocked);
+        Assert.InRange(w.TimeLeft, 899.5f, 900f);
+        Assert.False(w.Powered());
+        Assert.False(w.AnyOpen());
         Assert.All(w.Terminals, t => Assert.Equal(0, t.Progress));
         var s = back.World().Players.Single(p => p.Id == survivorId);
         Assert.True(Is(s, PlayerStatus.Normal));
         Assert.Equal(0, s.CaptureCount);
         // And the second match can end again, with exactly one more result for each human still connected.
-        r.SetMatchTime(599.9);
+        r.SetMatchTime(899.9);
         r.Tick(3);
         r.K.Drain();
         back.Drain();
@@ -636,7 +654,7 @@ public sealed class U2bAdversarialTests
         // A client that restarts Seq at 1 in the new match must be obeyed from its first input.
         using var r = new QaRig(1);
         for (int i = 0; i < 40; i++) { r.S[0].Move(1, 0); r.Tick(); }
-        r.SetMatchTime(599.9);
+        r.SetMatchTime(899.9);
         r.Tick(3);
         Assert.True(r.K.Has<S2C_GameResult>());
         r.K.Send(new C2S_StartMatch());
@@ -663,7 +681,7 @@ public sealed class U2bAdversarialTests
         r.SetSkill(r.S[0], SkillIds.WhiteNoise);
         r.Use(r.S[0], SkillIds.WhiteNoise);
         r.Tick(2);
-        r.SetMatchTime(599.9);
+        r.SetMatchTime(899.9);
         r.Tick(3);
         Assert.True(r.K.Has<S2C_GameResult>());
         r.K.Send(new C2S_StartMatch());

@@ -66,8 +66,8 @@ public sealed class LobbyTests
         Assert.Equal(8, world.Terminals.Count);
         Assert.Equal(5, world.TerminalsRequired);
         Assert.All(world.Terminals, t => Assert.Equal(0, t.Progress));
-        Assert.Equal(0, world.ExitOpen);
-        Assert.Equal(1, world.ExitLocked);
+        Assert.False(world.Powered());
+        Assert.False(world.AnyOpen());
     }
 
     [Theory]

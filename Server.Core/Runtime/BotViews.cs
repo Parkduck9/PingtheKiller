@@ -24,8 +24,11 @@ namespace PingTheKiller.ServerCore
         internal TerminalState[] Terminals = new TerminalState[0];
         internal int TerminalCount;
         internal byte TerminalsRequired;
-        internal bool ExitOpen, ExitLocked;
-        internal MapPoint Exit;
+        // The WorldState exits (with the static switch point of each) and the hatch while this bot can see it.
+        internal BotExit[] Exits = new BotExit[0];
+        internal int ExitCount;
+        internal bool HatchVisible;
+        internal float HatchX, HatchZ;
         internal byte Threat;
         internal bool KillerVisible;
         internal float KillerX, KillerZ, KillerYaw;
@@ -52,12 +55,20 @@ namespace PingTheKiller.ServerCore
         internal byte Skill;
         internal bool SkillReady;
         internal readonly List<Blip> Blips = new List<Blip>();
-        // SelfState.ExecutionGraceLeft: the grace of the nearest Lagging survivor within 3 m (0 if none).
-        internal float ExecutionGraceLeft;
         internal Terminal[] Terminals = new Terminal[0];
         internal int TerminalCount;
-        internal bool ExitOpen, ExitLocked;
-        internal MapPoint Exit;
+        internal BotExit[] Exits = new BotExit[0];
+        internal int ExitCount;
+        internal bool HatchVisible;
+        internal float HatchX, HatchZ;
+    }
+
+    // One exit as the WorldState carries it, plus its switch point from the static map.
+    internal struct BotExit
+    {
+        internal float X, Z, SwitchX, SwitchZ;
+        internal bool Powered, Open, Locked;
+        internal byte Progress;
     }
 
     // A brain's output for one tick, applied through the same paths as client packets (MoveInput, Interact, UseSkill).

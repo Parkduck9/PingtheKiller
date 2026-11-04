@@ -143,9 +143,8 @@ namespace PingTheKiller.Client.QA.Tests
 
         // ---- Exit: open, locked, firewall-locked ----------------------------------------------------------------------------
 
-        // GameServer.Visibility: ExitOpen = _exitOpen, ExitLocked = ExitBlocked = !_exitOpen || the Firewall Block timer is active.
-        // So (0,1) is "not opened yet", (1,0) is open, (1,1) is open but blocked by the killer's Firewall Block for 5 s.
-        // ClientApp and WorldView both derive the displayed state as ExitOpen != 0 && ExitLocked == 0.
+        // Protocol v0.4: each exit carries Powered, Open and Locked (its switch locked by Firewall Block) flags. An open exit
+        // is never locked, so ClientApp, WorldView and the dev log derive the displayed state as "any exit Open".
         [Test]
         public void ExitWordingForTheThreeStatesTheServerCanSend()
         {
@@ -157,15 +156,14 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TheDisplayedExitStateIsOpenOnlyWhenExitOpenIsSetAndExitLockedIsNot()
+        public void TheDisplayedExitStateIsOpenOnlyWhenAnExitIsOpen()
         {
             string app = Squash(QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs")));
-            Assert.That(app, Does.Contain("exitOpen=state.ExitOpen!=0&&state.ExitLocked==0;"),
-                "ClientApp: firewall-locked (1,1) must read as locked, never as open");
+            Assert.That(app, Does.Contain("exitOpen=WorldExits.AnyOpen(state);"), "ClientApp reads the v0.4 exit flags");
             string world = Squash(QaSource.StripComments(WorldSources.ReadAll()));
-            Assert.That(world, Does.Contain("boolopen=state.ExitOpen!=0&&state.ExitLocked==0;"), "WorldView ring uses the same rule");
+            Assert.That(world, Does.Contain("boolopen=WorldExits.AnyOpen(state);"), "WorldView ring uses the same rule");
             string dev = Squash(QaSource.StripComments(QaPaths.ReadScript("Dev/DevCapture.cs")));
-            Assert.That(dev, Does.Contain("exitOpen=state.ExitOpen!=0&&state.ExitLocked==0;"), "the dev log HUD text uses the same rule");
+            Assert.That(dev, Does.Contain("boolexitOpen=WorldExits.AnyOpen(state);"), "the dev log HUD text uses the same rule");
         }
 
         // ---- result copy per end reason (winner side and reason must agree) -----------------------------------------------------
@@ -177,7 +175,7 @@ namespace PingTheKiller.Client.QA.Tests
             lobby.Slots[0] = new Slot { PlayerId = 1, Nickname = "Player", IsHost = 1 };
             lobby.Slots[1] = new Slot { PlayerId = 6, Nickname = "Bot 6", IsBot = 1 };
 
-            var escaped = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.SurvivorEscaped };
+            var escaped = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.AllResolved };
             escaped.EscapedIds.Add(6);
             Assert.That(ResultCopy.Headline(escaped, lobby), Is.EqualTo("Survivors win. Bot 6 reached the Exit."));
 
@@ -191,7 +189,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheOutcomeLineMatchesWhatHappenedToTheLocalPlayerForEveryRuleEnding()
         {
-            var escaped = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.SurvivorEscaped };
+            var escaped = new S2C_GameResult { WinnerRole = (byte)Role.Survivor, Reason = (byte)GameEndReason.AllResolved };
             escaped.EscapedIds.Add(5);
             var down = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllSurvivorsDown };
             var time = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.TimeUp };

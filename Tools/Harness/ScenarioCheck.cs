@@ -6,11 +6,13 @@ using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Harness;
 
-// H6: sight -> hack -> exit open -> capture -> retreat -> rescue -> escape -> GameResult, played by three real TCP
-// clients on a dedicated fresh lobby server (--bots 0, no --autostart), with a killer-coordinate leak scan.
+// H6 (GDD v2): sight -> hack (answering sync checks) -> exits powered -> switch held 15 s -> exit open -> capture -> retreat
+// -> rescue -> both survivors escape -> GameResult, played by three real TCP clients on a dedicated fresh lobby server
+// (--bots 0, no --autostart), with a killer-coordinate leak scan.
 public static class ScenarioCheck
 {
-    public static readonly TimeSpan Budget = TimeSpan.FromSeconds(150);
+    // Three 45 s terminals co-hacked at 1.8x (25 s each), a 15 s switch and the walks between them.
+    public static readonly TimeSpan Budget = TimeSpan.FromSeconds(300);
     public const string NeedsOwnServer = "H6 needs its own fresh server: pass --h6-port";
 
     public static async Task<string> RunAsync(Options options, CancellationToken ct)
@@ -34,6 +36,7 @@ public sealed class Actor : IAsyncDisposable
     private Exception? failure;
     private Task pump = Task.CompletedTask;
     private int sequence;
+    private int syncChecks, syncPresses, syncGreat, syncGood, syncFail;
 
     private Actor(string name, WireClient wire, S2C_JoinResult identity, TimeSpan timeout)
     {
@@ -70,6 +73,8 @@ public sealed class Actor : IAsyncDisposable
             {
                 var frame = await Wire.ReadAsync(stop.Token);
                 inspect(this, frame);
+                if (frame.Packet is S2C_SyncCheck check) AnswerLater(check);
+                if (frame.Packet is S2C_SyncResult syncResult) CountResult(syncResult);
                 TaskCompletionSource signal;
                 lock (sync)
                 {
@@ -98,6 +103,36 @@ public sealed class Actor : IAsyncDisposable
         }
         if (error != null) onFailure(error);
     }
+
+    // GDD v2 sync check: press when the needle (started on receipt) is in the middle of the zone after the great part.
+    // A check the server cancelled (the hack stopped) ignores the press.
+    private void AnswerLater(S2C_SyncCheck check)
+    {
+        Interlocked.Increment(ref syncChecks);
+        double fraction = check.ZoneStart + (check.GreatSize + check.ZoneSize) / 2;
+        var delay = TimeSpan.FromSeconds(Math.Clamp(fraction * check.Duration, 0, 5));
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay, stop.Token);
+                await Wire.SendAsync(new C2S_SyncPress { CheckId = check.CheckId }, stop.Token);
+                Interlocked.Increment(ref syncPresses);
+            }
+            catch (Exception) { }
+        });
+    }
+
+    private void CountResult(S2C_SyncResult result)
+    {
+        if (result.Result == (byte)SyncResult.Great) Interlocked.Increment(ref syncGreat);
+        else if (result.Result == (byte)SyncResult.Good) Interlocked.Increment(ref syncGood);
+        else Interlocked.Increment(ref syncFail);
+    }
+
+    public string SyncSummary =>
+        $"{Name} sync checks {Volatile.Read(ref syncChecks)}, presses {Volatile.Read(ref syncPresses)}, " +
+        $"great/good/fail {Volatile.Read(ref syncGreat)}/{Volatile.Read(ref syncGood)}/{Volatile.Read(ref syncFail)}";
 
     // The killer's own entry is its real Id with Role Killer (U2c: survivor entries in its view carry no real Id).
     public byte? OwnRole { get; set; }
@@ -184,7 +219,9 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     private const float KillerKeepOut = 4f;    // survivors path around the standing killer by this radius
     private static readonly TimeSpan HoldContact = TimeSpan.FromSeconds(3); // > 2 s execution grace + 1 s, so a server re-arming in contact is caught (QA F9)
     private readonly Planner planner = new();
-    private readonly Vector2 exit = new(new FixedMap().Exit.X, new FixedMap().Exit.Z);
+    private readonly FixedMap map = new();
+    private int exitIndex = -1;   // the exit whose switch the survivors hold (chosen away from the killer)
+    private Vector2 exit;
     private readonly CancellationTokenSource failed = new();
     private readonly HashSet<int> killerBits = new();
     private readonly List<string> evidence = new();
@@ -215,10 +252,11 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             await SetupAsync(linked.Token);
             await SightAsync(linked.Token);
             await HackAsync(linked.Token);
+            await SwitchAsync(linked.Token);
             await CaptureAndRetreatAsync(linked.Token);
             await RescueAsync(linked.Token);
-            var escaper = await EscapeAsync(linked.Token);
-            await ResultAsync(escaper, linked.Token);
+            await EscapeAsync(linked.Token);
+            await ResultAsync(linked.Token);
             LeakScan();
             RequireSight();
             return $"{string.Join("; ", evidence)}; total {clock.Elapsed.TotalSeconds:F1} s.";
@@ -283,21 +321,31 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         {
             var (frame, _) = await actor.NextWorldAsync(0, ct);
             var world = (S2C_WorldState)frame!.Packet;
-            Check.Require(world.TerminalsRequired == required && world.Terminals.Count == placed && world.ExitOpen == 0,
+            Check.Require(world.TerminalsRequired == required && world.Terminals.Count == placed && world.Exits.Count == map.Exits.Count &&
+                world.Exits.TrueForAll(e => e.Flags == 0 && e.SwitchProgress == 0) && world.CollapseLeft < 0 && world.HatchVisible == 0,
                 $"{actor.Name} first WorldState: TerminalsRequired={world.TerminalsRequired}, terminals={world.Terminals.Count}, " +
-                $"ExitOpen={world.ExitOpen}; expected {required} of {placed}, exit closed (2 survivors).");
+                $"{DescribeExits(world)}, collapse={world.CollapseLeft}, hatch={world.HatchVisible}; expected {required} of {placed}, " +
+                $"{map.Exits.Count} unpowered closed exits, no collapse, no hatch (2 survivors).");
         }
         evidence.Add($"setup: 3 humans, 0 bots, killer(host) id={Killer.Id}, A id={A.Id}, B id={B.Id}; TerminalsRequired={required} of {placed}");
     }
 
-    // F2: on every WorldState of every stream, an open exit needs TerminalsRequired terminals at 100 in that frame.
+    private static bool Has(ExitState exit, ExitFlags flag) => (exit.Flags & (byte)flag) != 0;
+    private static bool Powered(S2C_WorldState world) => world.Exits.Count > 0 && world.Exits.TrueForAll(e => Has(e, ExitFlags.Powered));
+    private static string DescribeExits(S2C_WorldState world) =>
+        $"exits=[{string.Join(",", world.Exits.Select(e => $"{e.Id}:f{e.Flags}/{e.SwitchProgress}"))}]";
+
+    // F2 (GDD v2): on every WorldState of every stream, a powered or open exit needs TerminalsRequired terminals at 100 in that
+    // frame (H6 never closes a hatch, the only other source of power), and an open exit needs power.
     private static void RequireExitEarned(Actor actor, S2C_WorldState world)
     {
-        if (world.ExitOpen == 0) return;
+        if (!world.Exits.Exists(e => e.Flags != 0)) return;
         int complete = world.Terminals.Count(t => t.Progress == 100);
         Check.Require(complete >= world.TerminalsRequired,
-            $"ExitOpen=1 in {actor.Name}'s WorldState tick={world.Tick} with only {complete} of {world.TerminalsRequired} required " +
-            $"terminals at Progress 100 (exit opened without terminals).");
+            $"{DescribeExits(world)} in {actor.Name}'s WorldState tick={world.Tick} with only {complete} of {world.TerminalsRequired} " +
+            $"required terminals at Progress 100 (exit powered without terminals).");
+        Check.Require(world.Exits.TrueForAll(e => !Has(e, ExitFlags.Open) || Has(e, ExitFlags.Powered)),
+            $"{DescribeExits(world)} in {actor.Name}'s WorldState tick={world.Tick}: an open exit without power.");
     }
 
     private void InspectKiller(Actor actor, ReceivedFrame frame)
@@ -343,7 +391,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
     }
 
     private static string Describe(S2C_WorldState world) =>
-        $"tick={world.Tick}, exitOpen={world.ExitOpen}, terminals=[{string.Join(",", world.Terminals.Select(t => $"{t.Id}:{t.Progress}"))}], " +
+        $"tick={world.Tick}, {DescribeExits(world)}, terminals=[{string.Join(",", world.Terminals.Select(t => $"{t.Id}:{t.Progress}"))}], " +
         $"players=[{string.Join(",", world.Players.Select(p => $"{p.Id}:r{p.Role}/s{p.Status}/c{p.CaptureCount}/t{p.StatusTimer:F1}@({p.X:F1},{p.Z:F1})"))}]";
 
     private static Vector2 Position(PlayerState player) => new(player.X, player.Z);
@@ -476,10 +524,60 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
                 : $"{string.Join(",", samples.Take(4))},..,{string.Join(",", samples.TakeLast(3))}";
             evidence.Add($"terminal {t.Id}@({t.X:R},{t.Z:R}) co-hacked by A+B: progress {shown} ({samples.Count} values) in {clock.Elapsed.TotalSeconds:F2} s");
         }
-        step = "exit open";
+        step = "exits powered";
         foreach (var actor in All)
-            await UntilAsync(actor, world => world.ExitOpen == 1, options.Timeout, "ExitOpen == 1 after the required terminals", ct);
-        evidence.Add("ExitOpen=1 seen by killer, A and B");
+            await UntilAsync(actor, Powered, options.Timeout, "both exits Powered after the required terminals", ct);
+        Check.Require(!All.Any(x => x.Latest.Exits.Exists(e => Has(e, ExitFlags.Open))), $"An exit opened without its switch: {Describe(A.Latest)}.");
+        evidence.Add($"exits Powered (not open) seen by killer, A and B; {A.SyncSummary}; {B.SyncSummary}");
+    }
+
+    // GDD v2 §3: one survivor holds the switch of the exit farthest from the killer for 15 s; the exit opens and the
+    // collapse starts. The other survivor stays where it is.
+    private async Task SwitchAsync(CancellationToken ct)
+    {
+        step = "switch";
+        var (aPos, bPos, killerPos) = await PositionsAsync(ct);
+        var avoid = new[] { new Circle(killerPos, KillerKeepOut) };
+        List<Vector2>? path = null;
+        Actor? holder = null;
+        float far = -1;
+        // B holds the switch while A stays at the last terminal, so the capture and rescue happen away from the exit.
+        for (int i = 0; i < map.ExitSwitches.Count; i++)
+        {
+            var point = new Vector2(map.ExitSwitches[i].X, map.ExitSwitches[i].Z);
+            if (Vector2.Distance(point, killerPos) <= far) continue;
+            var pb = planner.PathTo(bPos, point, avoid);
+            var pa = pb == null ? planner.PathTo(aPos, point, avoid) : null;
+            if (pa == null && pb == null) continue;
+            (exitIndex, far, holder, path) = (i, Vector2.Distance(point, killerPos), pb != null ? B : A, pb ?? pa);
+        }
+        Check.Require(holder != null, $"No path to any exit switch avoiding the killer at {killerPos}.");
+        exit = new Vector2(map.Exits[exitIndex].X, map.Exits[exitIndex].Z);
+        step = $"switch {exitIndex} by {holder!.Name}";
+        await WalkAsync(holder, $"{holder.Name} to switch {exitIndex}", path!, Reach, ct);
+        await holder.InteractAsync(true, ct);
+        var clock = Stopwatch.StartNew();
+        var samples = new List<byte>();
+        var opened = await UntilAsync(holder, world =>
+        {
+            var state = world.Exits.Find(e => e.Id == exitIndex);
+            if (samples.Count == 0 || samples[^1] != state.SwitchProgress) samples.Add(state.SwitchProgress);
+            return Has(state, ExitFlags.Open);
+        }, TimeSpan.FromSeconds(GameConstants.ExitSwitchSeconds * 1.5 + 3), $"exit {exitIndex} Open while {holder.Name} holds its switch", ct);
+        await holder.InteractAsync(false, ct);
+        double held = clock.Elapsed.TotalSeconds;
+        var world = (S2C_WorldState)opened.Packet;
+        Check.Require(held >= GameConstants.ExitSwitchSeconds - 1.5,
+            $"exit {exitIndex} opened after only {held:F1} s of holding (switch takes {GameConstants.ExitSwitchSeconds} s).");
+        Check.Require(world.CollapseLeft > GameConstants.CollapseSeconds - 1 && world.CollapseLeft <= GameConstants.CollapseSeconds,
+            $"collapse not started when exit {exitIndex} opened: CollapseLeft={world.CollapseLeft}.");
+        foreach (var actor in All)
+            await UntilAsync(actor, w => w.Exits.Exists(e => e.Id == exitIndex && Has(e, ExitFlags.Open)), options.Timeout,
+                $"exit {exitIndex} Open", ct);
+        string shown = samples.Count <= 8 ? string.Join(",", samples)
+            : $"{string.Join(",", samples.Take(4))},..,{string.Join(",", samples.TakeLast(3))}";
+        evidence.Add($"switch {exitIndex}: {holder.Name} held it {held:F1} s (progress {shown}); exit {exitIndex}@({exit.X:R},{exit.Y:R}) Open " +
+            $"seen by killer, A and B; collapse {world.CollapseLeft:F1} s");
     }
 
     private static string? Executed(S2C_WorldState world, int id) =>
@@ -563,7 +661,9 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         Check.Require(retreat != null, $"No retreat point >= 9 m from A at {aPos}.");
         await WalkAsync(Killer, "killer retreat", retreat!, 0.4f, ct);
         (aPos, bPos, killerPos) = await PositionsAsync(ct);
-        var bState = B.Self(await UntilAsync(B, _ => true, options.Timeout, "B state", ct));
+        // B's state from A's (complete) survivor stream: B stands far from the killer, often out of its own line of sight.
+        var bState = Entry((S2C_WorldState)(await UntilAsync(A, _ => true, options.Timeout, "B state", ct)).Packet, B.Id)
+            ?? throw new CheckFailure($"B is missing from A's WorldState: {Describe(A.Latest)}.");
         Check.Require(bState.Status == (byte)PlayerStatus.Normal && bState.CaptureCount == 0,
             $"B was touched: status={bState.Status}, CaptureCount={bState.CaptureCount}.");
         evidence.Add($"capture: B {separation:F1} m away and still; killer reached A in {reached:F1} s; survivor view A Lagging, CaptureCount=1, " +
@@ -590,19 +690,39 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         evidence.Add($"rescue: B within {Reach:F1} m of A, A Normal with CaptureCount=1 after {contact:F2} s, killer still {killerToA:F1} m away");
     }
 
-    private async Task<Actor> EscapeAsync(CancellationToken ct)
+    private bool HasEscaped(Actor actor) => Entry(actor.Latest, actor.Id)?.Status == (byte)PlayerStatus.Escaped;
+
+    // GDD v2 §1: every survivor escapes on its own; the match ends when the last one is out. B goes first, then A.
+    private async Task EscapeAsync(CancellationToken ct)
     {
-        step = "escape";
         var (aPos, bPos, killerPos) = await PositionsAsync(ct);
         var avoid = new[] { new Circle(killerPos, KillerKeepOut) };
-        var pathA = planner.PathTo(aPos, exit, avoid);
         var pathB = planner.PathTo(bPos, exit, avoid);
-        Check.Require(pathA != null || pathB != null, $"No path to the exit at {exit} avoiding the killer.");
-        bool useA = pathB == null || (pathA != null && Planner.Length(pathA) <= Planner.Length(pathB));
-        var escaper = useA ? A : B;
-        var path = useA ? pathA! : pathB!;
-        step = $"escape by {escaper.Name}";
-        try { await WalkAsync(escaper, $"{escaper.Name} to exit", path, Reach, ct, endOnResult: true); }
+        Check.Require(pathB != null, $"No path for B to the exit at {exit} avoiding the killer.");
+        step = "escape by B";
+        await WalkAsync(B, "B to exit", pathB!, Reach, ct, () => HasEscaped(B));
+        if (!HasEscaped(B)) await UntilAsync(B, w => Entry(w, B.Id)?.Status == (byte)PlayerStatus.Escaped, options.Timeout, "B Escaped", ct);
+        // B's own first Escaped frame carries the escape position and A's status at that tick (a spectator world is complete).
+        var mid = (S2C_WorldState)B.Frames().First(f => f.Packet is S2C_WorldState w && Entry(w, B.Id)?.Status == (byte)PlayerStatus.Escaped).Packet;
+        Check.Require(Entry(mid, A.Id)?.Status == (byte)PlayerStatus.Normal, $"A is not in play after B escaped: {Describe(mid)}.");
+        Check.Require(A.Frames().All(f => f.Packet is not S2C_GameResult), "The match ended when only B had escaped.");
+        float bOut = Vector2.Distance(Position(Entry(mid, B.Id)!.Value), exit);
+        // The escaping frame itself carries the escape position (no travel after it), so the margin is small.
+        Check.Require(bOut <= GameConstants.ExitRadius + 0.25f,
+            $"B Escaped {bOut:F2} m from the exit, outside ExitRadius + 0.25 m ({GameConstants.ExitRadius + 0.25f:F2} m).");
+        evidence.Add($"escape: B (id={B.Id}) Escaped {bOut:F2} m from the open exit; the match went on with A Normal");
+        await EscapeLastAsync(ct);
+    }
+
+    private async Task EscapeLastAsync(CancellationToken ct)
+    {
+        var (aPos, _, killerPos) = await PositionsAsync(ct);
+        var avoid = new[] { new Circle(killerPos, KillerKeepOut) };
+        var path = planner.PathTo(aPos, exit, avoid);
+        Check.Require(path != null, $"No path for A to the exit at {exit} avoiding the killer.");
+        var escaper = A;
+        step = "escape by A";
+        try { await WalkAsync(escaper, $"{escaper.Name} to exit", path!, Reach, ct, endOnResult: true); }
         catch (Exception ex) when (!ct.IsCancellationRequested || pumpFailure != null)
         {
             // A leak in the escaper's last frames (e.g. the killer entry to a spectator) is the cause, not a missing GameResult.
@@ -628,8 +748,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             $"GameResult before escaper reached the exit: {escaper.Name}'s last own state was {finalDistance:F2} m from the exit " +
             $"(limit {GameConstants.ExitRadius + 0.5f:F1} m), status={final.Status}.");
         evidence.Add($"escape: {escaper.Name} (id={escaper.Id}) walked to the exit (last own state {finalDistance:F2} m from it, " +
-            $"status={final.Status}) before the GameResult, {(useA ? B : A).Name} stood still");
-        return escaper;
+            $"status={final.Status}) before the GameResult");
     }
 
     // The killer's own position per tick, read until the killer stream has a WorldState with Tick >= tick (bounded per wait).
@@ -643,7 +762,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         return positions;
     }
 
-    private async Task ResultAsync(Actor escaper, CancellationToken ct)
+    private async Task ResultAsync(CancellationToken ct)
     {
         step = "GameResult";
         var firsts = await Task.WhenAll(All.Select(x => x.FirstResultAsync(ct)));
@@ -671,16 +790,17 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             var results = frames.Where(f => f.Packet is S2C_GameResult).ToList();
             Check.Require(results.Count == 1, $"{actor.Name} received {results.Count} S2C_GameResult frames within 1 s; expected exactly one.");
             var result = (S2C_GameResult)results[0].Packet;
-            Check.Require(result.WinnerRole == (byte)Role.Survivor && result.Reason == (byte)GameEndReason.SurvivorEscaped,
-                $"{actor.Name} GameResult winner={result.WinnerRole}, reason={result.Reason}; expected Survivor({(byte)Role.Survivor}), SurvivorEscaped({(byte)GameEndReason.SurvivorEscaped}).");
-            Check.Require(result.EscapedIds.Count == 1 && result.EscapedIds[0] == escaper.Id,
-                $"{actor.Name} GameResult EscapedIds=[{string.Join(",", result.EscapedIds)}]; expected exactly [{escaper.Id}] ({escaper.Name}).");
+            Check.Require(result.WinnerRole == (byte)Role.Survivor && result.Reason == (byte)GameEndReason.AllResolved,
+                $"{actor.Name} GameResult winner={result.WinnerRole}, reason={result.Reason}; expected Survivor({(byte)Role.Survivor}), AllResolved({(byte)GameEndReason.AllResolved}).");
+            Check.Require(result.EscapedIds.Order().SequenceEqual(survivorIds.Order()) && result.EliminatedIds.Count == 0,
+                $"{actor.Name} GameResult EscapedIds=[{string.Join(",", result.EscapedIds)}], EliminatedIds=[{string.Join(",", result.EliminatedIds)}]; " +
+                $"expected escaped [{A.Id},{B.Id}] and nobody eliminated.");
             reference ??= results[0].Raw;
             Check.Require(results[0].Raw.AsSpan().SequenceEqual(reference), $"{actor.Name} GameResult differs from the killer's copy.");
             bool lobby = frames.SkipWhile(f => f.Packet is not S2C_GameResult).Any(f => f.Packet is S2C_LobbyState);
             lobbies.Add($"{actor.Name}={(lobby ? "yes" : "no")}");
         }
-        evidence.Add($"GameResult x1 per human (1 s drain), identical: winner=Survivor, reason=SurvivorEscaped, escaped=[{escaper.Id}]; " +
+        evidence.Add($"GameResult x1 per human (1 s drain), identical: winner=Survivor, reason=AllResolved, escaped=[{A.Id},{B.Id}], eliminated=[]; " +
             $"LobbyState followed (evidence only): {string.Join(",", lobbies)}");
     }
 

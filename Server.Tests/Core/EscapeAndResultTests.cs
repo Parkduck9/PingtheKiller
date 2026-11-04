@@ -33,6 +33,7 @@ public sealed class EscapeAndResultTests
             peer.Drain();
             if (peer.All<S2C_GameResult>().Any()) return i;
             var self = peer.Self();
+            if (self.Status == (byte)PlayerStatus.Escaped) return i;
             float dx = x - self.X, dz = z - self.Z, d = MathF.Sqrt(dx * dx + dz * dz);
             if (d < 0.001f) return i;
             float step = speed / GameConstants.TickRate, scale = d > step ? 1 / d : 1 / step;
@@ -42,20 +43,26 @@ public sealed class EscapeAndResultTests
         return 2000;
     }
 
+    // GDD v2 §1: each survivor escapes on its own; the match ends once nobody is Normal or Lagging.
     [Fact]
-    public void NormalSurvivorWithinTwoMetresOfTheOpenExitWinsAndTheServerReturnsToTheLobby()
+    public void EachSurvivorEscapesOnItsOwnAndTheLastEscapeEndsTheMatchAndReturnsToTheLobby()
     {
         using var m = RulesMatch.Start(2);
         m.OpenExitWithTwoSurvivors();
         var a = m[0];
         int lobbiesBefore = m.Killer.All<S2C_LobbyState>().Count;
         WalkUntilResult(m, a, 4f, 4, GameConstants.SurvivorSpeed);
-        var final = m[1].Last<S2C_WorldState>();
-        Assert.Equal((byte)PlayerStatus.Escaped, RulesMatch.Entry(final, a.Id)!.Value.Status);
-        Assert.InRange(RulesMatch.Distance(RulesMatch.Entry(final, a.Id)!.Value, 4, 4), 1.8f, 2.001f);
+        var mid = m[1].Last<S2C_WorldState>();
+        Assert.Equal((byte)PlayerStatus.Escaped, RulesMatch.Entry(mid, a.Id)!.Value.Status);
+        Assert.InRange(RulesMatch.Distance(RulesMatch.Entry(mid, a.Id)!.Value, 4, 4), 1.8f, 2.001f);
         Assert.Null(RulesMatch.Entry(m.Killer.Last<S2C_WorldState>(), a.Id));
+        Assert.Empty(m.Killer.All<S2C_GameResult>());
+        // The second survivor walks out through the same open exit: now nobody is in play.
+        m.WalkTo(m[1], 8, 8, GameConstants.SurvivorSpeed);
+        WalkUntilResult(m, m[1], 4f, 4, GameConstants.SurvivorSpeed);
+        m.Tick();
         foreach (var peer in new[] { m.Killer, m[0], m[1] })
-            AssertSingleResultThenLobby(peer, Role.Survivor, GameEndReason.SurvivorEscaped, a.Id);
+            AssertSingleResultThenLobby(peer, Role.Survivor, GameEndReason.AllResolved, a.Id, m[1].Id);
         Assert.Equal(lobbiesBefore + 1, m.Killer.All<S2C_LobbyState>().Count());
         // The simulation stops: no more WorldStates, inputs are ignored, nothing is sent twice.
         int worlds = m.Killer.All<S2C_WorldState>().Count();
@@ -66,17 +73,22 @@ public sealed class EscapeAndResultTests
         Assert.Single(m.Killer.All<S2C_GameResult>());
     }
 
+    // GDD v2 §3: Firewall Block locks the switch in progress (not an open exit) for 5 s; a locked switch does not move.
     [Fact]
-    public void FirewallBlockLocksTheOpenExitForFiveSeconds()
+    public void FirewallBlockLocksTheSwitchInProgressForFiveSeconds()
     {
         using var m = RulesMatch.Start(2, SkillIds.FirewallBlock);
-        // Before the exit opens the precondition fails: ignored, no cooldown consumed.
+        // Before any switch progress the precondition fails: ignored, no cooldown consumed.
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
         m.Tick();
         Assert.Empty(m.Killer.All<S2C_SkillEffect>());
-        m.OpenExitWithTwoSurvivors();
+        m.PowerExitsWithTwoSurvivors();
         var a = m[0];
-        m.WalkTo(a, 4, 7, GameConstants.SurvivorSpeed);
+        var point = m.F.Server.Map.ExitSwitches[0];
+        m.WalkTo(a, point.X, point.Z, GameConstants.SurvivorSpeed);
+        a.Send(new C2S_Interact { Active = 1 });
+        m.Tick(60); // 3 s of 15 s
+        Assert.Equal(20, m.Killer.Last<S2C_WorldState>().SwitchProgress(0));
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
         m.Tick();
         foreach (var peer in new[] { m.Killer, m[0], m[1] })
@@ -87,29 +99,33 @@ public sealed class EscapeAndResultTests
             Assert.Equal(4f, effect.X);
             Assert.Equal(4f, effect.Z);
             Assert.Equal(5f, effect.Duration);
-            Assert.Equal(1, peer.Last<S2C_WorldState>().ExitLocked);
+            Assert.True(peer.Last<S2C_WorldState>().Locked(0));
+            Assert.False(peer.Last<S2C_WorldState>().Locked(1));
         }
-        int ticks = 1 + WalkUntilResult(m, a, 4, 5, GameConstants.SurvivorSpeed);
+        byte frozen = m.Killer.Last<S2C_WorldState>().SwitchProgress(0);
         // A second cast while on cooldown is ignored.
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
-        while (!a.All<S2C_GameResult>().Any() && ticks < 200)
+        int ticks = 1;
+        while (m.Killer.Last<S2C_WorldState>().Locked(0) && ticks < 200)
         {
-            Assert.Equal(1, m.Killer.Last<S2C_WorldState>().ExitLocked);
-            Assert.Equal((byte)PlayerStatus.Normal, m.Truth(a).Status);
+            Assert.Equal(frozen, m.Killer.Last<S2C_WorldState>().SwitchProgress(0));
             m.Tick();
             ++ticks;
-            a.Drain();
         }
-        Assert.Equal(101, ticks); // locked for the 100 frames [cast, cast + 5 s); escape on the next
+        Assert.InRange(ticks, 100, 101); // locked for the 100 frames [cast, cast + 5 s)
         Assert.Single(m.Killer.All<S2C_SkillEffect>());
-        AssertSingleResultThenLobby(m.Killer, Role.Survivor, GameEndReason.SurvivorEscaped, a.Id);
+        // Held on, the switch finishes the remaining 12 s and the exit opens.
+        m.Tick(238);
+        Assert.False(m.Killer.Last<S2C_WorldState>().Open(0));
+        m.Tick(3);
+        Assert.True(m.Killer.Last<S2C_WorldState>().Open(0));
     }
 
     [Fact]
     public void LaggingSurvivorStandingInTheOpenExitDoesNotEscape()
     {
         using var m = RulesMatch.Start(2);
-        m.OpenExitWithTwoSurvivors(); // survivors stand at (48,25) and (50,25.5)
+        m.OpenExitWithTwoSurvivors();
         m.F.Server.PlaceForTests(m[0].Id,4,10); m.F.Server.PlaceForTests(m[1].Id,10,20);
         m.F.Server.PlaceForTests(m.Killer.Id,4,9); m.Tick();
         Assert.Equal((byte)PlayerStatus.Lagging,m.Truth(m[0]).Status);
@@ -117,18 +133,25 @@ public sealed class EscapeAndResultTests
         m.WalkTo(m[0],4,4,GameConstants.SurvivorSpeed*GameConstants.LaggingSpeedMultiplier);
         m.Tick(20);
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(m[0]).Status);
-        Assert.Equal(1, m.Killer.Last<S2C_WorldState>().ExitOpen);
+        Assert.True(m.Killer.Last<S2C_WorldState>().Open(0));
         Assert.Empty(m.Killer.All<S2C_GameResult>());
     }
 
+    // GDD v2 §4: one capture leaves the survivor Lagging and in play; its timers run out 60 s + 30 s later.
     [Fact]
-    public void KillerWinsWhenNoSurvivorIsNormalAndASecondMatchCanStart()
+    public void KillerWinsWhenTheLastSurvivorIsEliminatedAndASecondMatchCanStart()
     {
         using var m = RulesMatch.Start(1);
         WalkUntilResult(m, m.Killer, 5, 25, GameConstants.KillerSpeed);
+        Assert.Equal((byte)PlayerStatus.Lagging, m[0].Self().Status);
+        Assert.Empty(m.Killer.All<S2C_GameResult>());
+        m.WalkTo(m.Killer, 30, 5, GameConstants.KillerSpeed);
+        for (int i = 0; i < 2000 && !m.Killer.All<S2C_GameResult>().Any(); i++) m.Tick();
         foreach (var peer in new[] { m.Killer, m[0] })
             AssertSingleResultThenLobby(peer, Role.Killer, GameEndReason.AllSurvivorsDown);
-        Assert.Equal((byte)PlayerStatus.Lagging, m[0].Self().Status);
+        Assert.Equal(new[] { m[0].Id }, m.Killer.Last<S2C_GameResult>().EliminatedIds);
+        Assert.Equal((byte)PlayerStatus.Eliminated, m[0].Self().Status);
+        Assert.Equal(2, m[0].Self().CaptureCount);
         var lobby = m.Killer.Last<S2C_LobbyState>();
         Assert.Equal(2, lobby.Slots.Count(s => s.PlayerId != 0));
         Assert.Equal(1, lobby.Slots.Single(s => s.PlayerId == m.Killer.Id).IsHost);
@@ -142,21 +165,22 @@ public sealed class EscapeAndResultTests
         var self = m[0].Self();
         Assert.Equal((byte)PlayerStatus.Normal, self.Status);
         Assert.Equal(0, self.CaptureCount);
-        Assert.Equal(0, m[0].Last<S2C_WorldState>().ExitOpen);
+        Assert.False(m[0].Last<S2C_WorldState>().Powered());
         Assert.All(m[0].Last<S2C_WorldState>().Terminals, t => Assert.Equal(0, t.Progress));
-        Assert.InRange(m[0].Last<S2C_WorldState>().TimeLeft, 599.9f, 600f);
+        Assert.InRange(m[0].Last<S2C_WorldState>().TimeLeft, 899.9f, 900f);
     }
 
     [Fact]
-    public void KillerWinsWhenTheTenMinutesRunOut()
+    public void KillerWinsWhenTheFifteenMinutesRunOut()
     {
         using var m = RulesMatch.Start(1);
-        for (int i = 0; i < 1199; i++) m.F.Tick(0.5f);
+        for (int i = 0; i < 1799; i++) m.F.Tick(0.5f);
         Assert.Empty(m.Killer.All<S2C_GameResult>());
         Assert.InRange(m.Killer.Last<S2C_WorldState>().TimeLeft, 0.4f, 0.5f);
         m.F.Tick(0.5f);
         Assert.Equal(0f, m.Killer.Last<S2C_WorldState>().TimeLeft);
         foreach (var peer in new[] { m.Killer, m[0] })
             AssertSingleResultThenLobby(peer, Role.Killer, GameEndReason.TimeUp);
+        Assert.Equal(new[] { m[0].Id }, m.Killer.Last<S2C_GameResult>().EliminatedIds);
     }
 }

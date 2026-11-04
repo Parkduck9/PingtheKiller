@@ -29,9 +29,10 @@ public abstract class ScenarioPassTest(bool grace, bool anonymous = false, bool 
         var (h6, _) = await H6.RunAsync(server.Port);
         Assert.True(h6.Passed, h6.Evidence);
         Assert.Equal(10, h6.Score);
-        foreach (string expected in new[] { "co-hacked by A+B", "ExitOpen=1 seen by killer, A and B", "A Lagging, CaptureCount=1",
-            "killer held contact 3 s", "no execution", "A Normal with CaptureCount=1", "before the GameResult",
-            "winner=Survivor, reason=SurvivorEscaped", "0 excess", "sight: B stands behind a wall" })
+        foreach (string expected in new[] { "co-hacked by A+B", "exits Powered (not open) seen by killer, A and B",
+            "Open seen by killer, A and B", "collapse 1", "A Lagging, CaptureCount=1",
+            "killer held contact 3 s", "no execution", "A Normal with CaptureCount=1", "the match went on with A Normal",
+            "before the GameResult", "winner=Survivor, reason=AllResolved", "0 excess", "sight: B stands behind a wall" })
             Assert.Contains(expected, h6.Evidence);
         // U3d: today's server shows no killer entry; the sight step still yields blocked-and-absent ticks.
         var (visible, blocked) = SightEvidence.Counts(h6.Evidence);
@@ -44,7 +45,7 @@ public abstract class ScenarioPassTest(bool grace, bool anonymous = false, bool 
         Assert.Equal(anonymous, server.AnonymousWorldsSent > 0);
         if (unknown)
         {
-            Assert.Contains("skipped unknown packets: id=0x11 ×", h6.Evidence);
+            Assert.Contains("skipped unknown packets: id=0x21 ×", h6.Evidence);
             Assert.Contains("id=0x7E ×", h6.Evidence);
             Assert.DoesNotContain(" 0 unknown-Id frames raw-scanned", h6.Evidence);
         }
@@ -84,20 +85,21 @@ public abstract class H6BrokenFakeTest
 public sealed class H6NoGameResultTests() : H6BrokenFakeTest(H6Fault.NoGameResult, "[escape by", "No S2C_GameResult");
 public sealed class H6DuplicateGameResultTests() : H6BrokenFakeTest(H6Fault.DuplicateGameResult, "[GameResult]", "killer received 2 S2C_GameResult");
 public sealed class H6EscapedEmptyTests() : H6BrokenFakeTest(H6Fault.EscapedEmpty, "[GameResult]", "EscapedIds=[]");
-public sealed class H6EscapedBothTests() : H6BrokenFakeTest(H6Fault.EscapedBoth, "[GameResult]", "EscapedIds=[2,3]");
-public sealed class H6EscapedOtherTests() : H6BrokenFakeTest(H6Fault.EscapedOther, "[GameResult]", "EscapedIds=[", "expected exactly [");
+// GDD v2: both survivors escape (B first, then A); a result naming only the last escaper or the killer fails.
+public sealed class H6EscapedLastOnlyTests() : H6BrokenFakeTest(H6Fault.EscapedLastOnly, "[GameResult]", "EscapedIds=[2],", "expected escaped [2,3]");
+public sealed class H6EscapedOtherTests() : H6BrokenFakeTest(H6Fault.EscapedOther, "[GameResult]", "EscapedIds=[1,2]", "expected escaped [");
 public sealed class H6WrongWinnerTests() : H6BrokenFakeTest(H6Fault.WinnerKiller, "[GameResult]", "winner=1, reason=0");
 public sealed class H6WrongReasonTests() : H6BrokenFakeTest(H6Fault.ReasonTimeUp, "[GameResult]", "winner=0, reason=2");
 public sealed class H6SkillEffectLeakTests() : H6BrokenFakeTest(H6Fault.LeakSkillEffect, "killer coordinate", "bytes leaked", "S2C_SkillEffect");
 public sealed class H6KillerEntryLeakTests() : H6BrokenFakeTest(H6Fault.LeakKillerEntry, "Killer 1 leaked to survivor");
-public sealed class H6ExitNeverOpensTests() : H6BrokenFakeTest(H6Fault.ExitNeverOpens, "[exit open]", "ExitOpen == 1");
+public sealed class H6ExitNeverOpensTests() : H6BrokenFakeTest(H6Fault.ExitNeverOpens, "[exits powered]", "both exits Powered");
 public sealed class H6NoCaptureTests() : H6BrokenFakeTest(H6Fault.NoCapture, "[capture: killer to A]", "A captured", "not observed");
 public sealed class H6NoRescueTests() : H6BrokenFakeTest(H6Fault.NoRescue, "[rescue]", "A rescued", "not observed");
 // Old literal rule: the capturing contact executes on the next tick.
 public sealed class H6ExecuteOnContinuedContactTests() : H6BrokenFakeTest(H6Fault.ExecuteOnContinuedContact,
     "[capture:", "player 2 has status 3");
-// F1: a valid SurvivorEscaped GameResult ~1 s into the escape walk, long before the exit.
-public sealed class H6PrematureEndTests() : H6BrokenFakeTest(H6Fault.PrematureEnd, "[escape by", "GameResult before escaper reached the exit");
+// F1: a valid-looking survivor-win GameResult ~1 s into the first escape walk, long before the exit.
+public sealed class H6PrematureEndTests() : H6BrokenFakeTest(H6Fault.PrematureEnd, "[escape by B]", "early GameResult");
 // Re-arms while still in contact: executes two ticks after the capture, while the killer holds contact.
 public sealed class H6RearmsInContactTests() : H6BrokenFakeTest(H6Fault.RearmsInContact, "[capture:", "player 2 has status 3");
 // U3c: killer X/Z inside an unknown-Id frame to the survivors (cannot be decoded, so it is scanned raw).
