@@ -252,6 +252,12 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - **게이트:** 빌드 경고 0, Server.Tests 955/955(`Category!=BalanceSweep`), Unity EditMode 1386/1386, Windows 빌드 성공. 로그 `docs/qa/merge-1105/`. Harness.Tests는 코드 변경이 없어 다시 돌리지 않았습니다(직전 635/635).
   - **남은 것:** U7b 효과음은 실제로 들어 보지 않았습니다. 방화벽 막힘 장면은 촬영하지 않았습니다. 서버가 스킬 거절 이유를 보내지 않습니다(프로토콜 부족, §14.3).
 
+- **U6f-sync-timing 병합 후 실행 (2026-11-05, main `fca9ed6`):** 플레이 점검(`docs/qa/playcheck-1105.md`)에서 싱크 체크 Great가 사실상 안 나오던 문제를 고쳤습니다. 서버가 체크를 한 틱 늦게 기록하고 누른 시각을 다음 틱 시작으로 잡아 0~50 ms 이르게 판정하던 것이 원인이었습니다(Great 구간 38.5 ms).
+  - 이제 누른 입력은 도착 시각으로, 체크는 실제로 나간 시각으로 기록하고, 늦게 돈 틱도 보정합니다. 지연 보정은 왕복 전체(RTT)를 뺍니다. 판정 구간과 봇 결과 비율은 그대로입니다.
+  - Opus 구현. Gemini Flash는 agy 로그인이 필요해 실행하지 못했고, 대체 규칙대로 Sonnet QA 1차 PASS(사소 5건).
+  - **게이트:** 빌드 경고 0, Server.Tests 982/982(`Category!=BalanceSweep`), Harness.Tests 635/635, 하네스 100/100 3회 연속(브랜치에서 실행, 병합 결과와 코드 동일, `docs/qa/harness-u6f-run1..3.json`), Unity EditMode 1386/1386, Windows 빌드 성공. 실제 오프라인 경기: Great 조준 7/7 Great, Good 조준 8/8 Good(이전 0/6 Great). 로그 `docs/qa/merge-1105b/`, `docs/qa/U6f-sync-timing-runs/`.
+  - **남은 것:** 서버에 RTT 측정이 없어 온라인에서는 실제 왕복만큼 늦게 판정됩니다. 별도 단위 U6g(`claude/sync-rtt-probe`)에서 진행 중입니다.
+
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
 ---
