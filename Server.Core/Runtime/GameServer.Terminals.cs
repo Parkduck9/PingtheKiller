@@ -171,8 +171,8 @@ namespace PingTheKiller.ServerCore
             GameConstants.SyncCheckIntervalMinSeconds +
             player.SyncRandom.NextDouble() * (GameConstants.SyncCheckIntervalMaxSeconds - GameConstants.SyncCheckIntervalMinSeconds);
 
-        // Bots press inside the server (no latency). RttSeconds stays 0 until a server-side RTT estimate exists; offline
-        // sessions have no transport delay, so it stays 0 there as well. Server tests set it through SetRttForTests.
+        // Bots press inside the server (no latency). Online humans use the server-timed probe estimate; offline
+        // sessions have no transport delay and stay at 0. Server tests can override it through SetRttForTests.
         // The full round trip applies: the needle starts when the check reaches the client (half a trip after it left)
         // and the press needs the other half to come back.
         private static double RttOf(Player player) => player.IsBot ? 0 : player.RttSeconds;
@@ -294,7 +294,7 @@ namespace PingTheKiller.ServerCore
                 }
                 SyncTerminal(terminal);
             }
-            WriteLog($"sync player={player.Id} check={id} result={result}");
+            WriteLog($"sync player={player.Id} check={id} result={result} rtt={RttOf(player) * 1000:0}");
             SendTo(player, new S2C_SyncResult { CheckId = id, Result = (byte)result });
         }
 
@@ -326,7 +326,7 @@ namespace PingTheKiller.ServerCore
 
         internal double TerminalProgressForTests(int index) { lock (_tickGate) return _progress[index]; }
 
-        // Server tests only: the smoothed RTT the sync judge subtracts for this player (the server has no RTT probe yet).
+        // Server tests only: overrides the probe's estimate of the full RTT subtracted by the sync judge.
         internal void SetRttForTests(int playerId, double seconds)
         {
             lock (_tickGate)

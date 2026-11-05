@@ -167,6 +167,15 @@ namespace PingTheKiller.Shared.Packets
         }
     }
 
+    // v0.5: server-timed RTT; the client echoes this nonce on its receive thread.
+    public sealed class S2C_RttProbe : IPacket
+    {
+        public uint Nonce;
+        public PacketId Id => PacketId.S2C_RttProbe;
+        public void Write(PacketWriter w) => w.WriteUInt32(Nonce);
+        public static S2C_RttProbe Read(ref PacketReader r) => new S2C_RttProbe { Nonce = r.ReadUInt32() };
+    }
+
     public sealed class S2C_Pong : IPacket
     {
         public long Timestamp;

@@ -138,7 +138,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
         }
 
         [Test]
-        public void NetClient_IsServerPacket_AcceptsAllEightS2CPackets_AndRejectsAllC2SPackets()
+        public void NetClient_IsServerPacket_AcceptsAllS2CPackets_AndRejectsAllC2SPackets()
         {
             var allPacketIds = (PacketId[])Enum.GetValues(typeof(PacketId));
             int s2cCount = 0;
@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 }
             }
 
-            Assert.That(s2cCount, Is.EqualTo(10), "Protocol v0.4 defines exactly 10 S2C packet types (adds S2C_SyncCheck and S2C_SyncResult)");
+            Assert.That(s2cCount, Is.EqualTo(11), "Protocol v0.5 defines exactly 11 S2C packet types (adds S2C_RttProbe)");
         }
     }
 }

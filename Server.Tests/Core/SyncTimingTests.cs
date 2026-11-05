@@ -253,9 +253,9 @@ public sealed class SyncTimingTests
             {
                 if (line.StartsWith("match end ", StringComparison.Ordinal)) ended = true;
                 if (!line.StartsWith("sync player=", StringComparison.Ordinal)) return;
-                if (line.EndsWith("result=Great", StringComparison.Ordinal)) great++;
-                else if (line.EndsWith("result=Good", StringComparison.Ordinal)) good++;
-                else if (line.EndsWith("result=Fail", StringComparison.Ordinal)) fail++;
+                if (line.Contains(" result=Great ", StringComparison.Ordinal)) great++;
+                else if (line.Contains(" result=Good ", StringComparison.Ordinal)) good++;
+                else if (line.Contains(" result=Fail ", StringComparison.Ordinal)) fail++;
             };
             var killer = f.Join("Idle killer");
             killer.Send(new C2S_SetBots { Count = 7 });

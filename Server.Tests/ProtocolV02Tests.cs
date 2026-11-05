@@ -70,7 +70,7 @@ public sealed class ProtocolV02Tests
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
         int count = Enum.GetValues<PacketId>().Length;
-        Assert.Equal(19, count); // v0.3 adds S2C_SelfState (0x0010); v0.4 adds the sync check packets (0x0011-0x0013)
+        Assert.Equal(21, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015).
         Assert.Equal(count, packets.Length);
         Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
     }

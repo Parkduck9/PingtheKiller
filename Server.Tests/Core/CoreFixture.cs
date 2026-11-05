@@ -48,11 +48,11 @@ internal sealed class TestClock
 internal sealed class CoreFixture : IDisposable
 {
     // seed is the private-RNG test hook; csprng = true leaves it unset like the console host and offline client.
-    internal CoreFixture(int bots = 0, bool autostart = false, int seed = 1234, bool sandbox = false, int? matchSeed = null, bool csprng = false)
+    internal CoreFixture(int bots = 0, bool autostart = false, int seed = 1234, bool sandbox = false, int? matchSeed = null, bool csprng = false, bool offline = true)
     {
         Server = new GameServer(new ServerOptions
         {
-            IsOffline = true, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
+            IsOffline = offline, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
             MatchSeedForTests = matchSeed, ClockForTests = Clock.Read
         });
         Transport = new InMemoryTransport();

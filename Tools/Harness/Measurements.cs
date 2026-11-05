@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PingTheKiller.Shared.Net;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
@@ -71,7 +72,17 @@ public static class Measurements
     }
 
     // H3 raw scan of one killer-bound frame. Entries are matched by tick and position elsewhere (TickJoin), never by Id.
-    public static void Masked(ReceivedFrame frame, PlayerState stopped) => MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);
+    public static void Masked(ReceivedFrame frame, PlayerState stopped)
+    {
+        if (frame.Packet is S2C_RttProbe)
+        {
+            // The nonce is opaque and has no coordinate fields. Still reject any unexplained raw bytes.
+            Check.Require(frame.Raw.AsSpan().SequenceEqual(PacketCodec.Encode(frame.Packet)),
+                "Unexplained bytes in RTT probe.");
+            return;
+        }
+        MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);
+    }
 
     public static void MaskedBytes(byte[] raw, string what, PlayerState stopped)
     {

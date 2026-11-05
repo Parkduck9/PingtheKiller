@@ -660,7 +660,7 @@ public sealed class U2cAdversarialTests
     // 3. RNG
     // ====================================================================================================================
 
-    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom" };
+    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom", "_rttRandom" };
 
     [Fact]
     public void Rng_HiddenStreams_AreXoshiro256NotSystemRandom_With256BitCsprngStateThatDiffersPerServerAndPerMatch()
@@ -681,13 +681,13 @@ public sealed class U2cAdversarialTests
                 Assert.True(states.Add(string.Join(",", s)), "two streams share a state");
             }
         }
-        // a new match re-seeds all three streams
+        // A new match re-seeds every private stream, including the RTT nonce stream.
         using var q = new QaRig(2, csprng: true);
         var before = StreamFields.Select(f => string.Join(",", Words(Spy.Server<object>(q.Server, f)))).ToList();
         q.NextMatch();
         var after = StreamFields.Select(f => string.Join(",", Words(Spy.Server<object>(q.Server, f)))).ToList();
-        for (int i = 0; i < 3; i++) Assert.NotEqual(before[i], after[i]);
-        // the private streams of one server are independent states (v0.4 adds the sync-check stream)
+        for (int i = 0; i < StreamFields.Length; i++) Assert.NotEqual(before[i], after[i]);
+        // The private streams of one server are independent states (v0.5 adds the RTT nonce stream).
         Assert.Equal(StreamFields.Length, after.Distinct().Count());
     }
 
@@ -780,7 +780,7 @@ public sealed class U2cAdversarialTests
             }
         }
         Assert.True(offenders.Count == 0, "System.Random / clock seeding in server code: " + string.Join(" | ", offenders));
-        // The only allowed Random subtype is PrivateRandom; every hidden draw goes through one of the three fields.
+        // The only allowed Random subtype is PrivateRandom; every hidden draw goes through a named private stream.
         string server = File.ReadAllText(Path.Combine(root, "Server.Core", "Runtime", "GameServer.cs"));
         Assert.DoesNotContain("new Random", server);
         // The console host and the offline client never set the hooks.
@@ -790,10 +790,10 @@ public sealed class U2cAdversarialTests
         string offline = File.ReadAllText(Path.Combine(root, "Client", "Assets", "Scripts", "Net", "OfflineLink.cs"));
         Assert.DoesNotContain("MatchSeedForTests", offline);
         Assert.DoesNotContain("Seed =", offline);
-        // the hidden draw sites use only the three private streams
+        // Draw sites use only the named private streams (v0.5 adds RTT nonces).
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "Server.Core", "Runtime"), "GameServer*.cs"))
             foreach (var line in File.ReadAllLines(file))
-                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
+                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|_rttRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
                     "unexpected random source in " + Path.GetFileName(file) + ": " + line.Trim());
     }
 

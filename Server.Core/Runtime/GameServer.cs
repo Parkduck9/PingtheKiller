@@ -34,7 +34,7 @@ namespace PingTheKiller.ServerCore
             internal readonly Binding Binding;
             internal readonly IPacket Packet;
             internal readonly byte Kind; // 0 = packet, 1 = add, 2 = close
-            // Server clock seconds when the receive thread queued it (only C2S_SyncPress uses it).
+            // Server clock seconds when the receive thread queued it (sync presses and RTT echoes).
             internal readonly double ReceivedAt;
         }
 
@@ -98,6 +98,7 @@ namespace PingTheKiller.ServerCore
                 _decoyRandom = PrivateRandom.FromSeed(seed, 1);
                 _shuffleRandom = PrivateRandom.FromSeed(seed, 2);
                 _syncRandom = PrivateRandom.FromSeed(seed, 3);
+                _rttRandom = PrivateRandom.FromSeed(seed, 4);
             }
             else
             {
@@ -105,6 +106,7 @@ namespace PingTheKiller.ServerCore
                 _decoyRandom = PrivateRandom.FromCsprng();
                 _shuffleRandom = PrivateRandom.FromCsprng();
                 _syncRandom = PrivateRandom.FromCsprng();
+                _rttRandom = PrivateRandom.FromCsprng();
             }
         }
 
@@ -267,6 +269,7 @@ namespace PingTheKiller.ServerCore
                             Handle(input.Binding.Connection, input.Packet, input.ReceivedAt);
                     }
                 }
+                UpdateRttProbes();
                 if (_matchStarted)
                 {
                     UpdateBots();
@@ -343,7 +346,7 @@ namespace PingTheKiller.ServerCore
             player.DirX = player.DirZ = 0;
             player.LastSignal = double.NegativeInfinity;
             player.Interacting = false;
-            player.RttSeconds = 0;
+            ResetRtt(player);
             WriteLog($"leave player={player.Id}");
             BroadcastLobby();
         }
@@ -352,13 +355,14 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players) if (player.ConnectionId == id) return player;
             return null;
         }
-        // receivedAt: server clock when the packet was queued; only C2S_SyncPress reads it.
+        // receivedAt: server clock when the packet was queued; sync presses and RTT echoes read it.
         private void Handle(IConnection connection, IPacket packet, double receivedAt)
         {
             if (connection.IsClosed) return;
             if (packet is C2S_Join join) { Join(connection, join); return; }
             var player = FindByConnection(connection.RemoteId);
             if (player == null) return;
+            if (packet is C2S_RttEcho echo) { ReceiveRttEcho(player, echo.Nonce, receivedAt); return; }
             // Semantically invalid values are ignored; only wire-format violations close a connection.
             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }

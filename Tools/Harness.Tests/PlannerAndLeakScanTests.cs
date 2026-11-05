@@ -63,6 +63,15 @@ public sealed class PlannerTests
 
 public sealed class KillerLeakScanTests
 {
+    [Fact]
+    public void ProbeNonceIsNotACoordinateButUnexplainedBytesStillFail()
+    {
+        var frame = Frame(new S2C_RttProbe { Nonce = (uint)KillerLeakScan.Bits(KillerX) });
+        Assert.Null(KillerLeakScan.Excess(frame, Killer, new[] { A, B }));
+        var extra = frame with { Raw = frame.Raw.Concat(BitConverter.GetBytes(KillerX)).ToArray() };
+        Assert.NotNull(KillerLeakScan.Excess(extra, Killer, new[] { A, B }));
+    }
+
     private const int A = 2, B = 3, KillerId = 1;
     private static readonly float KillerX = 12.345678f, KillerZ = 40.98765f;
     private static readonly HashSet<int> Killer = new() { KillerLeakScan.Bits(KillerX), KillerLeakScan.Bits(KillerZ) };

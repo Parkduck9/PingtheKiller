@@ -96,6 +96,12 @@ namespace PingTheKiller.Client.Net
                         if (result == AssembleResult.Malformed) throw new PacketFormatException("Invalid frame length.");
                         IPacket packet = PacketCodec.Decode(id, payload.Span);
                         if (!IsServerPacket(packet.Id)) throw new PacketFormatException("Unexpected client packet from server.");
+                        if (packet is S2C_RttProbe probe)
+                        {
+                            // Same receive-thread -> outgoing queue -> send-thread path as the sync needle and press.
+                            Send(new C2S_RttEcho { Nonce = probe.Nonce });
+                            continue;
+                        }
                         if (Interlocked.Increment(ref queuedIn) > 512) throw new IOException("Receive queue is full.");
                         incoming.Enqueue(new ReceivedPacket(packet));
                     }
@@ -134,7 +140,7 @@ namespace PingTheKiller.Client.Net
         // Every S2C_ packet the client accepts from the socket (protocol v0.3 adds S2C_SelfState); a C2S_ id disconnects.
         public static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
             or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart or PacketId.S2C_SelfState
-            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult; // v0.4 sync check packets
+            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult or PacketId.S2C_RttProbe; // v0.5 server-timed RTT
 
         private static void Write(NetworkStream stream, IPacket packet)
         {

@@ -81,6 +81,20 @@ public sealed class MeasurementTests
         }
     }
 
+    [Fact]
+    public void MaskingAcceptsOpaqueProbeNoncesButRejectsExtraBytes()
+    {
+        var stopped = new PlayerState { Id = 73, X = 7.12345f, Z = -8.45678f };
+        foreach (float coordinate in new[] { stopped.X, stopped.Z })
+        {
+            var probe = new S2C_RttProbe { Nonce = (uint)BitConverter.SingleToInt32Bits(coordinate) };
+            var frame = new ReceivedFrame(probe, PacketCodec.Encode(probe), 0);
+            Measurements.Masked(frame, stopped);
+            Assert.Throws<CheckFailure>(() => Measurements.Masked(frame with
+                { Raw = frame.Raw.Concat(Measurements.FloatBytes(coordinate)).ToArray() }, stopped));
+        }
+    }
+
     // U3d replaced "the killer is always hidden" with the line-of-sight rule (KillerSight, see LineOfSightTests): without a
     // killer tick an entry is undecided, and any killer entry to a recipient that is not in the world is a leak.
     [Fact]
