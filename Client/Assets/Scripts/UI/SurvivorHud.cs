@@ -14,10 +14,10 @@ namespace PingTheKiller.Client.UI
     {
         public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
         private static readonly Color32 Danger = new Color32(229, 72, 77, 255);
-        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar;
+        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar, result, resultBar;
         private readonly VisualElement threatStrip;
         private readonly VisualElement[] bands = new VisualElement[4]; // top, bottom, left, right (HUD_SPEC 4.2 level 3)
-        private readonly Label skillName, word, tag, reason, time, terminals, promptText;
+        private readonly Label skillName, word, tag, reason, time, terminals, promptText, resultText;
         private readonly SkillRing ring;
         private readonly VisualElement[] bordered;
         private readonly Texture2D[] noise = new Texture2D[5]; // strip + four bands, rebuilt only when the mask is re-rolled
@@ -41,6 +41,11 @@ namespace PingTheKiller.Client.UI
             stack = Box(root, "v2-survivor-stack");
             SyncRing = new SyncCheckRing(Sync.State, font);
             stack.Add(SyncRing);
+            // HUD_SPEC 14.1a: the skill result line, directly above the prompt row.
+            result = Box(stack, "sresult");
+            VisualElement resultLine = Box(result, "krow");
+            resultBar = Box(resultLine, "kbar");
+            resultText = Text(resultLine, string.Empty, "km");
             prompt = Box(stack, "sprompt");
             VisualElement promptLine = Box(prompt, "krow");
             promptBar = Box(promptLine, "kbar");
@@ -79,9 +84,10 @@ namespace PingTheKiller.Client.UI
             time = Text(line1, "0:00", "km", "kbold");
             terminals = Text(info, string.Empty, "km");
 
-            bordered = new[] { cluster, prompt, meterTrack, Hold, Objective };
+            bordered = new[] { cluster, prompt, result, meterTrack, Hold, Objective };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(prompt, false);
+            Show(result, false);
             SyncRing.Refresh();
         }
 
@@ -167,6 +173,7 @@ namespace PingTheKiller.Client.UI
             V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
+            Show(result, false);
             Hold.Hide();
             Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Sync.Reset();
@@ -331,6 +338,24 @@ namespace PingTheKiller.Client.UI
             Fill(promptFill, p.Bar, p.Width);
         }
 
+        // HUD_SPEC 14.1a result line: M `text` after a 4x18 u bar in the line's colour (none for a `muted` reason line).
+        public void SetResult(FxLine line)
+        {
+            Show(result, line.Shown);
+            if (!line.Shown) return;
+            SetText(resultText, line.Text);
+            resultText.EnableInClassList("kmuted", line.Tone == LineTone.Reason);
+            Show(resultBar, line.Tone == LineTone.Danger || line.Tone == LineTone.Signal || line.Tone == LineTone.Ally);
+            resultBar.EnableInClassList("danger", line.Tone == LineTone.Danger);
+            resultBar.EnableInClassList("fill-signal", line.Tone == LineTone.Signal);
+            resultBar.EnableInClassList("fill-ally", line.Tone == LineTone.Ally);
+        }
+
+        public string ResultText => result.style.display == DisplayStyle.None ? null : resultText.text;
+        public bool ResultBarHas(string kind) => resultBar.style.display != DisplayStyle.None && resultBar.ClassListContains(kind);
+        public bool ResultBarShown => resultBar.style.display != DisplayStyle.None;
+        public bool ResultMuted => resultText.ClassListContains("kmuted");
+
         // Read-back for tests and the dev log.
         public string Word => word.text;
         public string Reason => reason.text;
@@ -349,6 +374,7 @@ namespace PingTheKiller.Client.UI
         {
             float height = Height;
             if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
+            if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
             if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;
             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);

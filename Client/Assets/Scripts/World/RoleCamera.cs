@@ -21,6 +21,8 @@ namespace PingTheKiller.Client.World
         // Survivor only: the boom is shorter than 1 m, so the own character is drawn dithered.
         public bool Dither => role == Role.Survivor && orbit.Dither;
         public RoleCamera(Camera camera) { this.camera = camera; }
+        // HUD_SPEC 14.2.2: the Overclock widening (vertical degrees), added to the Killer view only; 0 otherwise.
+        public float KillerFovOffset { get; set; }
         public void Begin(Role value)
         {
             role = value; Yaw = 0;
@@ -56,7 +58,7 @@ namespace PingTheKiller.Client.World
         // ground = the own character's position (y ignored).
         public void Place(Vector3 ground, float dt)
         {
-            orbit.Fov = Options.SurvivorVerticalFov; eye.Fov = Options.KillerVerticalFov;
+            orbit.Fov = Options.SurvivorVerticalFov; eye.Fov = Options.KillerVerticalFov + KillerFovOffset;
             Pose = role == Role.Survivor ? orbit.Place(camera, Yaw, ground, dt) : eye.Place(camera, Yaw, ground);
         }
     }

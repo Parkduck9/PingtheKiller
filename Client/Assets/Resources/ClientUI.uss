@@ -131,10 +131,17 @@
 .root .smeter-track.ally-outline { border-color: #3FB8AF; }
 .root .sfill { height: 100%; width: 0; }
 .root .sfill.fill-ally, .root .kbar.fill-ally { background-color: #3FB8AF; }
+.root .kbar.fill-signal { background-color: #FFB020; }
 .root .sfill.fill-danger { background-color: #E5484D; }
 .root .sfill.fill-signal { background-color: #FFB020; }
 .root .sfill.fill-text { background-color: #E8E6E1; }
 .root .sinfo { width: 160px; height: 70px; flex-shrink: 0; margin-left: 8px; padding-left: 8px; padding-right: 8px; justify-content: center; }
+/* HUD_SPEC 14.1a skill result line: 672x40 in the 13.1 stack, directly above the prompt row; one M line after a 4x18 bar. */
+.root .sresult {
+    width: 672px; height: 40px; padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .sresult .kbar { margin-right: 8px; }
 .root .sprompt {
     position: absolute; bottom: 104px; left: 50%; translate: -50% 0; width: 672px; height: 40px;
     padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;

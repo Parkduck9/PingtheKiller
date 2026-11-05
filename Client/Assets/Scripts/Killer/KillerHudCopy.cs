@@ -61,8 +61,11 @@ namespace PingTheKiller.Client.Killer
         public static string Seconds1(float seconds)
             => (float.IsNaN(seconds) || seconds < 0 ? 0 : seconds).ToString("0.0", CultureInfo.InvariantCulture) + " s";
 
-        public static string Overclock(float left) => "Overclock " + Dot + " " + Seconds1(left);
-        public static string Recovering(float left) => "Recovering " + Dot + " " + Seconds1(left);
+        // HUD_SPEC 14.2: the 6.1c own-skill lines (tick for the effect's duration).
+        public static string Overclock(float left) => "Overclock: 1.5× speed " + Dot + " " + Seconds1(left);
+        public static string Recovering(float left) => "Recovering: cannot move " + Dot + " " + Seconds1(left);
+        public static string Scanned(float left) => "Nearest Survivor shown " + Dot + " " + Seconds1(left);
+        public static string Locked(int exit, float left) => (exit >= 0 ? "Exit " + (exit + 1) : "An Exit") + " switch locked " + Dot + " " + Seconds1(left);
         public static string Slowed(float left) => "Slowed by traffic overload " + Dot + " " + Seconds1(left);
 
         // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.

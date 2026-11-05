@@ -12,7 +12,7 @@ namespace PingTheKiller.Client.UI
         public const string SurvivorFov = "Survivor field of view", KillerFov = "Killer field of view";
         public const string Sensitivity = "Mouse sensitivity", InvertY = "Invert Y", ReducedMotion = "Reduced motion", Volume = "Master volume";
         public const string FovNote = "Horizontal angle at 16:9. Applies at once.";
-        public const string ReducedNote = "Lagging shows every frame instead of holding the picture at 8 Hz.";
+        public const string ReducedNote = "Lagging shows every frame instead of holding the picture at 8 Hz. Skill effects show as still rings.";
         public const string Reset = "Reset to defaults", Done = "Done";
         public static string Degrees(float value) => Math.Round(value).ToString("0", CultureInfo.InvariantCulture) + "°";
         public static string Multiplier(float value) => value.ToString("0.00", CultureInfo.InvariantCulture) + "×";

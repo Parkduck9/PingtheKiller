@@ -69,6 +69,10 @@ namespace PingTheKiller.Client.Dev
         private double objectiveAt = -1, collapseSeenAt = -1;
         public event Action<string> Join;
         public event Action Offline;
+        // -ptk-want-skill: leave this offline match (ClientApp disconnects); Update then starts a new one.
+        public event Action Reroll;
+        private int rerolls;
+        private bool rerollPending;
         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
         public event Action<S2C_GameResult> PreviewResult;
         public event Action<IPacket> HostSend;
@@ -374,6 +378,23 @@ namespace PingTheKiller.Client.Dev
             loggedPrompt = null; chaseTerminal = 0; world = null; loggedPhase = PilotPhase.Idle; objectiveAt = collapseSeenAt = captureSeenAt = -1; terminalPoints.Clear(); rescueFound = false;
             shownThreat = 0; shownStatus = PlayerStatus.Normal; threatSince = capturedAt = eliminatedAt = killerSince = -1; killerSeen = killerLogged = false;
             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
+            if (args.WantSkill.HasValue && args.Offline && skill != args.WantSkill.Value && rerolls < DevArgs.WantSkillTries)
+            {
+                rerolls++; rerollPending = true;
+                Debug.Log("[DEV] want skill " + args.WantSkill.Value + ", got " + skill + ": new offline match (" + rerolls + ")");
+            }
+        }
+
+        // HUD_SPEC 14 evidence: one shot per own role, skill, viewer and screen height, about 0.25 s after the record played
+        // (the one-shot is mid-flight and the result line shows).
+        public void OnSkillFx(FxRecord record)
+        {
+            if (args.Shots == null || record.Viewer == FxViewer.None || matchAt < 0 || rerollPending) return;
+            string name = "skillfx-" + (role == Role.Killer ? "killer" : "survivor") + "-" + (record.KillerSkill ? "k" : "s") + record.SkillId
+                + "-" + record.Viewer.ToString().ToLowerInvariant() + "-" + Screen.height + "p.png";
+            if (taken.Contains(name)) return;
+            int frames = Mathf.Clamp(Mathf.RoundToInt(.25f / Mathf.Max(.001f, Time.unscaledDeltaTime)), 1, 60);
+            EventShot(name, frames);
         }
 
         // Every WorldState of the match: event shots and the terminal/exit/status log.
@@ -503,6 +524,12 @@ namespace PingTheKiller.Client.Dev
             if (origin < 0) origin = Time.realtimeSinceStartupAsDouble; // engine start-up time does not count
             if (capturing) return; // keep the scripted order: nothing happens while a shot is pending
             double t = Now;
+            if (rerollPending)
+            {
+                rerollPending = false; joined = configured = started = false; lobbyAt = matchAt = -1; match = 0;
+                Reroll?.Invoke();
+                return;
+            }
             bool shots = args.Shots != null;
             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
             if (args.Settings && shots && menuShot && settingsStage < 3 && SettingsMenuShot(t)) return;
