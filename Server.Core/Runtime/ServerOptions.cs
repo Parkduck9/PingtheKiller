@@ -17,6 +17,9 @@ namespace PingTheKiller.ServerCore
         // Network-QA mode with U2a rules only: movement, masking, threat and reconnect. No hacking, capture,
         // skills, decoys, afterimage, escape or win/lose; only TimeUp ends a match. Never enabled implicitly.
         public bool Sandbox { get; set; }
+        // Test hook (Server.Tests only): the server's monotonic wall clock in seconds. Unset, a Stopwatch started with
+        // the server. It times sync presses by their arrival; Run keeps its own pacing clock.
+        internal Func<double> ClockForTests { get; set; }
 
         // The online factory is lazy: offline hosts never construct a TCP listener.
         public ITransportListener CreateTransport(Func<ITransportListener> onlineFactory = null)

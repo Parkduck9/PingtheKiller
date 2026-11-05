@@ -30,6 +30,21 @@ internal sealed class Peer : IDisposable
     public void Dispose() => Connection.Dispose();
 }
 
+// The server's wall clock in tests. It stands still unless a test moves it, so inputs, ticks and the checks they send
+// share one instant and sync presses are timed in simulated time only (SyncTimingTests moves it).
+internal sealed class TestClock
+{
+    internal double Now;
+    // When set, the clock jumps here right after the next read (time spent inside a tick before a packet leaves).
+    internal double? Then;
+    internal double Read()
+    {
+        double value = Now;
+        if (Then is double then) { Now = then; Then = null; }
+        return value;
+    }
+}
+
 internal sealed class CoreFixture : IDisposable
 {
     // seed is the private-RNG test hook; csprng = true leaves it unset like the console host and offline client.
@@ -38,7 +53,7 @@ internal sealed class CoreFixture : IDisposable
         Server = new GameServer(new ServerOptions
         {
             IsOffline = true, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
-            MatchSeedForTests = matchSeed
+            MatchSeedForTests = matchSeed, ClockForTests = Clock.Read
         });
         Transport = new InMemoryTransport();
         Transport.ConnectionAccepted += Server.AddConnection;
@@ -46,6 +61,7 @@ internal sealed class CoreFixture : IDisposable
     }
     internal GameServer Server { get; }
     internal InMemoryTransport Transport { get; }
+    internal TestClock Clock { get; } = new();
     private readonly List<Peer> _peers = new();
     internal Peer Connect()
     {

@@ -88,14 +88,13 @@ namespace PingTheKiller.Client.Dev
 
         private static float Distance(float x, float z, Vector3 goal) => new Vector2(goal.x - x, goal.z - z).magnitude;
 
-        // -ptk-auto-sync, pure: true on the frame the scripted press is due. The server judges on its 20 Hz tick, so the
-        // press for Great aims just before the great part (the tick that handles it lands inside); Good aims at the middle
-        // of the rest of the zone. Miss never presses.
-        public const float GreatLead = .01f;
+        // -ptk-auto-sync, pure: true on the frame the scripted press is due. The server times a press by its arrival minus
+        // the RTT against the moment the check left, so the drawn needle is what counts: Great aims at the middle of the
+        // great part (a frame of lateness stays inside it), Good at the middle of the rest of the zone. Miss never presses.
         public static bool SyncDue(AutoSync aim, in SyncCheckView check, float needle)
         {
             if (aim != AutoSync.Great && aim != AutoSync.Good) return false;
-            float target = aim == AutoSync.Great ? check.ZoneStart - GreatLead
+            float target = aim == AutoSync.Great ? check.ZoneStart + check.GreatSize * .5f
                 : check.ZoneStart + check.GreatSize + (check.ZoneSize - check.GreatSize) * .5f;
             return needle >= target;
         }

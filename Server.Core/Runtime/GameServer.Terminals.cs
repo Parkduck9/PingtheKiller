@@ -173,7 +173,28 @@ namespace PingTheKiller.ServerCore
 
         // Bots press inside the server (no latency). RttSeconds stays 0 until a server-side RTT estimate exists; offline
         // sessions have no transport delay, so it stays 0 there as well. Server tests set it through SetRttForTests.
+        // The full round trip applies: the needle starts when the check reaches the client (half a trip after it left)
+        // and the press needs the other half to come back.
         private static double RttOf(Player player) => player.IsBot ? 0 : player.RttSeconds;
+
+        // A press is never dated earlier than this before the start of the tick that handles it.
+        internal const double MaxPressAgeSeconds = 0.25;
+
+        // Simulated time of the current clock reading inside this tick (when a packet sent now leaves the server).
+        private double SimulatedNow()
+        {
+            double offset = _clock() - (_tickWallStart - _tickLag);
+            return _tickSimStart + Math.Max(0, Math.Min(_tickLag + _tickDt, offset));
+        }
+
+        // Simulated time of a press that the receive thread queued at the clock reading receivedAt (called while the
+        // tick drains its inputs, so _now is still the tick's start).
+        private double SimulatedArrival(double receivedAt)
+        {
+            double age = (_tickWallStart - _tickLag) - receivedAt;
+            if (double.IsNaN(age)) age = 0;
+            return _now - Math.Max(-_tickLag, Math.Min(MaxPressAgeSeconds, age));
+        }
 
         // GDD v2 §2 sync checks: the interval runs only while the survivor hacks; stopping cancels a pending check.
         private void UpdateSyncChecks(float dt)
@@ -184,15 +205,18 @@ namespace PingTheKiller.ServerCore
                 if (player.SyncPending)
                 {
                     if (!player.Hacking || player.HackTerminal != player.SyncTerminal) { CancelSyncCheck(player); continue; }
-                    if (!double.IsNaN(player.SyncBotPressAt) && _now >= player.SyncBotPressAt - TimeEpsilon)
+                    // A bot press is handled by the first tick that starts at or after it, like a human press arriving then;
+                    // it is judged at its own moment.
+                    if (!double.IsNaN(player.SyncBotPressAt) && _tickSimStart + _tickLag >= player.SyncBotPressAt - TimeEpsilon)
                     {
                         Judge(player, player.SyncBotPressAt);
                         continue;
                     }
-                    // A press made within Duration + tolerance arrives at most rtt/2 after that limit.
+                    // A press made within Duration + tolerance arrives at most one rtt after that limit. Every press that
+                    // arrived before this tick started has been handled already, so fail only once that start is past it.
                     double limit = player.SyncSentAt + GameConstants.SyncCheckDurationSeconds + GameConstants.SyncToleranceSeconds +
-                        RttOf(player) / 2;
-                    if (_now >= limit - TimeEpsilon) Resolve(player, SyncResult.Fail);
+                        RttOf(player);
+                    if (_tickSimStart + _tickLag >= limit - TimeEpsilon) Resolve(player, SyncResult.Fail);
                     continue;
                 }
                 if (!player.Hacking || !SyncChecksEnabled) continue;
@@ -207,7 +231,8 @@ namespace PingTheKiller.ServerCore
             player.SyncPending = true;
             player.SyncCheckId = ++_nextCheckId;
             player.SyncTerminal = player.HackTerminal;
-            player.SyncSentAt = _now;
+            // The moment the check leaves (this tick's start plus the time spent in it), not the end of the tick.
+            player.SyncSentAt = SimulatedNow();
             player.SyncZoneStart = (float)(GameConstants.SyncZoneStartMin +
                 random.NextDouble() * (GameConstants.SyncZoneStartMax - GameConstants.SyncZoneStartMin));
             player.SyncBotPressAt = double.NaN;
@@ -217,7 +242,7 @@ namespace PingTheKiller.ServerCore
                 double fraction = random.NextDouble() < BotSyncGreatShare
                     ? player.SyncZoneStart + GameConstants.SyncGreatSize / 2.0
                     : player.SyncZoneStart + (GameConstants.SyncGreatSize + GameConstants.SyncZoneSize) / 2.0;
-                player.SyncBotPressAt = _now + fraction * GameConstants.SyncCheckDurationSeconds;
+                player.SyncBotPressAt = player.SyncSentAt + fraction * GameConstants.SyncCheckDurationSeconds;
             }
             SendTo(player, new S2C_SyncCheck
             {
@@ -228,11 +253,12 @@ namespace PingTheKiller.ServerCore
         }
 
         // C2S_SyncPress: unknown, expired, repeated or non-survivor presses are ignored without a reply.
-        private void SyncPress(Player player, uint checkId)
+        // receivedAt: server clock when the press was queued, so the wait for the next tick does not count.
+        private void SyncPress(Player player, uint checkId, double receivedAt)
         {
             if (player.Role != Role.Survivor || !player.SyncPending || player.SyncCheckId != checkId || player.IsBot) return;
-            // The press happened about half a round trip before it arrived.
-            Judge(player, _now - RttOf(player) / 2);
+            // The needle the player saw had run (arrival - sent - rtt) seconds.
+            Judge(player, SimulatedArrival(receivedAt) - RttOf(player));
         }
 
         // Classifies a press moment against the pending check of this survivor.
@@ -300,7 +326,7 @@ namespace PingTheKiller.ServerCore
 
         internal double TerminalProgressForTests(int index) { lock (_tickGate) return _progress[index]; }
 
-        // Server tests only: the smoothed RTT the sync judge uses for this player (the server has no RTT probe yet).
+        // Server tests only: the smoothed RTT the sync judge subtracts for this player (the server has no RTT probe yet).
         internal void SetRttForTests(int playerId, double seconds)
         {
             lock (_tickGate)
