@@ -230,12 +230,24 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 Assert.That(match.Role, Is.EqualTo((byte)Role.Survivor));
 
                 int killerEntriesChecked = 0;
+                int firstKillerSnapshot = -1;
+                uint inputSeq = 0;
                 // Map v2 (U6b): every survivor spawn is out of the Killer's sight by design, so the Killer entry only arrives once
-                // the Killer bot has walked into line of sight. Check at least ten snapshots, and go on (at most 1200 = 60 s of
-                // game time) until a Killer entry has been checked.
-                for (int i = 0; i < 1200 && (i < 10 || killerEntriesChecked == 0); i++)
+                // the Killer bot has walked into line of sight. A Survivor that stands still is Silent and the Killer bot never
+                // hunts it, so the probe keeps sending MoveInput (a square walk, a new side every ten snapshots): the Signal
+                // makes the Killer bot chase it. Check at least ten snapshots, and go on (at most 2400 = 120 s of game time; five runs needed 103-599)
+                // until a Killer entry has been checked.
+                for (int i = 0; i < 2400 && (i < 10 || killerEntriesChecked == 0); i++)
                 {
                     S2C_WorldState world = probe.Await<S2C_WorldState>();
+                    int side = (i / 10) % 4;
+                    probe.Link.Send(new C2S_MoveInput
+                    {
+                        DirX = side == 0 ? 1f : side == 2 ? -1f : 0f,
+                        DirZ = side == 1 ? 1f : side == 3 ? -1f : 0f,
+                        Yaw = 0f,
+                        Seq = ++inputSeq
+                    });
                     bool sawSelf = false;
                     foreach (PlayerState player in world.Players)
                     {
@@ -246,7 +258,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                         }
                         if (player.Role == (byte)Role.Killer)
                         {
-                            killerEntriesChecked++;
+                            if (killerEntriesChecked++ == 0) firstKillerSnapshot = i + 1;
                             // U2e contract: Killer entry has Role=Killer and Flags, StatusTimer, CaptureCount all zero
                             Assert.That(player.Id, Is.GreaterThan(0), "U2e contract: Killer Id must be non-zero");
                             Assert.That(player.Flags, Is.EqualTo((byte)PlayerFlags.None), "U2e contract: Killer entry Flags must be zero");
@@ -257,6 +269,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                     Assert.That(sawSelf, Is.True, "Survivor sees itself in every world state snapshot");
                 }
                 Assert.That(killerEntriesChecked, Is.GreaterThan(0), "Survivor with clear line of sight must receive the Killer entry (U2e contract)");
+                TestContext.WriteLine("SNAPSHOTS_TO_FIRST_KILLER=" + firstKillerSnapshot);
             }
         }
     }
