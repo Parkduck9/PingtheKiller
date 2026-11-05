@@ -170,13 +170,14 @@ public sealed class RulesV2Tests
     }
 
     // Waits until the press arrives at least `late` seconds after the target moment, then sets the RTT so that the
-    // judge's estimate (arrival - rtt/2) is exactly the target, and presses. Returns the progress change of the press tick.
+    // judge's estimate (arrival - rtt) is exactly the target, and presses. Returns the progress change of the press tick.
+    // The fixture clock stands still, so the press is timed at the start of the tick that handles it.
     private static (S2C_SyncResult Result, double Change) PressAt(RulesMatch m, Peer s, S2C_SyncCheck check, double fraction, double late = 0.06)
     {
         var srv = m.F.Server;
         double target = P(m, s).SyncSentAt + fraction * GameConstants.SyncCheckDurationSeconds;
         while (Now(m) < target + late) m.Tick();
-        srv.SetRttForTests(s.Id, 2 * (Now(m) - target));
+        srv.SetRttForTests(s.Id, Now(m) - target);
         double before = srv.TerminalProgressForTests(0);
         s.Send(new C2S_SyncPress { CheckId = check.CheckId });
         m.Tick();
@@ -234,7 +235,7 @@ public sealed class RulesV2Tests
     }
 
     [Fact]
-    public void AnUnansweredCheckFailsAfterDurationPlusToleranceAndHalfTheRtt()
+    public void AnUnansweredCheckFailsAfterDurationPlusToleranceAndTheRtt()
     {
         var (m, s, check) = StartCheck();
         using var _ = m;
@@ -242,8 +243,9 @@ public sealed class RulesV2Tests
         int n = 0;
         List<S2C_SyncResult> results;
         while ((results = Fresh<S2C_SyncResult>(s)).Count == 0 && n < 60) { m.Tick(); n++; }
-        // 1.1 + 0.15 + 0.1 = 1.35 s = 27 ticks after the check tick.
-        Assert.InRange(n, 26, 28);
+        // The check left at the start of its tick; 1.1 + 0.15 + 0.2 = 1.45 s = 29 ticks later a tick starts past the
+        // limit, after every press made in time has arrived.
+        Assert.InRange(n, 28, 30);
         Assert.Equal((byte)SyncResult.Fail, Assert.Single(results).Result);
         Assert.True(Has(World(m.Killer).Terminals[0], TerminalFlags.Overloaded));
         // Hacked since StartCheck: its two ticks plus the n waiting ticks.

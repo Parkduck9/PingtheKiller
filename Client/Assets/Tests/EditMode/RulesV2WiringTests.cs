@@ -388,8 +388,9 @@ namespace PingTheKiller.Client.Tests
         public void AutoSyncPressesAtTheGreatPartTheRestOfTheZoneOrNever()
         {
             var check = new SyncCheckView { Duration = 1.1f, ZoneStart = .6f, ZoneSize = .12f, GreatSize = .035f };
-            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .58f), Is.False);
-            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .595f), Is.True, "the lead before the zone (0.59)");
+            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .6f), Is.False, "not at the zone start");
+            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .617f), Is.False);
+            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .618f), Is.True, "the middle of the great part (0.6175)");
             Assert.That(HackPilot.SyncDue(AutoSync.Good, check, .65f), Is.False);
             Assert.That(HackPilot.SyncDue(AutoSync.Good, check, .678f), Is.True, "the middle of the zone after the great part (0.6775)");
             Assert.That(HackPilot.SyncDue(AutoSync.Miss, check, .99f), Is.False);

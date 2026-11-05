@@ -1,0 +1,454 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.083 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.415300 ms
+[offline server] join player=4 reconnect=false
+[offline server] match start players=8 killer=2 matchSeed=-617697788
+[DEV] match 1 start role=Survivor skill=3
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.01 local status=Normal timer=0.00 hud="" pos=52.00,1.50
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] skill player=2 role=Killer id=0
+[DEV] t=1.01 local position 52.00,1.50 moved=0.00 m
+[DEV] t=2.01 autopilot ToTerminal goal=54.50,8.00 held=0.00 pos=52.00,1.50
+[DEV] t=3.57 autopilot Hacking goal=54.50,8.00 held=0.01 pos=54.14,7.07
+[DEV] t=3.98 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=4.43 terminals 0:0 1:0 2:0 3:0 4:0 5:2 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=4.88 terminals 0:0 1:0 2:0 3:0 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.00 local position 54.23,7.29 moved=6.20 m
+[DEV] t=5.33 terminals 0:0 1:0 2:0 3:0 4:0 5:4 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.58 terminals 0:0 1:0 2:0 3:0 4:0 5:5 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.83 terminals 0:0 1:0 2:0 3:0 4:0 5:6 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=6.28 terminals 0:0 1:0 2:0 3:0 4:0 5:7 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=6.73 terminals 0:0 1:0 2:0 3:0 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=7.18 terminals 0:0 1:0 2:0 3:0 4:0 5:9 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=7.63 terminals 0:0 1:0 2:0 3:0 4:0 5:10 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.08 terminals 0:0 1:0 2:0 3:0 4:0 5:11 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.53 terminals 0:0 1:0 2:0 3:0 4:0 5:12 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.98 terminals 0:0 1:0 2:0 3:0 4:0 5:13 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.43 terminals 0:0 1:0 2:0 3:0 4:0 5:14 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.88 terminals 0:0 1:0 2:0 3:0 4:0 5:15 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.33 terminals 0:0 1:0 2:0 3:0 4:0 5:16 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.78 terminals 0:0 1:0 2:0 3:0 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=11.23 terminals 0:0 1:0 2:0 3:0 4:0 5:18 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=11.68 terminals 0:0 1:0 2:0 3:0 4:0 5:19 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=12.13 terminals 0:0 1:0 2:0 3:0 4:0 5:20 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=12.58 terminals 0:0 1:0 2:0 3:0 4:0 5:21 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.03 terminals 0:0 1:0 2:0 3:0 4:0 5:22 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.48 terminals 0:0 1:0 2:0 3:0 4:0 5:23 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.93 terminals 0:0 1:0 2:0 3:0 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.28 terminals 0:0 1:0 2:0 3:0 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.53 terminals 0:0 1:0 2:0 3:0 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.78 terminals 0:0 1:0 2:0 3:0 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.03 terminals 0:0 1:0 2:0 3:0 4:0 5:28 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.28 terminals 0:0 1:0 2:0 3:0 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.53 terminals 0:0 1:0 2:0 3:0 4:0 5:30 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.78 terminals 0:0 1:0 2:0 3:0 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.03 terminals 0:0 1:0 2:0 3:0 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.28 terminals 0:0 1:0 2:0 3:0 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.33 sync check id=1 terminal=5 zone=0.64+0.12 accepted=True
+[DEV] t=16.53 terminals 0:0 1:0 2:0 3:0 4:0 5:34 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.78 terminals 0:0 1:0 2:0 3:0 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.03 terminals 0:0 1:0 2:0 3:0 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SyncPress check=1 needle=0.720
+[offline server] sync player=4 check=1 result=Good
+[DEV] t=17.13 sync result id=1 result=Good matched=True
+[DEV] t=17.28 terminals 0:0 1:0 2:0 3:0 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.53 terminals 0:0 1:0 2:0 3:0 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.78 terminals 0:0 1:0 2:0 3:0 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.03 terminals 0:0 1:0 2:0 3:0 4:0 5:40 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.38 terminals 0:0 1:0 2:0 3:0 4:0 5:41 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.83 terminals 0:0 1:0 2:0 3:0 4:0 5:42 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=19.28 terminals 0:0 1:0 2:0 3:0 4:0 5:43 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=19.73 terminals 0:0 1:0 2:0 3:0 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=20.18 terminals 0:0 1:0 2:0 3:0 4:0 5:45 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=20.63 terminals 0:0 1:0 2:0 3:0 4:0 5:46 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.08 terminals 0:0 1:0 2:0 3:0 4:0 5:47 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.53 terminals 0:0 1:0 2:0 3:0 4:0 5:48 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.98 terminals 0:0 1:0 2:0 3:0 4:0 5:49 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.43 terminals 0:0 1:0 2:0 3:0 4:0 5:50 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.53 killer model shown
+[DEV] t=22.78 terminals 0:0 1:0 2:0 3:0 4:0 5:51 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.03 terminals 0:0 1:0 2:0 3:0 4:0 5:52 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.28 terminals 0:0 1:0 2:0 3:0 4:0 5:53 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.53 terminals 0:0 1:0 2:0 3:0 4:0 5:54 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.78 terminals 0:0 1:0 2:0 3:0 4:0 5:55 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.03 terminals 0:0 1:0 2:0 3:0 4:0 5:56 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.28 terminals 0:0 1:0 2:0 3:0 4:0 5:57 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.53 terminals 0:0 1:0 2:0 3:0 4:0 5:58 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.78 terminals 0:0 1:0 2:0 3:0 4:0 5:59 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.03 terminals 0:0 1:0 2:0 3:0 4:0 5:60 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.28 terminals 0:0 1:0 2:0 3:0 4:0 5:61 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.53 terminals 0:0 1:0 2:0 3:0 4:0 5:62 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.73 killer model hidden
+[DEV] t=25.78 terminals 0:0 1:0 2:0 3:0 4:0 5:63 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.03 terminals 0:0 1:0 2:0 3:0 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.28 terminals 0:0 1:0 2:0 3:0 4:0 5:65 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.63 terminals 0:0 1:0 2:0 3:0 4:0 5:66 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.08 terminals 0:0 1:0 2:0 3:0 4:0 5:67 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.53 terminals 0:0 1:0 2:0 3:0 4:0 5:68 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.98 terminals 0:0 1:0 2:0 3:0 4:0 5:69 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.43 terminals 0:0 1:0 2:0 3:0 4:0 5:70 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.88 terminals 0:0 1:0 2:0 3:0 4:0 5:71 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.33 terminals 0:0 1:0 2:0 3:0 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.78 terminals 0:0 1:0 2:0 3:0 4:0 5:73 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.08 sync check id=2 terminal=5 zone=0.57+0.12 accepted=True
+[DEV] t=30.23 terminals 0:0 1:0 2:0 3:0 4:0 5:74 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.53 terminals 0:0 1:0 2:0 3:0 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.78 terminals 0:0 1:0 2:0 3:0 4:0 5:76 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SyncPress check=2 needle=0.655
+[offline server] sync player=4 check=2 result=Good
+[DEV] t=30.83 sync result id=2 result=Good matched=True
+[DEV] t=31.03 terminals 0:0 1:0 2:0 3:0 4:0 5:77 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.28 terminals 0:0 1:0 2:0 3:0 4:0 5:78 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.53 terminals 0:0 1:0 2:0 3:0 4:0 5:79 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.78 terminals 0:0 1:0 2:0 3:0 4:0 5:80 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.03 terminals 0:0 1:0 2:0 3:0 4:0 5:81 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.28 terminals 0:0 1:0 2:0 3:0 4:0 5:82 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.53 terminals 0:0 1:0 2:0 3:0 4:0 5:83 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.78 terminals 0:0 1:0 2:0 3:0 4:0 5:84 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.03 terminals 0:0 1:0 2:0 3:0 4:0 5:85 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.28 terminals 0:0 1:0 2:0 3:0 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.53 terminals 0:0 1:0 2:0 3:0 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.93 terminals 0:0 1:0 2:0 3:0 4:0 5:88 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.38 terminals 0:0 1:0 2:0 3:0 4:0 5:89 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.83 terminals 0:0 1:0 2:0 3:0 4:0 5:90 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=35.28 terminals 0:0 1:0 2:0 3:0 4:0 5:91 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=35.73 terminals 0:0 1:0 2:0 3:0 4:0 5:92 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.18 terminals 0:0 1:0 2:0 3:0 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.63 terminals 0:0 1:0 2:0 3:0 4:0 5:94 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.08 terminals 0:0 1:0 2:0 3:0 4:0 5:95 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.53 terminals 0:0 1:0 2:0 3:0 4:0 5:96 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.98 terminals 0:0 1:0 2:0 3:0 4:0 5:97 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=38.43 terminals 0:0 1:0 2:0 3:0 4:0 5:98 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=38.88 terminals 0:0 1:0 2:0 3:0 4:0 5:99 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] terminal 5 complete
+[DEV] t=39.33 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=39.33 autopilot ToTerminal goal=58.00,27.00 held=35.76 pos=54.23,7.29
+[DEV] t=44.20 autopilot Hacking goal=58.00,27.00 held=35.77 pos=57.81,26.03
+[DEV] t=44.63 terminals 0:0 1:1 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=45.08 terminals 0:0 1:2 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=45.53 terminals 0:0 1:3 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=45.98 terminals 0:0 1:4 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=46.38 sync check id=3 terminal=1 zone=0.55+0.12 accepted=True
+[DEV] t=46.43 terminals 0:0 1:5 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=46.88 terminals 0:0 1:6 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[net] SyncPress check=3 needle=0.630
+[offline server] sync player=4 check=3 result=Good
+[DEV] t=47.08 sync result id=3 result=Good matched=True
+[DEV] t=47.33 terminals 0:0 1:7 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=47.78 terminals 0:0 1:8 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=47.83 killer model shown
+[DEV] t=48.23 terminals 0:0 1:9 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=48.68 terminals 0:0 1:10 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=48.73 killer model hidden
+[DEV] t=49.13 terminals 0:0 1:11 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=49.58 terminals 0:0 1:12 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=49.83 terminals 0:0 1:13 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=50.08 terminals 0:0 1:14 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=50.33 terminals 0:0 1:15 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=50.58 terminals 0:0 1:16 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=50.73 terminals 0:0 1:17 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=50.93 terminals 0:0 1:18 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.13 terminals 0:0 1:19 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.33 terminals 0:0 1:20 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.48 terminals 0:0 1:21 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.68 terminals 0:0 1:22 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.88 terminals 0:0 1:23 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=52.08 terminals 0:0 1:24 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=52.28 terminals 0:0 1:25 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=52.53 terminals 0:0 1:26 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=52.83 terminals 0:0 1:27 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=53.28 terminals 0:0 1:28 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=53.73 terminals 0:0 1:29 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=54.18 terminals 0:0 1:30 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=54.63 terminals 0:0 1:31 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=55.08 terminals 0:0 1:32 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=55.53 terminals 0:0 1:33 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=55.98 terminals 0:0 1:34 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=56.03 killer model shown
+[DEV] t=56.43 terminals 0:0 1:35 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=56.88 terminals 0:0 1:36 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=57.03 killer model hidden
+[DEV] t=57.33 terminals 0:0 1:37 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=57.78 terminals 0:0 1:38 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=58.23 terminals 0:0 1:39 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=58.68 terminals 0:0 1:40 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=59.13 terminals 0:0 1:41 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=59.58 terminals 0:0 1:42 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=60.03 terminals 0:0 1:43 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=60.23 sync check id=4 terminal=1 zone=0.58+0.12 accepted=True
+[DEV] t=60.48 terminals 0:0 1:44 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=60.93 terminals 0:0 1:45 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[net] SyncPress check=4 needle=0.661
+[offline server] sync player=4 check=4 result=Good
+[DEV] t=60.98 sync result id=4 result=Good matched=True
+[DEV] t=61.38 terminals 0:0 1:46 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=61.83 terminals 0:0 1:47 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=62.28 terminals 0:0 1:48 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=62.38 killer model shown
+[DEV] t=62.73 terminals 0:0 1:49 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=63.18 terminals 0:0 1:50 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=63.63 terminals 0:0 1:51 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=64.08 terminals 0:0 1:52 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=64.53 terminals 0:0 1:53 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=64.98 terminals 0:0 1:54 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=65.43 terminals 0:0 1:55 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=65.88 terminals 0:0 1:56 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=66.33 terminals 0:0 1:57 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=66.78 terminals 0:0 1:58 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=67.18 threat visual level=1
+[DEV] t=67.23 terminals 0:0 1:59 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=67.68 terminals 0:0 1:60 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=68.13 terminals 0:0 1:61 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=68.48 threat visual level=2
+[DEV] t=68.58 terminals 0:0 1:62 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=69.03 terminals 0:0 1:63 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=69.48 terminals 0:0 1:64 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=69.78 threat visual level=3
+[DEV] t=69.93 terminals 0:0 1:65 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=70.38 terminals 0:0 1:66 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] status player=4 Lagging reason=capture
+[client] captured: banner + stutter
+[DEV] t=70.83 local status=Lagging timer=60.00 hud="Lagging · 60 s" pos=57.87,26.34
+[DEV] t=70.83 autopilot Idle goal=58.00,27.00 held=62.39 pos=57.87,26.34
+[client] Lagging stutter on (8 Hz hold + 30 % blend)
+[DEV] t=71.83 local status=Lagging timer=59.00 hud="Lagging · 59 s" pos=57.87,26.34
+[DEV] t=72.83 local status=Lagging timer=58.00 hud="Lagging · 58 s" pos=57.87,26.34
+[DEV] t=73.83 local status=Lagging timer=57.00 hud="Lagging · 57 s" pos=57.87,26.34
+[DEV] t=74.83 local status=Lagging timer=56.00 hud="Lagging · 56 s" pos=57.87,26.34
+[DEV] t=75.83 local status=Lagging timer=55.00 hud="Lagging · 55 s" pos=57.87,26.34
+[DEV] t=76.83 local status=Lagging timer=54.00 hud="Lagging · 54 s" pos=57.87,26.34
+[DEV] t=77.08 threat visual level=2
+[offline server] skill player=2 role=Killer id=0
+[fx] killer skill=0 viewer=Affected line="Scanned: the Killer sees you · 1.5 s" visual=Hovl/Circle sound=ScanTarget reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[DEV] t=77.83 local status=Lagging timer=53.00 hud="Lagging · 53 s" pos=57.87,26.34
+[DEV] t=78.43 threat visual level=1
+[DEV] t=78.83 local status=Lagging timer=52.00 hud="Lagging · 52 s" pos=57.87,26.34
+[DEV] t=79.73 threat visual level=0
+[DEV] t=79.83 local status=Lagging timer=51.00 hud="Lagging · 51 s" pos=57.87,26.34
+[DEV] t=80.83 local status=Lagging timer=50.00 hud="Lagging · 50 s" pos=57.87,26.34
+[DEV] t=81.13 killer model hidden
+[DEV] t=81.83 local status=Lagging timer=49.00 hud="Lagging · 49 s" pos=57.87,26.34
+[DEV] t=82.83 local status=Lagging timer=48.00 hud="Lagging · 48 s" pos=57.87,26.34
+[DEV] t=83.83 local status=Lagging timer=47.00 hud="Lagging · 47 s" pos=57.87,26.34
+[DEV] t=84.83 local status=Lagging timer=46.00 hud="Lagging · 46 s" pos=57.87,26.34
+[DEV] t=85.83 local status=Lagging timer=45.00 hud="Lagging · 45 s" pos=57.87,26.34
+[DEV] t=86.83 local status=Lagging timer=44.00 hud="Lagging · 44 s" pos=57.87,26.34
+[DEV] t=87.83 local status=Lagging timer=43.00 hud="Lagging · 43 s" pos=57.87,26.34
+[DEV] t=88.58 selfstate #90 skillCooldown=0.00 rescue=0.02 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=88.83 local status=Lagging timer=42.00 hud="Lagging · 42 s" pos=57.87,26.34
+[DEV] t=89.58 selfstate #91 skillCooldown=0.00 rescue=0.35 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=89.83 local status=Lagging timer=41.00 hud="Lagging · 41 s" pos=57.87,26.34
+[DEV] t=90.58 selfstate #92 skillCooldown=0.00 rescue=0.68 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=90.83 local status=Lagging timer=40.00 hud="Lagging · 40 s" pos=57.87,26.34
+[offline server] status player=4 Normal reason=rescue
+[DEV] t=91.53 local status=Normal timer=0.00 hud="" pos=57.87,26.34
+[DEV] t=91.53 selfstate #93 skillCooldown=0.00 rescue=0.00 invulnerable=2.00 collapse=-1.00 action=None:0.00
+[DEV] t=91.53 autopilot Hacking goal=58.00,27.00 held=62.40 pos=57.87,26.34
+[DEV] t=91.58 terminals 0:0 1:67 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=92.03 terminals 0:0 1:68 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=92.18 sync check id=5 terminal=1 zone=0.53+0.12 accepted=True
+[DEV] t=92.48 terminals 0:0 1:69 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=92.53 selfstate #94 skillCooldown=0.00 rescue=0.00 invulnerable=1.00 collapse=-1.00 action=None:0.00
+[net] SyncPress check=5 needle=0.611
+[offline server] sync player=4 check=5 result=Good
+[DEV] t=92.88 sync result id=5 result=Good matched=True
+[DEV] t=92.93 terminals 0:0 1:70 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=93.38 terminals 0:0 1:71 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=93.83 terminals 0:0 1:72 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=94.28 terminals 0:0 1:73 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=94.73 terminals 0:0 1:74 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=95.18 terminals 0:0 1:75 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=95.63 terminals 0:0 1:76 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=95.73 terminals 0:0 1:76 2:0 3:0 4:0 5:100 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=96.08 terminals 0:0 1:77 2:0 3:0 4:0 5:100 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=96.18 terminals 0:0 1:77 2:0 3:0 4:0 5:100 6:0 7:2 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=96.53 terminals 0:0 1:78 2:0 3:0 4:0 5:100 6:0 7:2 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=96.63 terminals 0:0 1:78 2:0 3:0 4:0 5:100 6:0 7:3 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=96.98 terminals 0:0 1:79 2:0 3:0 4:0 5:100 6:0 7:3 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.08 terminals 0:0 1:79 2:0 3:0 4:0 5:100 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.43 terminals 0:0 1:80 2:0 3:0 4:0 5:100 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.53 terminals 0:0 1:80 2:0 3:0 4:0 5:100 6:0 7:5 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.88 terminals 0:0 1:81 2:0 3:0 4:0 5:100 6:0 7:5 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.98 terminals 0:0 1:81 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=98.33 terminals 0:0 1:82 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=98.78 terminals 0:0 1:83 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=99.23 terminals 0:0 1:84 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=99.68 terminals 0:0 1:85 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=100.13 terminals 0:0 1:86 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=100.58 terminals 0:0 1:87 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=101.03 terminals 0:0 1:88 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=101.48 terminals 0:0 1:89 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=101.93 terminals 0:0 1:90 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=102.38 terminals 0:0 1:91 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=102.83 terminals 0:0 1:92 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=103.28 terminals 0:0 1:93 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=103.73 terminals 0:0 1:94 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=104.18 terminals 0:0 1:95 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=104.63 terminals 0:0 1:96 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=105.08 terminals 0:0 1:97 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=105.53 terminals 0:0 1:98 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=105.98 terminals 0:0 1:99 2:0 3:0 4:0 5:100 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=106.38 terminals 0:0 1:99 2:0 3:0 4:0 5:100 6:0 7:7 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] terminal 1 complete
+[DEV] t=106.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:7 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=106.43 autopilot ToTerminal goal=76.00,40.00 held=77.30 pos=57.87,26.34
+[DEV] t=106.68 killer model shown
+[DEV] t=106.83 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:8 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=107.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:9 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=107.33 killer model hidden
+[DEV] t=107.73 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:10 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=108.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:11 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=108.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:12 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=112.04 autopilot Hacking goal=76.00,40.00 held=77.30 pos=75.13,39.55
+[DEV] t=112.33 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:13 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=112.78 sync check id=6 terminal=7 zone=0.60+0.12 accepted=True
+[DEV] t=112.78 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:14 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=113.23 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:15 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[net] SyncPress check=6 needle=0.682
+[offline server] sync player=4 check=6 result=Good
+[DEV] t=113.58 sync result id=6 result=Good matched=True
+[DEV] t=113.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:16 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=114.13 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:17 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=114.58 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:18 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=115.03 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:19 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=115.48 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:20 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=115.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=116.38 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:22 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=116.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:23 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=116.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:24 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=117.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:25 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=117.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:26 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=117.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:27 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=117.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:28 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=118.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:29 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=118.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:30 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=118.73 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:31 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=119.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:32 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=119.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:33 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=120.08 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:34 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=120.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:35 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=120.98 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:36 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=121.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:37 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=121.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:38 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=122.18 sync check id=8 terminal=7 zone=0.78+0.12 accepted=True
+[DEV] t=122.18 killer model shown
+[DEV] t=122.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:39 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=122.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:40 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=122.78 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:41 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=123.03 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:42 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[net] SyncPress check=8 needle=0.863
+[offline server] sync player=4 check=8 result=Good
+[DEV] t=123.13 sync result id=8 result=Good matched=True
+[DEV] t=123.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:43 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=123.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:44 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=123.78 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:45 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=124.03 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:46 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[offline server] sync player=1 check=9 result=Fail
+[DEV] t=124.13 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:41 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=124.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:42 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=124.38 killer model hidden
+[DEV] t=124.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:43 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=125.08 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:44 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=125.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:45 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=125.98 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:46 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=126.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:47 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=126.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:48 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=127.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:49 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=127.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:50 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=127.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:51 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=127.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:52 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=128.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:53 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=128.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:54 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=128.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:55 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=128.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:56 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=129.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:57 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=129.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:58 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=129.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:59 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=129.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:60 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=130.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:61 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=130.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:62 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=130.83 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:63 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=131.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:64 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=131.73 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:65 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=132.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:66 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=132.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:67 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=133.08 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:68 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=133.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:69 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=133.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:70 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=134.13 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:71 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=134.38 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:72 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=134.48 sync check id=10 terminal=7 zone=0.55+0.12 accepted=True
+[DEV] t=134.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:73 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=134.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:74 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=135.13 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:75 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[net] SyncPress check=10 needle=0.629
+[offline server] sync player=4 check=10 result=Good
+[DEV] t=135.18 sync result id=10 result=Good matched=True
+[DEV] t=135.38 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:76 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=135.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:77 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=135.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:78 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=136.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:79 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=136.73 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:80 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=137.18 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:81 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=137.63 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:82 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=138.08 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:83 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=138.53 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:84 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=138.98 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:85 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=139.43 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:86 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=139.88 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:87 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=140.33 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:88 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=140.78 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:89 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=141.23 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:90 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=141.68 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:91 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=142.13 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:92 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=142.58 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:93 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=143.03 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:94 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=143.48 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:95 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=143.93 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:96 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=144.38 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:97 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=144.83 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:98 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=145.28 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:99 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[offline server] terminal 7 complete
+[DEV] t=145.73 terminals 0:0 1:100 2:0 3:0 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 3/5"
+[DEV] t=145.73 autopilot ToTerminal goal=41.00,44.00 held=111.00 pos=75.45,39.72
+[DEV] quit after 150 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

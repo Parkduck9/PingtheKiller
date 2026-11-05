@@ -46,7 +46,7 @@ namespace PingTheKiller.ServerCore
         // A survivor bot's planned press instant for the pending check (NaN: it misses).
         internal double SyncBotPressAt = double.NaN;
         internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
-        // Smoothed round-trip time used by the sync judge; 0 until a measurement exists.
+        // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
         internal double RttSeconds;
         internal double ExposedUntil, StealthUntil;
         internal double OverclockUntil, RecoveryUntil, SlowedUntil;

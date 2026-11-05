@@ -761,7 +761,7 @@ Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, Grea
   - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
 - **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the ring hides until a new `CheckId` arrives.
 - **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3).
+- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the needle is drawn in the great part is Great (U6f).
 - **No flashing:** one change only, the centre word, with no colour flash and no shake.
 - **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
 - **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The ring clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.

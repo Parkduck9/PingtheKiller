@@ -29,11 +29,13 @@ namespace PingTheKiller.ServerCore
         }
         private readonly struct Input
         {
-            internal Input(Binding binding, IPacket packet, byte kind)
-            { Binding = binding; Packet = packet; Kind = kind; }
+            internal Input(Binding binding, IPacket packet, byte kind, double receivedAt)
+            { Binding = binding; Packet = packet; Kind = kind; ReceivedAt = receivedAt; }
             internal readonly Binding Binding;
             internal readonly IPacket Packet;
             internal readonly byte Kind; // 0 = packet, 1 = add, 2 = close
+            // Server clock seconds when the receive thread queued it (only C2S_SyncPress uses it).
+            internal readonly double ReceivedAt;
         }
 
         private readonly ConcurrentQueue<Input> _inputs = new ConcurrentQueue<Input>();
@@ -59,6 +61,15 @@ namespace PingTheKiller.ServerCore
         private double _now, _matchTime;
         private uint _tick;
         private readonly Dictionary<string, double> _faultLogs = new Dictionary<string, double>();
+        // One monotonic wall clock in seconds (a Stopwatch unless a test injects one), read on any thread.
+        private readonly Func<double> _clock;
+        // The current tick: its simulated start (_now before the increment), its length, the clock when it started, and
+        // how late Run started it after its schedule (0 for a manual Tick). Simulated time t inside the tick maps to the
+        // clock as _tickWallStart - _tickLag + (t - _tickSimStart), so a check and a press in different ticks are timed
+        // on the same scale even when the loop wakes up late.
+        private double _tickSimStart, _tickDt, _tickWallStart, _tickLag;
+        // Run drops its backlog after 1 s, so a real tick is never later than this.
+        private const double MaxTickLagSeconds = 2;
 
         public GameServer(ServerOptions options = null)
         {
@@ -69,6 +80,12 @@ namespace PingTheKiller.ServerCore
             _initialBots = Math.Max(0, Math.Min(Protocol.MaxPlayers, options.BotCount));
             _privateSeedHook = options.Seed;
             _matchSeedHook = options.MatchSeedForTests;
+            if (options.ClockForTests != null) _clock = options.ClockForTests;
+            else
+            {
+                var stopwatch = Stopwatch.StartNew();
+                _clock = () => stopwatch.Elapsed.TotalSeconds;
+            }
             Nav = new NavGrid(Map);
             SeedPrivateStreams();
         }
@@ -107,8 +124,8 @@ namespace PingTheKiller.ServerCore
             if (connection == null) throw new ArgumentNullException(nameof(connection));
             var binding = new Binding { Connection = connection };
             binding.Available = () => DrainConnection(binding);
-            binding.Closed = () => _inputs.Enqueue(new Input(binding, null, 2));
-            _inputs.Enqueue(new Input(binding, null, 1));
+            binding.Closed = () => _inputs.Enqueue(new Input(binding, null, 2, _clock()));
+            _inputs.Enqueue(new Input(binding, null, 1, _clock()));
             connection.PacketAvailable += binding.Available;
             connection.Closed += binding.Closed;
             DrainConnection(binding);
@@ -131,7 +148,7 @@ namespace PingTheKiller.ServerCore
                     binding.Connection.Close();
                     break;
                 }
-                _inputs.Enqueue(new Input(binding, packet, 0));
+                _inputs.Enqueue(new Input(binding, packet, 0, _clock()));
             }
         }
 
@@ -190,7 +207,8 @@ namespace PingTheKiller.ServerCore
                         _stop.Wait(TimeSpan.FromSeconds(wait));
                         continue;
                     }
-                    try { Tick(1f / GameConstants.TickRate); }
+                    // -wait: how far behind its schedule this tick starts (the sync judge maps the clock through it).
+                    try { Tick(1f / GameConstants.TickRate, -wait); }
                     catch (Exception ex)
                     {
                         string message = ex.GetType().Name + ": " + ex.Message;
@@ -214,7 +232,10 @@ namespace PingTheKiller.ServerCore
             finally { Volatile.Write(ref _running, 0); }
         }
 
-        public void Tick(float dt)
+        public void Tick(float dt) => Tick(dt, 0);
+
+        // lateBy: seconds between the tick's scheduled start and now (Run, and the sync timing tests).
+        internal void Tick(float dt, double lateBy)
         {
             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt <= 0 || dt > 60)
                 throw new ArgumentOutOfRangeException(nameof(dt));
@@ -222,6 +243,10 @@ namespace PingTheKiller.ServerCore
             {
                 if (Volatile.Read(ref _running) != 0 && Thread.CurrentThread != _thread)
                     throw new InvalidOperationException("Manual Tick cannot run alongside Start().");
+                _tickWallStart = _clock();
+                _tickLag = double.IsNaN(lateBy) || lateBy < 0 ? 0 : Math.Min(lateBy, MaxTickLagSeconds);
+                _tickSimStart = _now;
+                _tickDt = dt;
                 if (!_initialized)
                 {
                     _initialized = true;
@@ -239,7 +264,7 @@ namespace PingTheKiller.ServerCore
                     {
                         Interlocked.Decrement(ref input.Binding.Pending);
                         if (_connections.TryGetValue(input.Binding.Connection.RemoteId, out var active) && active == input.Binding)
-                            Handle(input.Binding.Connection, input.Packet);
+                            Handle(input.Binding.Connection, input.Packet, input.ReceivedAt);
                     }
                 }
                 if (_matchStarted)
@@ -327,7 +352,8 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players) if (player.ConnectionId == id) return player;
             return null;
         }
-        private void Handle(IConnection connection, IPacket packet)
+        // receivedAt: server clock when the packet was queued; only C2S_SyncPress reads it.
+        private void Handle(IConnection connection, IPacket packet, double receivedAt)
         {
             if (connection.IsClosed) return;
             if (packet is C2S_Join join) { Join(connection, join); return; }
@@ -337,7 +363,7 @@ namespace PingTheKiller.ServerCore
             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
             if (packet is C2S_UseSkill skill) { if (_matchStarted) RequestSkill(player, skill.SkillId); return; }
-            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId); return; }
+            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId, receivedAt); return; }
             if (!_matchStarted && player.IsHost)
             {
                 if (packet is C2S_SetBots bots)
