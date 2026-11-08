@@ -30,6 +30,8 @@ namespace PingTheKiller.ServerCore
         internal bool HatchVisible;
         internal float HatchX, HatchZ;
         internal byte Threat;
+        // Personal collapse clock, as received in SelfState (-1 before collapse).
+        internal float CollapseLeft = -1;
         internal bool KillerVisible;
         internal float KillerX, KillerZ, KillerYaw;
     }

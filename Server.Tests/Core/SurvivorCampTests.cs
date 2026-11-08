@@ -25,6 +25,9 @@ public sealed class SurvivorCampTests
         internal bool KillerVisible;
         internal double Time;
         internal BotIntent Intent;
+        // Hack progress of the incomplete terminal (U6d-a3: the view shows it rising while the bot hacks, as GameServer
+        // does; a view frozen at 0 put the bot in commit mode after CommitSeconds).
+        internal double Progress;
 
         internal Sim(int seed, float x, float z)
         {
@@ -65,6 +68,11 @@ public sealed class SurvivorCampTests
             bool moved = Dist(next.X, next.Z, View.X, View.Z) > 0.001f;
             View.X = next.X;
             View.Z = next.Z;
+            if (Hacking)
+            {
+                Progress = System.Math.Min(100, Progress + 100.0 * Dt / GameConstants.TerminalHackTimeSeconds);
+                View.Terminals[Terminal].Progress = (byte)Progress;
+            }
             // Moving or hacking is Signal; the WorldState of the next tick carries it in this bot's own entry.
             View.Team.Clear();
             View.Team.Add(new PlayerState
@@ -116,12 +124,14 @@ public sealed class SurvivorCampTests
         Assert.True(maxThreatWhileHacking >= 2, "the hacking spot must be inside ThreatLevel 2 for this test to mean anything");
     }
 
-    // The same idle killer in plain sight (standing still, facing the terminal) does not freeze the bot either.
+    // Sight initially triggers hiding; stale camping releases work when the killer becomes unseen.
     [Fact]
-    public void AnIdleKillerInSightNearTheLastTerminalDoesNotFreezeTheBot()
+    public void AnIdleKillerSeenThenHiddenDoesNotFreezeTheBot()
     {
         var sim = new Sim(7, 41f, 38f) { KillerVisible = true, KillerYaw = 90f };
-        Assert.True(sim.RunUntilHacking(120), "the bot never hacked next to an idle killer in sight");
+        for (int i = 0; i < 100; i++) { sim.Step(); Assert.False(sim.Hacking); }
+        sim.KillerVisible = false;
+        Assert.True(sim.RunUntilHacking(120), "the bot never resumed after the killer became unseen");
     }
 
     // Once the bot works next to the camping killer, a rising ThreatLevel (the killer walks at it, still unseen) makes it
@@ -144,8 +154,15 @@ public sealed class SurvivorCampTests
         bool stopped = false;
         for (int i = 0; i < 20 && !stopped; i++) { sim.Step(); stopped = !sim.Intent.Interact; }
         Assert.True(stopped, "still hacking 1 s after ThreatLevel rose to 3");
-        for (int i = 0; i < 5 * 20; i++) sim.Step();
-        Assert.True(Dist(sim.View.X, sim.View.Z, hackX, hackZ) > 3f, "the bot did not flee from the rising threat");
+        // U6d-a3: the farthest point of the flee (in this view the bot is 25 s into the match without progress, so commit
+        // mode may send it back to the terminal once the threat drops below 3).
+        float farthest = 0;
+        for (int i = 0; i < 5 * 20; i++)
+        {
+            sim.Step();
+            farthest = System.Math.Max(farthest, Dist(sim.View.X, sim.View.Z, hackX, hackZ));
+        }
+        Assert.True(farthest > 3f, "the bot did not flee from the rising threat");
     }
 
     // A killer seen walking at the bot (the existing coming rule) still interrupts work next to a former camp.
@@ -199,6 +216,8 @@ public sealed class SurvivorCampTests
             sim.Step();
             Assert.Equal(2, sim.View.Threat);
         }
+        // This variant loses sight; continuous sight is covered separately below.
+        sim.KillerVisible = false;
         bool atOther = false;
         for (int i = 0; i < 90 * 20 && !atOther; i++)
         {
@@ -225,5 +244,32 @@ public sealed class SurvivorCampTests
             closest = System.Math.Min(closest, Dist(sim.View.X, sim.View.Z, sim.KillerX, sim.KillerZ));
         }
         Assert.True(closest > GameConstants.CaptureRadius + 1f, $"seed {seed}: came within {closest:0.00} m of the killer");
+    }
+
+    [Fact]
+    public void VisibleCampReleasesOccludedWorkWithinFortySecondsAndMovementRestoresHiding()
+    {
+        var sim = new Sim(7, 41, 38) { KillerVisible = true, KillerX = 8, KillerZ = 38 };
+        Assert.True(Dist(sim.View.X, sim.View.Z, sim.KillerX, sim.KillerZ) > GameConstants.ThreatLevel2Distance);
+        bool hackedByForty = false;
+        for (int i = 0; i < 60 * 20; i++)
+        {
+            sim.Step();
+            if (!sim.Hacking) continue;
+            Assert.True(sim.Map.SegmentBlocked(sim.KillerX, sim.KillerZ,
+                sim.View.Terminals[Terminal].X, sim.View.Terminals[Terminal].Z));
+            if (sim.Time <= 40) hackedByForty = true;
+        }
+        Assert.True(hackedByForty, $"no occluded hack within 40s; position {sim.View.X},{sim.View.Z}");
+        bool hid = false;
+        for (int i = 0; i < 20; i++)
+        {
+            sim.KillerX += .1f;
+            sim.Step();
+            hid |= (bool)typeof(SurvivorBrain).GetField("_hiding",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(sim.Brain)!;
+        }
+        Assert.True(hid, "visible killer movement did not restore hiding");
+        Assert.False(sim.Intent.Interact);
     }
 }

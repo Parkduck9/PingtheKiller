@@ -19,6 +19,9 @@ namespace PingTheKiller.ServerCore
         private const double BotWalkPauseMin = SurvivorBrain.WalkPauseMin, BotWalkPauseMax = SurvivorBrain.WalkPauseMax;
         private const double BotHackBurstMin = SurvivorBrain.HackBurstMin, BotHackBurstMax = SurvivorBrain.HackBurstMax;
         private const double BotHackPauseMin = SurvivorBrain.HackPauseMin, BotHackPauseMax = SurvivorBrain.HackPauseMax;
+        // White Noise mixes workers with travellers, just as the uncapped survivor team does.
+        private const int WhiteNoiseMinTerminalPoints = 2;
+        private const int WhiteNoiseTerminalPointChoices = 3;
 
         private readonly Dictionary<Player, BotBrain> _brains = new Dictionary<Player, BotBrain>();
         private readonly SurvivorBotView _survivorBotView = new SurvivorBotView();
@@ -94,6 +97,7 @@ namespace PingTheKiller.ServerCore
             view.HatchX = view.HatchVisible ? _hatchX : 0;
             view.HatchZ = view.HatchVisible ? _hatchZ : 0;
             view.Threat = ThreatFor(bot);
+            view.CollapseLeft = _collapseRunning ? (float)bot.CollapseLeft : -1;
             view.KillerVisible = KillerInSightOf(bot);
             view.KillerX = view.KillerVisible ? _killer.X : 0;
             view.KillerZ = view.KillerVisible ? _killer.Z : 0;

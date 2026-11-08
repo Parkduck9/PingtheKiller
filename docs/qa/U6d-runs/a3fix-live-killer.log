@@ -1,0 +1,495 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/u4h/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  4.391 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.584600 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\lobby.png
+[offline server] match start players=8 killer=4 matchSeed=130041255
+[DEV] match 1 start role=Killer skill=2
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=0.03 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\play-1s.png
+[DEV] t=1.03 local position 34.00,43.50 moved=0.00 m
+[DEV] t=2.46 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=2.46 blips tracked max=1
+[DEV] t=2.46 event killer-occluded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\killer-occluded.png
+[DEV] t=3.50 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=3.50 blips tracked max=2
+[DEV] t=3.50 event killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\killer-offscreen.png
+[DEV] t=3.80 blips tracked max=3
+[DEV] t=3.95 blips tracked max=4
+[DEV] t=4.00 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\play-4s.png
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=4.90 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=4.90 blips tracked max=5
+[DEV] t=5.00 local position 34.00,43.50 moved=0.00 m
+[DEV] t=5.15 blips tracked max=6
+[DEV] t=5.15 event killer-crowd.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\killer-crowd.png
+[DEV] t=5.40 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=5.84 blips tracked max=7
+[DEV] t=5.91 blips inView=0 occluded=1 edges=6 tracked=7
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=6.09 blips tracked max=8
+[DEV] t=6.41 blips inView=0 occluded=1 edges=6 tracked=8
+[offline server] skill player=8 role=Survivor id=0
+[DEV] t=6.80 blips tracked max=9
+[DEV] t=6.91 blips inView=0 occluded=1 edges=6 tracked=9
+[DEV] t=7.70 blips inView=0 occluded=1 edges=6 tracked=8
+[DEV] t=8.20 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=8.71 blips inView=0 occluded=0 edges=6 tracked=8
+[offline server] skill player=1 role=Survivor id=0
+[DEV] t=9.21 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=10.09 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=10.60 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=11.10 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=11.61 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=12.11 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=12.61 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=13.12 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=13.62 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=14.60 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=15.10 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=15.60 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=16.11 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=16.61 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=17.11 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=17.69 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=18.66 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=19.24 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=19.84 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=20.35 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=21.15 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=21.65 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=22.15 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=22.66 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=23.16 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=8 role=Survivor id=0
+[DEV] t=23.66 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] skill player=1 role=Survivor id=0
+[DEV] t=24.84 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=25.35 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=26.24 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=26.75 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=27.25 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=28.49 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] sync player=7 check=1 result=Great
+[DEV] t=29.60 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=30.11 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=30.61 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=31.20 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=31.75 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=32.64 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=33.15 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=33.95 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=34.45 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=35.29 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] sync player=1 check=3 result=Good
+[DEV] t=35.80 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=37.89 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=8 role=Survivor id=0
+[DEV] t=38.60 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] skill player=1 role=Survivor id=0
+[DEV] t=39.10 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=39.60 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=40.24 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=40.75 blips inView=0 occluded=0 edges=6 tracked=8
+[DEV] t=41.25 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=41.75 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=42.26 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=42.84 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=43.35 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=44.60 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=45.10 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=45.60 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=45.95 blips tracked max=10
+[DEV] t=46.11 blips inView=0 occluded=2 edges=6 tracked=10
+[DEV] t=46.15 blips tracked max=11
+[DEV] t=46.55 blips tracked max=12
+[DEV] t=46.61 blips inView=0 occluded=2 edges=6 tracked=12
+[DEV] t=47.35 blips inView=0 occluded=2 edges=6 tracked=11
+[DEV] t=47.95 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] sync player=7 check=5 result=Good
+[DEV] t=48.60 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=49.10 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=49.60 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=50.11 blips inView=0 occluded=1 edges=6 tracked=10
+[DEV] t=50.61 blips inView=0 occluded=1 edges=6 tracked=11
+[DEV] t=51.11 blips inView=0 occluded=1 edges=6 tracked=10
+[DEV] t=51.95 blips inView=0 occluded=1 edges=6 tracked=9
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=52.45 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] terminal 5 complete
+[DEV] t=52.75 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] terminal 7 complete
+[DEV] t=52.80 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=52.95 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=53.46 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=54.35 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=54.85 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=55.35 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=55.86 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=56.36 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=57.49 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=58.30 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=58.95 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=59.45 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=60.00 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=60.80 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=61.44 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=61.95 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=62.60 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=63.10 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=64.40 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=65.29 blips inView=0 occluded=0 edges=0 tracked=0
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=65.90 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=66.40 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=66.91 blips inView=0 occluded=0 edges=6 tracked=7
+[offline server] sync player=6 check=6 result=Great
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=68.35 blips inView=0 occluded=0 edges=6 tracked=8
+[DEV] t=68.85 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=69.75 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=70.70 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=71.40 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=72.40 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=72.90 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=73.40 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=74.95 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=75.60 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=76.10 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=76.75 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=78.55 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=79.05 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=79.69 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=80.20 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=81.15 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=81.65 blips inView=0 occluded=2 edges=6 tracked=9
+[DEV] t=82.55 blips inView=0 occluded=2 edges=6 tracked=8
+[DEV] t=83.05 blips inView=0 occluded=2 edges=5 tracked=7
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=83.55 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=84.06 blips inView=0 occluded=2 edges=6 tracked=11
+[DEV] t=84.85 blips inView=0 occluded=2 edges=6 tracked=12
+[offline server] sync player=6 check=7 result=Good
+[DEV] t=85.84 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=86.44 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=88.40 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=89.20 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=89.70 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=90.29 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=90.80 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=91.55 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=92.05 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=92.55 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=93.40 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=94.00 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=94.50 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=95.00 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=95.90 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=96.40 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=96.90 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=97.55 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=98.05 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=98.55 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=99.06 blips inView=0 occluded=2 edges=6 tracked=8
+[DEV] t=100.35 blips inView=0 occluded=2 edges=5 tracked=7
+[DEV] t=100.89 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=101.40 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=101.90 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=104.00 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=104.69 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=105.40 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] terminal 0 complete
+[DEV] t=105.55 terminals 0:100 1:0 2:0 3:0 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 3/5"
+[DEV] t=106.10 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=107.69 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=108.55 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=109.40 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=109.90 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=110.40 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=111.90 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=113.44 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=114.04 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=114.55 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=115.24 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=116.04 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=116.55 blips inView=0 occluded=0 edges=6 tracked=11
+[DEV] t=117.24 blips inView=0 occluded=0 edges=6 tracked=10
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=117.70 blips tracked max=13
+[DEV] t=117.75 blips inView=0 occluded=1 edges=6 tracked=13
+[DEV] t=118.44 blips inView=0 occluded=1 edges=6 tracked=12
+[offline server] sync player=5 check=9 result=Good
+[DEV] t=118.95 blips inView=0 occluded=2 edges=6 tracked=11
+[DEV] t=119.45 blips inView=0 occluded=2 edges=6 tracked=12
+[DEV] t=119.84 event killer-inview.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\killer-inview.png
+[DEV] t=119.95 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=120.46 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=120.96 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=121.46 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=122.20 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=122.89 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=123.40 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=123.90 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=124.40 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=124.90 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=125.41 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=125.91 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=126.95 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=127.45 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=127.95 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=128.46 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=129.20 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=129.75 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=130.25 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=130.75 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=131.26 blips inView=0 occluded=1 edges=1 tracked=2
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=132.00 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=132.50 blips inView=0 occluded=2 edges=6 tracked=8
+[DEV] t=133.00 blips inView=0 occluded=3 edges=6 tracked=11
+[DEV] t=133.51 blips inView=0 occluded=2 edges=6 tracked=10
+[DEV] t=134.15 blips inView=0 occluded=3 edges=6 tracked=11
+[DEV] t=134.65 blips inView=0 occluded=2 edges=6 tracked=8
+[DEV] t=135.15 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=135.95 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=136.45 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=137.00 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=137.50 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=138.64 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=139.29 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=140.40 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=140.90 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=141.69 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=142.60 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=143.10 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=144.69 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=145.20 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=145.70 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=146.20 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] sync player=5 check=11 result=Fail
+[offline server] sync player=6 check=12 result=Good
+[DEV] t=146.84 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] overloaded alerts=1
+[DEV] t=146.95 event v2-killer-overloaded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\v2-killer-overloaded.png
+[offline server] skill player=6 role=Survivor id=4
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=147.45 blips inView=0 occluded=3 edges=6 tracked=10
+[DEV] t=147.70 blips tracked max=14
+[DEV] t=147.75 blips tracked max=15
+[DEV] t=147.95 blips inView=0 occluded=3 edges=6 tracked=15
+[DEV] t=148.55 blips inView=0 occluded=3 edges=6 tracked=14
+[DEV] t=149.05 blips inView=1 occluded=2 edges=6 tracked=13
+[DEV] t=149.55 blips inView=1 occluded=1 edges=6 tracked=9
+[DEV] t=150.06 blips inView=1 occluded=0 edges=5 tracked=6
+[DEV] t=150.56 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=151.06 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=152.64 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=153.20 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=153.70 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=155.60 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=156.10 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=8 role=Survivor id=0
+[DEV] t=156.60 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=157.11 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=157.61 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=158.11 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=158.75 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=159.25 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=159.75 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=161.15 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=161.89 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=162.40 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] skill player=5 role=Survivor id=4
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=162.90 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=163.41 blips inView=0 occluded=1 edges=6 tracked=14
+[offline server] terminal 3 complete
+[DEV] t=163.55 terminals 0:100 1:0 2:0 3:100 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 4/5"
+[DEV] t=164.00 blips inView=0 occluded=1 edges=6 tracked=13
+[DEV] t=164.50 blips inView=0 occluded=1 edges=6 tracked=12
+[DEV] t=165.00 blips inView=0 occluded=1 edges=6 tracked=10
+[DEV] t=165.51 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=167.04 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=167.69 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=168.20 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=168.70 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=169.20 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=169.70 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=170.21 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=170.90 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=171.40 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=171.91 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=172.41 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=173.09 blips inView=1 occluded=2 edges=3 tracked=6
+[offline server] skill player=8 role=Survivor id=0
+[DEV] t=173.60 blips inView=1 occluded=1 edges=5 tracked=7
+[DEV] t=174.10 blips inView=0 occluded=2 edges=5 tracked=7
+[DEV] t=174.60 blips inView=0 occluded=3 edges=4 tracked=7
+[DEV] t=175.20 blips inView=0 occluded=3 edges=5 tracked=8
+[DEV] t=175.75 blips inView=0 occluded=2 edges=5 tracked=7
+[DEV] t=176.25 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=176.75 blips inView=0 occluded=3 edges=4 tracked=7
+[DEV] t=177.35 blips inView=0 occluded=2 edges=4 tracked=6
+[offline server] sync player=8 check=14 result=Good
+[DEV] t=177.85 blips inView=1 occluded=1 edges=3 tracked=5
+[DEV] t=178.35 blips inView=1 occluded=1 edges=4 tracked=6
+[DEV] t=178.86 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=179.36 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=179.86 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=180.37 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=180.96 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=181.46 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=181.97 blips inView=1 occluded=1 edges=4 tracked=6
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=182.47 blips inView=0 occluded=3 edges=3 tracked=6
+[DEV] t=183.15 blips inView=0 occluded=3 edges=4 tracked=7
+[DEV] t=183.65 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=184.15 blips inView=0 occluded=3 edges=3 tracked=6
+[DEV] t=184.84 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=185.86 blips inView=1 occluded=1 edges=3 tracked=5
+[DEV] t=186.37 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=187.00 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=187.90 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=188.40 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=188.90 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=189.60 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=191.24 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=191.75 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=192.25 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=192.75 blips inView=1 occluded=1 edges=3 tracked=5
+[DEV] t=193.84 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=195.29 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=195.80 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=196.44 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=196.95 blips inView=0 occluded=1 edges=3 tracked=4
+[offline server] skill player=3 role=Survivor id=0
+[offline server] terminal 2 complete
+[offline server] exits powered reason=terminals
+[DEV] t=197.24 terminals 0:100 1:0 2:100 3:100 4:0 5:100 6:0 7:100 required=5 exits=0:1/0 1:1/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 5/5"
+[DEV] t=197.24 event v2-killer-powered.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\v2-killer-powered.png
+[DEV] t=197.45 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=199.40 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=199.90 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=200.40 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=200.90 blips inView=0 occluded=2 edges=3 tracked=5
+[offline server] skill player=6 role=Survivor id=4
+[DEV] t=202.75 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=203.25 blips inView=0 occluded=2 edges=6 tracked=10
+[DEV] t=204.15 blips inView=0 occluded=1 edges=6 tracked=9
+[DEV] t=204.90 blips inView=0 occluded=2 edges=6 tracked=10
+[DEV] t=205.40 blips inView=1 occluded=1 edges=3 tracked=5
+[DEV] t=206.09 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=207.09 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=208.00 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=209.40 blips inView=0 occluded=1 edges=4 tracked=5
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=210.04 blips inView=0 occluded=1 edges=5 tracked=6
+[offline server] skill player=1 role=Survivor id=0
+[DEV] t=210.55 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=211.05 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=213.35 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=213.85 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=214.35 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] exit 1 open
+[offline server] collapse start reason=exit
+[DEV] t=214.55 terminals 0:100 1:0 2:100 3:100 4:0 5:100 6:0 7:100 required=5 exits=0:1/17 1:3/100 exitOpen=1 collapse=120.00 hatch=0 hud="Terminals 5/5"
+[DEV] t=214.55 event exit-open.png
+[DEV] t=214.55 selfstate #216 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=120.00 action=None:0.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\exit-open.png
+[DEV] t=214.86 blips inView=1 occluded=1 edges=4 tracked=6
+[DEV] t=215.36 blips inView=1 occluded=2 edges=4 tracked=7
+[offline server] status player=7 Escaped reason=exit
+[DEV] t=215.86 blips inView=0 occluded=3 edges=3 tracked=6
+[DEV] t=216.55 event v2-killer-collapse.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\v2-killer-collapse.png
+[DEV] t=217.35 blips inView=1 occluded=2 edges=3 tracked=6
+[DEV] t=217.86 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=218.36 blips inView=1 occluded=2 edges=4 tracked=6
+[DEV] t=218.86 blips inView=1 occluded=2 edges=3 tracked=6
+[DEV] t=219.37 blips inView=0 occluded=3 edges=3 tracked=6
+[DEV] t=219.87 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=220.37 blips inView=0 occluded=1 edges=5 tracked=6
+[offline server] status player=8 Escaped reason=exit
+[DEV] t=222.64 blips inView=0 occluded=1 edges=4 tracked=5
+[offline server] status player=3 Escaped reason=exit
+[DEV] t=223.15 blips inView=0 occluded=1 edges=3 tracked=4
+[offline server] status player=5 Escaped reason=exit
+[DEV] t=223.65 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] status player=6 Escaped reason=exit
+[DEV] t=226.46 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=233.70 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=234.21 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=234.71 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=235.21 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=238.79 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=239.43 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] status player=1 Escaped reason=exit
+[offline server] hatch open x=66 z=38.5
+[DEV] t=241.64 blips inView=0 occluded=0 edges=1 tracked=1
+[offline server] status player=2 Escaped reason=exit
+[DEV] t=242.29 blips inView=0 occluded=0 edges=0 tracked=0
+[offline server] match end winner=Survivor reason=AllResolved escaped=7
+[DEV] t=242.30 match 1 end winner=Survivor reason=AllResolved escaped=[1,2,3,5,6,7,8] eliminated=[] back to lobby enabled=False
+[DEV] result screen: "Survivors win" / "You eliminated 0 of 7 Survivors." / "7 of 7 escaped · Survivors win when half or more escape (4 of 7)" rows=7
+[DEV] t=242.30 event result.png
+[DEV] t=242.30 lobby reopened after the result; back to lobby enabled=True
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u4h\docs\qa\U6d-runs\a3fix-live-killer\result.png
+[DEV] script complete, quitting
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
