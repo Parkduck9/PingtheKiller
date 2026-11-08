@@ -392,15 +392,20 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
 ## 5. Survivor play menu
 Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it grows upward):
 - Line 1 (M 600): the skill name. Line 2 (S): its effect (§8; the longest, 68 characters ≈ 564 u, fits one line in the 648 u inner width).
-- Line 3 (S `muted`), when applicable: `Captured once: the next capture eliminates you.`
-- Then `Resume` (primary 160×40, focused) and `Leave match` (secondary 160×40) in a row, gap 8.
+- Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → `Captured twice: the next capture eliminates you.`; otherwise no line.
+- Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
+- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync ring stay as they are.
 
-Opening the menu sends `C2S_Interact{Active = 0}` and one zero `C2S_MoveInput`, and it releases the cursor. The match keeps running.
+Opening the menu sends `C2S_Interact{Active = 0}` (only after a sent press) and one zero `C2S_MoveInput`, and it releases the cursor; while it is open there is no mouse look and no W A S D, E, Q or Space. Closing it captures the cursor again (when the window has focus). The match keeps running.
 
-`Leave match` closes the connection and returns to the Main menu. The server keeps the slot for 10 s, then a bot takes it.
+Esc no longer only releases the cursor: Esc / Start opens and closes this menu. With Settings open, Esc closes Settings first and focus returns to the menu's `Settings` button; a second Esc closes the menu. Losing window focus still releases the cursor and shows `Click to resume mouse look`, but a click never captures the cursor while the menu is open.
 
-Focus: Resume → Leave match. Esc / B = Resume.
+`Leave match` closes the connection and returns to the Main menu with the cursor free (offline: no notice). The server keeps the slot for 10 s, then a bot takes it. The menu is closed on leave, disconnect, the game result and the next match start.
+
+Focus: Resume → Settings → Leave match (Tab wraps inside the menu; arrows stop at the ends). Enter / Space / A presses the focused button; Esc / B = Resume. Buttons use the §0.5 states, like the Killer's.
+
+**(Q6) One component.** The Killer menu (§6.6) and this one are the same `PlayMenu` in two layouts: Stacked (320×256, buttons 296×40 stacked) for the Killer and Row (672×152, buttons 160×40 in a row) for the Survivor. The input gate (`PlayMenuGate`) is shared too.
 
 ---
 

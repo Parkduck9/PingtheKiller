@@ -31,6 +31,9 @@ namespace PingTheKiller.Client.UI
         public SyncCheckRing SyncRing { get; }
         public HoldActionBar Hold { get; }
         public ObjectiveRow Objective { get; }
+        // HUD_SPEC 5: the shared play menu in its Row layout, in the prompt row's slot of the 13.1 stack (it grows upward).
+        public PlayMenu Menu { get; }
+        private byte menuSkill;
 
         public SurvivorHud(VisualElement parent, Font font)
         {
@@ -54,6 +57,8 @@ namespace PingTheKiller.Client.UI
             Show(promptBar, false);
             promptTrack = Box(prompt, "sprompt-track");
             promptFill = Box(promptTrack, "sfill");
+            Menu = new PlayMenu(PlayMenuLayout.Row, font);
+            stack.Add(Menu);
             Hold = new HoldActionBar(Role.Survivor, font);
             stack.Add(Hold);
             Objective = new ObjectiveRow(font);
@@ -84,7 +89,7 @@ namespace PingTheKiller.Client.UI
             time = Text(line1, "0:00", "km", "kbold");
             terminals = Text(info, string.Empty, "km");
 
-            bordered = new[] { cluster, prompt, result, meterTrack, Hold, Objective };
+            bordered = new[] { cluster, prompt, result, meterTrack, Hold, Objective, Menu };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(prompt, false);
             Show(result, false);
@@ -171,6 +176,7 @@ namespace PingTheKiller.Client.UI
         public void Begin(byte skillId)
         {
             V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
+            menuSkill = skillId; Menu.SetOpen(false); Menu.SetNote(null);
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
             Show(result, false);
@@ -313,9 +319,23 @@ namespace PingTheKiller.Client.UI
             skillName.EnableInClassList("kmuted", state == SkillRing.State.Disabled);
         }
 
+        // HUD_SPEC 5: the menu takes the prompt row's place; the prompt and hold rows stay hidden while it is open (the
+        // per-frame SetPrompt cannot bring them back). The meter cluster, objective row, result line and sync ring stay.
+        public bool MenuOpen => Menu.Open;
+        public void SetMenu(bool open)
+        {
+            if (open) Menu.SetContent(SurvivorReadout.SkillName(menuSkill), PlayMenuCopy.SurvivorEffect(menuSkill));
+            Menu.SetOpen(open);
+            if (open) { Show(prompt, false); Hold.Hide(); }
+        }
+        public void FocusMenu() => Menu.FocusSettings();
+        // Line 3 (PlayMenuCopy.CaptureNote), refreshed every frame from the own entry.
+        public void SetMenuNote(string note) => Menu.SetNote(note);
+
         // The prompt row, or the 13.3 hold row in its place while the own exit switch hold runs.
         public void SetPrompt(PromptState p, in HoldActionView hold)
         {
+            if (MenuOpen) { Show(prompt, false); Hold.Hide(); return; }
             if (hold.Kind != HoldKind.None)
             {
                 Show(prompt, false);
@@ -328,7 +348,7 @@ namespace PingTheKiller.Client.UI
 
         public void SetPrompt(PromptState p)
         {
-            bool visible = !string.IsNullOrEmpty(p.Text);
+            bool visible = !MenuOpen && !string.IsNullOrEmpty(p.Text);
             Show(prompt, visible);
             if (!visible) return;
             SetText(promptText, p.Text);
@@ -373,7 +393,8 @@ namespace PingTheKiller.Client.UI
         public Rect ClusterRect(Vector2 screen)
         {
             float height = Height;
-            if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
+            if (MenuOpen) height += PlayMenu.RowHeight + Gap;
+            else if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
             if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;

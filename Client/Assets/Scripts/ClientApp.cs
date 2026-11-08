@@ -60,7 +60,9 @@ namespace PingTheKiller.Client
         private Role role;
         private byte skillId;
         private PlayerStatus localStatus;
-        private bool playing, releasedCursor, menuOpen;
+        private bool playing, releasedCursor;
+        // HUD_SPEC 5 / 6.6 play menu, both roles: open state and the look / key gate.
+        private readonly PlayMenuGate menuGate = new PlayMenuGate();
         private Vector3? hackingTerminal;
         private double joinDeadline;
         private S2C_LobbyState lobby;
@@ -110,9 +112,11 @@ namespace PingTheKiller.Client
             screens.ChangeRole += choice => { if (IsHost()) link.Send(new C2S_SetRole { RoleChoice = choice }); };
             screens.StartMatch += () => { if (IsHost()) link.Send(new C2S_StartMatch()); };
             screens.BackToLobby += () => { if (lobby != null && link != null && link.IsConnected) screens.ShowLobby(lobby, playerId); };
-            // Killer play menu (HUD_SPEC 6.6): Resume, or leave the match like the lobby's Leave.
+            // Play menu, both roles (HUD_SPEC 5, 6.6): Resume, or leave the match like the lobby's Leave.
             screens.Killer.Resume += () => SetMenu(false);
             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
+            screens.Survivor.Menu.Resume += () => SetMenu(false);
+            screens.Survivor.Menu.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
             screens.Survivor.Sync.State.Press += SendSyncPress;
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
@@ -211,7 +215,7 @@ namespace PingTheKiller.Client
                     DestroyWorld();
                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
-                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
+                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu();
                     selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
                     skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
@@ -303,7 +307,7 @@ namespace PingTheKiller.Client
         private void EndMatch(S2C_GameResult result, bool preview)
         {
             bool wasPlaying = playing;
-            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+            playing = false; joinDeadline = 0; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
             skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
@@ -350,14 +354,20 @@ namespace PingTheKiller.Client
             link.Send(new C2S_SyncPress { CheckId = checkId });
             Debug.Log("[net] SyncPress check=" + checkId + " needle=" + screens.Survivor.Sync.State.PressFraction.ToString("0.000"));
         }
-        // HUD_SPEC 6.6: the Killer play menu sends one zero MoveInput, releases the cursor, and the match keeps running.
+        // HUD_SPEC 5 / 6.6, both roles: opening sends one zero MoveInput and the Interact release (when held) and frees the
+        // cursor; closing locks it again (when focused). The match keeps running.
         private void SetMenu(bool open)
         {
-            if (menuOpen == open || !playing || role != Role.Killer) return;
-            menuOpen = open;
-            if (open && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
+            if (!playing || !menuGate.Set(open, Time.frameCount)) return;
+            if (open && link != null && link.IsConnected) PlayMenuGate.Stop(movement, interact, rig.Yaw, packet => link.Send(packet));
             rig.SetCursor(!open);
-            screens.Killer.SetMenu(open);
+            if (role == Role.Killer) screens.Killer.SetMenu(open); else screens.Survivor.SetMenu(open);
+        }
+        // Leave, disconnect, game result and the next match start: the menu is closed and hidden for both roles.
+        private void ResetMenu()
+        {
+            menuGate.Reset();
+            screens.Killer.SetMenu(false); screens.Survivor.SetMenu(false);
         }
         private void Update()
         {
@@ -384,18 +394,23 @@ namespace PingTheKiller.Client
                 if (survivor && audible) cueSource.PlayOneShot(readyClip); else if (!survivor) killerLayer?.OnSkillReady();
                 Debug.Log("[net] skill_ready (own cooldown reached 0)" + (audible ? string.Empty : ", silent: own status " + own.Status));
             }
-            // Survivor: Esc releases the cursor (click resumes). Killer: Esc opens or closes the play menu.
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            // Both roles: Esc / Start backs out of Settings first (focus returns to the play menu), otherwise opens or closes
+            // the play menu; gamepad B on the open menu is Resume.
+            Gamepad gamepad = Gamepad.current;
+            bool back = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
+            bool cancel = gamepad != null && gamepad.buttonEast.wasPressedThisFrame && (screens.SettingsOpen || menuGate.Open);
+            if (back || cancel)
             {
-                if (screens.SettingsOpen) screens.CloseSettings(); // Esc backs out of Settings first, back to the play menu
-                else if (survivor) { releasedCursor = true; rig.SetCursor(false); }
-                else SetMenu(!menuOpen);
+                if (screens.SettingsOpen) screens.CloseSettings();
+                else SetMenu(!cancel && !menuGate.Open);
             }
-            if (survivor && releasedCursor && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            // After a focus loss a click captures the cursor again, but never under the open menu (it clicks its buttons).
+            if (survivor && releasedCursor && !menuGate.Open && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 releasedCursor = false; rig.SetCursor(true);
             }
-            bool active = Application.isFocused && !releasedCursor && !menuOpen;
+            bool active = menuGate.Active(Application.isFocused, releasedCursor);
+            bool presses = menuGate.Presses(active, Time.frameCount); // press edges skip the frame a Submit closed the menu
             rig.Look(active);
             bool located = world.LocalPosition(now, out Vector3 position);
             if (dev != null) dev.Track(located, position);
@@ -434,11 +449,11 @@ namespace PingTheKiller.Client
                 SyncCheckTracker sync = screens.Survivor.Sync;
                 sync.Tick(now);
                 Gamepad pad = Gamepad.current;
-                bool syncKey = active && ((keyboard != null && keyboard.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame));
+                bool syncKey = presses && ((keyboard != null && keyboard.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame));
                 if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
                 screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
             }
-            bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+            bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
             bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
@@ -456,7 +471,7 @@ namespace PingTheKiller.Client
             }
             else if (killerLayer != null && located)
             {
-                killerLayer.Render(rig.Pose, now, dt, menuOpen);
+                killerLayer.Render(rig.Pose, now, dt, menuGate.Open);
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
@@ -584,12 +599,13 @@ namespace PingTheKiller.Client
                 if (!string.IsNullOrEmpty(reach.Text)) prompt = new PromptState { Text = reach.Text, Muted = reach.Muted };
             }
             hud.SetPrompt(prompt, V2Wire.Hold(selfState));
+            hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
         }
         private void OnApplicationFocus(bool focused)
         {
             if (!playing) return;
             releasedCursor = !focused;
-            rig?.SetCursor(focused && !menuOpen);
+            rig?.SetCursor(focused && !menuGate.Open);
             // Same-frame release zero; Update keeps calling MovementInput, which sends the backup zero.
             if (!focused && movement.TryCreate(false, 0, 0, rig.Yaw, 0, out C2S_MoveInput input)) link?.Send(input);
             if (!focused && interact.TryRelease(out C2S_Interact release)) link?.Send(release);
@@ -613,7 +629,7 @@ namespace PingTheKiller.Client
         private void Disconnect(string notice)
         {
             Release();
-            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
             skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0;
             DestroyWorld();

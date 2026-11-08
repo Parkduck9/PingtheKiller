@@ -31,6 +31,7 @@ namespace PingTheKiller.Client.Dev
         private bool menuWanted;
         private double settingsAt = -1;
         private int settingsStage, settingsPlayStage;
+        private double leaveAt = -1; // -ptk-menu-leave: when the play menu's Leave match was pressed
         private int participants, match;
         private Role role;
         private Wander wander;
@@ -516,6 +517,27 @@ namespace PingTheKiller.Client.Dev
             return true;
         }
 
+        // -ptk-menu-leave: after the play-menu (and Settings) shots, the open menu's real Leave match path; once the main
+        // menu shows, menu-after-leave.png and the cursor state. The script is then complete.
+        private bool MenuLeave(double t)
+        {
+            if (!args.MenuLeave || args.Menu <= 0 || screens == null || !taken.Contains("play-menu.png") || (args.Settings && settingsPlayStage < 3)) return false;
+            if (leaveAt < 0)
+            {
+                leaveAt = t;
+                bool pressed = screens.PressLeaveMatch();
+                if (pressed) Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " play menu: Leave match pressed (role=" + role + ")");
+                else Debug.LogWarning("[DEV] play menu: Leave match could not be pressed (menu not open)");
+                return true;
+            }
+            if (taken.Contains("menu-after-leave.png") || !screens.MainMenuShown || t < leaveAt + .5) return false;
+            taken.Add("menu-after-leave.png");
+            Debug.Log("[DEV] after leave: main menu shown, playing=" + screens.Playing + " cursor lock=" + Cursor.lockState + " visible=" + Cursor.visible);
+            Shot("menu-after-leave.png");
+            if (doneAt < 0) doneAt = t;
+            return true;
+        }
+
         private double Now => Time.realtimeSinceStartupAsDouble - origin;
         private static string Stamp(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 
@@ -554,6 +576,7 @@ namespace PingTheKiller.Client.Dev
                 if (orbitAt >= 0 && !taken.Contains("survivor-behind.png") && t >= orbitAt + .6 && taken.Add("survivor-behind.png")) { Shot("survivor-behind.png"); return; }
                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
                 if (args.Settings && args.Menu > 0 && taken.Contains("play-menu.png") && settingsPlayStage < 3 && SettingsPlayShot(t)) return;
+                if (MenuLeave(t)) return;
             }
             if (args.PreviewV2Hud != null && match == 1 && matchAt >= 0 && resultAt < 0 && v2 == null && t >= matchAt + (shots ? 5 : 2) && (!shots || play4))
             {

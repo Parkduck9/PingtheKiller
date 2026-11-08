@@ -61,6 +61,9 @@ namespace PingTheKiller.Client.Dev
         public string PreviewV2Hud { get; private set; }
         // Screenshots of the Settings screen: opened from the main menu after the menu shot, and from the play menu (needs -ptk-menu).
         public bool Settings { get; private set; }
+        // After the play-menu shots (and the Settings shot): press the open play menu's Leave match path and shoot
+        // menu-after-leave.png once the main menu shows (needs -ptk-menu).
+        public bool MenuLeave { get; private set; }
         // Survivor autopilot (rules v2 screenshots): walk (NavGrid route, normal MoveInput) to the nearest unfinished terminal
         // and hold Interact there for this many seconds in total, re-targeting when a terminal completes. Off by default.
         public float DevHack { get; private set; }
@@ -77,7 +80,7 @@ namespace PingTheKiller.Client.Dev
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
-            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None || WantSkill.HasValue;
+            || Settings || MenuLeave || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None || WantSkill.HasValue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -92,6 +95,7 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
                 if (flag == "-ptk-rescue") { result.Rescue = true; continue; }
                 if (flag == "-ptk-settings") { result.Settings = true; continue; }
+                if (flag == "-ptk-menu-leave") { result.MenuLeave = true; continue; }
                 if (flag == "-ptk-dev-switch") { result.DevSwitch = true; continue; }
                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"

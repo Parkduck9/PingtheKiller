@@ -15,9 +15,8 @@ namespace PingTheKiller.Client.UI
     public sealed class KillerHud
     {
         public const float Width = 320, Margin = 24;
-        private readonly VisualElement root, cluster, intro, menu, prompt, info, effect, skill, timeBar, effectBar;
-        private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
-        private readonly Button resume, settings, leave;
+        private readonly VisualElement root, cluster, intro, prompt, info, effect, skill, timeBar, effectBar;
+        private readonly Label introSkill, introEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
         private readonly SkillRing ring;
         private readonly VisualElement[] blocks;
         public MarkerLayer Markers { get; }
@@ -25,12 +24,13 @@ namespace PingTheKiller.Client.UI
         public V2MarkerLayer V2Markers { get; }
         public HoldActionBar Hold { get; }
         public CollapseTimer Collapse { get; }
-        public event Action Resume;
-        public event Action OpenSettings;
-        public event Action LeaveMatch;
-        // Skill + effect + Resume, Settings and Leave match (HUD_SPEC 6.6).
-        public const float MenuHeight = 256;
-        public bool MenuOpen => menu.style.display == DisplayStyle.Flex;
+        // HUD_SPEC 6.6: the shared play menu in its Stacked layout (skill + effect + Resume, Settings and Leave match).
+        public PlayMenu Menu { get; }
+        public event Action Resume { add => Menu.Resume += value; remove => Menu.Resume -= value; }
+        public event Action OpenSettings { add => Menu.OpenSettings += value; remove => Menu.OpenSettings -= value; }
+        public event Action LeaveMatch { add => Menu.LeaveMatch += value; remove => Menu.LeaveMatch -= value; }
+        public const float MenuHeight = PlayMenu.StackedHeight;
+        public bool MenuOpen => Menu.Open;
 
         public KillerHud(VisualElement parent, Font font)
         {
@@ -49,18 +49,8 @@ namespace PingTheKiller.Client.UI
             introEffect = Text(intro, string.Empty, "ks", "kwrap", "kgap");
             Text(intro, KillerHudCopy.IntroRules, "ks", "kwrap", "kmuted");
 
-            menu = Box(cluster, "kblock", "kmenu");
-            menuSkill = Text(menu, string.Empty, "km", "kbold", "kgap");
-            menuEffect = Text(menu, string.Empty, "ks", "kwrap", "kmenu-effect");
-            resume = new Button(() => Resume?.Invoke()) { text = KillerHudCopy.Resume };
-            resume.AddToClassList("primary"); resume.AddToClassList("kbutton");
-            menu.Add(resume);
-            settings = new Button(() => OpenSettings?.Invoke()) { text = SettingsCopy.Title };
-            settings.AddToClassList("kbutton");
-            menu.Add(settings);
-            leave = new Button(() => LeaveMatch?.Invoke()) { text = KillerHudCopy.LeaveMatch };
-            leave.AddToClassList("kbutton"); leave.AddToClassList("klast");
-            menu.Add(leave);
+            Menu = new PlayMenu(PlayMenuLayout.Stacked, font);
+            cluster.Add(Menu);
 
             prompt = Box(cluster, "kblock", "kprompt");
             promptTitle = Text(prompt, string.Empty, "ks", "kbold");
@@ -90,7 +80,7 @@ namespace PingTheKiller.Client.UI
             skillState = Text(column, string.Empty, "ks", "kmuted");
             skillKey = Text(column, "[Q]", "ks", "kmuted");
 
-            blocks = new[] { intro, menu, prompt, info, effect, skill, Hold, Collapse };
+            blocks = new[] { intro, Menu, prompt, info, effect, skill, Hold, Collapse };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             foreach (Button button in root.Query<Button>().ToList()) button.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(root, false);
@@ -128,11 +118,12 @@ namespace PingTheKiller.Client.UI
         // Match start: intro on, menu off, copy for the skill.
         public void Begin(byte skillId)
         {
-            introSkill.text = menuSkill.text = KillerHudCopy.SkillName(skillId);
-            introEffect.text = menuEffect.text = KillerHudCopy.SkillEffect(skillId);
+            introSkill.text = KillerHudCopy.SkillName(skillId);
+            introEffect.text = KillerHudCopy.SkillEffect(skillId);
+            Menu.SetContent(introSkill.text, introEffect.text);
             skillName.text = KillerHudCopy.SkillName(skillId);
             Show(skillKey, skillId != SkillIds.PacketAfterimage);
-            Show(intro, true); Show(menu, false); Show(prompt, false); Show(effect, false); Hold.Hide();
+            Show(intro, true); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide();
             Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Show(root, true);
         }
@@ -140,12 +131,11 @@ namespace PingTheKiller.Client.UI
         public void SetIntro(bool visible) => Show(intro, visible && !MenuOpen);
 
         // HUD_SPEC 6.6: the menu replaces the intro and prompt area; Resume takes focus.
-        public void FocusMenu() { if (MenuOpen) settings.Focus(); }
+        public void FocusMenu() => Menu.FocusSettings();
         public void SetMenu(bool open)
         {
-            Show(menu, open);
-            if (open) { Show(intro, false); Show(prompt, false); Hold.Hide(); resume.Focus(); }
-            else resume.Blur();
+            Menu.SetOpen(open);
+            if (open) { Show(intro, false); Show(prompt, false); Hold.Hide(); }
         }
 
         public void SetInfo(float timeLeft, int done, int needed)
@@ -209,7 +199,7 @@ namespace PingTheKiller.Client.UI
         {
             float height = 72 + 8 + 72; // info + skill
             if (Visible(intro)) height += 208 + 8;
-            else if (Visible(menu)) height += MenuHeight + 8;
+            else if (Visible(Menu)) height += MenuHeight + 8;
             if (Visible(prompt)) height += 56 + 8;
             if (Visible(Hold)) height += 72 + 8;
             if (Visible(Collapse)) height += 32 + 8;

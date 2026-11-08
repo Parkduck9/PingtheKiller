@@ -125,9 +125,10 @@ namespace PingTheKiller.Client.QA.Tests
             string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));
             string menu = QaSource.MethodText(code, "private void SetMenu(");
             Assert.That(menu, Is.Not.Null);
-            Assert.That(menu, Does.Contain("movement.Final(rig.Yaw)"), "opening the menu sends one zero MoveInput");
+            // Both roles share the menu; PlayMenuGate.Stop sends movement.Final(yaw) and the Interact release (PlayMenuTests).
+            Assert.That(menu, Does.Contain("PlayMenuGate.Stop(movement, interact, rig.Yaw,"), "opening the menu sends one zero MoveInput");
             Assert.That(menu, Does.Contain("rig.SetCursor(!open)"), "and releases the cursor");
-            Assert.That(code, Does.Match(@"bool\s+active\s*=\s*Application\.isFocused\s*&&\s*!releasedCursor\s*&&\s*!menuOpen"), "no look and no keys while the menu is open");
+            Assert.That(code, Does.Match(@"bool\s+active\s*=\s*menuGate\.Active\(Application\.isFocused,\s*releasedCursor\)"), "no look and no keys while the menu is open");
         }
     }
 }

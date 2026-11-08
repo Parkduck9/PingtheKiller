@@ -231,3 +231,16 @@
 .root .set-slider:hover .unity-base-slider__tracker { background-color: #E8E6E1; }
 .root .set-slider:focus .unity-base-slider__tracker { background-color: #E8E6E1; }
 .root .set-slider:focus .unity-base-slider__dragger { background-color: #FFFFFF; width: 16px; }
+
+/* ---- Survivor play menu (HUD_SPEC 5): the shared PlayMenu in its Row layout, in the prompt row's slot of the 13.1
+   stack (it grows upward). 672x152 u, padding 12, panel fill and a 1 u line border (re-snapped in code); skill name M 600,
+   effect S, optional S muted line, then Resume / Settings / Leave match as 160x40 u buttons in one row, gap 8
+   (3 x 160 + 2 x 8 = 496 <= 648 u). The buttons keep the kbutton states; the row is pinned 12 u above the bottom edge, so it does not move with line 3. */
+.root .smenu {
+    width: 672px; height: 152px; padding: 12px; flex-shrink: 0;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .unity-label.smenu-note { margin-bottom: 4px; }
+.root .smenu-actions { position: absolute; left: 12px; bottom: 12px; flex-direction: row; height: 40px; }
+.root .smenu .unity-button.kbutton.smenu-button { width: 160px; min-width: 0; height: 40px; margin: 0; margin-right: 8px; }
+.root .smenu .unity-button.kbutton.smenu-button.klast { margin-right: 0; }

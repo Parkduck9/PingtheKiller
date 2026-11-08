@@ -16,6 +16,17 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
+        public void TheMenuLeaveFlagTakesNoValueAndActivatesTheCapture()
+        {
+            DevArgs args = DevArgs.Parse(new[] { "-ptk-offline", "-ptk-menu-leave", "-ptk-menu", "5", "-ptk-role", "survivor" });
+            Assert.That(args.Errors, Is.Empty);
+            Assert.That(args.MenuLeave, Is.True);
+            Assert.That(args.Menu, Is.EqualTo(5f));
+            Assert.That(DevArgs.Parse(new[] { "-ptk-menu-leave" }).Active, Is.True);
+            Assert.That(DevArgs.Parse(new[] { "-ptk-menu", "5" }).MenuLeave, Is.False);
+        }
+
+        [Test]
         public void AllValidFlagsAreParsed()
         {
             DevArgs args = DevArgs.Parse(new[]
