@@ -247,9 +247,10 @@ Internal layout (304×72, padding 8 left/right and 4 top/bottom inside the clust
 
 Capture tag (row A, right), first match wins:
 - `Protected 1.4 s` (S `text`, tabular) while `S2C_SelfState.InvulnerableLeft > 0`. This is the 2 s after a rescue during which you cannot be captured.
-- `Captured once` (S `muted`) when `CaptureCount ≥ 1` and `Status = Normal`. The play menu (§5) explains that the next capture eliminates you.
+- `Captured once` (S `muted`) when `CaptureCount = 1` and `Status = Normal`. The play menu (§5) explains that the next capture eliminates you.
+- **(11/08, Q1)** `Next capture eliminates` (S `muted`) when `CaptureCount ≥ 2` and `Status = Normal`. `CaptureCount` counts Lagging stages, not captures: a first stage that runs out raises it to 2 without a second capture, so the tag never says `Captured twice`.
 
-Either tag is at most 15 characters (≈ 125 u) next to the longest word, `Lagging` (≈ 70 u at M). That fits 288 u.
+The tags show only while `Status = Normal`, so the word beside them is `Signal` or `Silent` (≈ 60 u at M); `Next capture eliminates` (23 characters, measured in `PlaycheckPolishTests`) plus the 8 u gap fits 288 u. `Protected 1.4 s` is shorter.
 Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
 
 **(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 66 characters ≈ 540 u, fits the 656 u row). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor within 1.5 m for 3 s rescues you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
@@ -259,11 +260,11 @@ Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 
 | Previous own status | Condition | Reason line |
 |---|---|---|
 | Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue in the second Lagging stage (30 s).` |
-| Normal | `CaptureCount ≥ 2` | `Disconnected: caught a third time.` |
+| Normal | `CaptureCount ≥ 2` | **(11/08, Q1)** names the captures the client saw: `Disconnected: caught 3 times.`, or after a first stage ran out `Disconnected: caught 2 times, no Lagging stage left.` When the client did not see the whole match (first snapshot not Normal with `CaptureCount` 0) or its count disagrees with the server's: `Disconnected: caught with no Lagging stage left.` (was `caught a third time.`, wrong after an escalation) |
 | anything else, a collapse clock running | — | `Disconnected: the collapse reached you.` |
 | anything else | — | none (the meter keeps `Watching until the match ends.`) |
 
-**(U6c-wire)** Rules v2 has no execution: the two `Executed: …` lines are gone. A Survivor is eliminated by the third capture, by the second Lagging stage running out (`SecondLaggingTimeoutSeconds` 30 s), or by the collapse clock. The Lagging meter's full scale follows the stage: 60 s on the first capture, 30 s on the second; the tag reads `Captured twice` from the second capture.
+**(U6c-wire)** Rules v2 has no execution: the two `Executed: …` lines are gone. A Survivor is eliminated by the third capture, by the second Lagging stage running out (`SecondLaggingTimeoutSeconds` 30 s), or by the collapse clock. The Lagging meter's full scale follows the stage: 60 s on the first capture, 30 s on the second; from `CaptureCount` 2 the tag reads `Next capture eliminates` (11/08, Q1; it read `Captured twice`).
 
 While Eliminated the meter shows `Eliminated` (row A) and the reason in S `text` in rows B–C, wrapped to at most two lines in 288×38 u, with no bar. The same reason follows the §7.2 outcome line.
 
@@ -424,7 +425,7 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
 | 6.1p | Prompt | §13.3 | interact prompt (kick, hatch close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
-| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
+| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1/3` (M, the Survivor format, §4.3); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
 | 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `Needs an Exit switch in progress` (FirewallBlock while no unopened exit has switch progress, disabled) | 320×72 |
 

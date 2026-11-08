@@ -91,8 +91,8 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheTerminalCountReadsKOfNAndTheHintAppearsExactlyWhenOneIsMissing()
         {
-            Assert.That(KillerHudCopy.Terminals(0, 4), Is.EqualTo("Terminals 0 of 4"));
-            Assert.That(KillerHudCopy.Terminals(3, 4), Is.EqualTo("Terminals 3 of 4"));
+            Assert.That(KillerHudCopy.Terminals(0, 4), Is.EqualTo("Terminals 0/4"));
+            Assert.That(KillerHudCopy.Terminals(3, 4), Is.EqualTo("Terminals 3/4"));
             for (int needed = 1; needed <= 8; needed++)
                 for (int done = 0; done <= needed + 1; done++)
                 {
@@ -229,11 +229,11 @@ namespace PingTheKiller.Client.QA.Tests
 
             hud.SetInfo(582, 1, 3);
             Assert.That(LabelShown(root, "9:42"), Is.True);
-            Assert.That(LabelShown(root, "Terminals 1 of 3"), Is.True);
+            Assert.That(LabelShown(root, "Terminals 1/3"), Is.True);
             Assert.That(hint.style.visibility.value, Is.EqualTo(Visibility.Hidden), "1 of 3: two are missing");
 
             hud.SetInfo(581, 2, 3);
-            Assert.That(LabelShown(root, "Terminals 2 of 3"), Is.True);
+            Assert.That(LabelShown(root, "Terminals 2/3"), Is.True);
             Assert.That(hint.style.visibility.value, Is.EqualTo(Visibility.Visible), "2 of 3: one more opens the Exit");
 
             hud.SetInfo(580, 3, 3);

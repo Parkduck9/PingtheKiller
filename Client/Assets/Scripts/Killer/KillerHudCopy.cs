@@ -53,7 +53,8 @@ namespace PingTheKiller.Client.Killer
 
         public static bool TimePressure(float seconds) => seconds <= 60;
 
-        public static string Terminals(int done, int needed) => "Terminals " + done + " of " + needed;
+        // The Survivor's format (HudCopy.Terminals), so both roles read "Terminals 1/3".
+        public static string Terminals(int done, int needed) => PingTheKiller.Client.UI.HudCopy.Terminals(done, needed);
 
         // Line 3 only while exactly one terminal is missing.
         public static string OneMoreLine(int done, int needed) => needed > 0 && done == needed - 1 ? OneMore : null;

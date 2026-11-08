@@ -80,7 +80,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(KillerHudCopy.Time(599.93f), Is.EqualTo("10:00"));
             Assert.That(KillerHudCopy.TimePressure(60), Is.True);
             Assert.That(KillerHudCopy.TimePressure(61), Is.False);
-            Assert.That(KillerHudCopy.Terminals(1, 3), Is.EqualTo("Terminals 1 of 3"));
+            Assert.That(KillerHudCopy.Terminals(1, 3), Is.EqualTo("Terminals 1/3"));
             Assert.That(KillerHudCopy.OneMoreLine(2, 3), Is.EqualTo("One more powers the Exits."));
             Assert.That(KillerHudCopy.OneMoreLine(1, 3), Is.Null);
             Assert.That(KillerHudCopy.OneMoreLine(3, 3), Is.Null);

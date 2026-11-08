@@ -161,11 +161,17 @@ namespace PingTheKiller.Client.UI
                     else { m.Word = "Silent"; m.Reason = "Not visible to the Killer."; m.ReasonMuted = true; }
                     break;
             }
-            // Capture tag (row A right): Protected while the post-rescue immunity runs, else Captured once.
+            // Capture tag (row A right): Protected while the post-rescue immunity runs, else the capture tag (CaptureTag).
             if (known && self.InvulnerableLeft > 0) m.Tag = "Protected " + Seconds1(self.InvulnerableLeft);
-            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = own.CaptureCount >= 2 ? "Captured twice" : "Captured once"; m.TagMuted = true; }
+            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = CaptureTag(own.CaptureCount); m.TagMuted = true; }
             return m;
         }
+
+        // CaptureCount counts Lagging stages, not captures (a first stage that runs out raises it to 2), so the tag never
+        // claims two captures: count 1 is exactly one capture; from 2 no Lagging stage is left and the next capture eliminates.
+        public const string CapturedOnce = "Captured once", NextCaptureEliminates = "Next capture eliminates";
+        public static string CaptureTag(byte captureCount)
+            => captureCount == 0 ? null : SecondStage(captureCount) ? NextCaptureEliminates : CapturedOnce;
 
         // GDD v2 4: the first Lagging stage lasts 60 s, the second 30 s.
         public static float LaggingTotal(byte captureCount)

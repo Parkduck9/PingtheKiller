@@ -72,7 +72,10 @@ namespace PingTheKiller.Client.UI
         public static string BannerFor(byte captureCount) => SurvivorReadout.SecondStage(captureCount) ? SecondBanner : Banner;
         // GDD v2 4: no execution. The second Lagging stage running out, a third capture, or the collapse eliminates.
         public const string Collapse = "Disconnected: the collapse reached you.";
-        public const string ThirdCapture = "Disconnected: caught a third time.";
+        // The server's CaptureCount counts Lagging stages, not captures: a first stage that runs out raises it to 2 without a
+        // capture. So the capture elimination names a number only when this watch saw every capture (Caught); otherwise
+        // this count-free line, which is true for any history.
+        public const string ThirdCapture = "Disconnected: caught with no Lagging stage left.";
         public static readonly string TimedOut = "Disconnected: no rescue in the second Lagging stage (" + Num(GameConstants.SecondLaggingTimeoutSeconds) + " s).";
         private bool known;
         private PlayerStatus last;
@@ -82,11 +85,28 @@ namespace PingTheKiller.Client.UI
         private byte bannerCaptures;
         public EliminationReason Reason { get; private set; }
         public int Banners { get; private set; }
+        // Normal -> Lagging transitions seen after the baseline, and whether a first stage was seen running out into the
+        // second. WholeMatch: the baseline was Normal with CaptureCount 0, so nothing happened before this watch started.
+        public int Captures { get; private set; }
+        public bool Escalated { get; private set; }
+        public bool WholeMatch { get; private set; }
+        // Captures including the eliminating one, when the history is known and agrees with the server's count; else null.
+        public int? CaughtTimes { get; private set; }
 
         public void Reset()
         {
             known = false; last = PlayerStatus.Normal; lastTimer = 0; lastCaptures = 0;
             bannerUntil = double.NegativeInfinity; bannerCaptures = 0; Reason = EliminationReason.None; Banners = 0;
+            Captures = 0; Escalated = false; WholeMatch = false; CaughtTimes = null;
+        }
+
+        // The capture-elimination line: "caught 3 times", or "caught 2 times, no Lagging stage left" after a stage ran out;
+        // with no known count, ThirdCapture.
+        public static string Caught(int? times, bool escalated)
+        {
+            if (!times.HasValue || times.Value < 1) return ThirdCapture;
+            return "Disconnected: caught " + times.Value.ToString(CultureInfo.InvariantCulture) + (times.Value == 1 ? " time" : " times")
+                + (escalated ? ", no Lagging stage left." : ".");
         }
 
         // collapseRunning: the own collapse clock runs (SelfState.CollapseLeft >= 0), so an elimination without a timeout or
@@ -99,11 +119,15 @@ namespace PingTheKiller.Client.UI
                 if (status == PlayerStatus.Lagging && last == PlayerStatus.Normal)
                 {
                     result = StatusEvent.Captured; bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
+                    Captures++;
                 }
                 else if (status == PlayerStatus.Eliminated)
                 {
                     result = StatusEvent.Eliminated;
                     Reason = Infer(last, lastTimer, lastCaptures, collapseRunning);
+                    // Before the eliminating capture the server's count is one per capture plus one for a stage that ran out.
+                    bool agrees = lastCaptures == Captures + (Escalated ? 1 : 0);
+                    CaughtTimes = Reason == EliminationReason.ThirdCapture && WholeMatch && agrees ? Captures + 1 : (int?)null;
                 }
                 else if (status == PlayerStatus.Normal && last == PlayerStatus.Lagging) result = StatusEvent.Rescued;
                 else if (status == PlayerStatus.Escaped) result = StatusEvent.Escaped;
@@ -113,14 +137,16 @@ namespace PingTheKiller.Client.UI
             {
                 // The first stage ran out and the server escalated to the second: the banner again, now with 30 s left.
                 bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
+                Escalated = true;
             }
+            if (!known) WholeMatch = status == PlayerStatus.Normal && captureCount == 0;
             known = true; last = status; lastCaptures = captureCount;
             lastTimer = float.IsNaN(statusTimer) ? 0 : statusTimer;
             return result;
         }
 
         // Lagging -> Eliminated: the last Lagging StatusTimer at or below 0.2 s means the second stage ran out. Normal ->
-        // Eliminated with CaptureCount >= 2: the third capture. Otherwise, while the collapse runs: the collapse. Anything
+        // Eliminated with CaptureCount >= 2: a capture with no Lagging stage left (ThirdCapture). Otherwise, while the collapse runs: the collapse. Anything
         // else (the 900 s timeout) is not inferred.
         public static EliminationReason Infer(PlayerStatus before, float lastTimer, byte captureCount, bool collapseRunning = false)
         {
@@ -149,7 +175,8 @@ namespace PingTheKiller.Client.UI
             }
         }
 
-        public string ReasonText() => ReasonText(Reason);
+        // This match's line: the capture elimination names the captures this watch saw (Caught).
+        public string ReasonText() => Reason == EliminationReason.ThirdCapture ? Caught(CaughtTimes, Escalated) : ReasonText(Reason);
 
         // HUD_SPEC 4.8 skill_ready: only for a Survivor who can use the skill (Normal); never while Lagging (skill off),
         // Eliminated (spectating) or Escaped.
