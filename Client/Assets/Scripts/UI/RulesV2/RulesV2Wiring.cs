@@ -23,6 +23,8 @@ namespace PingTheKiller.Client.UI.RulesV2
         public bool Current => current;
         public SyncCheckView View => view;
         public byte TerminalId { get; private set; }
+        // Raised by OnResult when it returns true (the first result of the current check): the sync cue.
+        public event System.Action<SyncResult> Resolved;
 
         // True when the check became the current one.
         public bool OnCheck(uint checkId, byte terminalId, float duration, float zoneStart, float zoneSize, float greatSize, double now)
@@ -49,6 +51,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             view.Result = result <= (byte)SyncResult.Great ? (SyncResult)result : SyncResult.Fail;
             resultAt = now;
             State.Update(view, true, now);
+            Resolved?.Invoke(view.Result.Value);
             return true;
         }
 
