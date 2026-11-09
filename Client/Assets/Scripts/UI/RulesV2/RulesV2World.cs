@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using PingTheKiller.Client.Killer;
 using PingTheKiller.Shared.Game;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,7 +16,15 @@ namespace PingTheKiller.Client.UI.RulesV2
         public const float TagGap = 12, Inset = 24;
         private enum Kind : byte { Exit, Overloaded, Chevron }  // Chevron: the off-screen Overloaded square with its pointer
         private struct Shape { public Kind Kind; public Vector2 At, Direction; public ExitView Exit; }
+        // Q2: half the Overloaded square's bounds (8 u + the 1 u keyline) and of the Exit marker (the progress arc at
+        // radius 11, 2 u wide, with its keyline), for the Killer's shared layout pass.
+        public const float OverloadedHalf = 9, ExitHalf = 13;
+        // Q2: this frame's tag i: its shape (-1 = none), layout priority, placed rectangle (reserved size), whether it was
+        // measured this frame (else it stays hidden) and whether the edge spread dropped it.
+        private struct Slot { public int Shape; public LayoutPriority Priority; public Rect Rect; public bool Measured, Dropped; }
         private readonly List<Shape> shapes = new List<Shape>();
+        private readonly List<Slot> slots = new List<Slot>();
+        private readonly List<Vector2> sizes = new List<Vector2>();  // last measured size per pooled label
         private readonly List<Label> tags = new List<Label>();
         private readonly Font font;
         private readonly TextMemo memo = new TextMemo(2 + 16 + 16);  // exit tags, Regressing tags, Overloaded alerts
@@ -30,7 +39,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             generateVisualContent += Draw;
         }
 
-        public void Begin() { shapes.Clear(); used = 0; }
+        public void Begin() { shapes.Clear(); slots.Clear(); used = 0; }
 
         public void End()
         {
@@ -49,7 +58,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             shapes.Add(new Shape { Kind = Kind.Exit, At = at, Exit = exit });
             long key = ExitCopy.Key(exit);
             if (!memo.Hit(exit.Id & 1, key, out string text)) text = memo.Put(exit.Id & 1, key, ExitCopy.Tag(exit));
-            Tag(at - new Vector2(0, TagGap), text, ExitCopy.Phase(exit) == ExitPhase.NoPower ? "v2-tag-muted" : null, V2TagPivot.Above);
+            Tag(at - new Vector2(0, TagGap), text, ExitCopy.Phase(exit) == ExitPhase.NoPower ? "v2-tag-muted" : null, V2TagPivot.Above, shapes.Count - 1, LayoutPriority.Exit);
         }
 
         // Regressing tag above a terminal point; 2 u left bar `danger` (Survivor: Killer-caused) or `text` (Killer).
@@ -59,7 +68,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             long key = terminal.Id | (long)HoldCopy.Percent(terminal.Progress01) << 8 | (long)viewer << 16;
             int slot = 2 + (terminal.Id & 15);
             if (!memo.Hit(slot, key, out string text)) text = memo.Put(slot, key, TerminalFlagCopy.Regressing(terminal, viewer));
-            Tag(at - new Vector2(0, TagGap), text, viewer == Role.Survivor ? "v2-tag-bar-danger" : "v2-tag-bar-text", V2TagPivot.Above);
+            Tag(at - new Vector2(0, TagGap), text, viewer == Role.Survivor ? "v2-tag-bar-danger" : "v2-tag-bar-text", V2TagPivot.Above, -1, LayoutPriority.Terminal);
         }
 
         // Overloaded alert (Killer): a 16 u `signal` square at the terminal on screen; off screen the same square at the
@@ -77,16 +86,76 @@ namespace PingTheKiller.Client.UI.RulesV2
         public void Overloaded(Vector2 at, bool onScreen, Vector2 pointing, string text)
         {
             shapes.Add(new Shape { Kind = onScreen ? Kind.Overloaded : Kind.Chevron, At = at, Direction = pointing });
-            Tag(at + new Vector2(0, TagGap), text, null, V2TagPivot.Below);
+            Tag(at + new Vector2(0, TagGap), text, null, V2TagPivot.Below, shapes.Count - 1, LayoutPriority.Overloaded);
         }
 
-        private void Tag(Vector2 at, string text, string style, V2TagPivot pivot)
+        // Q2 (Killer): an off-screen Overloaded alert whose place the caller decides later with PlaceEdge (after the edge
+        // spread). Returns the tag index; TagSize gives the size to reserve for it.
+        public int OverloadedEdge(Vector2 at, Vector2 pointing, string text)
+        {
+            Overloaded(at, false, pointing, text);
+            return used - 1;
+        }
+
+        // The size reserved for tag i: its measured size, else the last size its label had, else an estimate from the text.
+        public Vector2 TagSize(int index) => slots[index].Rect.size;
+
+        // Moves the off-screen alert of tag i (from OverloadedEdge) to the spread glyph point and its tag to `rect`;
+        // show = false when the spread dropped the tag.
+        public void PlaceEdge(int index, Vector2 at, Rect rect, bool show)
+        {
+            Slot slot = slots[index];
+            if (slot.Shape >= 0) { Shape shape = shapes[slot.Shape]; shape.At = at; shapes[slot.Shape] = shape; }
+            slot.Dropped = !show;
+            if (show) slot.Rect = WholeInside(SafeArea, rect.x, rect.y, slot.Rect.width, slot.Rect.height);
+            slots[index] = slot;
+            Label tag = tags[index];
+            tag.style.left = slot.Rect.x; tag.style.top = slot.Rect.y;
+            if (!show) tag.style.visibility = Visibility.Hidden;
+        }
+
+        // Q2: this frame's tags as layout items for the Killer's single layout pass (MarkerLayer.External). Exit glyphs are
+        // never hidden (HUD_SPEC 6.2 "always shown"); the Overloaded square is above the Exit priority, so it never is.
+        public int LayoutCount => used;
+
+        public void LayoutInput(int index, out LayoutPriority priority, out Rect glyph, out Rect tag, out bool keepGlyph)
+        {
+            Slot slot = slots[index];
+            priority = slot.Priority;
+            glyph = slot.Shape >= 0 ? Bounds(shapes[slot.Shape]) : default;
+            tag = slot.Dropped ? default : slot.Rect;
+            keepGlyph = slot.Shape >= 0 && shapes[slot.Shape].Kind == Kind.Exit;
+        }
+
+        // Applies the layout result to tag i: hidden, or moved down by `shift` (an unmeasured tag stays hidden).
+        public void ApplyLayout(int index, bool visible, float shift)
+        {
+            Slot slot = slots[index];
+            if (!slot.Measured || slot.Dropped) return;
+            Label tag = tags[index];
+            tag.style.visibility = visible ? Visibility.Visible : Visibility.Hidden;
+            if (visible && shift != 0) tag.style.top = Mathf.Round(slot.Rect.y + shift);
+        }
+
+        private static Rect Bounds(Shape s)
+        {
+            if (s.Kind == Kind.Exit) return TagLayout.Around(s.At, ExitHalf, ExitHalf);
+            Rect square = TagLayout.Around(s.At, OverloadedHalf, OverloadedHalf);
+            if (s.Kind == Kind.Overloaded) return square;
+            Vector2 d = s.Direction.sqrMagnitude > 1e-6f ? s.Direction.normalized : Vector2.down;
+            Vector2 tip = s.At + d * (8 / Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y)) + OverloadedHalf);
+            return Rect.MinMaxRect(Mathf.Min(square.xMin, tip.x), Mathf.Min(square.yMin, tip.y), Mathf.Max(square.xMax, tip.x), Mathf.Max(square.yMax, tip.y));
+        }
+
+        private void Tag(Vector2 at, string text, string style, V2TagPivot pivot, int shape, LayoutPriority priority)
         {
             if (used == tags.Count)
             {
                 Label created = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-tag");
                 tags.Add(created);
+                sizes.Add(Vector2.zero);
             }
+            int index = used;
             Label tag = tags[used++];
             V2Ui.Show(tag, true);
             bool changed = tag.text != text;
@@ -100,14 +169,29 @@ namespace PingTheKiller.Client.UI.RulesV2
             float w = tag.resolvedStyle.width, h = tag.resolvedStyle.height;
             bool measured = !changed && !float.IsNaN(w) && !float.IsNaN(h) && w > 0 && h > 0;
             tag.style.visibility = measured ? Visibility.Visible : Visibility.Hidden;
-            if (!measured) { w = 0; h = 0; }
-            Rect area = SafeArea;
-            float x = at.x - w * .5f;
-            float y = pivot == V2TagPivot.Above ? at.y - h : pivot == V2TagPivot.Below ? at.y : at.y - h * .5f;
-            if (area.width > w) x = Mathf.Clamp(x, area.xMin, area.xMax - w);
-            if (area.height > h) y = Mathf.Clamp(y, area.yMin, area.yMax - h);
-            tag.style.left = Mathf.Round(x); tag.style.top = Mathf.Round(y);
-        }
+            // Q2: an unmeasured tag (hidden this frame) still reserves space in the Killer layout: its label's last
+            // measured size, else an estimate. A text change (the metres ticking) therefore never shifts its neighbours.
+            if (measured) sizes[index] = new Vector2(w, h);
+            else if (!float.IsNaN(w) && !float.IsNaN(h) && w > 0 && h > 0 && sizes[index] == Vector2.zero) sizes[index] = new Vector2(w, h);
+            Vector2 size = measured ? new Vector2(w, h) : sizes[index] != Vector2.zero ? sizes[index] : MarkerLayer.TagSize(text, TagStyle.Text);
+            w = Mathf.Ceil(size.x); h = Mathf.Ceil(size.y);  // whole-unit reservation, so rounding never pushes it past the edge
+            Rect area = SafeArea;
+            float x = at.x - w * .5f;
+            float y = pivot == V2TagPivot.Above ? at.y - h : pivot == V2TagPivot.Below ? at.y : at.y - h * .5f;
+            Rect placed = WholeInside(area, x, y, w, h);
+            tag.style.left = placed.x; tag.style.top = placed.y;
+            slots.Add(new Slot { Shape = shape, Priority = priority, Rect = placed, Measured = measured });
+        }
+
+        // A whole-unit rect (w, h whole) whose rounded origin is clamped so the whole rect stays inside `area`
+        // (Ceil toward the inside on the min side, Floor on the max side). An axis the area is too small for is left alone.
+        private static Rect WholeInside(Rect area, float x, float y, float w, float h)
+        {
+            x = Mathf.Round(x); y = Mathf.Round(y);
+            if (area.width > w) x = Mathf.Clamp(x, Mathf.Ceil(area.xMin), Mathf.Floor(area.xMax - w));
+            if (area.height > h) y = Mathf.Clamp(y, Mathf.Ceil(area.yMin), Mathf.Floor(area.yMax - h));
+            return new Rect(x, y, w, h);
+        }
 
         private Rect SafeArea
         {

@@ -308,7 +308,7 @@ namespace PingTheKiller.Client.QA.Tests
             var items = new List<(LayoutPriority, Rect, Rect)>();
             for (int i = 0; i < count; i++)
             {
-                var priority = (LayoutPriority)rng.Next(4);
+                var priority = (LayoutPriority)rng.Next(5);
                 // A small area, so collisions are the rule; coordinates on a coarse grid so exact ties happen too.
                 float x = 400 + rng.Next(0, 6) * 20, y = 300 + rng.Next(0, 5) * 12;
                 bool glyph = rng.Next(3) != 0, tag = !glyph || rng.Next(3) != 0;
@@ -425,7 +425,7 @@ namespace PingTheKiller.Client.QA.Tests
                 for (int i = 0; i < 15; i++)
                 {
                     float x = 300 + rng.Next(0, 200), y = 300 + rng.Next(0, 120);
-                    items.Add(((LayoutPriority)rng.Next(4), rng.Next(4) == 0 ? None : Glyph(x, y, 8), rng.Next(5) == 0 ? None : Tag(x - 25, y + 10)));
+                    items.Add(((LayoutPriority)rng.Next(5), rng.Next(4) == 0 ? None : Glyph(x, y, 8), rng.Next(5) == 0 ? None : Tag(x - 25, y + 10)));
                 }
                 AssertValid(Solved(items.ToArray()), Screen, "round " + round);
             }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PingTheKiller.Client.Killer
@@ -95,5 +96,311 @@ namespace PingTheKiller.Client.Killer
 
         // Strictly inside: a point on the keep-out edge is already clear.
         private static bool Inside(Rect r, Vector2 p) => p.x > r.xMin && p.x < r.xMax && p.y > r.yMin && p.y < r.yMax;
+    }
+
+    public enum EdgeSide : byte { Left = 0, Right = 1, Top = 2, Bottom = 3 }
+
+    // Where an edge marker's tag sits. Beside: on the screen-centre side of the glyph, 4 u away (Survivor chevrons).
+    // Below: 12 u under the glyph and kept inside the safe rectangle (the Overloaded alert, HUD_SPEC 13.6); on the
+    // bottom edge, where below would leave the screen, 12 u above it.
+    public enum EdgeTagMode : byte { Beside, Below }
+
+    // Q2: spreads the frame's off-screen edge markers (Survivor chevrons and off-screen Overloaded squares together) along
+    // their edge so that no two marker+tag footprints on one edge overlap, with a 4 u gap. Pure and allocation-free per
+    // frame (buffers are reused). Per edge:
+    // 1. Order by the ideal coordinate along the edge (tie: the caller's stable key, never the input order). Two
+    //    neighbours keep last frame's order while their ideal coordinates differ by less than Hysteresis.
+    // 2. Displacement-minimising 1D packing: in gap-removed coordinates the problem is isotonic regression (pool adjacent
+    //    violators, each cluster at the mean of its ideal positions), then clamped to the usable segment (the safe
+    //    rectangle's side minus the keep-out). Continuous in the inputs while the order holds; outputs are whole units.
+    // 3. If the footprints do not fit: shrink the gap 4 -> 3 -> 2 u, then drop tags one at a time (glyphs always stay),
+    //    the lowest priority first (an Overloaded tag before a Survivor edge tag), then the farthest, then the higher key.
+    public sealed class EdgeSpread
+    {
+        public const float Gap = 4, MinGap = 2, Hysteresis = 6, BesideGap = 4, BelowGap = 12, EdgeEpsilon = .5f;
+
+        private struct Item
+        {
+            public Vector2 Ideal, GlyphHalf, TagSize, Glyph;
+            public EdgeTagMode Mode;
+            public LayoutPriority Priority;
+            public int Key;
+            public float Distance;
+            public EdgeSide Side;
+            public bool TagShown;
+            public float Lo, Hi, Target;   // footprint along the edge relative to the glyph; solver scratch
+        }
+
+        private readonly List<Item> items = new List<Item>();
+        private readonly List<int>[] sides = { new List<int>(), new List<int>(), new List<int>(), new List<int>() };
+        private readonly List<int> fresh = new List<int>();
+        private readonly List<float> blockSum = new List<float>();
+        private readonly List<int> blockCount = new List<int>();
+        private readonly Dictionary<int, int> previous = new Dictionary<int, int>();   // key -> rank * 4 + side
+        private Rect safe, keepOut;
+
+        public int Count => items.Count;
+
+        public void Begin(Rect safeRect, Rect keepOutRect)
+        {
+            items.Clear();
+            safe = safeRect; keepOut = keepOutRect;
+        }
+
+        // ideal: the EdgePlacement.Place point. glyphHalf: half the glyph's bounds (keyline included). tagSize: 0 = no tag.
+        // key: unique per frame and stable across frames (a blip handle; terminals use negative keys).
+        public int Add(Vector2 ideal, Vector2 glyphHalf, Vector2 tagSize, EdgeTagMode mode, LayoutPriority priority, int key, float distance)
+        {
+            items.Add(new Item
+            {
+                Ideal = ideal, GlyphHalf = glyphHalf, TagSize = tagSize.x > 0 && tagSize.y > 0 ? tagSize : Vector2.zero,
+                Mode = mode, Priority = priority, Key = key, Distance = distance, Side = SideOf(ideal, safe), Glyph = ideal,
+            });
+            return items.Count - 1;
+        }
+
+        public EdgeSide Side(int index) => items[index].Side;
+        // The spread glyph centre.
+        public Vector2 Glyph(int index) => items[index].Glyph;
+        public bool HasTag(int index) => items[index].TagSize.x > 0;
+        // False when the tag was dropped because the edge was full.
+        public bool TagShown(int index) => items[index].TagShown;
+        public Rect GlyphRect(int index) => TagLayout.Around(items[index].Glyph, items[index].GlyphHalf.x, items[index].GlyphHalf.y);
+        // The tag rectangle at the spread position (width 0 when the item has no tag).
+        public Rect Tag(int index)
+        {
+            Item item = items[index];
+            return item.TagSize.x > 0 ? TagRect(item.Glyph, item.GlyphHalf, item.TagSize, item.Mode, item.Side, safe) : default;
+        }
+
+        // Glyph plus shown tag: what may not overlap another footprint on the same edge.
+        public Rect Footprint(int index)
+        {
+            Rect glyph = GlyphRect(index);
+            if (!items[index].TagShown) return glyph;
+            Rect tag = Tag(index);
+            return Rect.MinMaxRect(Mathf.Min(glyph.xMin, tag.xMin), Mathf.Min(glyph.yMin, tag.yMin), Mathf.Max(glyph.xMax, tag.xMax), Mathf.Max(glyph.yMax, tag.yMax));
+        }
+
+        // The edge a placed point belongs to. Corners go to the left or right edge.
+        public static EdgeSide SideOf(Vector2 p, Rect safe)
+        {
+            if (Mathf.Abs(p.x - safe.xMax) <= EdgeEpsilon) return EdgeSide.Right;
+            if (Mathf.Abs(p.x - safe.xMin) <= EdgeEpsilon) return EdgeSide.Left;
+            if (Mathf.Abs(p.y - safe.yMin) <= EdgeEpsilon) return EdgeSide.Top;
+            if (Mathf.Abs(p.y - safe.yMax) <= EdgeEpsilon) return EdgeSide.Bottom;
+            // Not on an edge (a keep-out fallback): the nearest one.
+            float left = p.x - safe.xMin, right = safe.xMax - p.x, top = p.y - safe.yMin, bottom = safe.yMax - p.y;
+            float best = Mathf.Min(Mathf.Min(left, right), Mathf.Min(top, bottom));
+            return best == right ? EdgeSide.Right : best == left ? EdgeSide.Left : best == top ? EdgeSide.Top : EdgeSide.Bottom;
+        }
+
+        // The tag rectangle of a glyph at an edge (panel units, y down).
+        public static Rect TagRect(Vector2 glyph, Vector2 glyphHalf, Vector2 size, EdgeTagMode mode, EdgeSide side, Rect safe)
+        {
+            float x, y;
+            if (mode == EdgeTagMode.Beside)
+            {
+                switch (side)
+                {
+                    case EdgeSide.Right: x = glyph.x - glyphHalf.x - BesideGap - size.x; y = glyph.y - size.y * .5f; break;
+                    case EdgeSide.Left: x = glyph.x + glyphHalf.x + BesideGap; y = glyph.y - size.y * .5f; break;
+                    case EdgeSide.Top: x = glyph.x - size.x * .5f; y = glyph.y + glyphHalf.y + BesideGap; break;
+                    default: x = glyph.x - size.x * .5f; y = glyph.y - glyphHalf.y - BesideGap - size.y; break;
+                }
+                return new Rect(x, y, size.x, size.y);
+            }
+            x = glyph.x - size.x * .5f;
+            if (safe.width > size.x) x = Mathf.Clamp(x, safe.xMin, safe.xMax - size.x);
+            y = side == EdgeSide.Bottom ? glyph.y - BelowGap - size.y : glyph.y + BelowGap;
+            return new Rect(x, y, size.x, size.y);
+        }
+
+        public void Solve()
+        {
+            for (int s = 0; s < sides.Length; s++) sides[s].Clear();
+            for (int i = 0; i < items.Count; i++)
+            {
+                Item item = items[i];
+                item.TagShown = item.TagSize.x > 0;
+                item.Glyph = item.Ideal;
+                items[i] = item;
+            }
+            for (int s = 0; s < sides.Length; s++)
+            {
+                Order((EdgeSide)s);
+                Pack((EdgeSide)s);
+            }
+            previous.Clear();
+            for (int s = 0; s < sides.Length; s++)
+                for (int r = 0; r < sides[s].Count; r++) previous[items[sides[s][r]].Key] = r * 4 + s;
+        }
+
+        private static bool Vertical(EdgeSide side) => side == EdgeSide.Left || side == EdgeSide.Right;
+        private static float Along(Vector2 p, EdgeSide side) => Vertical(side) ? p.y : p.x;
+
+        // 1. Last frame's order for the known items, new items inserted by (ideal, key); then adjacent swaps only where two
+        //    neighbours are out of order by Hysteresis or more. Deterministic for a given set; never the input order.
+        private void Order(EdgeSide side)
+        {
+            List<int> list = sides[(int)side];
+            fresh.Clear();
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].Side != side) continue;
+                if (previous.TryGetValue(items[i].Key, out int code) && code % 4 == (int)side) list.Add(i);
+                else fresh.Add(i);
+            }
+            // Known items by last rank (insertion sort; a handful of items, no allocation).
+            for (int a = 1; a < list.Count; a++)
+                for (int b = a; b > 0 && previous[items[list[b - 1]].Key] > previous[items[list[b]].Key]; b--) Swap(list, b - 1, b);
+            for (int a = 1; a < fresh.Count; a++)
+                for (int b = a; b > 0 && Before(fresh[b], fresh[b - 1], side); b--) Swap(fresh, b - 1, b);
+            for (int f = 0; f < fresh.Count; f++)
+            {
+                int at = 0;
+                while (at < list.Count && !Before(fresh[f], list[at], side)) at++;
+                list.Insert(at, fresh[f]);
+            }
+            // Each swap removes one inversion of the ideal order, so this ends.
+            for (bool swapped = true; swapped;)
+            {
+                swapped = false;
+                for (int k = 0; k + 1 < list.Count; k++)
+                    if (Along(items[list[k]].Ideal, side) - Along(items[list[k + 1]].Ideal, side) >= Hysteresis) { Swap(list, k, k + 1); swapped = true; }
+            }
+        }
+
+        private bool Before(int a, int b, EdgeSide side)
+        {
+            float ia = Along(items[a].Ideal, side), ib = Along(items[b].Ideal, side);
+            return ia < ib || (ia == ib && items[a].Key < items[b].Key);
+        }
+
+        private static void Swap(List<int> list, int a, int b) { int t = list[a]; list[a] = list[b]; list[b] = t; }
+
+        // The usable stretch of an edge: the safe rectangle's side minus the part the keep-out covers (the longer piece
+        // when the keep-out splits it).
+        public static void Segment(EdgeSide side, Rect safe, Rect keepOut, out float lo, out float hi)
+        {
+            bool vertical = Vertical(side);
+            lo = vertical ? safe.yMin : safe.xMin;
+            hi = vertical ? safe.yMax : safe.xMax;
+            float line = side == EdgeSide.Left ? safe.xMin : side == EdgeSide.Right ? safe.xMax : side == EdgeSide.Top ? safe.yMin : safe.yMax;
+            float kMin = vertical ? keepOut.xMin : keepOut.yMin, kMax = vertical ? keepOut.xMax : keepOut.yMax;
+            if (keepOut.width <= 0 || keepOut.height <= 0 || line < kMin || line > kMax) return;
+            float cutLo = vertical ? keepOut.yMin : keepOut.xMin, cutHi = vertical ? keepOut.yMax : keepOut.xMax;
+            if (cutHi <= lo || cutLo >= hi) return;
+            if (cutLo - lo >= hi - cutHi) hi = Mathf.Min(hi, cutLo); else lo = Mathf.Max(lo, cutHi);
+        }
+
+        private static void Footprint(ref Item item, EdgeSide side)
+        {
+            bool vertical = Vertical(side);
+            float half = vertical ? item.GlyphHalf.y : item.GlyphHalf.x;
+            item.Lo = -half; item.Hi = half;
+            if (!item.TagShown) return;
+            if (item.Mode == EdgeTagMode.Below && vertical)
+            {
+                item.Hi = Mathf.Max(half, BelowGap + item.TagSize.y);
+                return;
+            }
+            float tagHalf = (vertical ? item.TagSize.y : item.TagSize.x) * .5f;
+            item.Lo = Mathf.Min(item.Lo, -tagHalf); item.Hi = Mathf.Max(item.Hi, tagHalf);
+        }
+
+        private void Pack(EdgeSide side)
+        {
+            List<int> list = sides[(int)side];
+            if (list.Count == 0) return;
+            Segment(side, safe, keepOut, out float lo, out float hi);
+            while (true)
+            {
+                for (int k = 0; k < list.Count; k++) { Item item = items[list[k]]; Footprint(ref item, side); items[list[k]] = item; }
+                for (float gap = Gap; gap >= MinGap; gap -= 1)
+                    if (TryPack(list, side, lo, hi, gap)) return;
+                if (!DropOneTag(list)) break;
+            }
+            // Even the bare glyphs do not fit: squeeze them evenly over the segment (they may overlap; none is dropped).
+            float total = 0;
+            for (int k = 0; k < list.Count; k++) total += items[list[k]].Hi - items[list[k]].Lo;
+            float squeeze = list.Count > 1 ? (hi - lo - total) / (list.Count - 1) : 0;
+            float at = lo;
+            for (int k = 0; k < list.Count; k++)
+            {
+                Item item = items[list[k]];
+                Set(ref item, side, Mathf.Floor(at - item.Lo + .5f));
+                at += item.Hi - item.Lo + squeeze;
+                items[list[k]] = item;
+            }
+        }
+
+        // Isotonic regression in gap-removed coordinates (y = x - D, D = the summed minimum spacings in whole units),
+        // clamped to the segment and rounded with floor(v + .5), so a 1 u input change moves an output by at most 1 u.
+        private bool TryPack(List<int> list, EdgeSide side, float lo, float hi, float gap)
+        {
+            float offset = 0;
+            for (int k = 0; k < list.Count; k++)
+            {
+                Item item = items[list[k]];
+                if (k > 0) offset += Spacing(items[list[k - 1]], item, gap);
+                item.Target = Along(item.Ideal, side) - offset;
+                items[list[k]] = item;
+            }
+            Item first = items[list[0]], last = items[list[list.Count - 1]];
+            float yMin = Mathf.Ceil(lo - first.Lo - 1e-4f), yMax = Mathf.Floor(hi - last.Hi - offset + 1e-4f);
+            if (yMin > yMax) return false;
+            // Pool adjacent violators: each block sits at the mean of its targets.
+            blockSum.Clear(); blockCount.Clear();
+            for (int k = 0; k < list.Count; k++)
+            {
+                blockSum.Add(items[list[k]].Target); blockCount.Add(1);
+                while (blockSum.Count > 1)
+                {
+                    int n = blockSum.Count;
+                    if (blockSum[n - 2] / blockCount[n - 2] <= blockSum[n - 1] / blockCount[n - 1]) break;
+                    blockSum[n - 2] += blockSum[n - 1]; blockCount[n - 2] += blockCount[n - 1];
+                    blockSum.RemoveAt(n - 1); blockCount.RemoveAt(n - 1);
+                }
+            }
+            offset = 0;
+            int index = 0;
+            for (int b = 0; b < blockSum.Count; b++)
+            {
+                float y = Mathf.Clamp(Mathf.Floor(blockSum[b] / blockCount[b] + .5f), yMin, yMax);
+                for (int c = 0; c < blockCount[b]; c++, index++)
+                {
+                    Item item = items[list[index]];
+                    if (index > 0) offset += Spacing(items[list[index - 1]], item, gap);
+                    Set(ref item, side, y + offset);
+                    items[list[index]] = item;
+                }
+            }
+            return true;
+        }
+
+        // The minimum centre-to-centre distance of two neighbours, in whole units.
+        private static float Spacing(Item before, Item after, float gap) => Mathf.Ceil(before.Hi - after.Lo + gap - 1e-4f);
+
+        private static void Set(ref Item item, EdgeSide side, float along)
+            => item.Glyph = Vertical(side) ? new Vector2(item.Ideal.x, along) : new Vector2(along, item.Ideal.y);
+
+        // Lowest priority first (the highest LayoutPriority value), then the farthest, then the higher key.
+        private bool DropOneTag(List<int> list)
+        {
+            int pick = -1;
+            for (int k = 0; k < list.Count; k++)
+            {
+                Item item = items[list[k]];
+                if (!item.TagShown) continue;
+                if (pick < 0) { pick = list[k]; continue; }
+                Item best = items[pick];
+                if (item.Priority > best.Priority || (item.Priority == best.Priority &&
+                    (item.Distance > best.Distance || (item.Distance == best.Distance && item.Key > best.Key)))) pick = list[k];
+            }
+            if (pick < 0) return false;
+            Item dropped = items[pick]; dropped.TagShown = false; items[pick] = dropped;
+            return true;
+        }
     }
 }

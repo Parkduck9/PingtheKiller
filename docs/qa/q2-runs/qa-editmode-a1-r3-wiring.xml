@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="8" result="Failed(Child)" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.2273095">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1406" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.227310" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1965" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PingtheKiller/.claude/worktrees/objective-borg-dc2fe1/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="854" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.193487" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="21832" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1966" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="854" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.159161" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1967" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="854" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.153312" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1968" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="854" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.147430" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="1969" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="854" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.141607" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="1343" name="EdgeLabelsWiringQaTests" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" testcasecount="8" result="Failed" site="Child" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.129108" total="8" passed="4" failed="4" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="1348" name="AnUnmeasuredV2TagStaysHiddenForTheFrameButStillReservesItsPlace" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AnUnmeasuredV2TagStaysHiddenForTheFrameButStillReservesItsPlace" methodname="AnUnmeasuredV2TagStaysHiddenForTheFrameButStillReservesItsPlace" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="1240598676" result="Failed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.063390" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  720p reserved: reserved v2 rect 0 inside the safe rect (x:24.00, y:24.00, width:1552.00, height:852.00): (x:1361.00, y:456.00, width:215.20, height:23.00) (xMax 1576.2)
+  Expected: True
+  But was:  False
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AssertReadable (PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests+Frame f, System.Int32 alerts, System.Int32 chevrons, System.String label, System.Boolean pendingF01) [0x00092] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:160
+at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AnUnmeasuredV2TagStaysHiddenForTheFrameButStillReservesItsPlace () [0x00085] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:259
+]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="1347" name="ApartFromTheF01RoundingTheCrowdedRightEdgeIsCleanAtBothResolutions_RealWiring" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.ApartFromTheF01RoundingTheCrowdedRightEdgeIsCleanAtBothResolutions_RealWiring" methodname="ApartFromTheF01RoundingTheCrowdedRightEdgeIsCleanAtBothResolutions_RealWiring" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="291796408" result="Passed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.009958" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1349" name="EdgeSpreadSolveAllocatesNoGcMemoryAfterWarmUp" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.EdgeSpreadSolveAllocatesNoGcMemoryAfterWarmUp" methodname="EdgeSpreadSolveAllocatesNoGcMemoryAfterWarmUp" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="510541546" result="Passed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.004646" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1344" name="OneOffScreenOverloadedAlertAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.OneOffScreenOverloadedAlertAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" methodname="OneOffScreenOverloadedAlertAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="257149532" result="Failed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.001220" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  720p 1+2: reserved v2 rect 0 inside the safe rect (x:24.00, y:24.00, width:1552.00, height:852.00): (x:1361.00, y:455.00, width:215.20, height:23.00) (xMax 1576.2)
+  Expected: True
+  But was:  False
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AssertReadable (PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests+Frame f, System.Int32 alerts, System.Int32 chevrons, System.String label, System.Boolean pendingF01) [0x00092] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:160
+at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.OneOffScreenOverloadedAlertAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring () [0x00000] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:211
+]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="1351" name="RandomLayoutsOverAllFivePrioritiesKeepTheInvariants" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.RandomLayoutsOverAllFivePrioritiesKeepTheInvariants" methodname="RandomLayoutsOverAllFivePrioritiesKeepTheInvariants" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="720501366" result="Passed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.030643" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1350" name="TagLayoutSolveWithSlottedV2TagsAllocatesNoMoreThanThePreQ2Solve" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.TagLayoutSolveWithSlottedV2TagsAllocatesNoMoreThanThePreQ2Solve" methodname="TagLayoutSolveWithSlottedV2TagsAllocatesNoMoreThanThePreQ2Solve" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="1324926781" result="Passed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.002336" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[TagLayout.Solve GC.Alloc samples per frame (10 items): pre-Q2 priorities 18, with Overloaded/Exit items 18
+]]></output>
+                </test-case>
+                <test-case id="1346" name="ThreeAlertsAndThreeChevronsStillFitAndTheSecondFrameReusesTheSameSlots_RealWiring" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.ThreeAlertsAndThreeChevronsStillFitAndTheSecondFrameReusesTheSameSlots_RealWiring" methodname="ThreeAlertsAndThreeChevronsStillFitAndTheSecondFrameReusesTheSameSlots_RealWiring" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="699410724" result="Failed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.001896" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  720p 3+3 frame 1: reserved v2 rect 0 inside the safe rect (x:24.00, y:24.00, width:1552.00, height:852.00): (x:1361.00, y:468.00, width:215.20, height:23.00) (xMax 1576.2)
+  Expected: True
+  But was:  False
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AssertReadable (PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests+Frame f, System.Int32 alerts, System.Int32 chevrons, System.String label, System.Boolean pendingF01) [0x00092] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:160
+at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.ThreeAlertsAndThreeChevronsStillFitAndTheSecondFrameReusesTheSameSlots_RealWiring () [0x00016] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:226
+]]></stack-trace>
+                  </failure>
+                </test-case>
+                <test-case id="1345" name="ThreeOffScreenOverloadedAlertsAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.ThreeOffScreenOverloadedAlertsAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" methodname="ThreeOffScreenOverloadedAlertsAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests" runstate="Runnable" seed="635427824" result="Failed" start-time="2026-11-09 05:47:20Z" end-time="2026-11-09 05:47:20Z" duration="0.000777" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  720p 3+2: reserved v2 rect 0 inside the safe rect (x:24.00, y:24.00, width:1552.00, height:852.00): (x:1361.00, y:456.00, width:215.20, height:23.00) (xMax 1576.2)
+  Expected: True
+  But was:  False
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.AssertReadable (PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests+Frame f, System.Int32 alerts, System.Int32 chevrons, System.String label, System.Boolean pendingF01) [0x00092] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:160
+at PingTheKiller.Client.QA.Tests.EdgeLabelsWiringQaTests.ThreeOffScreenOverloadedAlertsAndTwoSurvivorChevronsOnTheRightEdgeNeverOverlap_RealWiring () [0x00000] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsWiringQaTests.cs:218
+]]></stack-trace>
+                  </failure>
+                  <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
