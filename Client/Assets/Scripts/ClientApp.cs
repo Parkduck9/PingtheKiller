@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PingTheKiller.Client.Audio;
 using PingTheKiller.Client.Dev;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.Net;
@@ -29,6 +30,7 @@ namespace PingTheKiller.Client
         private WorldView world;
         private KillerWorldLayer killerLayer;
         private ThreatAudio threat;
+        private RulesV2Audio v2Audio;
         private DevCapture dev;
         private int playerId, botCount;
         private MovementInput movement = new MovementInput();
@@ -115,6 +117,7 @@ namespace PingTheKiller.Client
             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
             screens.Survivor.Sync.State.Press += SendSyncPress;
+            v2Audio = gameObject.AddComponent<RulesV2Audio>(); screens.Survivor.Sync.Resolved += v2Audio.OnSync;
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             var fxObject = new GameObject("Skill FX");
             fxObject.transform.SetParent(transform, false);
@@ -225,6 +228,7 @@ namespace PingTheKiller.Client
                         killerLayer = map.AddComponent<KillerWorldLayer>();
                         killerLayer.Initialize(playerId, skillId, screens.Killer, selfState, LinkClock.Now);
                     }
+                    v2Audio.Begin(role, playerId);
                     dev?.OnMatchStart(role, skillId);
                     break;
                 case S2C_WorldState state:
@@ -237,6 +241,7 @@ namespace PingTheKiller.Client
                     world.Accept(state, received.Time);
                     killerLayer?.Accept(state, received.Time);
                     lastWorld = state;
+                    v2Audio.OnWorld(state, received.Time);
                     foreach (PlayerState player in state.Players)
                     {
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
@@ -274,6 +279,7 @@ namespace PingTheKiller.Client
                     // Own-only (HUD_SPEC 11 Q5/Q6/N5). Only inside a match: Available starts with the first packet after MatchStart.
                     if (!playing) break;
                     selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
+                    v2Audio.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
                     dev?.OnSelfState(self, selfState.Received);
                     break;
@@ -306,7 +312,7 @@ namespace PingTheKiller.Client
         {
             bool wasPlaying = playing;
             playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
-            rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
+            rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false); v2Audio.End();
             skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
@@ -364,6 +370,7 @@ namespace PingTheKiller.Client
         private void Update()
         {
             link?.Pump();
+            v2Audio.Frame(LinkClock.Now, playing && world != null);
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null && keyboard.f3Key.wasPressedThisFrame) screens.DevVisible = !screens.DevVisible;
             if (screens.DevVisible)
