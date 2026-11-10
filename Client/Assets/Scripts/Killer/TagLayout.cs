@@ -28,15 +28,22 @@ namespace PingTheKiller.Client.Killer
     // Pure screen-space layout for the Killer world markers, run every frame after projection.
     // 1. Glyphs: Survivor markers (in-view bodies, diamonds, edge chevrons) and Overloaded alerts are never hidden. An Exit or
     //    Terminal glyph that would cover a higher-priority glyph is hidden together with its tag, unless it is KeepGlyph.
-    // 2. Tags, highest priority first: a tag may not overlap another placed tag, a visible glyph of the same or higher
-    //    priority (its own included), a blocked rectangle (the HUD cluster) or leave the bounds. A colliding tag is stacked by
-    //    tag height + 2 u: below, above, below again (3 steps); then it is hidden. The rules v2 Overloaded and Exit tags
+    // 2. Tags, highest priority first: a tag may not overlap its own visible glyph, a blocked rectangle (the HUD cluster) or
+    //    leave the bounds, and (11/10) it keeps TagGap (4 u, Q2's edge-marker gap) clear of every other placed tag and of every
+    //    other visible glyph of the same or higher priority. A Survivor tag also avoids Edge chevrons: both are Survivor
+    //    information (HUD_SPEC 6), so a distance tag never covers or touches a Survivor chevron. A colliding tag is stacked by
+    //    tag height + TagGap: below, above, below again (3 steps); then it is hidden. An Overloaded or Exit tag that finds no slot
+    //    at TagGap retries at MinTagGap (2 u), then with no clearance (the pre-11/10 rule), before it is hidden, as the Q2 edge spread falls back from 4 to 2 u. The rules v2 Overloaded and Exit tags
     //    (wide, often sandwiched at a crowded edge) instead take the nearest free vertical place within the same 4-step
     //    reach (Q2), then they are hidden.
     // The result depends only on the set of items: they are sorted by priority and geometry, never by input order.
     public sealed class TagLayout
     {
-        public const float StepGap = 2;
+        public const float TagGap = 4;       // minimum clearance between a tag and every other placed tag or avoided glyph
+        public const float StepGap = TagGap; // stacking step = tag height + TagGap, so a stacked tag lands exactly TagGap away
+        public const float MinTagGap = 2;    // a crowded Overloaded or Exit tag falls back to this (Q2: the edge spread does the same), then to a plain no-overlap, instead of being hidden
+        private const float Eps = 1e-3f;
+        private float gap = TagGap;           // the clearance in force for the tag being placed
         public const int MaxSteps = 3;
         private static readonly float[] Steps = { 0, 1, -1, 2 };
         private readonly List<LayoutItem> items = new List<LayoutItem>();
@@ -44,6 +51,7 @@ namespace PingTheKiller.Client.Killer
         private readonly List<Rect> tags = new List<Rect>();
         private readonly List<Rect> blocked = new List<Rect>();
         private readonly Comparison<int> compare;
+        private int current = -1; // the item whose tag is being placed (its own glyph keeps the plain no-overlap rule)
 
         public TagLayout() { compare = Compare; }
 
@@ -98,12 +106,18 @@ namespace PingTheKiller.Client.Killer
             for (int k = 0; k < order.Count; k++)
             {
                 int i = order[k];
+                current = i;
                 LayoutItem item = items[i];
                 if (!item.HasTag || (item.HasGlyph && !item.GlyphVisible)) continue;
                 float step = item.Tag.height + StepGap;
                 if (Slotted(item.Priority))
                 {
-                    if (Slot(item.Tag, item.Priority, bounds, out float shift))
+                    gap = TagGap;
+                    bool slotted = Slot(item.Tag, item.Priority, bounds, out float shift);
+                    if (!slotted) { gap = MinTagGap; slotted = Slot(item.Tag, item.Priority, bounds, out shift); }
+                    if (!slotted) { gap = 0; slotted = Slot(item.Tag, item.Priority, bounds, out shift); }
+                    gap = TagGap;
+                    if (slotted)
                     {
                         item.TagVisible = true; item.TagShift = shift;
                         Rect placed = item.Tag; placed.y += shift;
@@ -128,7 +142,7 @@ namespace PingTheKiller.Client.Killer
         private static bool Slotted(LayoutPriority priority) => priority == LayoutPriority.Overloaded || priority == LayoutPriority.Exit;
 
         // Q2: the nearest free vertical place for an Overloaded or Exit tag, within MaxSteps + 1 stacking steps of its own
-        // place. Candidates: its own place, just below or above every obstacle (2 u apart) and the bounds; the smallest
+        // place. Candidates: its own place, just below or above every obstacle (TagGap apart) and the bounds; the smallest
         // shift wins, below before above on a tie. No allocation.
         private bool Slot(Rect tag, LayoutPriority priority, Rect bounds, out float shift)
         {
@@ -139,7 +153,7 @@ namespace PingTheKiller.Client.Killer
             for (int b = 0; b < blocked.Count; b++) NextTo(tag, blocked[b], priority, bounds, limit, ref shift, ref found);
             for (int t = 0; t < tags.Count; t++) NextTo(tag, tags[t], priority, bounds, limit, ref shift, ref found);
             for (int g = 0; g < items.Count; g++)
-                if (items[g].GlyphVisible && items[g].Priority <= priority) NextTo(tag, items[g].Glyph, priority, bounds, limit, ref shift, ref found);
+                if (items[g].GlyphVisible && Avoids(priority, items[g].Priority)) NextTo(tag, items[g].Glyph, priority, bounds, limit, ref shift, ref found);
             Consider(tag, bounds.yMin - tag.y, priority, bounds, limit, ref shift, ref found);
             Consider(tag, bounds.yMax - tag.height - tag.y, priority, bounds, limit, ref shift, ref found);
             return found;
@@ -147,9 +161,9 @@ namespace PingTheKiller.Client.Killer
 
         private void NextTo(Rect tag, Rect obstacle, LayoutPriority priority, Rect bounds, float limit, ref float shift, ref bool found)
         {
-            if (obstacle.xMax <= tag.xMin || obstacle.xMin >= tag.xMax) return;
-            Consider(tag, obstacle.yMax + StepGap - tag.y, priority, bounds, limit, ref shift, ref found);
-            Consider(tag, obstacle.yMin - StepGap - tag.height - tag.y, priority, bounds, limit, ref shift, ref found);
+            if (obstacle.xMax + gap <= tag.xMin + Eps || obstacle.xMin - gap >= tag.xMax - Eps) return;
+            Consider(tag, obstacle.yMax + gap - tag.y, priority, bounds, limit, ref shift, ref found);
+            Consider(tag, obstacle.yMin - gap - tag.height - tag.y, priority, bounds, limit, ref shift, ref found);
         }
 
         private void Consider(Rect tag, float candidate, LayoutPriority priority, Rect bounds, float limit, ref float shift, ref bool found)
@@ -166,11 +180,25 @@ namespace PingTheKiller.Client.Killer
         {
             if (candidate.xMin < bounds.xMin || candidate.yMin < bounds.yMin || candidate.xMax > bounds.xMax || candidate.yMax > bounds.yMax) return false;
             foreach (Rect rect in blocked) if (rect.Overlaps(candidate)) return false;
-            foreach (Rect rect in tags) if (rect.Overlaps(candidate)) return false;
-            foreach (LayoutItem other in items)
-                if (other.GlyphVisible && other.Priority <= priority && other.Glyph.Overlaps(candidate)) return false;
+            for (int t = 0; t < tags.Count; t++) if (!Apart(tags[t], candidate)) return false;
+            for (int g = 0; g < items.Count; g++)
+            {
+                LayoutItem other = items[g];
+                if (!other.GlyphVisible || !Avoids(priority, other.Priority)) continue;
+                if (g == current) { if (other.Glyph.Overlaps(candidate)) return false; }
+                else if (!Apart(other.Glyph, candidate)) return false;
+            }
             return true;
         }
+
+        // A tag avoids the glyphs of its own or a higher priority; a Survivor tag also avoids Edge chevrons (both are Survivor information).
+        private static bool Avoids(LayoutPriority tag, LayoutPriority glyph)
+            => glyph <= tag || (tag == LayoutPriority.Survivor && glyph == LayoutPriority.Edge);
+
+        // At least the clearance in force between the rectangles on one axis (a rectangle exactly that far away is clear).
+        private bool Apart(Rect a, Rect b)
+            => a.xMax + gap <= b.xMin + Eps || b.xMax + gap <= a.xMin + Eps
+            || a.yMax + gap <= b.yMin + Eps || b.yMax + gap <= a.yMin + Eps;
 
         // Priority first, then geometry (top, left, size of the glyph, then of the tag): a total order on the content.
         private int Compare(int a, int b)

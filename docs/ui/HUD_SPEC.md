@@ -393,7 +393,7 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
 ## 5. Survivor play menu
 Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it grows upward):
 - Line 1 (M 600): the skill name. Line 2 (S): its effect (§8; the longest, 68 characters ≈ 564 u, fits one line in the 648 u inner width).
-- Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → `Captured twice: the next capture eliminates you.`; otherwise no line.
+- Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → **(11/10)** `Next capture eliminates you.` (count-free: `CaptureCount` counts Lagging stages, so a first stage that runs out reaches 2 without a second capture; it read `Captured twice: the next capture eliminates you.`); otherwise no line.
 - Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
 - While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync ring stay as they are.
@@ -483,6 +483,8 @@ Decoys are classified and rendered by exactly the same rules (§6.3).
 
 **Exit.** Always shown as a through-wall marker 2.5 m above the exit:
 - **(U6c-wire)** One marker per exit, as specified in §13.4 (`Exit 1 · Powered`, `Exit 2 · Locked 3 s`, …). The v1 single `Exit Locked` / `Exit Open` tag is gone.
+
+**(11/10) Tag clearance:** `TagLayout` keeps every placed tag `TagGap` = 4 u (Q2's edge-marker gap) clear of every other placed tag and of every other visible glyph it must avoid, including Survivor edge chevrons for Survivor distance tags; a tag keeps its default offset from its own glyph. Stacked tags step by tag height + 4 u. Exception: a rules v2 Overloaded or Exit tag that finds no slot at 4 u retries at 2 u, then with no clearance (the pre-11/10 rule), before it is hidden, so a crowded edge stays readable; Survivor tags never fall back.
 
 **Draw order**, back to front: terminal and exit markers, Signal markers and edge indicators, then the cluster. Markers never use glow (SLOP V3). Only Survivors get the `signal` outline.
 

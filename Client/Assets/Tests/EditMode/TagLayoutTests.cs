@@ -21,7 +21,7 @@ namespace PingTheKiller.Client.Tests
             layout.Solve(Screen);
             Assert.That(layout[0].TagVisible && layout[1].TagVisible, Is.True);
             Assert.That(Placed(layout[0]).Overlaps(Placed(layout[1])), Is.False);
-            Assert.That(Mathf.Abs(layout[0].TagShift - layout[1].TagShift), Is.EqualTo(23 + TagLayout.StepGap), "stacked by tag height + 2 u");
+            Assert.That(Mathf.Abs(layout[0].TagShift - layout[1].TagShift), Is.EqualTo(23 + TagLayout.StepGap), "stacked by tag height + TagGap (4 u)");
         }
 
         [Test]
