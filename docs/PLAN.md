@@ -262,6 +262,13 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - **게이트:** 빌드 경고 0, Server.Tests 982/982(`Category!=BalanceSweep`), Harness.Tests 635/635, 하네스 100/100 3회 연속(브랜치에서 실행, 병합 결과와 코드 동일, `docs/qa/harness-u6f-run1..3.json`), Unity EditMode 1386/1386, Windows 빌드 성공. 실제 오프라인 경기: Great 조준 7/7 Great, Good 조준 8/8 Good(이전 0/6 Great). 로그 `docs/qa/merge-1105b/`, `docs/qa/U6f-sync-timing-runs/`.
   - **남은 것:** 서버에 RTT 측정이 없어 온라인에서는 실제 왕복만큼 늦게 판정됩니다. 별도 단위 U6g(`claude/sync-rtt-probe`)에서 진행 중입니다.
 
+- **7개 브랜치 통합 병합 (2026-11-10, main `6237bfa`, fast-forward):** 임시 브랜치 `claude/qa-integration`에서 합쳐 통합 QA를 통과한 결과를 그대로 main에 올렸습니다. 병합 순서: U6d-bots(`7bb3963`, 봇 협동·움직이는 킬러·밸런스), U6g-rtt-probe(`ffaa8a6`, 서버 RTT 측정), Q1-playcheck-polish(`f377cae`), Q2-edge-labels(`ddfd199`), Q4-v2-sounds(`cb33aaf`), Q6-survivor-menu(`31342dc`), U4k-buildings(`0d77c85`, 건물 빈틈·스카이라인).
+  - 충돌은 `ClientApp.cs` EndMatch 한 곳(Q4 `v2Audio.End()` + Q6 `ResetMenu()`, 둘 다 유지).
+  - 2026-11-09부터 구현은 Opus/Sonnet, 검수는 Fable입니다.
+  - **게이트:** 빌드 경고 0, Server.Tests 1062/1062, BalanceSweep 18/18, 하네스 100/100 3회, Harness.Tests 638/638, Unity EditMode 1468/1468, Windows 빌드 성공, 오프라인 실제 경기 2판(생존자 285초·킬러 190초, 둘 다 7/7 탈출, 오류 0). Fable 통합 검수 PASS, 막는 문제 0, SLOP 98/100. 보고서 `docs/qa/qa-int-1110.md`, 로그 `docs/qa/qa-int-runs/`. 병합 뒤 main에서 빌드와 Server.Tests 1062/1062를 다시 확인했습니다.
+  - **남은 것(사소):** Esc 메뉴 "Captured twice" 문구가 Q1의 포획 횟수 의미와 어긋남(`PlayMenu.cs:35`). 화면 안 거리 라벨이 가장자리 화살표에 붙음. 통합 빌드에서 사람 해킹 장면과 Esc 메뉴 화면은 촬영 못 함. 연결 끊김 때 `v2Audio.End()` 생략(무해). U4k 사소 3건은 사용자 결정으로 보류. 285초 판은 표본 1개라 생존자 쪽 실제 경기를 2~3판 더 보면 좋습니다.
+  - **다음:** Q3(스킬 거절 이유, Shared 패킷), Q5(팔레트·창문).
+
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
 ---
