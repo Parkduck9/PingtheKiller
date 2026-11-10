@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.0995503">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1409" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.099550" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1969" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PingtheKiller/.claude/worktrees/objective-borg-dc2fe1/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="857" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.059156" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="7908" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1970" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="857" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.055108" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1971" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="857" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.052255" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1972" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="857" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.049813" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1973" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="857" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.047091" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1343" name="EdgeLabelsPlacementQaTests" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.037772" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1346" name="ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" methodname="ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="1647644559" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.025284" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1345" name="PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" methodname="PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="348443569" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.001212" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1344" name="SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" methodname="SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="1348688977" result="Passed" start-time="2026-11-09 06:00:21Z" end-time="2026-11-09 06:00:21Z" duration="0.001527" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

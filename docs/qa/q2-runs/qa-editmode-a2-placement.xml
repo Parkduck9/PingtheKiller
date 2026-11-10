@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Failed(Child)" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.1143887">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1409" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.114389" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1969" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PingtheKiller/.claude/worktrees/objective-borg-dc2fe1/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="857" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.100624" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="21788" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1970" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="857" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.097325" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1971" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="857" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.091451" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1972" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="857" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.088632" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="1973" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="857" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.085263" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="1343" name="EdgeLabelsPlacementQaTests" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" testcasecount="3" result="Failed" site="Child" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.045804" total="3" passed="2" failed="1" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="1346" name="ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" methodname="ASecondFrameReusesThePooledLabelsAndKeepsEveryPlaceFiniteAndWhole" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="822100129" result="Passed" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.028028" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1345" name="PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" methodname="PlaceEdgeTakesAFractionalSpreadRectKeepsTheReservedSizeAndDrawsAtTheWholeOrigin" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="451055230" result="Passed" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.001331" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                </test-case>
+                <test-case id="1344" name="SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" fullname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" methodname="SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates" classname="PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests" runstate="Runnable" seed="964883197" result="Failed" start-time="2026-11-09 05:59:18Z" end-time="2026-11-09 05:59:18Z" duration="0.004587" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  tag 1 'Exit 2 · 62%': centred on x
+  Expected: less than or equal to 0.500999987f
+  But was:  24.1000004f
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.EdgeLabelsPlacementQaTests.SurvivorRegressingExitAndOnScreenOverloadedTagsOnAnUnsizedLayerArePlacedWholeFromCeiledEstimates () [0x0025d] in C:\Unity\MultiPlayGame\PingtheKiller\.claude\worktrees\objective-borg-dc2fe1\Client\Assets\Tests\EditMode\QA\EdgeLabelsPlacementQaTests.cs:79
+]]></stack-trace>
+                  </failure>
+                  <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

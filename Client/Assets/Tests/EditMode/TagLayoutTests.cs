@@ -144,6 +144,24 @@ namespace PingTheKiller.Client.Tests
                     if (layout[i].TagVisible && layout[j].TagVisible) Assert.That(Placed(layout[i]).Overlaps(Placed(layout[j])), Is.False, i + " / " + j);
         }
 
+        [Test]
+        public void AV2OverloadedTagAndAMarkerLayerEdgeTagOnTheSameRectDoNotOverlap()
+        {
+            // Q2: the rules v2 tags join the MarkerLayer solve. Both start on the same rectangle near the right edge.
+            var layout = new TagLayout();
+            Rect shared = TagAt(1500, 440);
+            int edge = layout.Add(LayoutPriority.Edge, TagLayout.Around(new Vector2(1576, 450), 10, 10), shared);
+            int alert = layout.Add(LayoutPriority.Overloaded, TagLayout.Around(new Vector2(1576, 430), 9, 9), shared);
+            int exit = layout.Add(LayoutPriority.Exit, TagLayout.Around(new Vector2(1530, 480), 13, 13), shared, true);
+            layout.Solve(new Rect(24, 24, 1552, 852));
+            Assert.That(layout[edge].TagVisible && layout[alert].TagVisible && layout[exit].TagVisible, Is.True);
+            Assert.That(layout[edge].TagShift, Is.EqualTo(0f), "the Survivor edge tag keeps its place");
+            Assert.That(Placed(layout[alert]).Overlaps(Placed(layout[edge])), Is.False);
+            Assert.That(Placed(layout[exit]).Overlaps(Placed(layout[edge])) || Placed(layout[exit]).Overlaps(Placed(layout[alert])), Is.False);
+            Assert.That(Placed(layout[alert]).Overlaps(layout[edge].Glyph), Is.False, "the alert tag never covers the Survivor chevron");
+            Assert.That(layout[exit].GlyphVisible, Is.True, "KeepGlyph: the Exit marker stays");
+        }
+
         private static List<string> Run(List<(LayoutPriority, Rect, Rect)> items)
         {
             var layout = new TagLayout();

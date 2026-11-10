@@ -14,7 +14,7 @@ namespace PingTheKiller.Client.Killer
     // HUD_SPEC 13.4, 13.6), feeds the cluster (prompt / hold block, collapse block), plays the cues and the positional sound.
     public sealed class KillerWorldLayer : MonoBehaviour
     {
-        public const float IntroSeconds = 3, TagGap = 12, ChevronTagOffset = 30, DistanceTagBeyond = 20, TerminalTagOnlyWithin = 8;
+        public const float IntroSeconds = 3, TagGap = 12, DistanceTagBeyond = 20, TerminalTagOnlyWithin = 8;
         public const float TerminalMarkerHeight = 1.5f, ExitMarkerHeight = 2.5f, HeadHeight = 1.95f, LaggingTilt = 25, StutterHz = 8;
         private static readonly Color Neutral = new Color32(128, 130, 134, 255);
         private sealed class Character
@@ -39,6 +39,11 @@ namespace PingTheKiller.Client.Killer
         private MarkerLayer markers;
         private V2MarkerLayer v2;
         private readonly ExitCache exitCache = new ExitCache();
+        // Q2: the frame's off-screen edge markers (Survivor chevrons, off-screen Overloaded alerts), spread along their edge
+        // before they are drawn. V2Tag >= 0: an Overloaded alert (its v2 tag index); otherwise a chevron.
+        private struct EdgeMark { public int Spread, V2Tag; public Vector2 Pointing; public bool Lagging; public string Text; }
+        private readonly EdgeSpread spread = new EdgeSpread();
+        private readonly List<EdgeMark> edgeMarks = new List<EdgeMark>();
         private ISelfState self;
         private Material body, visor, outline;
         private S2C_WorldState last;
@@ -145,6 +150,8 @@ namespace PingTheKiller.Client.Killer
             markers.Clear(MarkerLayer.Static);
             markers.Clear(MarkerLayer.Signals);
             v2.Begin();
+            spread.Begin(safe, keepOut);
+            edgeMarks.Clear();
             DrawStatic(pose, screen, safe, keepOut, now);
             InView = Occluded = Edges = 0;
             if (scene != null)
@@ -154,11 +161,37 @@ namespace PingTheKiller.Client.Killer
                 audioOut.UpdateWorld(sound, views, dt);
                 DrawBlips(views, pose, screen, safe, keepOut, now);
             }
-            // One layout pass over both channels: no tag overlaps another, nothing covers a Survivor marker.
-            markers.Layout(new Rect(0, 0, screen.x, screen.y), keepOut);
+            DrawEdges();
+            // One layout pass over both channels and the rules v2 tags: no tag overlaps another, nothing covers a Survivor
+            // marker, every tag inside the safe rectangle and out of the cluster keep-out.
+            for (int i = 0; i < v2.LayoutCount; i++)
+            {
+                v2.LayoutInput(i, out LayoutPriority priority, out Rect glyph, out Rect tag, out bool keepGlyph);
+                markers.External(priority, glyph, tag, keepGlyph);
+            }
+            markers.Layout(safe, keepOut);
+            for (int i = 0; i < v2.LayoutCount; i++)
+            {
+                LayoutItem result = markers.ExternalResult(i);
+                v2.ApplyLayout(i, result.TagVisible, result.TagShift);
+            }
             markers.Commit(MarkerLayer.Static);
             markers.Commit(MarkerLayer.Signals);
             v2.End();
+        }
+
+        // Q2: spreads the frame's edge markers along their edges, then draws them at the spread points.
+        private void DrawEdges()
+        {
+            spread.Solve();
+            foreach (EdgeMark mark in edgeMarks)
+            {
+                Vector2 at = spread.Glyph(mark.Spread);
+                if (mark.V2Tag >= 0) { v2.PlaceEdge(mark.V2Tag, at, spread.Tag(mark.Spread), spread.TagShown(mark.Spread)); continue; }
+                markers.Chevron(MarkerLayer.Signals, at, mark.Pointing, mark.Lagging);
+                if (spread.TagShown(mark.Spread))
+                    markers.Tag(MarkerLayer.Signals, spread.Tag(mark.Spread).center, mark.Text, TagStyle.Text, TagPivot.Center, LayoutPriority.Edge, true);
+            }
         }
 
         private void UpdateHud(double now, bool menuOpen, Vector3 eye)
@@ -212,7 +245,10 @@ namespace PingTheKiller.Client.Killer
                     else
                     {
                         Vector2 edge = EdgePlacement.Place(screen, EdgePlacement.Direction(pose.ToCamera(at)), safe, keepOut, false, out Vector2 pointing);
-                        v2.Overloaded(edge, false, pointing, alert);
+                        int tag = v2.OverloadedEdge(edge, pointing, alert);
+                        int item = spread.Add(edge, new Vector2(V2MarkerLayer.OverloadedHalf, V2MarkerLayer.OverloadedHalf), v2.TagSize(tag),
+                            EdgeTagMode.Below, LayoutPriority.Overloaded, -1 - terminal.Id, distance);
+                        edgeMarks.Add(new EdgeMark { Spread = item, V2Tag = tag });
                     }
                 }
                 if (terminal.Progress == 100) continue; // done: no marker
@@ -276,8 +312,11 @@ namespace PingTheKiller.Client.Killer
                     Edges++;
                     Vector3 cameraSpace = pose.ToCamera(view.Position + Vector3.up * KillerScene.MarkerHeight);
                     Vector2 c = EdgePlacement.Place(screen, EdgePlacement.Direction(cameraSpace), safe, keepOut, false, out Vector2 pointing);
-                    markers.Chevron(MarkerLayer.Signals, c, pointing, lagging);
-                    markers.Tag(MarkerLayer.Signals, EdgePlacement.TagAnchor(c, screen, ChevronTagOffset), lagging ? KillerHudCopy.LaggingDistance(view.Distance) : KillerHudCopy.Distance(view.Distance), TagStyle.Text, TagPivot.Center, LayoutPriority.Edge, true);
+                    // Q2: drawn by DrawEdges after the spread; the tag sits beside the chevron, on the screen-centre side.
+                    string text = lagging ? KillerHudCopy.LaggingDistance(view.Distance) : KillerHudCopy.Distance(view.Distance);
+                    float half = MarkerLayer.ChevronHalf(lagging);
+                    int item = spread.Add(c, new Vector2(half, half), MarkerLayer.TagSize(text, TagStyle.Text), EdgeTagMode.Beside, LayoutPriority.Edge, view.Handle, view.Distance);
+                    edgeMarks.Add(new EdgeMark { Spread = item, V2Tag = -1, Pointing = pointing, Lagging = lagging, Text = text });
                 }
             }
             // Despawned instances vanish at once (no fade, HUD_SPEC 6.3 rule 2).

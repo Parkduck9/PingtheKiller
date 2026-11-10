@@ -28,6 +28,7 @@ namespace PingTheKiller.Client.UI
         private readonly List<TagRecord>[] records = { new List<TagRecord>(), new List<TagRecord>() };
         private readonly TagLayout layout = new TagLayout();
         private readonly List<int> itemShape = new List<int>(), itemTag = new List<int>(), itemChannel = new List<int>();
+        private readonly List<LayoutItem> external = new List<LayoutItem>();
         private readonly List<Shape>[] shapes = { new List<Shape>(), new List<Shape>() };
         private readonly List<Label>[] tags = { new List<Label>(), new List<Label>() };
         private readonly int[] used = new int[2];
@@ -47,7 +48,19 @@ namespace PingTheKiller.Client.UI
             shapes[channel].Clear();
             records[channel].Clear();
             used[channel] = 0;
+            if (channel == Static) external.Clear();
         }
+
+        // Q2: a layout item drawn by another layer (the rules v2 world layer), solved in the same pass as this layer's own
+        // markers so no tag of either layer overlaps another. Cleared with the Static channel; read the result with
+        // ExternalResult after Layout.
+        public int External(LayoutPriority priority, Rect glyph, Rect tag, bool keepGlyph)
+        {
+            external.Add(new LayoutItem { Priority = priority, Glyph = glyph, Tag = tag, KeepGlyph = keepGlyph });
+            return external.Count - 1;
+        }
+
+        public LayoutItem ExternalResult(int index) => external[index];
 
         // Hides the unused pooled tags of a channel and repaints. Call after a channel's markers are added.
         public void Commit(int channel)
@@ -61,7 +74,9 @@ namespace PingTheKiller.Client.UI
         public void Diamond(int channel, Vector2 position, bool laggingRing)
             => shapes[channel].Add(new Shape { Kind = Kind.Diamond, Position = position, Ring = laggingRing, Bounds = TagLayout.Around(position, laggingRing ? 14 : 10, laggingRing ? 14 : 10) });
         public void Chevron(int channel, Vector2 position, Vector2 pointing, bool laggingRing)
-            => shapes[channel].Add(new Shape { Kind = Kind.Chevron, Position = position, Direction = pointing, Ring = laggingRing, Bounds = TagLayout.Around(position, laggingRing ? 14 : 10, laggingRing ? 14 : 10) });
+            => shapes[channel].Add(new Shape { Kind = Kind.Chevron, Position = position, Direction = pointing, Ring = laggingRing, Bounds = TagLayout.Around(position, ChevronHalf(laggingRing), ChevronHalf(laggingRing)) });
+        // Half the chevron's bounds (keyline and lagging ring included), for the edge spread (Q2).
+        public static float ChevronHalf(bool laggingRing) => laggingRing ? 14 : 10;
         public void Square(int channel, Vector2 position)
             => shapes[channel].Add(new Shape { Kind = Kind.Square, Position = position, Bounds = TagLayout.Around(position, 9, 9) });
         public void Exit(int channel, Vector2 position, ExitMark state)
@@ -118,8 +133,15 @@ namespace PingTheKiller.Client.UI
                     itemShape.Add(-1); itemTag.Add(t); itemChannel.Add(channel);
                 }
             }
+            int firstExternal = layout.Count;
+            for (int e = 0; e < external.Count; e++)
+            {
+                layout.Add(external[e].Priority, external[e].Glyph, external[e].Tag, external[e].KeepGlyph);
+                itemShape.Add(-1); itemTag.Add(-1); itemChannel.Add(-1);
+            }
             layout.Solve(bounds);
-            for (int k = 0; k < layout.Count; k++)
+            for (int e = 0; e < external.Count; e++) external[e] = layout[firstExternal + e];
+            for (int k = 0; k < firstExternal; k++)
             {
                 LayoutItem item = layout[k];
                 int channel = itemChannel[k];
