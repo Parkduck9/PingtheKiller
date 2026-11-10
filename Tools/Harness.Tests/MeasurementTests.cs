@@ -82,6 +82,21 @@ public sealed class MeasurementTests
     }
 
     [Fact]
+    public void MaskingAcceptsSkillRejectionsStructurallyButRejectsExtraBytes()
+    {
+        var stopped = new PlayerState { Id = 73, X = 7.12345f, Z = -8.45678f };
+        foreach (byte reason in new byte[] { 1, 5, 6, 8 })
+        {
+            var rejected = new S2C_SkillRejected { SkillId = 3, Reason = reason };
+            var frame = new ReceivedFrame(rejected, PacketCodec.Encode(rejected), 0);
+            Measurements.Masked(frame, stopped);
+            foreach (float coordinate in new[] { stopped.X, stopped.Z })
+                Assert.Throws<CheckFailure>(() => Measurements.Masked(frame with
+                    { Raw = frame.Raw.Concat(Measurements.FloatBytes(coordinate)).ToArray() }, stopped));
+        }
+    }
+
+    [Fact]
     public void MaskingAcceptsOpaqueProbeNoncesButRejectsExtraBytes()
     {
         var stopped = new PlayerState { Id = 73, X = 7.12345f, Z = -8.45678f };

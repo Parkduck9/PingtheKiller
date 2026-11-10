@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using PingTheKiller.Shared;
 using PingTheKiller.Shared.Net;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -79,6 +80,14 @@ public static class Measurements
             // The nonce is opaque and has no coordinate fields. Still reject any unexplained raw bytes.
             Check.Require(frame.Raw.AsSpan().SequenceEqual(PacketCodec.Encode(frame.Packet)),
                 "Unexplained bytes in RTT probe.");
+            return;
+        }
+        if (frame.Packet is S2C_SkillRejected rejected)
+        {
+            // v0.6 Killer-bound skill rejection: structurally only SkillId and Reason (a 2-byte payload), so it cannot
+            // carry Survivor-derived data. Any other byte count or unexplained byte fails.
+            Check.Require(frame.Raw.Length == Protocol.HeaderSize + Protocol.IdSize + 2 &&
+                frame.Raw.AsSpan().SequenceEqual(PacketCodec.Encode(rejected)), "Unexplained bytes in skill rejection.");
             return;
         }
         MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);

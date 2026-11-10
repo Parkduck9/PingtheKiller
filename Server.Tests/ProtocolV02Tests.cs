@@ -29,6 +29,7 @@ public sealed class ProtocolV02Tests
         yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2, 3 } }; // Reason
         yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3 } }; // ActionKind
         yield return new object[] { new S2C_SyncResult(), 4, new byte[] { 0, 1, 2 } }; // Result
+        yield return new object[] { new S2C_SkillRejected(), 1, Enumerable.Range(1, 8).Select(i => (byte)i).ToArray() }; // v0.6 Reason
         yield return new object[] { new S2C_LobbyState(), 1, new byte[] { 0, 1, 255 } }; // HostRoleChoice
         yield return new object[] { new S2C_MatchStart(), 0, new byte[] { 0, 1 } }; // Role
         yield return new object[] { new C2S_Interact(), 0, new byte[] { 0, 1 } };
@@ -70,7 +71,7 @@ public sealed class ProtocolV02Tests
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
         int count = Enum.GetValues<PacketId>().Length;
-        Assert.Equal(21, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015).
+        Assert.Equal(22, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015); v0.6 S2C_SkillRejected (0x0016).
         Assert.Equal(count, packets.Length);
         Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
     }

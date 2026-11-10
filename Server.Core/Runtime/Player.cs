@@ -28,6 +28,11 @@ namespace PingTheKiller.ServerCore
         internal double RescueProgress;
         internal bool Interacting, Hacking, Rescuing;
         internal double SkillReadyAt;
+        // Q3 skill rejections: the last tick a press was answered (used or rejected) and the per-second log throttle.
+        // Kept across match resets; the tick counter never repeats.
+        internal long SkillAnsweredTick = -1;
+        internal double SkillRejectLoggedAt = double.NegativeInfinity;
+        internal int SkillRejectsUnlogged;
         // GDD v2: the terminal hacked and the exit switch held this tick (-1 when none).
         internal int HackTerminal = -1, SwitchExit = -1;
         // Killer holds: seconds of the current kick and hatch close; the kicked terminal (-1 when none).

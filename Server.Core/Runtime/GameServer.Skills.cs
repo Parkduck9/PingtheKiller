@@ -14,7 +14,8 @@ namespace PingTheKiller.ServerCore
         // Requests are validated again when they execute, after this tick's movement.
         private void RequestSkill(Player player, byte skillId)
         {
-            if (_sandbox || skillId >= SkillCount(player.Role)) return;
+            if (_sandbox) { RejectSkill(player, skillId, SkillRejectReason.Sandbox); return; }
+            if (skillId >= SkillCount(player.Role)) { RejectSkill(player, skillId, SkillRejectReason.NotYourSkill); return; }
             _skillRequests.Add(new KeyValuePair<Player, byte>(player, skillId));
         }
 
@@ -28,16 +29,46 @@ namespace PingTheKiller.ServerCore
 
         private void TryUseSkill(Player caster, byte skillId)
         {
-            if (!_matchStarted || skillId != caster.Skill || caster.Status != PlayerStatus.Normal || !SkillReady(caster)) return;
-            bool used = caster.Role == Role.Killer ? UseKillerSkill(caster) : UseSurvivorSkill(caster);
-            if (!used) return;
-            caster.SkillReadyAt = _now + (caster.Role == Role.Killer
-                ? GameConstants.KillerSkillCooldownSeconds : GameConstants.SurvivorSkillCooldownSeconds);
-            WriteLog($"skill player={caster.Id} role={caster.Role} id={skillId}");
+            SkillRejectReason reason;
+            if (!_matchStarted) reason = SkillRejectReason.NotInMatch;
+            else if (skillId != caster.Skill) reason = SkillRejectReason.NotYourSkill;
+            else if (caster.Status != PlayerStatus.Normal) reason = SkillRejectReason.NotNormal;
+            else if (!SkillReady(caster)) reason = SkillRejectReason.Cooldown;
+            else if (caster.Role == Role.Killer ? UseKillerSkill(caster, out reason) : UseSurvivorSkill(caster, out reason))
+            {
+                caster.SkillReadyAt = _now + (caster.Role == Role.Killer
+                    ? GameConstants.KillerSkillCooldownSeconds : GameConstants.SurvivorSkillCooldownSeconds);
+                // A use answers the press: later requests of this tick (refused by the cooldown) send no rejection.
+                caster.SkillAnsweredTick = _tick;
+                WriteLog($"skill player={caster.Id} role={caster.Role} id={skillId}");
+                return;
+            }
+            RejectSkill(caster, skillId, reason);
         }
 
-        private bool UseKillerSkill(Player killer)
+        public const double SkillRejectLogSeconds = 1;
+
+        // Q3: a refused C2S_UseSkill gets one S2C_SkillRejected, to the caster only, through its session's send queue on
+        // the game-loop thread (like SendEffect). At most one answer (use or rejection) per player per tick, so a client
+        // spamming C2S_UseSkill cannot make the server send more than one rejection per tick. Bots have no connection and
+        // get none. Every reason is derived from state the caster's own stream already carries (HUD_SPEC 14.3).
+        private void RejectSkill(Player player, byte skillId, SkillRejectReason reason)
         {
+            if (player.IsBot || player.SkillAnsweredTick == _tick) return;
+            if (player.ConnectionId == null || !_connections.TryGetValue(player.ConnectionId, out var binding)) return;
+            player.SkillAnsweredTick = _tick;
+            Send(binding.Connection, new S2C_SkillRejected { SkillId = skillId, Reason = (byte)reason });
+            // The first rejection per player per second is logged; the others of that second are counted on the next line.
+            if (_now - player.SkillRejectLoggedAt < SkillRejectLogSeconds - TimeEpsilon) { player.SkillRejectsUnlogged++; return; }
+            string unlogged = player.SkillRejectsUnlogged > 0 ? " unlogged=" + player.SkillRejectsUnlogged : string.Empty;
+            player.SkillRejectLoggedAt = _now;
+            player.SkillRejectsUnlogged = 0;
+            WriteLog($"skill rejected player={player.Id} id={skillId} reason={reason}{unlogged}");
+        }
+
+        private bool UseKillerSkill(Player killer, out SkillRejectReason reason)
+        {
+            reason = SkillRejectReason.NotYourSkill;
             switch (killer.Skill)
             {
                 case SkillIds.PingScanner:
@@ -50,7 +81,8 @@ namespace PingTheKiller.ServerCore
                         float distance = DistanceSquared(killer.X, killer.Z, survivor.X, survivor.Z);
                         if (distance < best) { best = distance; target = survivor; }
                     }
-                    if (target == null) return false;
+                    // Only when no Survivor is active at all: never depends on where a (Silent) Survivor is.
+                    if (target == null) { reason = SkillRejectReason.NoTarget; return false; }
                     target.ExposedUntil = Max(target.ExposedUntil, _now + SkillIds.PingScannerExposeSeconds);
                     SendEffect(killer, killer, SkillIds.PingScanner, killer.X, killer.Z, SkillIds.PingScannerExposeSeconds);
                     // Survivor-bound effects of killer skills never carry the killer's coordinates.
@@ -66,7 +98,8 @@ namespace PingTheKiller.ServerCore
                 {
                     // GDD v2 §3: locks the switch of the unopened exit with the most progress; unusable without one.
                     int exit = FirewallTarget();
-                    if (exit < 0) return false;
+                    // Every recipient's WorldState carries each exit's switch progress, and a use is a visible effect.
+                    if (exit < 0) { reason = SkillRejectReason.NoSwitchInProgress; return false; }
                     _exitLockedUntil[exit] = _now + SkillIds.FirewallBlockSeconds;
                     foreach (var player in _players)
                         SendEffect(player, killer, SkillIds.FirewallBlock, Map.Exits[exit].X, Map.Exits[exit].Z, SkillIds.FirewallBlockSeconds);
@@ -74,12 +107,14 @@ namespace PingTheKiller.ServerCore
                 }
                 default:
                     // PacketAfterimage is passive and cannot be activated.
+                    if (killer.Skill == SkillIds.PacketAfterimage) reason = SkillRejectReason.Passive;
                     return false;
             }
         }
 
-        private bool UseSurvivorSkill(Player caster)
+        private bool UseSurvivorSkill(Player caster, out SkillRejectReason reason)
         {
+            reason = SkillRejectReason.NotYourSkill;
             switch (caster.Skill)
             {
                 case SkillIds.DummyPacket:
@@ -115,7 +150,7 @@ namespace PingTheKiller.ServerCore
                         float distance = DistanceSquared(caster.X, caster.Z, ally.X, ally.Z);
                         if (distance < best) { best = distance; target = ally; }
                     }
-                    if (target == null) return false;
+                    if (target == null) { reason = SkillRejectReason.NoTarget; return false; }
                     SetStatus(target, PlayerStatus.Normal, "emergency restore");
                     SendSurvivorEffect(caster, SkillIds.EmergencyRestore, target.X, target.Z, 0);
                     return true;

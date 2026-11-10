@@ -64,6 +64,15 @@ public sealed class PlannerTests
 public sealed class KillerLeakScanTests
 {
     [Fact]
+    public void SkillRejectionHasNoCoordinateFieldsButUnexplainedBytesStillFail()
+    {
+        var frame = Frame(new S2C_SkillRejected { SkillId = 0, Reason = 5 });
+        Assert.Null(KillerLeakScan.Excess(frame, Killer, new[] { A, B }));
+        var extra = frame with { Raw = frame.Raw.Concat(BitConverter.GetBytes(KillerX)).ToArray() };
+        Assert.NotNull(KillerLeakScan.Excess(extra, Killer, new[] { A, B }));
+    }
+
+    [Fact]
     public void ProbeNonceIsNotACoordinateButUnexplainedBytesStillFail()
     {
         var frame = Frame(new S2C_RttProbe { Nonce = (uint)KillerLeakScan.Bits(KillerX) });

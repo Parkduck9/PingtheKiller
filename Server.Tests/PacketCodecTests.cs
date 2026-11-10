@@ -47,6 +47,8 @@ public sealed class PacketCodecTests
             }
         } };
         yield return new object[] { new S2C_SkillEffect { CasterId = -123456789, SkillId = 9, X = -0f, Z = float.MaxValue, Duration = 12.5f } };
+        yield return new object[] { new S2C_SkillRejected { SkillId = 255, Reason = 8 } }; // v0.6
+        yield return new object[] { new S2C_SkillRejected { SkillId = 0, Reason = 1 } };
         yield return new object[] { new S2C_GameResult { WinnerRole = 1, Reason = 1, EscapedIds = new() } };
         yield return new object[] { new S2C_GameResult { WinnerRole = 1, Reason = 2, EscapedIds = new() } };
         yield return new object[] { new S2C_GameResult { WinnerRole = 0, Reason = 0, EscapedIds = new() { -2147483648, 2147483647, -3, 4, 5, 6, 7, 8 } } };

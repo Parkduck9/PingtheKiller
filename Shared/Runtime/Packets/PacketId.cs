@@ -22,6 +22,7 @@ namespace PingTheKiller.Shared.Packets
         C2S_SyncPress = 0x0012,
         S2C_SyncResult = 0x0013,
         S2C_RttProbe = 0x0014,
-        C2S_RttEcho = 0x0015
+        C2S_RttEcho = 0x0015,
+        S2C_SkillRejected = 0x0016
     }
 }

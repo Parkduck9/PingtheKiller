@@ -1,6 +1,6 @@
-# Ping the Killer: wire protocol v0.5 (GDD v2, unit U6g)
+# Ping the Killer: wire protocol v0.6 (GDD v2, units U6g, Q3)
 
-The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts and v0.5 RTT probes. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
+The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts, v0.5 RTT probes and the v0.6 skill rejection. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
 
 ## Frame
 
@@ -17,6 +17,7 @@ The source of truth is `Shared/Runtime/` (server and Unity compile the same file
 | 0x0013 | S2C_SyncResult | S→C | new |
 | 0x0014 | S2C_RttProbe | S→C | v0.5: `uint Nonce` |
 | 0x0015 | C2S_RttEcho | C→S | v0.5: `uint Nonce` |
+| 0x0016 | S2C_SkillRejected | S→C | v0.6: `byte SkillId, byte Reason` |
 
 ## Server-timed RTT (0x0014-0x0015, v0.5)
 
@@ -30,6 +31,16 @@ duplicates, guesses and stale echoes are ignored. A probe expires at 1 s without
 Samples are clamped to 0–0.25 s; the first sets the estimate, then `RTT += (sample - RTT) / 8`.
 Disconnect/reconnect clears the estimate and probe state. `C2S_Ping`/`S2C_Pong` remain unchanged and client-timed
 for display only; the server never uses their client-supplied timestamps for judging.
+
+## S2C_SkillRejected (0x0016, v0.6)
+
+Exactly two payload bytes: `byte SkillId` (the requested id, echoed) and `byte Reason` (`SkillRejectReason`):
+1 `NotInMatch`, 2 `NotYourSkill` (another id, or out of range), 3 `NotNormal` (Lagging, Eliminated or Escaped),
+4 `Cooldown`, 5 `NoTarget` (Ping scanner without an active Survivor; Emergency restore without a Lagging ally in
+radius), 6 `NoSwitchInProgress` (Firewall block), 7 `Passive` (Packet afterimage), 8 `Sandbox`. 0 and values above 8,
+and short or trailing payloads, are rejected (`PacketFormatException`).
+The server sends one to the caster only, for every refused `C2S_UseSkill`, at most one per player per tick (a use in
+the same tick also counts as the answer). Bots receive none. Each reason is derivable from the caster's own stream.
 
 ## S2C_WorldState (0x0005)
 

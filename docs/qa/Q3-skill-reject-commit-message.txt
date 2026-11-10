@@ -1,0 +1,29 @@
+Q3-skill-reject: the server says why a skill press did nothing
+
+Protocol v0.6 adds S2C_SkillRejected (0x0016, [byte SkillId][byte Reason])
+and SkillRejectReason (1-8: NotInMatch, NotYourSkill, NotNormal, Cooldown,
+NoTarget, NoSwitchInProgress, Passive, Sandbox; 0 and >8 are format
+errors). Every refusal path of RequestSkill, TryUseSkill and the lobby
+UseSkill branch sends exactly one rejection to the caster only, through
+the session send queue on the game-loop thread, at most one per player per
+tick (a use in the same tick also answers the press). Bots get none. The
+log line "skill rejected player= id= reason=" is throttled to one per
+player per second with an unlogged count.
+
+Every reason is derivable from the caster's own stream: the Killer's
+WorldState carries each exit's switch progress (NoSwitchInProgress) and
+Ping scanner is refused only when no Survivor is active, never by a Silent
+Survivor's position (tested).
+
+The Unity client routes the packet to SkillFeedback on the main thread.
+A rejection of the own pending press shows its reason line at once
+(HUD_SPEC 14.3 "Server reason" column) and disarms the 0.5 s watch, which
+stays as a fallback. Rejections after an own effect, or for presses the
+client already explained, are ignored, so local pre-checks and server
+reasons never disagree. The harness accepts the packet; H3 and H6 check it
+structurally.
+
+Gates: build -warnaserror clean; Server.Tests 1087/1087 plus BalanceSweep
+18/18; Harness.Tests 641/641; harness 100/100 x3 with --expect-los; Unity
+EditMode 1486/1486; BuildWindows OK; offline Killer and Survivor live runs
+clean, with server rejections logged. Implementer Claude Opus.
