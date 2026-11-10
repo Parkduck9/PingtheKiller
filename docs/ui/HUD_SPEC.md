@@ -359,6 +359,7 @@ Layout (168×72, padding 8): at left a 64×64 u area holding a 56 u ring (3 u tr
 | Disabled — Lagging | `Status = Lagging` | track only | icon `muted`; reason in the prompt row slot (S `muted`; the prompt row shows it only when no other prompt applies): `Skills are off while Lagging.` | — |
 | Disabled — no target | EmergencyRestore and no Survivor with `Status = Lagging` within 1.5 m (derived) | track only | icon `muted`; reason: `Emergency restore needs a Lagging Survivor next to you.` | — |
 | Not used | key pressed while Ready, and within 0.5 s neither an own effect arrives nor `SkillCooldown` becomes > 0 | unchanged | reason for 2 s: `Skill not used — the server did not accept it.` | — |
+| Not used (server reason) **(11/10, Q3)** | key pressed while Ready, and an `S2C_SkillRejected` for the press arrives first | unchanged | the reason line for that reason (§14.3); the 0.5 s row above is only the fallback | — |
 
 **(U7b)** A press in a state the client consumes itself shows its reason on the §14.1a result line for 2 s (§14.3), unless the prompt row already shows the same steady Disabled reason. The `Not used` reason moves to the result line. The `skill_use` sound is replaced by each skill's own cue (§14.2), and every own effect also gets a result line and a world effect.
 
@@ -1069,22 +1070,28 @@ The copy gives no count: the server may place fewer than `WhiteNoiseSignalCount`
 ### 14.3 Presses with no effect
 The client sends `C2S_UseSkill` on every press, except while its own `Status` is Lagging, Eliminated or Escaped. Reason lines show at once: on the Survivor line 14.1a with no bar, and on the Killer's 6.1c line in `muted`. They are replaced if an own effect arrives after all.
 
-| Case | Known how | Survivor line | Killer line |
-|---|---|---|---|
-| Cooldown | `SelfState.SkillCooldown > 0` | None: the ring and its number are the feedback (§4.8) | None: the block reads `Cooldown 7 s` |
-| Lagging | own `Status` | `Skills are off while Lagging.` | — |
-| Emergency restore, no target | derived, §4.8 | `Emergency restore needs a Lagging Survivor next to you.` | — |
-| Firewall block, no switch in progress | derived, §6.1d | — | `No Exit switch in progress` |
-| Packet afterimage | static | — | `Packet afterimage is passive.` |
-| Refused for an unknown reason | Derived Ready, but within 0.5 s of the press neither an own effect arrives nor `SkillCooldown` becomes > 0 (§4.8) | `Skill not used — the server did not accept it.` | `Not used · server did not accept` |
+| Case | Known how | Server reason **(11/10, Q3)** | Survivor line | Killer line |
+|---|---|---|---|---|
+| Cooldown | `SelfState.SkillCooldown > 0` | `Cooldown` | None: the ring and its number are the feedback (§4.8) | None: the block reads `Cooldown 7 s` |
+| Cooldown edge **(11/10, Q3)** | derived Ready, server cooldown not yet over | `Cooldown` | `Skill still on cooldown.` | `Not used · still on cooldown` |
+| Lagging | own `Status` | `NotNormal` | `Skills are off while Lagging.` (not repeated while the prompt row shows it) | — |
+| Eliminated, Escaped | own `Status` | `NotNormal` | None: the status banner is the feedback | — |
+| Emergency restore, no target | derived, §4.8 | `NoTarget` | `Emergency restore needs a Lagging Survivor next to you.` | — |
+| Ping scanner, no active Survivor **(11/10, Q3)** | server only | `NoTarget` | — | `Not used · no Survivor to scan` |
+| Firewall block, no switch in progress | derived, §6.1d | `NoSwitchInProgress` | — | `No Exit switch in progress` |
+| Packet afterimage | static | `Passive` | — | `Packet afterimage is passive.` |
+| Not in a match, not the own skill, dev sandbox **(11/10, Q3)** | server only | `NotInMatch`, `NotYourSkill`, `Sandbox` | `Skill not used — the server did not accept it.` | `Not used · server did not accept` |
+| No answer (fallback) | Derived Ready, but within 0.5 s of the press neither an own effect, nor an `S2C_SkillRejected`, arrives, nor `SkillCooldown` becomes > 0 (§4.8) | — | `Skill not used — the server did not accept it.` | `Not used · server did not accept` |
 
-**Protocol gap (not fixed here).**
-- The server sends nothing when it refuses a use (`TryUseSkill` returns silently). The client can only infer a refusal from the 0.5 s timeout, and cannot say why. Possible reasons: a server-side cooldown edge, a target that moved out of range, a switch that stopped, or the dev sandbox.
-- The client also cannot know:
+**Server reasons (11/10, Q3; replaces the former "Protocol gap").**
+- The server answers every refused `C2S_UseSkill` with one `S2C_SkillRejected { SkillId, Reason }` (protocol v0.6, 0x0016), to the caster only, at most one per player per tick. Bots get none.
+- Only the press that armed the 0.5 s watch (sent while the client derived Ready, with no local reason) is answered on screen. Its reason line shows at once, with the styling above, and the watch is disarmed. A rejection that arrives after an own effect, after the fallback fired, or for a press the client already explained itself (cooldown shown, Lagging, passive, no target, no switch) is ignored, so a local pre-check and a server reason never show two texts for one case.
+- The 0.5 s watch stays only as a fallback for a reply slower than 0.5 s.
+- Every reason is derived from state the caster's own stream already carries. For the Killer, `NoSwitchInProgress` matches §6.1d: every `WorldState` carries each exit's `SwitchProgress`, and a successful Firewall block is a visible effect. `NoTarget` for Ping scanner happens only when no Survivor is active, never because of where a Silent Survivor stands.
+- Still unknown to the client (out of scope):
   - in advance, which exit Firewall block will lock;
   - how many White noise fakes were placed or shown;
   - whether the Dummy packet fake is currently shown to the Killer.
-- A rejection reason would need a new packet or field (`Shared/` and the server). That is out of scope.
 
 ### 14.4 Sound table
 Peaks are measured from the vendor files (int16 peak ÷ 32768). Lengths are the files' own.

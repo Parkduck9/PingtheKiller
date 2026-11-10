@@ -140,7 +140,8 @@ namespace PingTheKiller.Client.Net
         // Every S2C_ packet the client accepts from the socket (protocol v0.3 adds S2C_SelfState); a C2S_ id disconnects.
         public static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
             or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart or PacketId.S2C_SelfState
-            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult or PacketId.S2C_RttProbe; // v0.5 server-timed RTT
+            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult or PacketId.S2C_RttProbe // v0.5 server-timed RTT
+            or PacketId.S2C_SkillRejected; // v0.6 skill rejection reasons (Q3)
 
         private static void Write(NetworkStream stream, IPacket packet)
         {

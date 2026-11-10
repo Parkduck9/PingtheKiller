@@ -307,6 +307,10 @@ namespace PingTheKiller.Client
                     }
                     if (loggedEffects.Add(effect.SkillId)) Debug.Log("[net] SkillEffect skill=" + effect.SkillId + (role == Role.Killer ? " (killer HUD)" : " (survivor HUD)"));
                     break;
+                case S2C_SkillRejected rejected:
+                    // Own-only (Q3), on the main thread like the effects.
+                    if (playing) OnSkillRejected(rejected, received.Time);
+                    break;
                 case S2C_GameResult result:
                     EndMatch(result, false);
                     break;
@@ -523,19 +527,29 @@ namespace PingTheKiller.Client
             Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
         }
 
+        // HUD_SPEC 14.3 (Q3): the server's reason for refusing the own pending press replaces the 0.5 s inference.
+        private void OnSkillRejected(S2C_SkillRejected rejected, double time)
+        {
+            var reason = (SkillRejectReason)rejected.Reason;
+            string shown = null;
+            if (role == Role.Survivor) shown = survivorFx.OnRejected(skillId, rejected.SkillId, reason, localStatus, screens.Survivor.PromptText, time);
+            else if (killerLayer != null) shown = killerLayer.Fx.OnRejected(skillId, rejected.SkillId, reason, time);
+            Debug.Log("[fx] skill rejected id=" + rejected.SkillId + " reason=" + reason + (shown != null ? " line=\"" + shown + "\"" : " (no line)"));
+        }
+
         // Every playing frame: the refused-press inference, the result lines, the Recovering cue and the Overclock FOV.
         private void SkillFeedbackFrame(double now, Vector3 position)
         {
             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
             if (role == Role.Survivor)
             {
-                if (survivorFx.Press.Tick(now, cooldown)) { survivorFx.OnReason(SkillFeedback.SurvivorRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
+                if (survivorFx.Press.Tick(now, cooldown)) { survivorFx.OnReason(SkillFeedback.SurvivorRefused, now); Debug.Log("[fx] skill press refused (no effect, rejection or cooldown in 0.5 s)"); }
                 screens.Survivor.SetResult(survivorFx.Line.Current(now));
                 return;
             }
             if (killerLayer == null) return;
             KillerFxState fx = killerLayer.Fx;
-            if (fx.Press.Tick(now, cooldown)) { fx.OnReason(SkillFeedback.KillerRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
+            if (fx.Press.Tick(now, cooldown)) { fx.OnReason(SkillFeedback.KillerRefused, now); Debug.Log("[fx] skill press refused (no effect, rejection or cooldown in 0.5 s)"); }
             if (fx.TakeRecoverCue(now)) skillFx.Play(SkillFeedback.RecoverCue(), position);
             rig.KillerFovOffset = fx.FovOffset(now, skillFx.Reduced);
         }

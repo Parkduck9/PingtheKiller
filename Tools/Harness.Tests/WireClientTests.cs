@@ -33,6 +33,29 @@ public sealed class WireClientTests
     }
 
     [Fact]
+    public async Task SkillRejectionsAreKnownPacketsNotUnknownFrames()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var options = new Options { Port = ((IPEndPoint)listener.LocalEndpoint).Port };
+            await using var client = await WireClient.ConnectAsync(options, deadline.Token);
+            using var peer = await listener.AcceptTcpClientAsync(deadline.Token);
+            byte[] bytes = PacketCodec.Encode(new S2C_SkillRejected { SkillId = 2, Reason = 7 })
+                .Concat(PacketCodec.Encode(new S2C_Pong { Timestamp = 44 })).ToArray();
+            await peer.GetStream().WriteAsync(bytes, deadline.Token);
+            var rejected = (S2C_SkillRejected)(await client.ReadAsync<S2C_SkillRejected>(deadline.Token)).Packet;
+            Assert.Equal(2, rejected.SkillId);
+            Assert.Equal(7, rejected.Reason);
+            Assert.Equal(44, ((S2C_Pong)(await client.ReadAsync<S2C_Pong>(deadline.Token)).Packet).Timestamp);
+            Assert.Empty(client.UnknownCounts());
+        }
+        finally { listener.Stop(); }
+    }
+
+    [Fact]
     public async Task ADecoderFailureIsNotAcceptedAsAnAbuserDisconnect()
     {
         await using var server = new PingServer(malformed: true);

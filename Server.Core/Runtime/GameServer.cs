@@ -366,7 +366,12 @@ namespace PingTheKiller.ServerCore
             // Semantically invalid values are ignored; only wire-format violations close a connection.
             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
-            if (packet is C2S_UseSkill skill) { if (_matchStarted) RequestSkill(player, skill.SkillId); return; }
+            if (packet is C2S_UseSkill skill)
+            {
+                if (_matchStarted) RequestSkill(player, skill.SkillId);
+                else RejectSkill(player, skill.SkillId, SkillRejectReason.NotInMatch);
+                return;
+            }
             if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId, receivedAt); return; }
             if (!_matchStarted && player.IsHost)
             {

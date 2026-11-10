@@ -97,6 +97,10 @@ namespace PingTheKiller.Client.UI
         public const string NoSwitchReason = "No Exit switch in progress";
         public const string KillerRefused = "Not used " + Dot + " server did not accept";
         public const string SurvivorRefused = "Skill not used — the server did not accept it.";
+        // Q3 server reasons (14.3): the server cooldown had not ended though the client derived Ready.
+        public const string SurvivorOnCooldown = "Skill still on cooldown.";
+        public const string KillerOnCooldown = "Not used " + Dot + " still on cooldown";
+        public const string KillerNoScanTarget = "Not used " + Dot + " no Survivor to scan";
 
         // Vendor clip paths under AUDIO/ (HUD_SPEC 14.4) and their measured peaks (int16 peak / 32768).
         public static readonly string[] ClipPaths =
@@ -421,6 +425,34 @@ namespace PingTheKiller.Client.UI
             Sound = new FxSound { Clip = FxClip.OverclockRecover, Db = -12, Fade = .05f, Tier = FxTier.Skill }
         };
 
+        // Q3 (14.3 "Server reason"): the line for an S2C_SkillRejected of the own press, or null for none. Cases the client
+        // also pre-checks use the same text as the pre-check (PressReason), so both paths never disagree.
+        public static string RejectionLine(Role role, byte skillId, SkillRejectReason reason, PlayerStatus status)
+        {
+            bool survivor = role == Role.Survivor;
+            switch (reason)
+            {
+                case SkillRejectReason.Cooldown:
+                    return survivor ? SurvivorOnCooldown : KillerOnCooldown;
+                case SkillRejectReason.NoTarget:
+                    if (survivor && skillId == SkillIds.EmergencyRestore) return SurvivorReadout.RestoreNeedsTarget;
+                    if (!survivor && skillId == SkillIds.PingScanner) return KillerNoScanTarget;
+                    break;
+                case SkillRejectReason.NoSwitchInProgress:
+                    if (!survivor) return NoSwitchReason;
+                    break;
+                case SkillRejectReason.Passive:
+                    if (!survivor) return PassiveReason;
+                    break;
+                case SkillRejectReason.NotNormal:
+                    // Eliminated and Escaped have their own banners; the Killer is never refused for this.
+                    if (survivor) return status == PlayerStatus.Lagging ? SurvivorReadout.SkillsOffLagging : null;
+                    break;
+            }
+            // NotInMatch, NotYourSkill, Sandbox, a reason that does not fit the role, or a value from a newer server.
+            return survivor ? SurvivorRefused : KillerRefused;
+        }
+
         public static FxLine Reason(string text) => new FxLine { Text = text, Tone = LineTone.Reason, Priority = ReasonPriority, Seconds = ReasonSeconds };
 
         // ---- helpers ----
@@ -471,7 +503,8 @@ namespace PingTheKiller.Client.UI
     }
 
     // HUD_SPEC 14.3 refused-press inference: armed only by a press the client sent while it derived Ready; fires once when,
-    // within 0.5 s, neither an own effect arrived nor the cooldown became > 0.
+    // within 0.5 s, neither an own effect nor an S2C_SkillRejected arrived, nor the cooldown became > 0. Since Q3 the
+    // server answers every refusal, so the watch is only a fallback (a reply slower than 0.5 s).
     public sealed class PressWatch
     {
         public const double Window = .5;
@@ -481,6 +514,15 @@ namespace PingTheKiller.Client.UI
         public void Reset() => Armed = false;
         public void OnPress(double now, bool arm) { Armed = arm; pressedAt = now; }
         public void OnOwnEffect() => Armed = false;
+
+        // Q3: a server rejection answers the pending (armed) press and disarms the watch. False when no press is pending:
+        // after an own effect, after the fallback fired, or for a press the client already explained itself.
+        public bool TakeRejection()
+        {
+            if (!Armed) return false;
+            Armed = false;
+            return true;
+        }
 
         public bool Tick(double now, float? cooldown)
         {
@@ -527,6 +569,17 @@ namespace PingTheKiller.Client.UI
         }
 
         public void OnReason(string text, double now) { if (!string.IsNullOrEmpty(text)) Line.Offer(SkillFeedback.Reason(text), now); }
+
+        // Q3: an S2C_SkillRejected. Only the own pending press shows its reason, at once, on the 14.1a line; a reason the
+        // prompt row already shows steadily (4.8 Disabled) is not repeated. Returns the text shown, or null.
+        public string OnRejected(byte ownSkill, byte skillId, SkillRejectReason reason, PlayerStatus status, string promptText, double now)
+        {
+            if (skillId != ownSkill || !Press.TakeRejection()) return null;
+            string text = SkillFeedback.RejectionLine(Role.Survivor, skillId, reason, status);
+            if (string.IsNullOrEmpty(text) || text == promptText) return null;
+            OnReason(text, now);
+            return text;
+        }
     }
 
     // Killer-side state (14.1 Result line, Killer; 14.2.1, 14.2.2, 14.2.4, 14.2.7): the 6.1c line, the Recovering cue and
@@ -566,6 +619,16 @@ namespace PingTheKiller.Client.UI
         {
             if (string.IsNullOrEmpty(text)) return;
             reason = text; reasonEnd = now + SkillFeedback.ReasonSeconds;
+        }
+
+        // Q3: an S2C_SkillRejected. Only the own pending press shows its reason, at once, on the 6.1c line (`muted`).
+        // Returns the text shown, or null.
+        public string OnRejected(byte ownSkill, byte skillId, SkillRejectReason reason, double now)
+        {
+            if (skillId != ownSkill || !Press.TakeRejection()) return null;
+            string text = SkillFeedback.RejectionLine(Role.Killer, skillId, reason, PlayerStatus.Normal);
+            OnReason(text, now);
+            return text;
         }
 
         // The Recovering-start cue, once, when Overclock ends (14.2.2).

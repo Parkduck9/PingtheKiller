@@ -108,6 +108,9 @@ public static class KillerLeakScan
             case S2C_RttProbe:
                 // Opaque server nonce, no coordinate fields; exact re-encoding is still checked above.
                 break;
+            case S2C_SkillRejected:
+                // v0.6: two bytes (SkillId, Reason), no 4-byte field can hold a coordinate; exact re-encoding is checked above.
+                break;
             case S2C_WorldState w:
                 fields.Add(I((int)w.Tick));
                 fields.Add(F(w.TimeLeft, true));

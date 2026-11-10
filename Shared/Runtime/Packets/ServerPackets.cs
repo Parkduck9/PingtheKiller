@@ -176,6 +176,26 @@ namespace PingTheKiller.Shared.Packets
         public static S2C_RttProbe Read(ref PacketReader r) => new S2C_RttProbe { Nonce = r.ReadUInt32() };
     }
 
+    // v0.6: sent to the caster only when the server refuses a C2S_UseSkill (at most one per player per tick).
+    // SkillId echoes the requested id; Reason is a SkillRejectReason (1-8, 0 is invalid).
+    public sealed class S2C_SkillRejected : IPacket
+    {
+        public byte SkillId;
+        public byte Reason = (byte)SkillRejectReason.NotInMatch;
+        public PacketId Id => PacketId.S2C_SkillRejected;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteByte(SkillId);
+            w.WriteByte(Reason);
+        }
+
+        public static S2C_SkillRejected Read(ref PacketReader r) => new S2C_SkillRejected
+        {
+            SkillId = r.ReadByte(), Reason = SkillRejectWire.ReadReason(ref r)
+        };
+    }
+
     public sealed class S2C_Pong : IPacket
     {
         public long Timestamp;
