@@ -16,9 +16,11 @@ namespace PingTheKiller.Editor.Setup
     // marker. Idempotent: rerunning overwrites the same assets in place.
     //
     // Fitting rules (HUD_SPEC 6.2 / brief U4h): every wall box is filled exactly from the floor to MapGeometry.WallHeight by
-    // the podium mesh; anything higher stands at least Setback inside the box, so the Survivor camera (which can rise above a
-    // wall box up to about 0.8 m inside its footprint) never ends up inside a visual; obstacles fill their box and stay below
-    // MaxObstacleHeight; nothing stands in the walkable area except the flat ground (at most MaxFloorHeight).
+    // the podium mesh; anything higher stands at least Setback inside the outline of its building group (U4k: wall boxes that
+    // share an edge form one building, so the Setback applies to the union's outer boundary only), so the Survivor camera
+    // (which can rise above a wall box up to about 0.8 m inside its footprint) never ends up inside a visual; obstacles fill
+    // their box and stay below MaxObstacleHeight; nothing stands in the walkable area except the flat ground (at most
+    // MaxFloorHeight).
     public static class WorldArtSetup
     {
         private const string Root = "Assets/Art/World";
@@ -52,11 +54,14 @@ namespace PingTheKiller.Editor.Setup
                 catalog = ScriptableObject.CreateInstance<WorldArt>();
                 AssetDatabase.CreateAsset(catalog, Catalog);
             }
+            List<SharedEdge> edges = SharedEdges(map);
+            Dictionary<int, GroupPlan> plans = PlanGroups(map);
             catalog.Walls = new WorldArt.Piece[map.Walls.Count];
             for (int i = 0; i < map.Walls.Count; i++)
             {
                 Wall wall = map.Walls[i];
-                catalog.Walls[i] = new WorldArt.Piece { Prefab = Building(i, wall), Box = new Vector4(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ) };
+                plans.TryGetValue(i, out GroupPlan plan);
+                catalog.Walls[i] = new WorldArt.Piece { Prefab = Building(i, wall, plan, edges), Box = new Vector4(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ) };
             }
             catalog.Obstacles = new WorldArt.Piece[map.Obstacles.Count];
             for (int i = 0; i < map.Obstacles.Count; i++)
@@ -72,7 +77,9 @@ namespace PingTheKiller.Editor.Setup
             ConvertLeftovers();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            Debug.Log("[WorldArtSetup] WorldArt catalog ready: " + map.Walls.Count + " buildings, " + map.Obstacles.Count + " obstacles.");
+            WorldArtCapture.Count(catalog, out long wallTriangles, out int wallRenderers, out long backdropTriangles, out int backdropRenderers);
+            Debug.Log("[WorldArtSetup] WorldArt catalog ready: " + map.Walls.Count + " buildings in " + Groups(map).Count + " groups, " + map.Obstacles.Count
+                + " obstacles; walls " + wallTriangles + " triangles / " + wallRenderers + " renderers, backdrop " + backdropTriangles + " triangles / " + backdropRenderers + " renderers.");
         }
 
         // ---- palette -------------------------------------------------------------------------------------------------------
@@ -296,18 +303,28 @@ namespace PingTheKiller.Editor.Setup
             return holder;
         }
 
-        // Fits a model into a footprint with its natural height scaled by the mean footprint scale, capped at top.
-        private static Transform FitUpper(GameObject model, Transform parent, float minX, float minZ, float maxX, float maxZ, int yaw, float top, string label)
+        // Fits a model into a footprint: the yaw (0 or 90, plus 180 when flip) whose footprint aspect is closest to the area's,
+        // its natural height scaled by the mean footprint scale, kept between MinModelTop and top.
+        private static Transform FitUpper(GameObject model, Transform parent, Area area, float top, bool flip, string label)
         {
-            var probe = (GameObject)Object.Instantiate(model);
-            probe.transform.rotation = Quaternion.Euler(0, yaw, 0);
-            var frame = new GameObject("frame").transform;
-            Bounds b = BoundsIn(probe, frame);
-            Object.DestroyImmediate(probe);
-            Object.DestroyImmediate(frame.gameObject);
-            float scale = ((maxX - minX) / b.size.x + (maxZ - minZ) / b.size.z) * .5f;
-            float height = Mathf.Min(b.size.y * scale, top);
-            return Fit(model, parent, new Vector3(minX, 0, minZ), new Vector3(maxX, height, maxZ), yaw, label);
+            int best = 0;
+            float bestScore = float.MaxValue, height = 0;
+            foreach (int yaw in new[] { 0, 90 })
+            {
+                var probe = (GameObject)Object.Instantiate(model);
+                probe.transform.rotation = Quaternion.Euler(0, yaw, 0);
+                var frame = new GameObject("frame").transform;
+                Bounds b = BoundsIn(probe, frame);
+                Object.DestroyImmediate(probe);
+                Object.DestroyImmediate(frame.gameObject);
+                float score = Mathf.Abs(Mathf.Log(b.size.x / b.size.z * area.Depth / area.Width));
+                if (score >= bestScore) continue;
+                bestScore = score;
+                best = yaw;
+                float scale = (area.Width / b.size.x + area.Depth / b.size.z) * .5f;
+                height = Mathf.Clamp(b.size.y * scale, MinModelTop, top);
+            }
+            return Fit(model, parent, new Vector3(area.MinX, 0, area.MinZ), new Vector3(area.MaxX, height, area.MaxZ), best + (flip ? 180 : 0), label);
         }
 
         // ---- generated meshes ----------------------------------------------------------------------------------------------
@@ -319,13 +336,33 @@ namespace PingTheKiller.Editor.Setup
             private readonly List<Vector2> uvs = new List<Vector2>();
             private readonly List<Material> materials = new List<Material>();
             private readonly List<List<int>> triangles = new List<List<int>>();
+            private readonly List<Vector3> polygon = new List<Vector3>(8), scratch = new List<Vector3>(8);
+            private const float ClipEps = 1e-4f;
+
+            // U4k: when set, every quad is clipped to this footprint (a vertical prism), so one group-wide building can be
+            // split exactly along the wall boxes it spans: each box's prefab keeps only the part inside its own box.
+            public bool HasClip;
+            public Area Clip;
+
+            private int Sub(Material material)
+            {
+                int sub = materials.IndexOf(material);
+                if (sub < 0) { materials.Add(material); triangles.Add(new List<int>()); sub = materials.Count - 1; }
+                return sub;
+            }
 
             // a, b, c, d: bottom-left, top-left, top-right, bottom-right seen from the front.
             public void Quad(Material material, Vector3 a, Vector3 b, Vector3 c, Vector3 d)
             {
-                int sub = materials.IndexOf(material);
-                if (sub < 0) { materials.Add(material); triangles.Add(new List<int>()); sub = materials.Count - 1; }
                 Vector3 normal = Vector3.Cross(b - a, d - a).normalized;
+                if (HasClip)
+                {
+                    polygon.Clear(); polygon.Add(a); polygon.Add(b); polygon.Add(c); polygon.Add(d);
+                    int clipped = ClipPolygon(normal);
+                    if (clipped == 0) return;
+                    if (clipped == 2) { Polygon(material, normal); return; }
+                }
+                int sub = Sub(material);
                 int start = vertices.Count;
                 vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
                 for (int i = 0; i < 4; i++) normals.Add(normal);
@@ -333,6 +370,60 @@ namespace PingTheKiller.Editor.Setup
                 List<int> t = triangles[sub];
                 t.Add(start); t.Add(start + 1); t.Add(start + 2);
                 t.Add(start); t.Add(start + 2); t.Add(start + 3);
+            }
+
+            // The clipped polygon as a triangle fan (the winding of the source quad is kept).
+            private void Polygon(Material material, Vector3 normal)
+            {
+                List<int> t = triangles[Sub(material)];
+                int start = vertices.Count;
+                foreach (Vector3 p in polygon) { vertices.Add(p); normals.Add(normal); uvs.Add(Vector2.zero); }
+                for (int i = 1; i + 1 < polygon.Count; i++) { t.Add(start); t.Add(start + i); t.Add(start + i + 1); }
+            }
+
+            // Sutherland-Hodgman against the four sides of Clip. 0 = nothing left, 1 = untouched, 2 = clipped (in polygon).
+            // A polygon lying on a clip line belongs to this side only when it faces out of it, i.e. it bounds a solid on
+            // this side; so a face on a shared box edge is kept exactly once.
+            private int ClipPolygon(Vector3 normal)
+            {
+                bool changed = false;
+                for (int plane = 0; plane < 4; plane++)
+                {
+                    bool alongX = plane < 2;
+                    float value = plane == 0 ? Clip.MinX : plane == 1 ? Clip.MaxX : plane == 2 ? Clip.MinZ : Clip.MaxZ;
+                    float sign = plane % 2 == 0 ? 1 : -1; // inside: sign * (coordinate - value) >= 0
+                    bool allOn = true, allIn = true, allOut = true;
+                    foreach (Vector3 p in polygon)
+                    {
+                        float d = sign * ((alongX ? p.x : p.z) - value);
+                        if (Mathf.Abs(d) > ClipEps) allOn = false;
+                        if (d < -ClipEps) allIn = false;
+                        if (d > ClipEps) allOut = false;
+                    }
+                    if (allOn)
+                    {
+                        if ((alongX ? normal.x : normal.z) * -sign > .5f) continue;
+                        return 0;
+                    }
+                    if (allIn) continue;
+                    if (allOut) return 0;
+                    scratch.Clear();
+                    for (int i = 0; i < polygon.Count; i++)
+                    {
+                        Vector3 p = polygon[i], q = polygon[(i + 1) % polygon.Count];
+                        float dp = sign * ((alongX ? p.x : p.z) - value), dq = sign * ((alongX ? q.x : q.z) - value);
+                        if (dp >= 0) scratch.Add(p);
+                        if ((dp >= 0) != (dq >= 0)) scratch.Add(p + (q - p) * (dp / (dp - dq)));
+                    }
+                    polygon.Clear();
+                    polygon.AddRange(scratch);
+                    changed = true;
+                    if (polygon.Count < 3) return 0;
+                }
+                if (!changed) return 1;
+                Vector3 area = Vector3.zero;
+                for (int i = 1; i + 1 < polygon.Count; i++) area += Vector3.Cross(polygon[i] - polygon[0], polygon[i + 1] - polygon[0]);
+                return area.magnitude < 1e-6f ? 0 : 2;
             }
 
             // A rectangle on a face plane: origin = bottom-left corner of the face seen from outside, right along the face,
@@ -458,7 +549,9 @@ namespace PingTheKiller.Editor.Setup
         }
 
         // Ground floor (0 to Wall): base, shop fronts recessed by Recess, a fascia band and a slim cornice (Recess out).
-        private static void Podium(MeshBuilder mb, float minX, float minZ, float maxX, float maxZ, Style style, System.Random random)
+        // shared[k]: the spans (u along face k) this box shares with another box of its group; no parapet runs there, so
+        // the podium roofs of one building join without a ridge.
+        private static void Podium(MeshBuilder mb, float minX, float minZ, float maxX, float maxZ, Style style, System.Random random, List<Vector2>[] shared)
         {
             const float baseTop = .35f, openTop = 2.25f, fasciaTop = 2.78f, corner = .45f, pilaster = .22f;
             foreach (Face face in Faces(minX, minZ, maxX, maxZ))
@@ -491,18 +584,56 @@ namespace PingTheKiller.Editor.Setup
                 mb.Reveal(style.Base, face.Origin, face.Right, face.Out, 0, length, fasciaTop, Wall, -Recess);
             }
             mb.Top(Palette.Roof, minX, minZ, maxX, maxZ, Wall);
-            // Parapet on the roof edge, inside the box.
+            // Parapet on the outer roof edge, inside the box.
             const float parapet = .18f, parapetTop = Wall + .14f;
+            int k = -1;
             foreach (Face face in Faces(minX, minZ, maxX, maxZ))
             {
-                Vector3 inner = face.Origin - face.Out * parapet + face.Right * parapet;
-                float length = face.Length - 2 * parapet;
-                if (length <= 0) continue;
-                mb.Panel(style.Base, face.Origin, face.Right, face.Out, 0, face.Length, Wall, parapetTop, 0);
-                mb.Panel(style.Base, inner + Vector3.up * Wall, -face.Right, -face.Out, -length, 0, 0, parapetTop - Wall, 0);
-                Vector3 a = face.Origin + Vector3.up * parapetTop, b = a + face.Right * face.Length;
-                mb.Quad(style.Base, a, a - face.Out * parapet + face.Right * parapet, b - face.Out * parapet - face.Right * parapet, b);
+                k++;
+                if (face.Length - 2 * parapet <= 0) continue;
+                foreach (Vector2 span in Outer(face.Length, shared?[k]))
+                {
+                    float u0 = span.x, u1 = span.y;
+                    bool startCorner = u0 < Eps, endCorner = u1 > face.Length - Eps;
+                    float i0 = startCorner ? parapet : u0, i1 = endCorner ? face.Length - parapet : u1;
+                    mb.Panel(style.Base, face.Origin, face.Right, face.Out, u0, u1, Wall, parapetTop, 0);
+                    if (i1 <= i0) continue;
+                    Vector3 inner = face.Origin - face.Out * parapet + Vector3.up * Wall;
+                    mb.Panel(style.Base, inner, -face.Right, -face.Out, -i1, -i0, 0, parapetTop - Wall, 0);
+                    Vector3 a = face.Origin + Vector3.up * parapetTop + face.Right * u0, b = face.Origin + Vector3.up * parapetTop + face.Right * u1;
+                    mb.Quad(style.Base, a, a - face.Out * parapet + face.Right * (i0 - u0), b - face.Out * parapet - face.Right * (u1 - i1), b);
+                    // Square end caps where the parapet stops at a shared span.
+                    if (!startCorner) Cap(mb, style.Base, face, u0, parapet, parapetTop, false);
+                    if (!endCorner) Cap(mb, style.Base, face, u1, parapet, parapetTop, true);
+                }
             }
+        }
+
+        private static void Cap(MeshBuilder mb, Material material, Face face, float u, float thickness, float top, bool facingRight)
+        {
+            Vector3 p0 = face.Origin + face.Right * u + Vector3.up * Wall, p1 = p0 + Vector3.up * (top - Wall);
+            Vector3 p2 = p1 - face.Out * thickness, p3 = p0 - face.Out * thickness;
+            if (facingRight) mb.Quad(material, p0, p1, p2, p3);
+            else mb.Quad(material, p3, p2, p1, p0);
+        }
+
+        // [0, length] minus the given spans.
+        private static List<Vector2> Outer(float length, List<Vector2> spans)
+        {
+            var result = new List<Vector2>();
+            float cursor = 0;
+            if (spans != null)
+            {
+                var sorted = new List<Vector2>(spans);
+                sorted.Sort((p, q) => p.x.CompareTo(q.x));
+                foreach (Vector2 span in sorted)
+                {
+                    if (span.x > cursor + Eps) result.Add(new Vector2(cursor, span.x));
+                    cursor = Mathf.Max(cursor, span.y);
+                }
+            }
+            if (length > cursor + Eps) result.Add(new Vector2(cursor, length));
+            return result;
         }
 
         private static Bay PickBay(Style style, System.Random random)
@@ -602,124 +733,510 @@ namespace PingTheKiller.Editor.Setup
             mb.Reveal(Palette.Frame, face.Origin, face.Right, face.Out, u0, u1, v0, v1, -Recess);
         }
 
-        // Upper storeys of a generated building, standing on the podium roof: window grid, roof and parapet.
-        private static void Storeys(MeshBuilder mb, float minX, float minZ, float maxX, float maxZ, int floors, Style style, System.Random random)
+        // Window rhythm of a generated building; each group gets one, so neighbouring blocks do not repeat the same facade.
+        private sealed class Facade
         {
-            const float storey = 2.9f;
-            float top = Wall + floors * storey;
-            foreach (Face face in Faces(minX, minZ, maxX, maxZ))
+            public float WindowWidth, Pitch, Lit;
+            public int Columns;
+            public bool Band; // an accent string course at every floor line
+        }
+
+        private static readonly Facade[] Facades =
+        {
+            new Facade { WindowWidth = 1.1f, Pitch = 2.3f, Lit = .3f, Columns = 2 },
+            new Facade { WindowWidth = 1.6f, Pitch = 3f, Lit = .25f, Columns = 3, Band = true },
+            new Facade { WindowWidth = .8f, Pitch = 1.7f, Lit = .35f, Columns = 1 }
+        };
+
+        // Upper storeys of a generated building, standing on the podium roof (Wall): window grid, roof and parapet.
+        // faces[k] (Faces order): 0 = none (hidden by an at least as tall neighbouring wing), 1 = plain wall, 2 = windows.
+        // parapets[k]: whether the roof edge on face k gets a parapet (not where the roof meets an equal or taller wing).
+        private static void Storeys(MeshBuilder mb, Area a, int floors, float storey, Style style, Facade facade, System.Random random, byte[] faces, bool[] parapets)
+        {
+            float height = floors * storey, top = Wall + height;
+            int k = -1;
+            foreach (Face face in Faces(a.MinX, a.MinZ, a.MaxX, a.MaxZ))
             {
+                k++;
+                if (faces[k] == 0) continue;
                 Vector3 origin = face.Origin + Vector3.up * Wall;
-                int windows = Mathf.Max(1, Mathf.FloorToInt((face.Length - .6f) / 2.3f));
-                float pitch = (face.Length - .6f) / windows;
-                for (int f = 0; f < floors; f++)
+                var raised = new Face { Origin = origin, Right = face.Right, Out = face.Out, Length = face.Length };
+                if (faces[k] == 1 || face.Length < facade.WindowWidth + .8f)
                 {
-                    float y0 = f * storey, sill = y0 + .9f, head = y0 + 2.25f, y1 = y0 + storey;
-                    mb.Panel(style.Wall, origin, face.Right, face.Out, 0, face.Length, y0, sill, 0);
-                    mb.Panel(style.Wall, origin, face.Right, face.Out, 0, face.Length, head, y1, 0);
-                    float u = 0;
-                    for (int w = 0; w < windows; w++)
-                    {
-                        float w0 = .3f + w * pitch + (pitch - 1.1f) * .5f, w1 = w0 + 1.1f;
-                        mb.Panel(style.Wall, origin, face.Right, face.Out, u, w0, sill, head, 0);
-                        double r = random.NextDouble();
-                        Material glass = r < .3 ? Palette.GlassWarm : r < .42 ? Palette.GlassCool : Palette.Glass;
-                        Grid(mb, new Face { Origin = origin, Right = face.Right, Out = face.Out, Length = face.Length }, glass, Palette.Frame, w0, w1, sill, head, .06f, 2, 0);
-                        mb.Reveal(Palette.Frame, origin, face.Right, face.Out, w0, w1, sill, head, Recess);
-                        u = w1;
-                    }
-                    mb.Panel(style.Wall, origin, face.Right, face.Out, u, face.Length, sill, head, 0);
+                    mb.Panel(style.Wall, origin, face.Right, face.Out, 0, face.Length, 0, height, 0);
                 }
-                mb.Panel(style.Base, origin, face.Right, face.Out, 0, face.Length, floors * storey, floors * storey + .3f, 0);
+                else
+                {
+                    int windows = Mathf.Max(1, Mathf.FloorToInt((face.Length - .6f) / facade.Pitch));
+                    float pitch = (face.Length - .6f) / windows;
+                    for (int f = 0; f < floors; f++)
+                    {
+                        float y0 = f * storey, sill = y0 + .9f, head = y0 + Mathf.Min(2.25f, storey - .25f), y1 = y0 + storey;
+                        float band = facade.Band && f > 0 ? .14f : 0;
+                        if (band > 0) mb.Panel(style.Accent, origin, face.Right, face.Out, 0, face.Length, y0, y0 + band, 0);
+                        mb.Panel(style.Wall, origin, face.Right, face.Out, 0, face.Length, y0 + band, sill, 0);
+                        mb.Panel(style.Wall, origin, face.Right, face.Out, 0, face.Length, head, y1, 0);
+                        float u = 0;
+                        for (int w = 0; w < windows; w++)
+                        {
+                            float w0 = .3f + w * pitch + (pitch - facade.WindowWidth) * .5f, w1 = w0 + facade.WindowWidth;
+                            mb.Panel(style.Wall, origin, face.Right, face.Out, u, w0, sill, head, 0);
+                            double r = random.NextDouble();
+                            Material glass = r < facade.Lit ? Palette.GlassWarm : r < facade.Lit + .12 ? Palette.GlassCool : Palette.Glass;
+                            Grid(mb, raised, glass, Palette.Frame, w0, w1, sill, head, .06f, facade.Columns, 0);
+                            mb.Reveal(Palette.Frame, origin, face.Right, face.Out, w0, w1, sill, head, Recess);
+                            u = w1;
+                        }
+                        mb.Panel(style.Wall, origin, face.Right, face.Out, u, face.Length, sill, head, 0);
+                    }
+                }
+                mb.Panel(style.Base, origin, face.Right, face.Out, 0, face.Length, height, height + .3f, 0);
             }
-            mb.Top(Palette.Roof, minX, minZ, maxX, maxZ, top);
-            foreach (Face face in Faces(minX, minZ, maxX, maxZ))
+            mb.Top(Palette.Roof, a.MinX, a.MinZ, a.MaxX, a.MaxZ, top);
+            k = -1;
+            foreach (Face face in Faces(a.MinX, a.MinZ, a.MaxX, a.MaxZ))
             {
+                k++;
+                if (!parapets[k]) continue;
                 Vector3 inner = face.Origin - face.Out * .2f + face.Right * .2f + Vector3.up * top;
                 float length = face.Length - .4f;
                 if (length <= 0) continue;
                 mb.Panel(style.Base, inner, -face.Right, -face.Out, -length, 0, 0, .3f, 0);
-                Vector3 a = face.Origin + Vector3.up * (top + .3f), b = a + face.Right * face.Length;
-                mb.Quad(style.Base, a, a - face.Out * .2f + face.Right * .2f, b - face.Out * .2f - face.Right * .2f, b);
+                Vector3 p = face.Origin + Vector3.up * (top + .3f), q = p + face.Right * face.Length;
+                mb.Quad(style.Base, p, p - face.Out * .2f + face.Right * .2f, q - face.Out * .2f - face.Right * .2f, q);
             }
+        }
+
+        // Low roof furniture on a generated roof: a stair house (two-storey wings only) and air-conditioning units. Generated
+        // quads, so the box clip splits them like the walls; everything stays below MaxBuildingHeight.
+        private static void RoofProps(MeshBuilder mb, Area a, float roof, int floors, Style style, System.Random random)
+        {
+            float room = MaxBuildingHeight - .05f - roof;
+            int count = a.Width * a.Depth > 30 ? 2 : 1;
+            for (int i = 0; i < count; i++)
+            {
+                bool stair = floors <= 2 && i == 0 && random.NextDouble() < .6;
+                float sx = stair ? 2.2f : 1.2f, sz = stair ? 1.8f : .8f, sy = Mathf.Min(stair ? 2.2f : .7f, room);
+                if (random.NextDouble() < .5) { float swap = sx; sx = sz; sz = swap; }
+                double px = random.NextDouble(), pz = random.NextDouble();
+                if (sy < .2f || sx > a.Width - 1.2f || sz > a.Depth - 1.2f) continue;
+                float x0 = a.MinX + .6f + (float)px * (a.Width - 1.2f - sx), z0 = a.MinZ + .6f + (float)pz * (a.Depth - 1.2f - sz);
+                if (stair) mb.Box(style.Base, new Vector3(x0, roof, z0), new Vector3(x0 + sx, roof + sy, z0 + sz), Palette.Roof);
+                else mb.Box(Palette.Steel, new Vector3(x0, roof, z0), new Vector3(x0 + sx, roof + sy, z0 + sz), Palette.SteelDark);
+            }
+        }
+
+        // ---- building groups (U4k) -----------------------------------------------------------------------------------------
+
+        public const float Eps = .001f;
+        // Storey height of the generated uppers: two storeys reach 8 m (8.3 m with the parapet), three 10.5 m (10.8 m).
+        public const float Storey = 2.5f;
+        // Fitted house models on single-box buildings: at least this tall (well above two storeys over the podium).
+        public const float MinModelTop = 7f;
+
+        // An axis-aligned footprint on the ground plane.
+        public struct Area
+        {
+            public float MinX, MinZ, MaxX, MaxZ;
+            public Area(float minX, float minZ, float maxX, float maxZ) { MinX = minX; MinZ = minZ; MaxX = maxX; MaxZ = maxZ; }
+            public static Area Of(Wall wall) => new Area(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ);
+            public float Width => MaxX - MinX;
+            public float Depth => MaxZ - MinZ;
+            public Area Inset(float d) => new Area(MinX + d, MinZ + d, MaxX - d, MaxZ - d);
+            public Area Offset(float dx, float dz) => new Area(MinX + dx, MinZ + dz, MaxX + dx, MaxZ + dz);
+            public bool Overlaps(Area o) => Mathf.Min(MaxX, o.MaxX) - Mathf.Max(MinX, o.MinX) > Eps && Mathf.Min(MaxZ, o.MaxZ) - Mathf.Max(MinZ, o.MinZ) > Eps;
+            public bool Contains(float x, float z) => x > MinX && x < MaxX && z > MinZ && z < MaxZ;
+            public bool Encloses(Area o) => o.MinX >= MinX - Eps && o.MaxX <= MaxX + Eps && o.MinZ >= MinZ - Eps && o.MaxZ <= MaxZ + Eps;
+            public override string ToString() => $"({MinX:0.##}, {MinZ:0.##})-({MaxX:0.##}, {MaxZ:0.##})";
+        }
+
+        // A segment of positive length on which two interior wall boxes touch. AlongX: the edge runs along x at z = Line,
+        // else along z at x = Line; it covers [Lo, Hi] along its direction. A < B.
+        public struct SharedEdge
+        {
+            public int A, B;
+            public bool AlongX;
+            public float Line, Lo, Hi;
+            public override string ToString() => $"{A}/{B} {(AlongX ? "z" : "x")}={Line:0.##} [{Lo:0.##}, {Hi:0.##}]";
+        }
+
+        // Border walls reach outside the arena square; they get no upper (the skyline stands behind them).
+        public static bool IsBorder(Wall wall) => wall.MinX < 0 || wall.MinZ < 0 || wall.MaxX > FixedMap.Size || wall.MaxZ > FixedMap.Size;
+
+        public static List<SharedEdge> SharedEdges(FixedMap map)
+        {
+            var edges = new List<SharedEdge>();
+            for (int a = 0; a < map.Walls.Count; a++)
+            {
+                if (IsBorder(map.Walls[a])) continue;
+                for (int b = a + 1; b < map.Walls.Count; b++)
+                {
+                    if (IsBorder(map.Walls[b])) continue;
+                    Wall p = map.Walls[a], q = map.Walls[b];
+                    if (Area.Of(p).Overlaps(Area.Of(q))) throw new InvalidOperationException("Wall boxes " + a + " and " + b + " overlap; the building groups assume touching boxes only.");
+                    if (Mathf.Abs(p.MaxZ - q.MinZ) < Eps) AddEdge(edges, a, b, true, p.MaxZ, p.MinX, p.MaxX, q.MinX, q.MaxX);
+                    if (Mathf.Abs(p.MinZ - q.MaxZ) < Eps) AddEdge(edges, a, b, true, p.MinZ, p.MinX, p.MaxX, q.MinX, q.MaxX);
+                    if (Mathf.Abs(p.MaxX - q.MinX) < Eps) AddEdge(edges, a, b, false, p.MaxX, p.MinZ, p.MaxZ, q.MinZ, q.MaxZ);
+                    if (Mathf.Abs(p.MinX - q.MaxX) < Eps) AddEdge(edges, a, b, false, p.MinX, p.MinZ, p.MaxZ, q.MinZ, q.MaxZ);
+                }
+            }
+            return edges;
+        }
+
+        private static void AddEdge(List<SharedEdge> edges, int a, int b, bool alongX, float line, float p0, float p1, float q0, float q1)
+        {
+            float lo = Mathf.Max(p0, q0), hi = Mathf.Min(p1, q1);
+            if (hi - lo > Eps) edges.Add(new SharedEdge { A = a, B = b, AlongX = alongX, Line = line, Lo = lo, Hi = hi });
+        }
+
+        // Building groups: interior wall boxes connected through shared edges, each sorted, ordered by their first box.
+        public static List<int[]> Groups(FixedMap map)
+        {
+            int n = map.Walls.Count;
+            var parent = new int[n];
+            for (int i = 0; i < n; i++) parent[i] = i;
+            foreach (SharedEdge edge in SharedEdges(map)) parent[FindRoot(parent, edge.A)] = FindRoot(parent, edge.B);
+            var lists = new List<List<int>>();
+            var byRoot = new Dictionary<int, List<int>>();
+            for (int i = 0; i < n; i++)
+            {
+                if (IsBorder(map.Walls[i])) continue;
+                int root = FindRoot(parent, i);
+                if (!byRoot.TryGetValue(root, out List<int> list)) { byRoot[root] = list = new List<int>(); lists.Add(list); }
+                list.Add(i);
+            }
+            var groups = new List<int[]>();
+            foreach (List<int> list in lists) groups.Add(list.ToArray());
+            return groups;
+        }
+
+        private static int FindRoot(int[] parent, int i)
+        {
+            while (parent[i] != i) i = parent[i] = parent[parent[i]];
+            return i;
+        }
+
+        // Sides in Faces order: 0 south (z = MinZ), 1 east (x = MaxX), 2 north (z = MaxZ), 3 west (x = MinX).
+        private static bool SideAlongX(int side) => side % 2 == 0;
+        private static float SideLine(Area a, int side) => side == 0 ? a.MinZ : side == 1 ? a.MaxX : side == 2 ? a.MaxZ : a.MinX;
+        private static float SideLo(Area a, int side) => SideAlongX(side) ? a.MinX : a.MinZ;
+        private static float SideHi(Area a, int side) => SideAlongX(side) ? a.MaxX : a.MaxZ;
+
+        // True when the intervals together cover [lo, hi].
+        private static bool Covers(List<Vector2> intervals, float lo, float hi)
+        {
+            var sorted = new List<Vector2>(intervals);
+            sorted.Sort((p, q) => p.x.CompareTo(q.x));
+            float cursor = lo;
+            foreach (Vector2 interval in sorted)
+            {
+                if (interval.x > cursor + Eps) return false;
+                cursor = Mathf.Max(cursor, interval.y);
+            }
+            return cursor >= hi - Eps;
+        }
+
+        // True when the boxes together cover the whole rectangle.
+        public static bool Covered(Area r, List<Area> boxes)
+        {
+            var xs = new List<float> { r.MinX, r.MaxX };
+            var zs = new List<float> { r.MinZ, r.MaxZ };
+            foreach (Area b in boxes)
+            {
+                if (b.MinX > r.MinX && b.MinX < r.MaxX) xs.Add(b.MinX);
+                if (b.MaxX > r.MinX && b.MaxX < r.MaxX) xs.Add(b.MaxX);
+                if (b.MinZ > r.MinZ && b.MinZ < r.MaxZ) zs.Add(b.MinZ);
+                if (b.MaxZ > r.MinZ && b.MaxZ < r.MaxZ) zs.Add(b.MaxZ);
+            }
+            xs.Sort(); zs.Sort();
+            for (int i = 0; i + 1 < xs.Count; i++)
+                for (int j = 0; j + 1 < zs.Count; j++)
+                {
+                    if (xs[i + 1] - xs[i] <= Eps || zs[j + 1] - zs[j] <= Eps) continue;
+                    float x = (xs[i] + xs[i + 1]) * .5f, z = (zs[j] + zs[j + 1]) * .5f;
+                    bool inside = false;
+                    foreach (Area b in boxes) inside |= b.Contains(x, z);
+                    if (!inside) return false;
+                }
+            return true;
+        }
+
+        // The upper wings of a group: each box inset by Setback, extended by Setback across every side it shares completely
+        // with the group (so it meets the neighbour's inset edge; of two boxes sharing a whole side each, the lower index
+        // extends). The wings tile the group outline inset by Setback (in the square metric); any part of it they miss is
+        // added as extra wings. Each wing, grown by Setback, must lie inside the union of the group's boxes.
+        public static List<Area> WingAreas(FixedMap map, int[] group)
+        {
+            List<SharedEdge> edges = SharedEdges(map);
+            var boxes = new List<Area>();
+            foreach (int i in group) boxes.Add(Area.Of(map.Walls[i]));
+            var wings = new List<Area>();
+            foreach (int i in group)
+            {
+                Area box = Area.Of(map.Walls[i]), wing = box.Inset(Setback);
+                for (int side = 0; side < 4; side++)
+                {
+                    if (!FullyShared(map, edges, i, side, out List<int> neighbours)) continue;
+                    bool extend = true;
+                    foreach (int other in neighbours)
+                        if (other < i && FullyShared(map, edges, other, (side + 2) % 4, out _)) extend = false;
+                    if (!extend) continue;
+                    if (side == 0) wing.MinZ = box.MinZ - Setback;
+                    else if (side == 1) wing.MaxX = box.MaxX + Setback;
+                    else if (side == 2) wing.MaxZ = box.MaxZ + Setback;
+                    else wing.MinX = box.MinX - Setback;
+                }
+                wings.Add(wing);
+            }
+            var xs = new List<float>();
+            var zs = new List<float>();
+            foreach (Area b in boxes)
+            {
+                xs.Add(b.MinX - Setback); xs.Add(b.MinX + Setback); xs.Add(b.MaxX - Setback); xs.Add(b.MaxX + Setback);
+                zs.Add(b.MinZ - Setback); zs.Add(b.MinZ + Setback); zs.Add(b.MaxZ - Setback); zs.Add(b.MaxZ + Setback);
+            }
+            foreach (Area w in wings) { xs.Add(w.MinX); xs.Add(w.MaxX); zs.Add(w.MinZ); zs.Add(w.MaxZ); }
+            xs.Sort(); zs.Sort();
+            int added = 0;
+            for (int i = 0; i + 1 < xs.Count; i++)
+                for (int j = 0; j + 1 < zs.Count; j++)
+                {
+                    var cell = new Area(xs[i], zs[j], xs[i + 1], zs[j + 1]);
+                    if (cell.Width <= Eps || cell.Depth <= Eps || !Covered(cell.Inset(-Setback), boxes)) continue;
+                    float x = (cell.MinX + cell.MaxX) * .5f, z = (cell.MinZ + cell.MaxZ) * .5f;
+                    bool inWing = false;
+                    foreach (Area w in wings) inWing |= w.Contains(x, z);
+                    if (!inWing) { wings.Add(cell); added++; }
+                }
+            if (added > 0) Debug.LogWarning("[WorldArtSetup] group " + string.Join(",", group) + ": " + added + " filler wing cells");
+            foreach (Area wing in wings)
+                if (!Covered(wing.Inset(-Setback), boxes)) throw new InvalidOperationException("Wing " + wing + " of group " + string.Join(",", group) + " comes closer than Setback to the group outline.");
+            return wings;
+        }
+
+        // Whether side `side` of box `index` lies entirely on edges shared with other boxes; neighbours = those boxes.
+        private static bool FullyShared(FixedMap map, List<SharedEdge> edges, int index, int side, out List<int> neighbours)
+        {
+            Area box = Area.Of(map.Walls[index]);
+            neighbours = new List<int>();
+            var intervals = new List<Vector2>();
+            foreach (SharedEdge edge in edges)
+            {
+                if (edge.A != index && edge.B != index) continue;
+                if (edge.AlongX != SideAlongX(side) || Mathf.Abs(edge.Line - SideLine(box, side)) > Eps) continue;
+                intervals.Add(new Vector2(edge.Lo, edge.Hi));
+                neighbours.Add(edge.A == index ? edge.B : edge.A);
+            }
+            return intervals.Count > 0 && Covers(intervals, SideLo(box, side), SideHi(box, side));
+        }
+
+        private sealed class WingPlan
+        {
+            public Area Area;
+            public int Floors, Seed;
+            public readonly byte[] Faces = new byte[4];
+            public readonly bool[] Parapets = new bool[4];
+            public int BillboardBox = -1;
+            public string Billboard;
+        }
+
+        private sealed class GroupPlan
+        {
+            public int Ordinal;
+            public int[] Members;
+            public Color32 Colour, Accent;
+            public Facade Facade;
+            public string Model; // single-box groups: a fitted City 03 house
+            public float ModelTop;
+            public readonly List<WingPlan> Wings = new List<WingPlan>();
+        }
+
+        // Fitted on single-box buildings; neighbouring groups never get the same one.
+        private static readonly string[] SingleModels = { "House 10", "House 3", "House 7", "House 1", "House 8", "House 5", "House 2" };
+        private const float NeighbourGap = 10f; // groups whose outlines are closer than this face each other across a street
+
+        // Geometry-keyed plan for every interior box: its group, the group's colour (never the colour of a neighbouring
+        // group), facade, and either a fitted model (single box) or generated wings with stepped heights.
+        private static Dictionary<int, GroupPlan> PlanGroups(FixedMap map)
+        {
+            List<int[]> groups = Groups(map);
+            var plans = new List<GroupPlan>();
+            var byBox = new Dictionary<int, GroupPlan>();
+            var usedModels = new HashSet<string>();
+            for (int g = 0; g < groups.Count; g++)
+            {
+                var near = new List<GroupPlan>();
+                for (int h = 0; h < g; h++)
+                    if (Gap(map, groups[g], groups[h]) < NeighbourGap) near.Add(plans[h]);
+                var plan = new GroupPlan
+                {
+                    Ordinal = g, Members = groups[g], Facade = Facades[g % Facades.Length], Accent = AccentColours[g % AccentColours.Length],
+                    Colour = WallColours[g * 3 % WallColours.Length] // kept only when every colour is taken nearby
+                };
+                for (int k = 0; k < WallColours.Length; k++)
+                {
+                    Color32 colour = WallColours[(g * 3 + k) % WallColours.Length];
+                    if (near.Exists(p => Same(p.Colour, colour))) continue;
+                    plan.Colour = colour;
+                    break;
+                }
+                if (groups[g].Length == 1)
+                {
+                    string pick = null;
+                    for (int pass = 0; pass < 2 && pick == null; pass++)
+                        for (int k = 0; k < SingleModels.Length && pick == null; k++)
+                        {
+                            string model = SingleModels[(g + k) % SingleModels.Length];
+                            if (near.Exists(p => p.Model == model) || (pass == 0 && usedModels.Contains(model))) continue;
+                            pick = model;
+                        }
+                    plan.Model = pick ?? SingleModels[g % SingleModels.Length];
+                    usedModels.Add(plan.Model);
+                    plan.ModelTop = 9f + g % 3 * .8f;
+                }
+                else PlanWings(map, plan);
+                plans.Add(plan);
+                foreach (int i in groups[g]) byBox[i] = plan;
+            }
+            return byBox;
+        }
+
+        private static bool Same(Color32 a, Color32 b) => a.r == b.r && a.g == b.g && a.b == b.b;
+
+        // Smallest distance between the boxes of two groups.
+        private static float Gap(FixedMap map, int[] a, int[] b)
+        {
+            float best = float.MaxValue;
+            foreach (int i in a)
+                foreach (int j in b)
+                {
+                    Wall p = map.Walls[i], q = map.Walls[j];
+                    float dx = Mathf.Max(0, Mathf.Max(p.MinX - q.MaxX, q.MinX - p.MaxX)), dz = Mathf.Max(0, Mathf.Max(p.MinZ - q.MaxZ, q.MinZ - p.MaxZ));
+                    best = Mathf.Min(best, Mathf.Sqrt(dx * dx + dz * dz));
+                }
+            return best;
+        }
+
+        private static void PlanWings(FixedMap map, GroupPlan plan)
+        {
+            List<Area> areas = WingAreas(map, plan.Members);
+            for (int k = 0; k < areas.Count; k++)
+                plan.Wings.Add(new WingPlan { Area = areas[k], Floors = (plan.Ordinal + k) % 2 == 0 ? 3 : 2, Seed = 7919 * (plan.Ordinal + 1) + 104729 * (k + 1) });
+            foreach (WingPlan wing in plan.Wings)
+                for (int side = 0; side < 4; side++)
+                {
+                    // A face is hidden when wings at least as tall cover it completely (the roofs then meet without a parapet).
+                    var cover = new List<Vector2>();
+                    float lo = SideLo(wing.Area, side), hi = SideHi(wing.Area, side), line = SideLine(wing.Area, side);
+                    foreach (WingPlan other in plan.Wings)
+                    {
+                        if (other == wing || other.Floors < wing.Floors) continue;
+                        if (Mathf.Abs(SideLine(other.Area, (side + 2) % 4) - line) > Eps) continue;
+                        float a = Mathf.Max(lo, SideLo(other.Area, side)), b = Mathf.Min(hi, SideHi(other.Area, side));
+                        if (b - a > Eps) cover.Add(new Vector2(a, b));
+                    }
+                    bool hidden = cover.Count > 0 && Covers(cover, lo, hi);
+                    wing.Faces[side] = (byte)(hidden ? 0 : 2);
+                    wing.Parapets[side] = !hidden;
+                }
+            // Every third group carries a roof billboard on a two-storey wing that lies inside one box.
+            if (plan.Ordinal % 3 != 1) return;
+            foreach (WingPlan wing in plan.Wings)
+            {
+                if (wing.Floors != 2) continue;
+                Area sign = BillboardFootprint(wing.Area);
+                foreach (int i in plan.Members)
+                    if (Area.Of(map.Walls[i]).Encloses(sign)) { wing.BillboardBox = i; break; }
+                if (wing.BillboardBox < 0) continue;
+                wing.Billboard = plan.Ordinal % 2 == 0 ? "Roadside Billboard 1" : "Roadside Billboard 2";
+                return;
+            }
+        }
+
+        private static Area BillboardFootprint(Area a)
+        {
+            bool alongX = a.Width >= a.Depth;
+            float width = Mathf.Min((alongX ? a.Width : a.Depth) - 1.2f, 5f);
+            float mx = (a.MinX + a.MaxX) * .5f, mz = (a.MinZ + a.MaxZ) * .5f;
+            return alongX ? new Area(mx - width * .5f, mz - .3f, mx + width * .5f, mz + .3f) : new Area(mx - .3f, mz - width * .5f, mx + .3f, mz + width * .5f);
         }
 
         // ---- buildings -----------------------------------------------------------------------------------------------------
 
-        private struct Upper
-        {
-            public string Model;
-            public int Yaw;
-            public float Top;
-            public int Floors; // generated storeys when Model is null
-            public string Roof; // optional model on a generated roof (a billboard)
-        }
-
-        // Per FixedMap wall index: the upper part. Border walls (0 to 3) have none; the skyline stands behind them.
-        private static Upper UpperFor(int index)
-        {
-            switch (index)
-            {
-                case 4: return new Upper { Model = "House 10", Yaw = 0, Top = 10.2f };
-                case 5: return new Upper { Model = "House 1", Yaw = 0, Top = 10f };
-                case 6: return new Upper { Floors = 1, Roof = "Roadside Billboard 1" };
-                case 7: return new Upper { Model = "House 2", Yaw = 180, Top = 8f };
-                case 8: return new Upper { Model = "House 10", Yaw = 180, Top = 9.4f };
-                case 9: return new Upper { Floors = 1 };
-                case 10: return new Upper { Model = "House 3", Yaw = 90, Top = 8f };
-                case 11: return new Upper { Model = "House 5", Yaw = 0, Top = 7.5f };
-                case 12: return new Upper { Model = "House 8", Yaw = 90, Top = 8.5f };
-                case 13: return new Upper { Model = "House 7", Yaw = 0, Top = 10.5f };
-                case 14: return new Upper { Model = "House 3", Yaw = 270, Top = 9f };
-                case 15: return new Upper { Floors = 1, Roof = "Roadside Billboard 2" };
-                default: return new Upper();
-            }
-        }
-
-        private static GameObject Building(int index, Wall wall)
+        private static GameObject Building(int index, Wall wall, GroupPlan plan, List<SharedEdge> edges)
         {
             var random = new System.Random(7919 * (index + 1));
             float hx = (wall.MaxX - wall.MinX) * .5f, hz = (wall.MaxZ - wall.MinZ) * .5f;
-            bool border = index < 4;
+            float cx = (wall.MinX + wall.MaxX) * .5f, cz = (wall.MinZ + wall.MaxZ) * .5f;
+            bool border = plan == null;
+            Color32 wallColour = border ? new Color32(96, 98, 102, 255) : plan.Colour;
+            Color32 accent = border ? AccentColours[index % AccentColours.Length] : plan.Accent;
             var style = new Style
             {
-                Wall = WallMaterial(border ? new Color32(96, 98, 102, 255) : WallColours[index % WallColours.Length]),
-                Accent = Lit("Accent " + Hex(AccentColours[index % AccentColours.Length]), AccentColours[index % AccentColours.Length], .1f),
+                Wall = WallMaterial(wallColour),
+                Accent = Lit("Accent " + Hex(accent), accent, .1f),
+                Base = WallMaterial(new Color32((byte)(wallColour.r * .62f), (byte)(wallColour.g * .62f), (byte)(wallColour.b * .62f), 255)),
                 Service = border
             };
-            Color32 wallColour = border ? new Color32(96, 98, 102, 255) : WallColours[index % WallColours.Length];
-            style.Base = WallMaterial(new Color32((byte)(wallColour.r * .62f), (byte)(wallColour.g * .62f), (byte)(wallColour.b * .62f), 255));
             var root = new GameObject("Building " + index);
             var podium = new MeshBuilder();
-            Podium(podium, -hx, -hz, hx, hz, style, random);
+            Podium(podium, -hx, -hz, hx, hz, style, random, SharedSpans(wall, index, edges));
             MeshObject("Podium", root.transform, podium, "Building " + index + " podium");
-            Upper upper = UpperFor(index);
-            float minX = -hx + Setback, minZ = -hz + Setback, maxX = hx - Setback, maxZ = hz - Setback;
-            if (upper.Model != null)
+            if (border) return SavePrefab(root, "Building " + index);
+            var box = new Area(-hx, -hz, hx, hz);
+            if (plan.Model != null)
             {
-                FitUpper(Model(upper.Model), root.transform, minX, minZ, maxX, maxZ, upper.Yaw, upper.Top, "Upper");
+                FitUpper(Model(plan.Model), root.transform, box.Inset(Setback), plan.ModelTop, plan.Ordinal % 2 == 1, "Upper");
+                return SavePrefab(root, "Building " + index);
             }
-            else if (upper.Floors > 0)
+            var upperStyle = new Style { Wall = style.Wall, Base = style.Base, Accent = style.Accent };
+            var storeys = new MeshBuilder { HasClip = true, Clip = box };
+            foreach (WingPlan wing in plan.Wings)
             {
-                var storeys = new MeshBuilder();
-                var upperStyle = new Style { Wall = style.Wall, Base = style.Base, Accent = style.Accent };
-                Storeys(storeys, minX, minZ, maxX, maxZ, upper.Floors, upperStyle, random);
-                MeshObject("Upper", root.transform, storeys, "Building " + index + " storeys");
-                if (upper.Roof != null)
-                {
-                    GameObject sign = Model(upper.Roof);
-                    float roofTop = Wall + upper.Floors * 2.9f;
-                    float width = Mathf.Min(maxX - minX - .6f, 7f);
-                    float cx = (minX + maxX) * .5f, cz = (minZ + maxZ) * .5f;
-                    FitUpperAt(sign, root.transform, new Vector3(cx - width * .5f, roofTop, cz - .3f), new Vector3(cx + width * .5f, roofTop + width * .55f, cz + .3f));
-                }
+                Area local = wing.Area.Offset(-cx, -cz);
+                if (!local.Overlaps(box)) continue;
+                // The same seed in every box the wing spans: each box rebuilds the identical wing and keeps its own part.
+                var wingRandom = new System.Random(wing.Seed);
+                Storeys(storeys, local, wing.Floors, Storey, upperStyle, plan.Facade, wingRandom, wing.Faces, wing.Parapets);
+                RoofProps(storeys, local, Wall + wing.Floors * Storey, wing.Floors, upperStyle, wingRandom);
+                if (wing.BillboardBox == index) Billboard(root.transform, wing, local);
             }
+            if (!storeys.Empty) MeshObject("Upper", root.transform, storeys, "Building " + index + " storeys");
             return SavePrefab(root, "Building " + index);
         }
 
-        private static void FitUpperAt(GameObject model, Transform parent, Vector3 min, Vector3 max)
+        // The spans (u along each face, Faces order) this box shares with other boxes of its group.
+        private static List<Vector2>[] SharedSpans(Wall wall, int index, List<SharedEdge> edges)
         {
-            Fit(model, parent, min, max, 0, "Roof sign");
+            var spans = new List<Vector2>[4];
+            for (int k = 0; k < 4; k++) spans[k] = new List<Vector2>();
+            Area a = Area.Of(wall);
+            foreach (SharedEdge edge in edges)
+            {
+                if (edge.A != index && edge.B != index) continue;
+                for (int side = 0; side < 4; side++)
+                {
+                    if (SideAlongX(side) != edge.AlongX || Mathf.Abs(SideLine(a, side) - edge.Line) > Eps) continue;
+                    switch (side)
+                    {
+                        case 0: spans[0].Add(new Vector2(edge.Lo - a.MinX, edge.Hi - a.MinX)); break;
+                        case 1: spans[1].Add(new Vector2(edge.Lo - a.MinZ, edge.Hi - a.MinZ)); break;
+                        case 2: spans[2].Add(new Vector2(a.MaxX - edge.Hi, a.MaxX - edge.Lo)); break;
+                        default: spans[3].Add(new Vector2(a.MaxZ - edge.Hi, a.MaxZ - edge.Lo)); break;
+                    }
+                }
+            }
+            return spans;
+        }
+
+        private static void Billboard(Transform root, WingPlan wing, Area local)
+        {
+            float roof = Wall + wing.Floors * Storey;
+            Area sign = BillboardFootprint(local);
+            bool alongX = sign.Width >= sign.Depth;
+            float width = alongX ? sign.Width : sign.Depth;
+            float height = Mathf.Min(width * .55f, MaxBuildingHeight - .1f - roof);
+            Fit(Model(wing.Billboard), root, new Vector3(sign.MinX, roof, sign.MinZ), new Vector3(sign.MaxX, roof + height, sign.MaxZ), alongX ? 0 : 90, "Roof sign");
         }
 
         // ---- obstacles -----------------------------------------------------------------------------------------------------
@@ -903,48 +1420,135 @@ namespace PingTheKiller.Editor.Setup
         // ---- skyline -------------------------------------------------------------------------------------------------------
 
         private static readonly string[] SkylineModels = { "House 8", "House 10", "House 2", "House 3", "House 7", "House 4", "House 5", "House 10", "House 8", "House 6", "House 2", "House 3", "House 1", "House 7" };
+        // The skyline ring outside the border walls (outer faces at -1 and Size + 1): a continuous row of low generated
+        // buildings fills the strip from BackdropClearance to BackdropStrip outside them, all the way round; the house models
+        // stand shoulder to shoulder on the strip's outer line, and any leftover length gets a generated filler block.
+        public const float BackdropClearance = .05f, BackdropStrip = 2.5f;
 
         private static GameObject Backdrop()
         {
             var root = new GameObject("Backdrop");
-            const float gap = 2.5f, near = -1 - gap, far = FixedMap.Size + 1 + gap;
+            const float lo = -1 - BackdropStrip, hi = FixedMap.Size + 1 + BackdropStrip;
+            const float inLo = -1 - BackdropClearance, inHi = FixedMap.Size + 1 + BackdropClearance;
+            // South and north rows span the corners, west and east fill between them.
+            Terrace(root.transform, "S", new Area(lo, lo, hi, inLo), Vector3.forward, 11);
+            Terrace(root.transform, "N", new Area(lo, inHi, hi, hi), Vector3.back, 23);
+            Terrace(root.transform, "W", new Area(lo, inLo, inLo, inHi), Vector3.right, 37);
+            Terrace(root.transform, "E", new Area(inHi, inLo, hi, inHi), Vector3.left, 41);
             int pick = 0;
-            // Each side: houses in a row facing the arena; south/north span the corners, west/east fill between them.
-            Row(root.transform, ref pick, Vector3.right, Vector3.back, new Vector3(-16, 0, near), 112, 6, 0);
-            Row(root.transform, ref pick, Vector3.left, Vector3.forward, new Vector3(FixedMap.Size + 16, 0, far), 112, 6, 180);
-            Row(root.transform, ref pick, Vector3.back, Vector3.left, new Vector3(near, 0, FixedMap.Size + 1), FixedMap.Size + 2, 0, 270);
-            Row(root.transform, ref pick, Vector3.forward, Vector3.right, new Vector3(far, 0, -1), FixedMap.Size + 2, 0, 90);
+            Row(root.transform, ref pick, "S", Vector3.right, Vector3.back, new Vector3(-16, 0, lo), 112, 6, 0);
+            Row(root.transform, ref pick, "N", Vector3.left, Vector3.forward, new Vector3(FixedMap.Size + 16, 0, hi), 112, 6, 180);
+            Row(root.transform, ref pick, "W", Vector3.back, Vector3.left, new Vector3(lo, 0, hi), hi - lo, 0, 270);
+            Row(root.transform, ref pick, "E", Vector3.forward, Vector3.right, new Vector3(hi, 0, lo), hi - lo, 0, 90);
             foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = ShadowCastingMode.Off;
             return SavePrefab(root, "Backdrop");
         }
 
-        // Lines houses up from start along `along`, their arena-facing side on the line through start, extending toward `away`.
-        private static void Row(Transform root, ref int pick, Vector3 along, Vector3 away, Vector3 start, float length, float overshoot, int yaw)
+        // Index (Faces order) of the face whose outward normal is `outward`.
+        private static int FaceIndex(Vector3 outward) => outward.z < -.5f ? 0 : outward.x > .5f ? 1 : outward.z > .5f ? 2 : 3;
+
+        // The front row: segments of 7 to 12 m, one or two storeys above a plain base, windows on the arena side only.
+        private static void Terrace(Transform root, string side, Area strip, Vector3 toArena, int seed)
+        {
+            var random = new System.Random(seed);
+            bool alongX = strip.Width > strip.Depth;
+            float start = alongX ? strip.MinX : strip.MinZ, end = alongX ? strip.MaxX : strip.MaxZ;
+            var cuts = new List<float> { start };
+            float cursor = start;
+            while (end - cursor > 16) { cursor += 7 + (float)random.NextDouble() * 5; cuts.Add(cursor); }
+            if (end - cursor > 12) cuts.Add((cursor + end) * .5f);
+            cuts.Add(end);
+            int front = FaceIndex(toArena);
+            for (int i = 0; i + 1 < cuts.Count; i++)
+            {
+                Area piece = alongX ? new Area(cuts[i], strip.MinZ, cuts[i + 1], strip.MaxZ) : new Area(strip.MinX, cuts[i], strip.MaxX, cuts[i + 1]);
+                Color32 colour = WallColours[(seed + i * 3) % WallColours.Length];
+                var style = new Style
+                {
+                    Wall = WallMaterial(colour),
+                    Base = WallMaterial(new Color32((byte)(colour.r * .62f), (byte)(colour.g * .62f), (byte)(colour.b * .62f), 255)),
+                    Accent = Lit("Accent " + Hex(AccentColours[i % AccentColours.Length]), AccentColours[i % AccentColours.Length], .1f)
+                };
+                var mb = new MeshBuilder();
+                foreach (Face face in Faces(piece.MinX, piece.MinZ, piece.MaxX, piece.MaxZ))
+                    mb.Panel(style.Base, face.Origin, face.Right, face.Out, 0, face.Length, 0, Wall, 0);
+                var faces = new byte[] { 1, 1, 1, 1 };
+                faces[front] = 2;
+                int floors = random.NextDouble() < .35 ? 2 : 1;
+                Storeys(mb, piece, floors, 2.9f, style, Facades[i % Facades.Length], random, faces, new[] { true, true, true, true });
+                MeshObject("Terrace " + side + " " + i, root, mb, "Backdrop terrace " + side + " " + i, false);
+            }
+        }
+
+        // The back row: houses from start along `along`, shoulder to shoulder, their arena-facing side on the line through
+        // start, extending toward `away`. A house that would overrun the row (plus overshoot) is skipped for the next one that
+        // fits; when none fits, a generated filler block takes the exact remaining length.
+        private static void Row(Transform root, ref int pick, string side, Vector3 along, Vector3 away, Vector3 start, float length, float overshoot, int yaw)
         {
             float cursor = 0;
-            while (cursor < length - 4)
+            int fillers = 0;
+            while (cursor < length - .05f)
             {
-                string name = SkylineModels[pick++ % SkylineModels.Length];
-                GameObject model = Model(name);
-                var holder = new GameObject(name).transform;
-                holder.SetParent(root, false);
-                var item = (GameObject)Object.Instantiate(model, holder);
-                item.name = name;
-                item.transform.localRotation = Quaternion.Euler(0, yaw + (pick % 2) * 180, 0);
-                float scale = .9f + (pick % 3) * .08f;
-                item.transform.localScale = Vector3.one * scale;
-                Bounds b = BoundsIn(item, root);
-                float width = Mathf.Abs(Vector3.Dot(b.size, along));
-                if (cursor + width > length + overshoot) { Object.DestroyImmediate(holder.gameObject); cursor += 3; continue; }
-                // Move so that the bounds start at the cursor along the row and touch the line on the arena side.
-                Vector3 alongMin = Vector3.Dot(along, Vector3.one) > 0 ? b.min : b.max;
-                Vector3 nearSide = Vector3.Dot(away, Vector3.one) > 0 ? b.min : b.max;
-                Vector3 target = start + along * cursor;
-                Vector3 offset = Vector3.Scale(target - alongMin, Abs(along)) + Vector3.Scale(target - nearSide, Abs(away));
-                offset.y = -b.min.y;
-                holder.localPosition = offset;
-                cursor += width + 1.5f;
+                bool placed = false;
+                for (int attempt = 0; attempt < SkylineModels.Length && !placed; attempt++)
+                {
+                    string name = SkylineModels[pick % SkylineModels.Length];
+                    pick++;
+                    GameObject model = Model(name);
+                    var holder = new GameObject(name).transform;
+                    holder.SetParent(root, false);
+                    var item = (GameObject)Object.Instantiate(model, holder);
+                    item.name = name;
+                    item.transform.localRotation = Quaternion.Euler(0, yaw + (pick % 2) * 180, 0);
+                    float scale = .9f + (pick % 3) * .08f;
+                    item.transform.localScale = Vector3.one * scale;
+                    Bounds b = BoundsIn(item, root);
+                    float width = Mathf.Abs(Vector3.Dot(b.size, along));
+                    if (cursor + width > length + overshoot) { Object.DestroyImmediate(holder.gameObject); continue; }
+                    // Move so that the bounds start at the cursor along the row and touch the line on the arena side.
+                    Vector3 alongMin = Vector3.Dot(along, Vector3.one) > 0 ? b.min : b.max;
+                    Vector3 nearSide = Vector3.Dot(away, Vector3.one) > 0 ? b.min : b.max;
+                    Vector3 target = start + along * cursor;
+                    Vector3 offset = Vector3.Scale(target - alongMin, Abs(along)) + Vector3.Scale(target - nearSide, Abs(away));
+                    offset.y = -b.min.y;
+                    holder.localPosition = offset;
+                    cursor += width;
+                    placed = true;
+                }
+                if (placed) continue;
+                Filler(root, side + " " + fillers++, along, away, start + along * cursor, length - cursor);
+                cursor = length;
             }
+        }
+
+        // A generated three-storey block, 7 m deep, windows toward the arena.
+        private static void Filler(Transform root, string label, Vector3 along, Vector3 away, Vector3 from, float length)
+        {
+            Vector3 to = from + along * length, back = from + away * 7;
+            var area = new Area(Mathf.Min(from.x, Mathf.Min(to.x, back.x)), Mathf.Min(from.z, Mathf.Min(to.z, back.z)),
+                Mathf.Max(from.x, Mathf.Max(to.x, back.x)), Mathf.Max(from.z, Mathf.Max(to.z, back.z)));
+            Color32 colour = WallColours[(label.Length * 5 + (int)length) % WallColours.Length];
+            var style = new Style
+            {
+                Wall = WallMaterial(colour),
+                Base = WallMaterial(new Color32((byte)(colour.r * .62f), (byte)(colour.g * .62f), (byte)(colour.b * .62f), 255)),
+                Accent = Lit("Accent " + Hex(AccentColours[0]), AccentColours[0], .1f)
+            };
+            var mb = new MeshBuilder();
+            foreach (Face face in Faces(area.MinX, area.MinZ, area.MaxX, area.MaxZ))
+                mb.Panel(style.Base, face.Origin, face.Right, face.Out, 0, face.Length, 0, Wall, 0);
+            var faces = new byte[] { 1, 1, 1, 1 };
+            faces[FaceIndex(-away)] = 2;
+            Storeys(mb, area, 3, 2.9f, style, Facades[0], new System.Random(Seed(label)), faces, new[] { true, true, true, true });
+            MeshObject("Filler " + label, root, mb, "Backdrop filler " + label, false);
+        }
+
+        // A stable seed from a label (string.GetHashCode is not stable across runs).
+        private static int Seed(string label)
+        {
+            int seed = 17;
+            foreach (char c in label) seed = seed * 31 + c;
+            return seed & 0x7fffffff;
         }
 
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
