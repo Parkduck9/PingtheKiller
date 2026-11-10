@@ -43,8 +43,13 @@ namespace PingTheKiller.Client.World
         }
         public void Look(bool active)
         {
-            if (!active || Cursor.lockState != CursorLockMode.Locked || Mouse.current == null) return;
-            Look(Mouse.current.delta.ReadValue());
+            if (Cursor.lockState != CursorLockMode.Locked || Mouse.current == null) return;
+            Look(active, Mouse.current.delta.ReadValue());
+        }
+        // The play-menu gate (PlayMenuGate.Active): inactive counts leave yaw and pitch unchanged.
+        public void Look(bool active, Vector2 counts)
+        {
+            if (active) Look(counts);
         }
         // Mouse counts to yaw and pitch: sensitivity and Invert Y come from Options.
         public void Look(Vector2 counts)

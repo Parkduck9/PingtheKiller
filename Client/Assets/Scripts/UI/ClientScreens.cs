@@ -89,6 +89,7 @@ namespace PingTheKiller.Client.UI
             settingsScreen = new SettingsScreen(root, Options, () => Playing);
             settingsScreen.Closed += SettingsClosed;
             Killer.OpenSettings += ShowSettings;
+            Survivor.Menu.OpenSettings += ShowSettings;
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
             root.Query<TextElement>().ForEach(element => element.style.unityFontDefinition = FontDefinition.FromFont(font));
             ShowMenu(string.Empty);
@@ -258,7 +259,7 @@ namespace PingTheKiller.Client.UI
             Killer.SetVisible(role == Role.Killer);
             root.focusController?.focusedElement?.Blur();
         }
-        // Opened from the main menu (it replaces the menu) or from the Killer play menu (it sits over the match).
+        // Opened from the main menu (it replaces the menu) or from either role's play menu (it sits over the match).
         public void ShowSettings()
         {
             if (SettingsOpen) return;
@@ -268,9 +269,12 @@ namespace PingTheKiller.Client.UI
         public void CloseSettings() => settingsScreen.Close();
         private void SettingsClosed()
         {
-            if (Playing) { Killer.FocusMenu(); return; }
+            if (Playing) { OpenPlayMenu(Killer, Survivor)?.FocusSettings(); return; }
             Show(menu, true); openSettings.Focus();
         }
+        // The play menu of the role in the match (HUD_SPEC 5 / 6.6), or null while neither is open.
+        public static PlayMenu OpenPlayMenu(KillerHud killer, SurvivorHud survivor)
+            => killer != null && killer.MenuOpen ? killer.Menu : survivor != null && survivor.MenuOpen ? survivor.Menu : null;
         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
         public void ShowResult(ResultV2View view, bool preview)
         {
@@ -293,6 +297,13 @@ namespace PingTheKiller.Client.UI
             if (!BackToLobbyEnabled) return false;
             BackToLobby?.Invoke(); return true;
         }
+        // Dev scripting (-ptk-menu-leave): the open play menu's Leave match button path, and whether the main menu shows.
+        public bool PressLeaveMatch()
+        {
+            PlayMenu open = OpenPlayMenu(Killer, Survivor);
+            return open != null && open.PressLeave();
+        }
+        public bool MainMenuShown => menu.style.display == DisplayStyle.Flex && !SettingsOpen;
         public bool PressStart()
         {
             if (lobby.style.display == DisplayStyle.None || !start.enabledSelf) return false;

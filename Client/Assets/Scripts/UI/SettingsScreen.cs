@@ -20,9 +20,10 @@ namespace PingTheKiller.Client.UI
         public static string OnOff(bool on) => on ? "On" : "Off";
     }
 
-    // U7a settings: a left-aligned panel (no modal in the middle of the play view), opened from the main menu or the Killer
-    // play menu. Every control writes to GameSettings at once; Done saves. Esc closes it outside a match (ClientApp handles
-    // Esc during a match, because there it also drives the play menu).
+    // U7a settings: a left-aligned panel (no modal in the middle of the play view), opened from the main menu or either
+    // role's play menu (HUD_SPEC 5, 6.6); closing it during a match returns the focus to that menu. Every control writes
+    // to GameSettings at once; Done saves. Esc closes it outside a match (ClientApp handles Esc during a match, because
+    // there it also drives the play menu).
     public sealed class SettingsScreen
     {
         private readonly VisualElement panel;
