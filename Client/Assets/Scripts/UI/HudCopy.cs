@@ -65,7 +65,11 @@ namespace PingTheKiller.Client.UI
         }
 
         public static string TerminalsLine(IReadOnlyList<TerminalState> terminals, byte required)
-            => "Terminals " + CompletedTerminals(terminals) + "/" + required;
+            => Terminals(CompletedTerminals(terminals), required);
+
+        // The one terminal-count format for both roles (HUD_SPEC 4.3, 6.1a): "Terminals 1/3". The Survivor info block
+        // (inner 144 u) has no room for "Terminals 4 of 4".
+        public static string Terminals(int done, int needed) => "Terminals " + done + "/" + needed;
 
         // Index of the terminal closest to (x, z), or -1 when there is none.
         public static int NearestTerminal(IReadOnlyList<TerminalState> terminals, float x, float z)

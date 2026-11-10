@@ -158,7 +158,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             // Case 3: Caught a third time (Normal -> Eliminated with CaptureCount >= 2)
             var reason3 = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 2);
             Assert.That(reason3, Is.EqualTo(EliminationReason.ThirdCapture));
-            Assert.That(CaptureWatch.ReasonText(reason3), Is.EqualTo("Disconnected: caught a third time."));
+            Assert.That(CaptureWatch.ReasonText(reason3), Is.EqualTo("Disconnected: caught with no Lagging stage left."));
 
             var reason3Once = CaptureWatch.Infer(PlayerStatus.Normal, 0f, 1);
             Assert.That(reason3Once, Is.EqualTo(EliminationReason.None), "one capture only lags");

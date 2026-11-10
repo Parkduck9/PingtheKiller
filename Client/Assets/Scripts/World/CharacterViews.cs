@@ -25,7 +25,15 @@ namespace PingTheKiller.Client.World
             public Color Tint;
             public byte Status, Flags, CaptureCount;
             public CharacterMotion Motion;
+            // This frame's sampled pose, and the eased draw-only offset that keeps it out of other bodies (VisualSeparation).
+            public Vector3 Position;
+            public float Yaw, Alpha;
+            public Vector2 Offset;
+            public bool Lagging;
         }
+
+        // The Killer model's key among the separation bodies (Survivor ids are positive).
+        private const int KillerSeparationId = int.MinValue;
 
         public static readonly Vector3 KillerBodyScale = new Vector3(CharacterLook.Width, CharacterLook.Height * .55f, CharacterLook.Width);
         private static readonly Color Killer = new Color32(229, 72, 77, 255);
@@ -42,6 +50,12 @@ namespace PingTheKiller.Client.World
         private float localFacing;
         private bool localDither;
         private double startedAt = double.NaN;
+        private double lastRender = double.NaN;
+        private readonly List<SeparationBody> bodies = new List<SeparationBody>();
+        private readonly List<Avatar> drawn = new List<Avatar>();
+        private Vector2[] separation = new Vector2[10]; // 8 players + the Killer model, grown if ever needed
+        private bool killerShown;
+        private Vector3 killerGround;
 
         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
         public float KillerAlpha { get; private set; }
@@ -103,7 +117,7 @@ namespace PingTheKiller.Client.World
         // upper body) on the Killer model, only if the model is drawn now (HUD_SPEC 4.10: line of sight).
         private void RenderKiller(double now, SnapshotBuffer snapshots, bool captured)
         {
-            KillerAlpha = 0; KillerVisorAlpha = 0;
+            KillerAlpha = 0; KillerVisorAlpha = 0; killerShown = false;
             if (killerModel == null) return;
             bool seen = snapshots.SampleKiller(now, out Vector3 position, out float yaw, out float alpha)
                 && KillerDrawable(avatars.TryGetValue(localId, out Avatar self) ? self.Status : (byte)PlayerStatus.Normal);
@@ -117,6 +131,8 @@ namespace PingTheKiller.Client.World
                     attack.Trigger(now, true);
             }
             if (!seen) return;
+            // The Killer model stays where its entry puts it (a pinned separation body): Survivors near it step aside instead.
+            killerShown = true; killerGround = new Vector3(position.x, 0, position.z);
             killerModel.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, yaw, 0));
             killerModel.Motion.Observe(now, (byte)PlayerStatus.Normal, 0, 0, killerModel.Art.Speed);
             killerModel.Motion.Drive(now);
@@ -178,7 +194,11 @@ namespace PingTheKiller.Client.World
         {
             Camera camera = Camera.main;
             if (double.IsNaN(startedAt)) startedAt = now;
+            float dt = double.IsNaN(lastRender) ? 0 : (float)(now - lastRender);
+            lastRender = now;
             bool captured = false;
+            bodies.Clear(); drawn.Clear();
+            // Pass 1: motion tracking, visibility and this frame's sampled pose.
             foreach (var entry in avatars)
             {
                 Avatar avatar = entry.Value;
@@ -195,12 +215,30 @@ namespace PingTheKiller.Client.World
                     || (avatar.Motion.Drives && avatar.Motion.Tracker.Pose == MotionPose.Death && avatar.Motion.Tracker.DeathShown(now)));
                 bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha) && body;
                 avatar.Root.SetActive(visible);
-                if (!visible) continue;
-                avatar.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, own ? localFacing : yaw, 0));
+                if (!visible) { avatar.Offset = Vector2.zero; continue; }
+                avatar.Position = position; avatar.Yaw = yaw; avatar.Alpha = alpha; avatar.Lagging = status == (byte)PlayerStatus.Lagging;
+                // The own avatar is pinned: the camera follows it, so only the other body steps aside.
+                bodies.Add(new SeparationBody(entry.Key, position.x, position.z, own));
+                drawn.Add(avatar);
+            }
+            RenderKiller(now, snapshots, captured);
+            if (killerShown) bodies.Add(new SeparationBody(KillerSeparationId, killerGround.x, killerGround.z, true));
+            if (separation.Length < bodies.Count) separation = new Vector2[bodies.Count];
+            VisualSeparation.Resolve(bodies, VisualSeparation.MinDistance, separation);
+            // Pass 2: draw each body at its sampled position plus the eased separation offset (draw only; snapshots, input
+            // and everything sent to the server keep the authoritative position).
+            for (int i = 0; i < drawn.Count; i++)
+            {
+                Avatar avatar = drawn[i];
+                bool own = bodies[i].Id == localId;
+                Vector3 position = avatar.Position;
+                float yaw = avatar.Yaw, alpha = avatar.Alpha;
+                avatar.Offset = VisualSeparation.Ease(avatar.Offset, separation[i], dt);
+                avatar.Root.transform.SetPositionAndRotation(new Vector3(position.x + avatar.Offset.x, 0, position.z + avatar.Offset.y), Quaternion.Euler(0, own ? localFacing : yaw, 0));
                 // Lagging Survivors use the Signal amber so the team can find them to rescue (team info). The own
                 // character carries no state tint (HUD_SPEC 4.10: the meter is the only indicator).
                 Color color = !own && avatar.Status == (byte)PlayerStatus.Lagging ? Signal : avatar.Tint;
-                bool lagging = status == (byte)PlayerStatus.Lagging;
+                bool lagging = avatar.Lagging;
                 avatar.Motion.Drive(now);
                 avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false);
                 avatar.Motion.Ground();
@@ -209,7 +247,6 @@ namespace PingTheKiller.Client.World
                 bool close = !own && camera != null && avatar.Art.NearCamera(camera.transform.position);
                 avatar.Art.Look(color, alpha, own ? localDither : close);
             }
-            RenderKiller(now, snapshots, captured);
         }
 
         // Dev capture / tests: the Killer model's attacks so far and whether one plays now.

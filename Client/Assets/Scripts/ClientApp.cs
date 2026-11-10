@@ -199,6 +199,8 @@ namespace PingTheKiller.Client
                     break;
                 case S2C_LobbyState state:
                     joinDeadline = 0;
+                    // Bot 1..N with no gaps; once here, so the lobby list, NameOf and the result screen show the same names.
+                    state = LobbyCopy.ContiguousBotNames(state);
                     lobby = state; botCount = 0;
                     foreach (Slot slot in state.Slots) if (slot.PlayerId != 0 && slot.IsBot != 0) botCount++;
                     // After a GameResult the first LobbyState means the server is back in the lobby.

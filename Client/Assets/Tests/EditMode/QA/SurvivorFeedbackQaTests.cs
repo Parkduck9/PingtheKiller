@@ -529,7 +529,7 @@ namespace PingTheKiller.Client.QA.Tests
             {
                 (EliminationReason.TimedOut, "Disconnected: no rescue in the second Lagging stage (30 s)."),
                 (EliminationReason.Collapse, "Disconnected: the collapse reached you."),
-                (EliminationReason.ThirdCapture, "Disconnected: caught a third time."),
+                (EliminationReason.ThirdCapture, "Disconnected: caught with no Lagging stage left."),
             };
             var result = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllSurvivorsDown };
             result.EliminatedIds.Add(OwnId);
@@ -548,7 +548,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ReasonLine_IsOnlyForAnEliminatedSurvivor()
         {
-            const string reason = "Disconnected: caught a third time.";
+            const string reason = "Disconnected: caught with no Lagging stage left.";
             var killerWins = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.TimeUp };
             killerWins.EliminatedIds.Add(OwnId);
             Assert.That(ResultV2Copy.Outcome(V2Wire.Result(killerWins, null, OwnId, Role.Survivor)), Is.EqualTo("You were eliminated."));
@@ -566,6 +566,9 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(spec, Does.Contain(CaptureWatch.Collapse));
             Assert.That(spec, Does.Contain(CaptureWatch.TimedOut));
             Assert.That(spec, Does.Contain(CaptureWatch.ThirdCapture));
+            Assert.That(spec, Does.Contain(CaptureWatch.Caught(3, false)));
+            Assert.That(spec, Does.Contain(CaptureWatch.Caught(2, true)));
+            Assert.That(spec, Does.Contain(SurvivorReadout.NextCaptureEliminates));
             Assert.That(spec, Does.Contain(CaptureWatch.Banner));
         }
 
