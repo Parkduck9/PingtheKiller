@@ -1,0 +1,10 @@
+Fix play-menu capture copy and Killer tag clearance (minors-1110)
+
+F1: PlayMenuCopy.CaptureNote no longer says "Captured twice" (CaptureCount counts
+Lagging stages, not captures). CaptureCount >= 2 now reads "Next capture eliminates
+you." (constant NextCaptureEliminates). HUD_SPEC section 5 updated (11/10).
+
+F2: TagLayout keeps TagGap (4 u) between a placed tag and every other placed tag or
+avoided glyph; Survivor tags also avoid Edge chevrons; own glyph keeps plain
+no-overlap. Stack step and Slot candidates use the same gap. Crowded Overloaded/Exit
+tags fall back to 2 u, then 0 u, instead of being hidden. New TagLayoutClearanceTests.

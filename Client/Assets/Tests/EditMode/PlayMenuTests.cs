@@ -136,8 +136,11 @@ namespace PingTheKiller.Client.Tests
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 1), Is.EqualTo(PlayMenuCopy.CapturedOnce));
             Assert.That(PlayMenuCopy.CapturedOnce, Does.Not.Contain("eliminat"), "GDD v2: the second capture is a 30 s Lagging stage, not an elimination");
             Assert.That(PlayMenuCopy.CapturedOnce, Does.Contain(GameConstants.SecondLaggingTimeoutSeconds.ToString("0") + " s"));
-            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 2), Is.EqualTo(PlayMenuCopy.CapturedTwice));
+            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 2), Is.EqualTo(PlayMenuCopy.NextCaptureEliminates));
             Assert.That(GameConstants.EliminatingCaptureCount, Is.EqualTo(3), "the third capture eliminates");
+            Assert.That(PlayMenuCopy.NextCaptureEliminates, Is.EqualTo("Next capture eliminates you."));
+            Assert.That(PlayMenuCopy.CapturedOnce, Does.Not.Contain("twice"));
+            Assert.That(PlayMenuCopy.NextCaptureEliminates, Does.Not.Contain("twice"), "CaptureCount counts Lagging stages, not captures (11/10)");
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Lagging, 1), Is.Null);
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Eliminated, 3), Is.Null);
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Escaped, 2), Is.Null);
@@ -256,7 +259,7 @@ namespace PingTheKiller.Client.Tests
 
             Assert.That(hud.Menu.NoteText, Is.Null);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 2));
-            Assert.That(hud.Menu.NoteText, Is.EqualTo(PlayMenuCopy.CapturedTwice));
+            Assert.That(hud.Menu.NoteText, Is.EqualTo(PlayMenuCopy.NextCaptureEliminates));
             hud.SetMenuNote(null);
             Assert.That(hud.Menu.NoteText, Is.Null);
 

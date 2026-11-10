@@ -8,13 +8,13 @@ using UnityEngine;
 namespace PingTheKiller.Client.QA.Tests
 {
     // U4c QA attempt 2, test item 2. Written from docs/briefs/U4c-a2.md fix 1 (F-01, F-02, F-04): a pure screen-space layout
-    // pass. No two tags overlap; a colliding lower-priority tag is stacked by tag height + 2 u (alternating below/above, up to
+    // pass. No two tags overlap; a colliding lower-priority tag is stacked by tag height + TagGap (4 u since 11/10; alternating below/above, up to
     // 3 steps) and then hidden; priority is Survivor > Edge > Exit > Terminal; a Survivor glyph is never hidden; a lower-priority
     // glyph or tag never covers a higher-priority glyph; the result is deterministic and the input order carries nothing.
     [Category("U4cQaA2")]
     public sealed class TagLayoutQaTests
     {
-        private const float TagW = 60, TagH = 23, Step = TagH + 2;
+        private const float TagW = 60, TagH = 23, Step = TagH + TagLayout.TagGap;
         private static readonly Rect Screen = new Rect(0, 0, 1920, 1080);
         private static readonly Rect None = default;
 
@@ -80,11 +80,11 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void ADisplacedTagMovesByExactlyTheTagHeightPlusTwoUnits()
+        public void ADisplacedTagMovesByExactlyTheTagHeightPlusTheTagGap()
         {
             TagLayout layout = Solved((LayoutPriority.Survivor, None, Tag(500, 500)), (LayoutPriority.Terminal, None, Tag(500, 500)));
             Assert.That(layout[0].TagShift, Is.EqualTo(0f), "the Survivor tag stays");
-            Assert.That(Mathf.Abs(layout[1].TagShift), Is.EqualTo(Step).Within(1e-4f), "tag height 23 + 2 u gap");
+            Assert.That(Mathf.Abs(layout[1].TagShift), Is.EqualTo(Step).Within(1e-4f), "tag height 23 + 4 u gap");
         }
 
         [Test]
@@ -101,10 +101,10 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TagsThatOnlyTouchDoNotCountAsOverlapping()
+        public void TagsExactlyTagGapApartDoNotMove()
         {
-            // Stacked exactly tag-height apart (the gap is the 2 u of the stack step, not part of a touch).
-            TagLayout layout = Solved((LayoutPriority.Survivor, None, Tag(100, 100)), (LayoutPriority.Survivor, None, Tag(100, 100 + TagH)));
+            // 11/10: touching is no longer free, a tag keeps TagGap clear; exactly TagGap apart does not move.
+            TagLayout layout = Solved((LayoutPriority.Survivor, None, Tag(100, 100)), (LayoutPriority.Survivor, None, Tag(100, 100 + TagH + TagLayout.TagGap)));
             Assert.That(layout[0].TagShift, Is.EqualTo(0f));
             Assert.That(layout[1].TagShift, Is.EqualTo(0f));
         }

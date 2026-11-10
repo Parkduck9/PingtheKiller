@@ -34,8 +34,8 @@ namespace PingTheKiller.Client.Tests.QA
         {
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 0), Is.Null);
             Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 1), Is.EqualTo(PlayMenuCopy.CapturedOnce));
-            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 2), Is.EqualTo(PlayMenuCopy.CapturedTwice));
-            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 3), Is.EqualTo(PlayMenuCopy.CapturedTwice));
+            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 2), Is.EqualTo(PlayMenuCopy.NextCaptureEliminates));
+            Assert.That(PlayMenuCopy.CaptureNote(PlayerStatus.Normal, 3), Is.EqualTo(PlayMenuCopy.NextCaptureEliminates));
             foreach (PlayerStatus s in System.Enum.GetValues(typeof(PlayerStatus)))
                 if (s != PlayerStatus.Normal) Assert.That(PlayMenuCopy.CaptureNote(s, 2), Is.Null, s.ToString());
             Assert.That(PlayMenuCopy.CapturedOnce.Length, Is.LessThan(70));

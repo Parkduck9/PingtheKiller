@@ -29,16 +29,17 @@ namespace PingTheKiller.Client.UI
             }
         }
 
+        // (11/10) CaptureCount counts Lagging stages, not captures (HUD_SPEC 4.3, Q1), so the count >= 2 line names no count.
         // GDD v2 4: the first capture leaves 60 s for a rescue, the second 30 s, the third eliminates. The v1 sentence
         // ("Captured once: the next capture eliminates you.") is only true after two captures now.
         public const string CapturedOnce = "Captured once: the next capture leaves 30 s for a rescue.";
-        public const string CapturedTwice = "Captured twice: the next capture eliminates you.";
+        public const string NextCaptureEliminates = "Next capture eliminates you.";
 
         // Line 3 (S muted): only while Normal, from the own entry's CaptureCount; null = no line.
         public static string CaptureNote(PlayerStatus status, int captureCount)
         {
             if (status != PlayerStatus.Normal || captureCount <= 0) return null;
-            return captureCount >= GameConstants.EliminatingCaptureCount - 1 ? CapturedTwice : CapturedOnce;
+            return captureCount >= GameConstants.EliminatingCaptureCount - 1 ? NextCaptureEliminates : CapturedOnce;
         }
     }
 
