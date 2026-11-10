@@ -48,6 +48,11 @@ namespace PingTheKiller.ServerCore
         internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
         // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
         internal double RttSeconds;
+        // Connection state, deliberately preserved across match resets to keep the lobby estimate warm.
+        internal uint RttProbeNonce;
+        internal bool RttProbePending;
+        internal int RttSampleCount;
+        internal double RttProbeSentAt, RttNextProbeAt;
         internal double ExposedUntil, StealthUntil;
         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
         // Effective Signal for the current tick and the last position the killer saw (Packet Afterimage).

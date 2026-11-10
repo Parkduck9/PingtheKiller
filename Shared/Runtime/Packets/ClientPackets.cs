@@ -51,6 +51,14 @@ namespace PingTheKiller.Shared.Packets
         public static C2S_UseSkill Read(ref PacketReader r) => new C2S_UseSkill { SkillId = r.ReadByte() };
     }
 
+    public sealed class C2S_RttEcho : IPacket
+    {
+        public uint Nonce;
+        public PacketId Id => PacketId.C2S_RttEcho;
+        public void Write(PacketWriter w) => w.WriteUInt32(Nonce);
+        public static C2S_RttEcho Read(ref PacketReader r) => new C2S_RttEcho { Nonce = r.ReadUInt32() };
+    }
+
     public sealed class C2S_Ping : IPacket
     {
         public long Timestamp;

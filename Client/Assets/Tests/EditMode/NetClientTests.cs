@@ -118,6 +118,41 @@ namespace PingTheKiller.Client.Tests
             finally { listener.Stop(); }
         }
 
+        [Test]
+        public void RttProbeIsEchoedWithoutPumpingAndNeverReachesTheMainThread()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            try
+            {
+                using var client = new NetClient();
+                int deliveredProbes = 0;
+                client.PacketReceived += item => { if (item.Packet is S2C_RttProbe) deliveredProbes++; };
+                client.Connect((IPEndPoint)listener.LocalEndpoint);
+                Assert.That(SpinWait.SpinUntil(() => listener.Pending(), 3000), Is.True);
+                using TcpClient peer = listener.AcceptTcpClient();
+                NetworkStream stream = peer.GetStream();
+                stream.ReadTimeout = 3000;
+                Assert.That(ReadPacket(stream), Is.TypeOf<C2S_Join>());
+                // Neither receiving nor echoing may depend on a Unity frame (no Pump before the echo).
+                foreach (uint nonce in new uint[] { 0x87654321, 0x10203040 })
+                {
+                    byte[] frame = PacketCodec.Encode(new S2C_RttProbe { Nonce = nonce });
+                    stream.Write(frame, 0, frame.Length);
+                    IPacket packet;
+                    do packet = ReadPacket(stream); while (packet is C2S_Ping);
+                    Assert.That(packet, Is.TypeOf<C2S_RttEcho>());
+                    Assert.That(((C2S_RttEcho)packet).Nonce, Is.EqualTo(nonce));
+                }
+                client.Pump();
+                Assert.That(deliveredProbes, Is.Zero);
+                Assert.That(client.IsConnected, Is.True);
+                Assert.That(NetClient.IsServerPacket(PacketId.S2C_RttProbe), Is.True);
+                Assert.That(NetClient.IsServerPacket(PacketId.C2S_RttEcho), Is.False);
+            }
+            finally { listener.Stop(); }
+        }
+
         private static void PumpUntil(NetClient client, Func<bool> condition)
         {
             var timer = Stopwatch.StartNew();

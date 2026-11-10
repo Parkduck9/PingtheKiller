@@ -1,6 +1,6 @@
-# Ping the Killer: wire protocol v0.4 (GDD v2, unit U6a)
+# Ping the Killer: wire protocol v0.5 (GDD v2, unit U6g)
 
-The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 changes and the full layouts of the packets they touch. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
+The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts and v0.5 RTT probes. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
 
 ## Frame
 
@@ -8,13 +8,28 @@ The source of truth is `Shared/Runtime/` (server and Unity compile the same file
 
 ## Packet ids
 
-| Id | Packet | Dir | v0.4 |
+| Id | Packet | Dir | Changes |
 |---|---|---|---|
 | 0x0001-0x000F | Join, JoinResult, MoveInput, UseSkill, WorldState, SkillEffect, GameResult, Ping, Pong, LobbyState, StartMatch, MatchStart, Interact, SetBots, SetRole | | WorldState and GameResult changed |
 | 0x0010 | S2C_SelfState | S→C | extended |
 | 0x0011 | S2C_SyncCheck | S→C | new |
 | 0x0012 | C2S_SyncPress | C→S | new |
 | 0x0013 | S2C_SyncResult | S→C | new |
+| 0x0014 | S2C_RttProbe | S→C | v0.5: `uint Nonce` |
+| 0x0015 | C2S_RttEcho | C→S | v0.5: `uint Nonce` |
+
+## Server-timed RTT (0x0014-0x0015, v0.5)
+
+Both packets have exactly four payload bytes (`uint Nonce`); short or trailing payloads are rejected.
+The server probes each joined, connected online human in the lobby and match, starting on the first tick after joining,
+then every 1 s with at most one outstanding nonce. Bots, offline sessions and unjoined connections receive none.
+The client immediately queues the matching echo on its receive thread, bypassing the Unity main thread.
+
+The server stamps the send and echo receipt with its own monotonic clock. Only an outstanding matching nonce counts;
+duplicates, guesses and stale echoes are ignored. A probe expires at 1 s without changing the estimate.
+Samples are clamped to 0–0.25 s; the first sets the estimate, then `RTT += (sample - RTT) / 8`.
+Disconnect/reconnect clears the estimate and probe state. `C2S_Ping`/`S2C_Pong` remain unchanged and client-timed
+for display only; the server never uses their client-supplied timestamps for judging.
 
 ## S2C_WorldState (0x0005)
 
@@ -72,8 +87,8 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
   - Values: `Fail = 0`, `Good = 1`, `Great = 2`. Values above 2 are rejected.
   - Great gives +1 point. Good changes nothing. Fail gives −5 points and sets the terminal's `Overloaded` flag for 2 s.
 
-**Judging.** The server takes the press moment as arrival − RTT/2 and computes the fraction of the sweep since the check was sent.
+**Judging.** The server takes the press moment as receive-thread arrival − the full server-probed RTT and computes the fraction of the sweep since the check was sent. The client starts the needle at the check's receive-thread timestamp.
 - Great: inside `[ZoneStart, ZoneStart + GreatSize]`.
 - Good: inside `[ZoneStart − tol, ZoneStart + ZoneSize + tol]`, where `tol = 0.15 s / Duration`.
-- Fail: anything else, including no press by `Duration + 0.15 s + RTT/2` after sending.
+- Fail: anything else, including no press by `Duration + 0.15 s + RTT` after sending.
 - Stopping the hack cancels the pending check silently.

@@ -20,6 +20,8 @@ namespace PingTheKiller.Shared.Packets
         S2C_SelfState = 0x0010,
         S2C_SyncCheck = 0x0011,
         C2S_SyncPress = 0x0012,
-        S2C_SyncResult = 0x0013
+        S2C_SyncResult = 0x0013,
+        S2C_RttProbe = 0x0014,
+        C2S_RttEcho = 0x0015
     }
 }

@@ -78,6 +78,10 @@
 - `C2S_Interact {byte Active}` (해킹·구출 유지 시작/종료)
 - `C2S_SetBots {byte Count}`, `C2S_SetRole {byte Role}` (호스트 전용, 로비)
 
+**v0.5 변경 (U6g, 서버 RTT 측정):**
+- `0x0014 S2C_RttProbe {uint Nonce}`, `0x0015 C2S_RttEcho {uint Nonce}` 추가. 온라인 인간에게 로비·매치에서 1 s마다 전송하며 클라이언트 수신 스레드에서 즉시 에코한다(동시 대기 1개, 1 s 시간 초과).
+- 서버 시계로 왕복 시간을 측정하고 0~0.25 s 클램프·1/8 평활화 후 싱크 판정에서 전체 RTT를 뺀다. 기존 Ping/Pong은 클라이언트 표시용이며 판정에 사용하지 않는다. 봇·오프라인은 프로브 없이 RTT 0을 유지한다.
+
 ---
 
 ## 3. 일정 (Notion 일정 기준, 서버 클라우드 단계 제거)

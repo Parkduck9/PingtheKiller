@@ -82,7 +82,8 @@ namespace PingTheKiller.Client.QA.Tests
                     var packet = (IPacket)Activator.CreateInstance(type);
                     byte[] frame = PacketCodec.Encode(packet);
                     stream.Write(frame, 0, frame.Length);
-                    sent.Add(id);
+                    // Probes are handled on the receive thread and must never reach Pump.
+                    if (id != PacketId.S2C_RttProbe) sent.Add(id);
                 }
                 var timer = Stopwatch.StartNew();
                 while (timer.ElapsedMilliseconds < 4000 && notice == null && received.Count < sent.Count)
