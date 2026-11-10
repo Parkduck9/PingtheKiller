@@ -245,7 +245,8 @@ public sealed class SyncTimingTests
     public void BotSyncSharesAreUnchanged()
     {
         int great = 0, good = 0, fail = 0;
-        for (int seed = 11; seed < 26; seed++)
+        // Faster v2 matches produce fewer checks per match; retain the statistical sample floor with more seeds.
+        for (int seed = 11; seed < 51; seed++)
         {
             using var f = new CoreFixture(seed: seed);
             bool ended = false;
@@ -272,8 +273,7 @@ public sealed class SyncTimingTests
         Assert.True(total >= 150, $"only {total} bot sync results");
         double successShare = (great + good) / (double)total;
         double greatShare = great / (double)(great + good);
-        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results). These seeds
-        // give 30 Great / 162 Good / 22 Fail both before and after U6f (a bot press still resolves on the same tick).
+        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results).
         Assert.InRange(successShare, GameServer.DefaultBotSyncSuccessRate - 0.12, GameServer.DefaultBotSyncSuccessRate + 0.12);
         Assert.InRange(greatShare, GameServer.BotSyncGreatShare - 0.1, GameServer.BotSyncGreatShare + 0.1);
     }

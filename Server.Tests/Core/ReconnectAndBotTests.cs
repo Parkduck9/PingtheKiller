@@ -47,8 +47,10 @@ public sealed class ReconnectAndBotTests
         f.Tick();
         Assert.Equal(1, killer.Last<S2C_LobbyState>().Slots.Single(p => p.PlayerId == identity.PlayerId).IsBot);
         // The bot opens with a Silent pause of up to 8 s (and may cast Stealth Relay), so wait for its first visible frame.
+        // U6d: a bot that sees the (idle) killer from beyond ThreatLevel 1 hides in place, Silent, until the camp rule
+        // releases it 20 s after the last news about the killer, so allow up to 60 s.
         PlayerState? bot = null;
-        for (int i = 0; i < 400 && bot == null; i++)
+        for (int i = 0; i < 1200 && bot == null; i++)
         {
             f.Tick();
             bot = KillerTruth.Entry(f.Server, killer.Last<S2C_WorldState>(), identity.PlayerId);

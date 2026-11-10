@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text;
 using PingTheKiller.ServerCore;
 using PingTheKiller.Shared.Game;
@@ -20,18 +21,74 @@ internal static class BotBalance
         internal string Reason = "";
         internal int Terminals, Required;
         internal int Captures, Rescues, Executions, SecondCaptures, LagTimeouts, Escaped;
+        internal int ExitEscapes, CollapseLosses;
+        // U6d-a3 progress invariant: windows of StallSeconds or more without any progress event, the longest gap, and
+        // the match time at which the first such window started (-1 when none).
+        internal int StallWindows;
+        internal double LongestStallSeconds, FirstStallAt = -1;
+        internal double PoweredAt = -1, OpenAt = -1;
         internal double Seconds => Ticks / (double)GameConstants.TickRate;
         internal bool SurvivorWin => Winner == "Survivor";
         internal bool TimeUp => Reason == "TimeUp";
+        // Reported only, not asserted: a time-up with no capture. A lone survivor that keeps evading the killer and keeps
+        // working can lose the race against the clock without any freeze (user decision 2026-11-08, after the U6d-a3
+        // flee fix); the StallSeconds window catches freezes and the balance bands cap time-ups.
+        internal bool SilentTimeUp => TimeUp && Captures == 0;
+    }
+
+    // A match keeps moving: no StallSeconds window passes without terminal or switch progress rising, a capture, a
+    // rescue, an escape or a hatch event. Terminal and switch progress are not in the log, so they are sampled from the
+    // server state after every tick (test code only).
+    internal const double StallSeconds = 150;
+    private static readonly FieldInfo TerminalProgressField =
+        typeof(GameServer).GetField("_progress", BindingFlags.NonPublic | BindingFlags.Instance)!;
+    private static readonly FieldInfo SwitchSecondsField =
+        typeof(GameServer).GetField("_switchSeconds", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+    private sealed class ProgressWatch
+    {
+        private double[] _terminals = Array.Empty<double>(), _switches = Array.Empty<double>();
+        private int _lastTick;
+
+        internal void Mark(MatchStats stats, int tick)
+        {
+            double gap = (tick - _lastTick) / (double)GameConstants.TickRate;
+            if (gap > stats.LongestStallSeconds) stats.LongestStallSeconds = gap;
+            if (gap >= StallSeconds && stats.StallWindows++ == 0) stats.FirstStallAt = _lastTick / (double)GameConstants.TickRate;
+            _lastTick = tick;
+        }
+
+        internal void Sample(GameServer server, MatchStats stats, int tick)
+        {
+            bool terminals = Rising((double[])TerminalProgressField.GetValue(server)!, ref _terminals);
+            bool switches = Rising((double[])SwitchSecondsField.GetValue(server)!, ref _switches);
+            if (terminals || switches) Mark(stats, tick);
+        }
+
+        private static bool Rising(double[] now, ref double[] before)
+        {
+            bool rose = false;
+            if (before.Length != now.Length) before = new double[now.Length];
+            for (int i = 0; i < now.Length; i++)
+            {
+                if (now[i] > before[i] + 1e-9) rose = true;
+                before[i] = now[i];
+            }
+            return rose;
+        }
     }
 
     // Parses the server log lines written by SetStatus, Hack and FinishMatch.
     private sealed class Tally
     {
         internal readonly MatchStats Stats = new();
+        internal readonly ProgressWatch Watch = new();
         internal bool Ended;
         internal void Line(string m)
         {
+            if (ProgressEvent(m)) Watch.Mark(Stats, Stats.Ticks);
+            if (m.StartsWith("exits powered", StringComparison.Ordinal)) Stats.PoweredAt = Stats.Seconds;
+            if (m.StartsWith("exit ", StringComparison.Ordinal) && m.EndsWith(" open", StringComparison.Ordinal) && Stats.OpenAt < 0) Stats.OpenAt = Stats.Seconds;
             if (m.StartsWith("status ", StringComparison.Ordinal))
             {
                 if (m.EndsWith("reason=capture", StringComparison.Ordinal)) Stats.Captures++;
@@ -39,6 +96,8 @@ internal static class BotBalance
                 else if (m.EndsWith("reason=execution", StringComparison.Ordinal)) Stats.Executions++;
                 else if (m.EndsWith("reason=timeout", StringComparison.Ordinal)) Stats.LagTimeouts++;
                 else if (m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal)) Stats.Rescues++;
+                else if (m.EndsWith("Escaped reason=exit", StringComparison.Ordinal)) Stats.ExitEscapes++;
+                else if (m.EndsWith("Eliminated reason=collapse", StringComparison.Ordinal)) Stats.CollapseLosses++;
             }
             else if (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) Stats.Terminals++;
             else if (m.StartsWith("match end ", StringComparison.Ordinal))
@@ -50,8 +109,20 @@ internal static class BotBalance
                     else if (part.StartsWith("escaped=", StringComparison.Ordinal)) Stats.Escaped = int.Parse(part.Substring(8));
                 }
                 Ended = true;
+                // The end of the match closes the last window (a time-up tail with no progress counts as a stall).
+                Watch.Mark(Stats, Stats.Ticks);
             }
         }
+
+        // Progress events visible in the log: captures, rescues, escapes, hatch events, completed terminals, open exits.
+        private static bool ProgressEvent(string m) =>
+            (m.StartsWith("status ", StringComparison.Ordinal) &&
+             (m.EndsWith("reason=capture", StringComparison.Ordinal) || m.EndsWith("reason=second capture", StringComparison.Ordinal) ||
+              m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal) ||
+              m.Contains(" Escaped reason=", StringComparison.Ordinal))) ||
+            m.StartsWith("hatch ", StringComparison.Ordinal) ||
+            (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) ||
+            (m.StartsWith("exit ", StringComparison.Ordinal) && m.EndsWith(" open", StringComparison.Ordinal));
     }
 
     // 1 killer bot + survivors survivor bots, no human.
@@ -66,6 +137,7 @@ internal static class BotBalance
         {
             server.Tick(1f / GameConstants.TickRate);
             tally.Stats.Ticks++;
+            if (!tally.Ended) tally.Watch.Sample(server, tally.Stats, tally.Stats.Ticks);
         }
         tally.Stats.Seed = seed;
         if (!tally.Ended) throw new InvalidOperationException($"seed {seed}: no match end after {MaxTicks} ticks");
@@ -91,7 +163,36 @@ internal static class BotBalance
         {
             f.Tick();
             tally.Stats.Ticks++;
+            if (!tally.Ended) tally.Watch.Sample(f.Server, tally.Stats, tally.Stats.Ticks);
             // Drain so the in-memory connection never hits its receive cap and gets replaced by a bot.
+            human.Drain();
+            human.Packets.Clear();
+        }
+        tally.Stats.Seed = seed;
+        if (!tally.Ended) throw new InvalidOperationException($"seed {seed}: no match end after {MaxTicks} ticks");
+        return tally.Stats;
+    }
+
+    // U6d-a3: one idle human survivor (never moves, never interacts) with six survivor bots and a killer bot, so four of
+    // the seven survivors must escape to win (the live offline check of attempt 2 stalled in this setup).
+    internal static MatchStats RunIdleSurvivor(int seed, int botSurvivors = 6)
+    {
+        using var f = new CoreFixture(seed: seed);
+        var tally = new Tally();
+        f.Server.Log += tally.Line;
+        var human = f.Join("Idle survivor");
+        human.Send(new C2S_SetBots { Count = (byte)(botSurvivors + 1) });
+        human.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Survivor });
+        human.Send(new C2S_StartMatch());
+        f.Tick();
+        GameConstants.TerminalsFor(botSurvivors + 1, out int required, out _);
+        tally.Stats.Required = required;
+        tally.Stats.Ticks = 1;
+        while (!tally.Ended && tally.Stats.Ticks < MaxTicks)
+        {
+            f.Tick();
+            tally.Stats.Ticks++;
+            if (!tally.Ended) tally.Watch.Sample(f.Server, tally.Stats, tally.Stats.Ticks);
             human.Drain();
             human.Packets.Clear();
         }
@@ -165,5 +266,6 @@ internal static class BotBalance
 
     internal static string Detail(MatchStats r) =>
         $"seed {r.Seed,3}: {r.Seconds,6:0.0}s {r.Winner,-8} {r.Reason,-16} terminals {r.Terminals}/{r.Required} " +
-        $"cap {r.Captures} (2nd {r.SecondCaptures}) res {r.Rescues} exe {r.Executions} lagTimeout {r.LagTimeouts} escaped {r.Escaped}";
+        $"cap {r.Captures} (2nd {r.SecondCaptures}) res {r.Rescues} exe {r.Executions} lagTimeout {r.LagTimeouts} escaped {r.Escaped} " +
+        $"pw {r.PoweredAt:0} op {r.OpenAt:0} stall {r.StallWindows} (longest {r.LongestStallSeconds:0} s{(r.FirstStallAt >= 0 ? $" from {r.FirstStallAt:0} s" : "")})";
 }

@@ -50,9 +50,7 @@ namespace PingTheKiller.ServerCore
         private const float WhiteNoiseSpacing = 6f;
         private const float WhiteNoiseTerminalJitter = 1f;
         private const float WhiteNoiseSegmentReach = 4f;
-        // N or N+1 of the five start at a terminal. N=2 is the only range passing both phantom gates on map v2.1 + rules v2:
-        // U2c gated AUC 0.855 (< 0.86), Indistinguishability median-speed KS p=0.38 (1..4: 0.872 / 0.98; 1..2: 0.840 / 0).
-        private const int WhiteNoiseMinTerminalPoints = 2;
+        // The worker/traveller mix and burst pacing live with the bot tuning in GameServer.Bots.
 
         private readonly List<Phantom> _decoys = new List<Phantom>();
         private readonly List<MapPoint> _landmarks = new List<MapPoint>();
@@ -115,7 +113,7 @@ namespace PingTheKiller.ServerCore
         {
             BuildLandmarks();
             var placed = new List<MapPoint>();
-            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(2);
+            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(WhiteNoiseTerminalPointChoices);
             for (int i = 0; i < SkillIds.WhiteNoiseSignalCount; i++)
             {
                 bool atTerminal = i < terminalPoints && IncompleteTerminalCount() > 0;

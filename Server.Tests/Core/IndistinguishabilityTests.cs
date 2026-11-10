@@ -101,7 +101,7 @@ public sealed class IndistinguishabilityTests
         Assert.True(p < 1e-10);
     }
 
-    // Gate (orchestrator ruling, attempt 2): KS p >= 0.01 for speed, still-away-from-terminal and afterimage tail,
+    // U6d strengthens the KS gate to p >= 0.02 for speed, still-away-from-terminal and afterimage tail,
     // phantoms against real Normal Signal tracks. Spawn distance (aim D < 0.2) and lifetime are reported only.
     // White Noise lives 1.5 s by design (GDD 4), so the gated features are per-step and do not scale with lifetime:
     // the track's median step speed, and still steps away from any terminal before the final stop frame (every
@@ -137,7 +137,7 @@ public sealed class IndistinguishabilityTests
             var (d, p) = KolmogorovSmirnov(a, b);
             string line = $"{name}: phantom median {Median(a):0.###} mean {a.Average():0.###}, real median {Median(b):0.###} mean {b.Average():0.###}, KS D={d:0.###} p={p:0.####}{(gated ? "" : " (reported, not gated)")}";
             _output.WriteLine(line);
-            if (gated && p < 0.01) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
+            if (gated && p < 0.02) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
         }
         _output.WriteLine(failures.Count == 0 ? "GATE PASS" : "GATE FAIL: " + string.Join(", ", failures));
         Assert.True(phantoms.Count >= 100 && reals.Count >= 100, $"{phantoms.Count} phantom / {reals.Count} real tracks");

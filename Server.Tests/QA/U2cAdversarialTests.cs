@@ -608,10 +608,8 @@ public sealed class U2cAdversarialTests
         // The orchestrator accepted a per-track residual (average speed/stillness D~0.49, lifetime, spawn distance). This test
         // pins the measured level (reported above, see docs/qa/U2c-qa-a1.md) as a regression ceiling, not as proof of
         // indistinguishability: a rise above 0.85 means the residual got worse.
-        // Orchestrator, U6a attempt 2: the gated AUC ceiling is 0.86 (was 0.85) because survivors now live longer without Lagging
-        // executions, so phantom tracks are longer and more numerous (571); the phantom code itself did not change. U6d retunes
-        // phantoms and restores 0.85.
-        Assert.True(aucGated < 0.86, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
+        // U6d restores the original 0.85 ceiling after matching the phantom and survivor pacing.
+        Assert.True(aucGated < 0.85, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
         Assert.True(bestGated < 0.85, $"a single gated feature reaches AUC {bestGated:0.000}");
     }
 

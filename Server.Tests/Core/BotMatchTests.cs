@@ -50,7 +50,8 @@ public sealed class BotMatchTests
         Assert.NotNull(result);
         Assert.True(ticks <= 18000, "the match must end by the 900 s time limit");
         if (result.WinnerRole == (byte)Role.Survivor) Assert.NotEmpty(result.EscapedIds);
-        else Assert.Empty(result.EscapedIds);
+        // GDD v2: fewer than half escaping is still a killer victory.
+        else Assert.True(result.EscapedIds.Count < 4);
         // After the end only lobby traffic follows, and no second result.
         f.Tick();
         f.Tick();
