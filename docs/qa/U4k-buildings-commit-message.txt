@@ -1,0 +1,14 @@
+U4k-buildings: close the gaps in the city art
+
+Wall boxes that share an edge now form one building group, computed from
+FixedMap geometry. Every interior box gets an upper: generated stepped
+wings (2-3 storeys) whose Setback applies only to the group outline, so
+shared edges no longer open a slot, and fitted City 03 houses on the five
+single-box buildings. Neighbouring groups get different colours, facades
+and models. The skyline gets a continuous low terrace filling the strip
+behind the border walls, shoulder-to-shoulder houses and generated filler
+blocks instead of gaps.
+
+Adds WorldArtCapture (batch PNG renders and triangle counts), the
+WorldArtBuildingTests EditMode suite, and the before/after screens.
+Walls + backdrop: 1,712,674 -> 1,570,550 triangles, 69 -> 127 renderers.

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using PingTheKiller.Client.World;
+using PingTheKiller.Editor.Setup;
 using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
@@ -138,10 +139,15 @@ namespace PingTheKiller.Client.Tests
             }
         }
 
+        // U4k: the setback now applies to the outline of the building group (boxes sharing an edge), not to each box; on a
+        // shared edge the uppers of the two boxes meet. Checked per vertex in WorldArtBuildingTests
+        // (UpperStoreysStandBackFromTheGroupOutline...). Here, per renderer: anything above the podium parapet stays at least
+        // UpperSetback inside its box on every side that is not shared with another box of the group.
         [Test]
-        public void UpperStoreysStandBackFromTheBoxEdgesSoTheRaisedSurvivorCameraNeverEntersThem()
+        public void UpperStoreysStandBackFromTheOuterBoxEdgesSoTheRaisedSurvivorCameraNeverEntersThem()
         {
             WorldArt art = Art();
+            List<WorldArtSetup.SharedEdge> edges = WorldArtSetup.SharedEdges(Map);
             for (int i = 0; i < Map.Walls.Count; i++)
             {
                 Wall wall = Map.Walls[i];
@@ -151,12 +157,20 @@ namespace PingTheKiller.Client.Tests
                     Bounds b = renderer.bounds;
                     if (b.max.y <= MapGeometry.WallHeight + .15f) continue; // the podium and its parapet
                     string name = "wall " + i + " / " + renderer.name;
-                    Assert.That(b.min.x, Is.GreaterThanOrEqualTo(wall.MinX + UpperSetback), name);
-                    Assert.That(b.max.x, Is.LessThanOrEqualTo(wall.MaxX - UpperSetback), name);
-                    Assert.That(b.min.z, Is.GreaterThanOrEqualTo(wall.MinZ + UpperSetback), name);
-                    Assert.That(b.max.z, Is.LessThanOrEqualTo(wall.MaxZ - UpperSetback), name);
+                    if (!Touches(edges, i, false, wall.MinX)) Assert.That(b.min.x, Is.GreaterThanOrEqualTo(wall.MinX + UpperSetback), name);
+                    if (!Touches(edges, i, false, wall.MaxX)) Assert.That(b.max.x, Is.LessThanOrEqualTo(wall.MaxX - UpperSetback), name);
+                    if (!Touches(edges, i, true, wall.MinZ)) Assert.That(b.min.z, Is.GreaterThanOrEqualTo(wall.MinZ + UpperSetback), name);
+                    if (!Touches(edges, i, true, wall.MaxZ)) Assert.That(b.max.z, Is.LessThanOrEqualTo(wall.MaxZ - UpperSetback), name);
                 }
             }
+        }
+
+        // Whether box `index` shares part of its side on `line` (an x line when alongX is false) with another box.
+        private static bool Touches(List<WorldArtSetup.SharedEdge> edges, int index, bool alongX, float line)
+        {
+            foreach (WorldArtSetup.SharedEdge edge in edges)
+                if ((edge.A == index || edge.B == index) && edge.AlongX == alongX && Mathf.Abs(edge.Line - line) < .001f) return true;
+            return false;
         }
 
         [Test]
