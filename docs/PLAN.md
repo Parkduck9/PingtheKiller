@@ -276,6 +276,17 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - **게이트:** Unity EditMode 1475/1475, Windows 빌드 성공, 빌드 경고 0, 킬러 오프라인 경기 200초 오류 0, SLOP 97/100. 보고서 `docs/qa/minors-1110-qa-a1.md`.
   - **남은 것:** 가장자리가 꽉 찼을 때 EdgeSpread의 3/2 u 간격과 TagLayout 4 u가 어긋날 수 있습니다(7명으로는 생기지 않음, 후속 후보). 정확한 "38 m / 39 m" 장면은 재현하지 않았고 테스트로 확인했습니다.
 
+- **Q3-skill-reject 병합 (2026-11-10, main `0ee32a9`):** 서버가 스킬 사용을 거절하면 이제 이유를 보냅니다(HUD_SPEC §14.3의 프로토콜 부족 해소).
+  - **프로토콜 v0.6:** 새 패킷 `S2C_SkillRejected` 0x0016 `[SkillId][Reason]`을 누른 사람에게만 보냅니다. 거절 이유 8가지는 NotInMatch, NotYourSkill, NotNormal, Cooldown, NoTarget, NoSwitchInProgress, Passive, Sandbox입니다.
+  - 플레이어당 틱마다 응답은 1개까지입니다. 봇에게는 보내지 않습니다. 로그는 플레이어당 1초에 1줄입니다.
+  - 킬러에게 새 정보는 없습니다(출구 진행도는 원래 WorldState에 있음, 숨은 생존자 위치와 무관함을 테스트로 확인).
+  - 클라이언트는 이유별 문구를 바로 띄우고, 0.5초 대기는 예비로만 남겼습니다. 쿨다운 경계 문구 `Skill still on cooldown.` / `Not used · still on cooldown`.
+  - Opus 구현, Fable QA 1차 PASS(사소 3건, 문구 1건은 검토 중 수정).
+  - **게이트:** 빌드 경고 0, Server.Tests 1087/1087, BalanceSweep 18/18, 하네스 100/100 3회, Harness.Tests 641/641, Unity EditMode 1486/1486(문구 수정 뒤 재실행), Windows 빌드 성공, 킬러·생존자 오프라인 경기 오류 0. 보고서 `docs/qa/Q3-skill-reject-qa-a1.md`.
+  - AGENTS.md의 하네스 명령을 실제 절차로 고쳤습니다(`--bots auto`는 없음: 7777 샌드박스 서버 + 7778 H6 서버, 실행마다 새로).
+  - **남은 것:** 서버 이유 문구가 실제 경기 화면에 뜨는 장면은 촬영하지 못했습니다(EditMode와 로그로 확인). `RttProbeTests`의 실측 RTT 테스트가 PC가 바쁠 때 가끔 실패합니다(기존 문제, 후속 후보).
+  - **다음:** Q5(팔레트·창문).
+
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
 ---

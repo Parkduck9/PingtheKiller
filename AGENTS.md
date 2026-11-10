@@ -33,10 +33,11 @@ docs/              PLAN.md, ui/, qa/ reports, references/
 ```
 dotnet build PingTheKiller.sln
 dotnet test Server.Tests
-dotnet run --project Server -- --port 7777 --bots auto
-dotnet run --project Tools/Harness -- --host 127.0.0.1 --port 7777 --report docs/qa/harness-latest.json
+dotnet run --project Server -- --port 7777 --bots 0 --bind 127.0.0.1 --sandbox   # H1-H5 server (fresh per harness run)
+dotnet run --project Server -- --port 7778 --bots 0 --bind 127.0.0.1             # H6 server (fresh per harness run)
+dotnet run --project Tools/Harness -- --host 127.0.0.1 --port 7777 --h6-port 7778 --threshold 100 --expect-los --report docs/qa/harness-latest.json
 ```
-Unity batch tests: `"C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe" -batchmode -projectPath Client -runTests -testPlatform EditMode -testResults docs/qa/unity-editmode.xml`
+Unity batch tests: `"C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe" -batchmode -projectPath Client -runTests -testPlatform EditMode -testResults <ABSOLUTE path>.xml` (a relative path resolves against `-projectPath`)
 
 ## 4. Working rules for implementers
 
