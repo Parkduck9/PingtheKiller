@@ -269,6 +269,13 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - **남은 것(사소):** Esc 메뉴 "Captured twice" 문구가 Q1의 포획 횟수 의미와 어긋남(`PlayMenu.cs:35`). 화면 안 거리 라벨이 가장자리 화살표에 붙음. 통합 빌드에서 사람 해킹 장면과 Esc 메뉴 화면은 촬영 못 함. 연결 끊김 때 `v2Audio.End()` 생략(무해). U4k 사소 3건은 사용자 결정으로 보류. 285초 판은 표본 1개라 생존자 쪽 실제 경기를 2~3판 더 보면 좋습니다.
   - **다음:** Q3(스킬 거절 이유, Shared 패킷), Q5(팔레트·창문).
 
+- **minors-1110 병합 (2026-11-10, main `5ba712d`):** 통합 QA의 작은 문제 1·2를 고쳤습니다.
+  - Esc 메뉴의 `CaptureCount ≥ 2` 줄이 횟수를 세지 않는 `Next capture eliminates you.`로 바뀌었습니다.
+  - 킬러 월드 태그는 다른 태그·피해야 할 마커와 4 u(`TagGap`) 간격을 둡니다. 생존자 거리 태그는 가장자리 화살표도 피합니다. 붐빌 때 Overloaded/Exit 태그는 4 → 2 → 0 u로 물러납니다(HUD_SPEC §5·§6, 11/10).
+  - Sonnet 구현, Fable QA 1차 PASS(사소 5건, 한 건은 검토 중 문서 수정).
+  - **게이트:** Unity EditMode 1475/1475, Windows 빌드 성공, 빌드 경고 0, 킬러 오프라인 경기 200초 오류 0, SLOP 97/100. 보고서 `docs/qa/minors-1110-qa-a1.md`.
+  - **남은 것:** 가장자리가 꽉 찼을 때 EdgeSpread의 3/2 u 간격과 TagLayout 4 u가 어긋날 수 있습니다(7명으로는 생기지 않음, 후속 후보). 정확한 "38 m / 39 m" 장면은 재현하지 않았고 테스트로 확인했습니다.
+
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
 ---
