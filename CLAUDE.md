@@ -6,6 +6,12 @@ Claude plans, briefs, supervises and judges. Claude does not write product code 
 
 ## Model routing
 
+**Current routing (user decision 2026-11-09) — overrides the table below:**
+- **Implementation is split between Claude Opus and Claude Sonnet subagents.** Opus: hard units (.NET server, framing/threading, netcode, `Shared/` protocol, bot AI, design-heavy or cross-cutting work, attempt 3 / escalations). Sonnet: small fixes, copy/UI build after the slop doc, boilerplate, test writing, Unity build/run chores.
+- **Review/QA is done by Fable** (`model: fable` subagent): code QA, test/harness runs, and screenshot/UI review against SLOP Section 9. Fable never implements. Implementer and reviewer are always different models (Opus/Sonnet vs Fable).
+- Codex and Antigravity (Gemini Flash) are not used unless the user re-enables them. Read-only lookups stay on Haiku; Opus (this session) still writes briefs and makes the final judgement.
+- If Fable hits a quota limit, retry once, then use the other Claude model that did not implement the unit, and record the switch in the report header (not a failed attempt).
+
 | Work | Primary | Escalation (after 2 failed attempts) |
 |------|---------|--------------------------------------|
 | .NET server, framing, threading | `codex exec -m gpt-6.1-sol` (effort high) | `gpt-6-astra` |

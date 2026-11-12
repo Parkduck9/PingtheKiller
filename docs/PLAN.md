@@ -267,7 +267,7 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - 2026-11-09부터 구현은 Opus/Sonnet, 검수는 Fable입니다.
   - **게이트:** 빌드 경고 0, Server.Tests 1062/1062, BalanceSweep 18/18, 하네스 100/100 3회, Harness.Tests 638/638, Unity EditMode 1468/1468, Windows 빌드 성공, 오프라인 실제 경기 2판(생존자 285초·킬러 190초, 둘 다 7/7 탈출, 오류 0). Fable 통합 검수 PASS, 막는 문제 0, SLOP 98/100. 보고서 `docs/qa/qa-int-1110.md`, 로그 `docs/qa/qa-int-runs/`. 병합 뒤 main에서 빌드와 Server.Tests 1062/1062를 다시 확인했습니다.
   - **남은 것(사소):** Esc 메뉴 "Captured twice" 문구가 Q1의 포획 횟수 의미와 어긋남(`PlayMenu.cs:35`). 화면 안 거리 라벨이 가장자리 화살표에 붙음. 통합 빌드에서 사람 해킹 장면과 Esc 메뉴 화면은 촬영 못 함. 연결 끊김 때 `v2Audio.End()` 생략(무해). U4k 사소 3건은 사용자 결정으로 보류. 285초 판은 표본 1개라 생존자 쪽 실제 경기를 2~3판 더 보면 좋습니다.
-  - **다음:** Q3(스킬 거절 이유, Shared 패킷), Q5(팔레트·창문).
+  - **다음:** Q3(스킬 거절 이유, Shared 패킷), Q5(판자·창문 넘기, GDD v2 §7).
 
 - **minors-1110 병합 (2026-11-10, main `5ba712d`):** 통합 QA의 작은 문제 1·2를 고쳤습니다.
   - Esc 메뉴의 `CaptureCount ≥ 2` 줄이 횟수를 세지 않는 `Next capture eliminates you.`로 바뀌었습니다.
@@ -285,7 +285,7 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
   - **게이트:** 빌드 경고 0, Server.Tests 1087/1087, BalanceSweep 18/18, 하네스 100/100 3회, Harness.Tests 641/641, Unity EditMode 1486/1486(문구 수정 뒤 재실행), Windows 빌드 성공, 킬러·생존자 오프라인 경기 오류 0. 보고서 `docs/qa/Q3-skill-reject-qa-a1.md`.
   - AGENTS.md의 하네스 명령을 실제 절차로 고쳤습니다(`--bots auto`는 없음: 7777 샌드박스 서버 + 7778 H6 서버, 실행마다 새로).
   - **남은 것:** 서버 이유 문구가 실제 경기 화면에 뜨는 장면은 촬영하지 못했습니다(EditMode와 로그로 확인). `RttProbeTests`의 실측 RTT 테스트가 PC가 바쁠 때 가끔 실패합니다(기존 문제, 후속 후보).
-  - **다음:** Q5(팔레트·창문).
+  - **다음:** Q5(판자·창문 넘기, GDD v2 §7).
 
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
