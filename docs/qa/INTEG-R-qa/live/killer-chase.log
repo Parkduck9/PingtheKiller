@@ -1,0 +1,1423 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.106 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.457600 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\lobby.png
+[offline server] match start players=8 killer=4 matchSeed=-889435080
+[fx] warm ms=24.0 objects=124 meshes=12 materials=21 glyphs=9
+[DEV] match 1 start role=Killer skill=1
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=0.04 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\play-1s.png
+[DEV] t=1.03 local position 34.00,43.50 moved=0.00 m
+[DEV] t=2.01 chase terminal from=34.00,43.50 to=10.00,25.00 yaw=211.76
+[DEV] t=2.59 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=2.59 blips tracked max=2
+[DEV] t=2.59 event killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\killer-offscreen.png
+[DEV] t=3.02 chase blip from=33.45,40.00 to=45.77,1.85 yaw=141.33
+[DEV] t=3.09 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=3.56 blips tracked max=3
+[DEV] t=3.61 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\play-4s.png
+[DEV] t=4.05 chase blip from=35.94,36.06 to=49.72,2.78 yaw=166.25
+[DEV] t=4.62 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=5.01 local position 37.71,33.54 moved=10.63 m
+[DEV] t=5.06 chase blip from=37.89,33.66 to=76.00,46.06 yaw=57.74
+[DEV] t=5.13 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=6.07 chase blip from=41.81,36.13 to=76.00,42.03 yaw=57.74
+[DEV] t=6.16 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=6.27 event killer-inview.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\killer-inview.png
+[DEV] t=6.57 event killer-occluded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\killer-occluded.png
+[DEV] t=6.67 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=7.07 chase blip from=43.93,38.85 to=76.00,44.83 yaw=87.23
+[DEV] t=7.19 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=7.51 blips tracked max=4
+[DEV] t=7.70 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=7.87 blips tracked max=5
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=8.01 blips tracked max=7
+[DEV] t=8.01 event killer-crowd.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\killer-crowd.png
+[DEV] t=8.06 blips tracked max=8
+[DEV] t=8.09 chase blip from=48.62,39.08 to=41.39,43.58 yaw=274.05
+[DEV] t=8.21 blips inView=0 occluded=3 edges=5 tracked=8
+[DEV] t=8.47 blips tracked max=9
+[DEV] t=8.74 blips inView=1 occluded=1 edges=6 tracked=9
+[DEV] t=8.87 killer prompt="Get close and left click to attack"
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=8.92 blips tracked max=10
+[DEV] t=9.10 chase blip from=45.18,40.47 to=41.39,43.58 yaw=309.38
+[DEV] t=9.25 blips inView=1 occluded=1 edges=6 tracked=10
+[offline server] route player=1 terminal=5 complete progress=4.8
+[DEV] t=9.76 blips inView=0 occluded=4 edges=1 tracked=5
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=10.11 chase blip from=45.25,39.89 to=54.16,8.46 yaw=138.42
+[DEV] t=10.26 blips inView=0 occluded=4 edges=2 tracked=6
+[DEV] t=10.77 blips inView=1 occluded=3 edges=5 tracked=9
+[DEV] t=11.12 chase blip from=48.41,36.47 to=57.67,26.72 yaw=136.47
+[DEV] t=11.28 blips inView=1 occluded=2 edges=5 tracked=8
+[offline server] route player=1 terminal=5 complete progress=11.5
+[DEV] t=11.79 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=12.13 chase blip from=50.78,33.88 to=16.38,59.18 yaw=323.12
+[DEV] t=12.29 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=12.79 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=13.13 chase blip from=50.41,34.47 to=54.00,6.86 yaw=141.60
+[offline server] route player=2 terminal=5 error progress=10.5
+[DEV] t=13.29 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] overloaded alerts=1
+[DEV] t=13.57 event v2-killer-overloaded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\v2-killer-overloaded.png
+[DEV] t=14.01 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=14.14 chase blip from=53.28,30.83 to=54.56,13.44 yaw=154.49
+[DEV] t=14.89 killer prompt=""
+[DEV] t=15.15 chase blip from=53.73,26.48 to=53.86,9.46 yaw=179.56
+[DEV] t=15.16 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=15.66 blips inView=3 occluded=0 edges=2 tracked=5
+[DEV] t=16.16 chase blip from=53.68,21.87 to=53.09,5.51 yaw=182.08
+[DEV] t=16.51 blips inView=3 occluded=0 edges=1 tracked=4
+[DEV] t=17.01 blips inView=0 occluded=3 edges=1 tracked=4
+[offline server] route player=5 terminal=3 error progress=0.0
+[DEV] t=17.16 chase blip from=53.58,17.26 to=50.31,2.78 yaw=183.39
+[DEV] t=17.52 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=18.03 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=18.17 chase blip from=53.01,12.97 to=18.64,50.40 yaw=280.99
+[offline server] route player=6 terminal=3 complete progress=4.3
+[DEV] t=18.53 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=19.18 chase blip from=48.47,13.85 to=18.64,50.40 yaw=281.00
+[DEV] t=20.12 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=20.19 chase blip from=43.95,14.94 to=47.04,1.85 yaw=212.32
+[offline server] route player=5 terminal=3 complete progress=10.0
+[DEV] t=20.63 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=21.14 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=21.19 chase blip from=45.28,13.07 to=57.59,3.04 yaw=92.47
+[DEV] t=21.71 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=22.19 chase blip from=49.85,12.98 to=74.40,40.18 yaw=55.07
+[DEV] t=22.22 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=22.73 blips inView=1 occluded=0 edges=5 tracked=5
+[offline server] route player=6 terminal=3 complete progress=15.4
+[DEV] t=23.20 chase blip from=52.82,12.87 to=56.40,3.74 yaw=158.57
+[DEV] t=23.23 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=23.75 blips inView=0 occluded=1 edges=1 tracked=2
+[offline server] route player=5 terminal=3 complete progress=20.7
+[DEV] t=24.02 killer prompt="Hold [E] to jam Terminal 6"
+[DEV] t=24.21 chase blip from=54.39,8.50 to=60.25,2.96 yaw=157.68
+[DEV] t=24.55 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=24.65 killer prompt=""
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=25.06 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=25.21 chase blip from=56.13,4.24 to=55.17,7.63 yaw=344.10
+[DEV] t=25.43 attack press (scripted, blip 2.91 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=25.43 swing pressed
+[DEV] t=25.43 event r1-killer-press.png
+[DEV] t=25.43 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=25.47 swing Started
+[DEV] t=25.47 event r1-killer-windup.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-press.png
+[DEV] t=25.57 blips inView=1 occluded=3 edges=4 tracked=8
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-windup.png
+[offline server] swing player=4 result=miss
+[client] swing missed
+[DEV] t=26.01 swing Missed
+[DEV] t=26.01 event r1-killer-first-swing-miss.png
+[DEV] t=26.01 event r1-killer-miss.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-first-swing-miss.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-miss.png
+[DEV] t=26.20 blips inView=0 occluded=3 edges=5 tracked=8
+[DEV] t=26.22 chase blip from=55.41,6.82 to=55.17,7.63 yaw=343.70
+[DEV] t=26.22 killer prompt="Hold [E] to jam Terminal 6"
+[DEV] t=26.70 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=6 terminal=3 complete progress=26.1
+[DEV] t=27.02 killer prompt=""
+[DEV] t=27.23 chase blip from=53.89,5.58 to=41.52,8.08 yaw=215.10
+[DEV] t=27.56 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] route player=5 terminal=3 complete progress=31.0
+[DEV] t=28.06 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=28.24 chase blip from=50.50,3.24 to=40.77,12.09 yaw=270.04
+[DEV] t=28.56 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=29.06 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=29.25 chase blip from=51.34,3.25 to=41.58,12.75 yaw=270.03
+[DEV] t=29.62 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=30.12 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=30.26 chase blip from=49.99,3.25 to=74.68,10.50 yaw=89.99
+[DEV] t=30.63 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] route player=6 terminal=3 complete progress=37.0
+[DEV] t=31.13 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=31.28 chase blip from=53.54,4.27 to=18.67,50.28 yaw=354.66
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] t=31.66 blips inView=0 occluded=1 edges=0 tracked=1
+[offline server] route player=5 terminal=3 complete progress=41.7
+[DEV] t=31.91 killer prompt="Hold [E] to jam Terminal 6"
+[DEV] t=32.25 killer prompt=""
+[DEV] t=32.30 chase blip from=53.11,8.93 to=18.67,50.28 yaw=354.66
+[DEV] t=32.46 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=32.97 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=33.31 chase blip from=51.75,12.97 to=42.67,12.54 yaw=267.24
+[DEV] t=33.48 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=33.98 blips inView=0 occluded=1 edges=1 tracked=2
+[offline server] route player=6 terminal=3 complete progress=47.3
+[DEV] t=34.33 chase blip from=47.07,12.86 to=41.37,8.74 yaw=268.69
+[DEV] t=34.59 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] route player=5 terminal=3 error progress=45.9
+[DEV] t=35.28 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=35.34 chase blip from=42.44,12.47 to=40.03,4.96 yaw=197.80
+[DEV] t=35.80 blips inView=1 occluded=0 edges=3 tracked=4
+[offline server] route player=5 terminal=3 complete progress=50.2
+[DEV] t=36.31 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=36.36 chase blip from=40.99,8.12 to=37.05,2.86 yaw=197.97
+[DEV] t=36.87 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=37.37 chase blip from=39.55,3.68 to=33.10,1.89 yaw=214.02
+[DEV] t=37.37 blips inView=1 occluded=0 edges=5 tracked=5
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=37.88 blips inView=1 occluded=0 edges=6 tracked=9
+[DEV] t=38.39 chase blip from=36.06,2.76 to=29.68,2.11 yaw=264.12
+[DEV] t=38.39 blips inView=1 occluded=1 edges=6 tracked=10
+[offline server] route player=7 terminal=7 complete progress=5.6
+[DEV] t=38.91 blips inView=1 occluded=0 edges=4 tracked=5
+[offline server] route player=8 terminal=7 complete progress=8.9
+[DEV] t=39.41 chase blip from=31.37,2.59 to=25.69,2.88 yaw=272.91
+[DEV] t=39.41 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=39.92 blips inView=1 occluded=0 edges=3 tracked=4
+[offline server] route player=6 terminal=3 complete progress=57.8
+[DEV] t=40.43 chase blip from=26.70,2.98 to=21.72,3.80 yaw=273.42
+[DEV] t=40.43 blips inView=1 occluded=0 edges=2 tracked=3
+[offline server] route player=7 terminal=7 complete progress=15.2
+[DEV] t=40.94 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=41.43 chase terminal from=22.24,3.72 to=10.00,25.00 yaw=352.13
+[DEV] t=41.45 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=41.96 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=42.45 chase blip from=23.34,3.36 to=66.73,24.73 yaw=90.39
+[DEV] t=42.47 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=42.98 blips inView=0 occluded=3 edges=0 tracked=3
+[DEV] t=43.46 chase blip from=28.01,3.33 to=70.31,26.67 yaw=90.39
+[offline server] route player=8 terminal=7 complete progress=20.4
+[DEV] t=43.81 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=44.31 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=44.47 chase blip from=32.63,3.30 to=74.74,40.01 yaw=90.39
+[DEV] t=44.83 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=45.33 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=45.48 chase blip from=33.12,3.28 to=72.18,29.11 yaw=90.24
+[DEV] t=45.84 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=46.34 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=46.48 chase blip from=37.75,3.26 to=73.51,32.90 yaw=90.24
+[DEV] t=46.85 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=47.35 blips inView=0 occluded=4 edges=1 tracked=5
+[DEV] t=47.49 chase blip from=39.70,5.63 to=21.85,42.63 yaw=0.18
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=48.07 blips inView=0 occluded=6 edges=1 tracked=7
+[DEV] t=48.50 chase blip from=39.71,10.28 to=20.40,4.42 yaw=179.70
+[DEV] t=48.58 blips inView=0 occluded=0 edges=6 tracked=9
+[offline server] route player=2 terminal=7 complete progress=27.5
+[DEV] t=49.51 chase blip from=39.74,6.14 to=20.54,8.40 yaw=179.72
+[DEV] t=49.51 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=50.18 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=50.52 chase blip from=37.77,3.27 to=20.54,12.39 yaw=269.92
+[DEV] t=50.69 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=51.27 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=51.54 chase blip from=33.08,3.26 to=20.37,16.46 yaw=269.92
+[DEV] t=51.78 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=52.54 chase blip from=28.48,3.26 to=20.19,20.53 yaw=269.92
+[offline server] route player=2 terminal=7 error progress=27.0
+[DEV] t=53.26 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=53.55 chase blip from=23.83,3.25 to=20.03,24.50 yaw=269.92
+[DEV] t=53.77 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=54.28 blips inView=0 occluded=3 edges=0 tracked=3
+[DEV] t=54.57 chase blip from=22.23,6.40 to=35.72,39.41 yaw=0.08
+[DEV] t=54.79 blips inView=1 occluded=2 edges=1 tracked=4
+[DEV] t=55.29 blips inView=1 occluded=2 edges=2 tracked=5
+[DEV] t=55.59 chase blip from=21.60,11.04 to=16.87,23.43 yaw=350.22
+[DEV] t=55.80 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=56.31 blips inView=0 occluded=1 edges=4 tracked=5
+[offline server] route player=2 terminal=7 complete progress=32.1
+[DEV] t=56.60 chase blip from=20.80,15.65 to=12.80,23.30 yaw=350.22
+[DEV] t=57.06 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=57.57 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=57.62 chase blip from=19.78,20.21 to=11.28,26.32 yaw=345.46
+[DEV] t=58.08 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=58.58 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=58.63 chase blip from=16.49,22.39 to=10.90,30.34 yaw=279.28
+[DEV] t=59.09 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=59.60 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=59.64 chase blip from=12.31,23.38 to=42.14,6.19 yaw=93.41
+[offline server] route player=2 terminal=7 complete progress=38.0
+[DEV] t=60.11 blips inView=0 occluded=4 edges=0 tracked=4
+[DEV] t=60.61 blips inView=0 occluded=6 edges=0 tracked=6
+[DEV] t=60.66 chase blip from=16.99,23.11 to=41.52,10.22 yaw=93.41
+[DEV] t=61.12 blips inView=0 occluded=5 edges=0 tracked=5
+[DEV] t=61.64 blips inView=0 occluded=4 edges=1 tracked=5
+[DEV] t=61.66 chase blip from=21.59,22.83 to=40.90,14.25 yaw=93.41
+[DEV] t=62.14 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=62.66 blips inView=0 occluded=3 edges=0 tracked=3
+[DEV] t=62.67 chase blip from=26.23,22.84 to=56.60,39.55 yaw=85.77
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=63.16 blips inView=0 occluded=3 edges=1 tracked=4
+[DEV] t=63.67 blips inView=0 occluded=2 edges=6 tracked=9
+[DEV] t=63.67 chase blip from=26.96,23.06 to=9.84,25.15 yaw=270.69
+[offline server] route player=2 terminal=7 complete progress=43.7
+[DEV] t=64.17 blips inView=0 occluded=1 edges=6 tracked=10
+[DEV] t=64.67 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=64.69 chase blip from=22.39,23.28 to=12.85,37.62 yaw=343.07
+[DEV] t=65.19 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=65.69 chase blip from=21.08,27.70 to=16.77,37.77 yaw=343.85
+[DEV] t=65.72 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=66.23 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=66.70 chase blip from=20.40,32.21 to=33.70,39.32 yaw=358.45
+[DEV] t=66.74 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=67.26 blips inView=0 occluded=1 edges=5 tracked=6
+[offline server] route player=2 terminal=7 complete progress=49.6
+[DEV] t=67.70 chase blip from=19.11,36.52 to=14.25,37.76 yaw=324.87
+[DEV] t=67.76 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=68.27 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=68.71 chase blip from=15.16,37.79 to=10.83,36.62 yaw=269.45
+[DEV] t=68.79 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=69.29 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=69.73 chase blip from=10.82,36.84 to=8.61,33.21 yaw=211.36
+[DEV] t=69.80 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=70.33 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=70.74 chase blip from=9.37,33.93 to=8.60,30.49 yaw=192.66
+[DEV] t=70.83 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=71.32 attack press (scripted, blip 2.99 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=71.32 swing pressed
+[DEV] t=71.32 killer prompt="Click  Attack"
+[DEV] t=71.32 killer prompt=""
+[DEV] t=71.34 killer prompt="Click  Attack"
+[DEV] t=71.35 killer prompt=""
+[client] swing wind-up
+[DEV] t=71.37 swing Started
+[DEV] t=71.37 killer prompt="Click  Attack"
+[DEV] t=71.37 killer prompt=""
+[DEV] t=71.39 killer prompt="Click  Attack"
+[DEV] t=71.40 killer prompt=""
+[DEV] t=71.41 killer prompt="Click  Attack"
+[DEV] t=71.49 killer prompt=""
+[DEV] t=71.51 killer prompt="Click  Attack"
+[DEV] t=71.51 killer prompt=""
+[offline server] swing player=4 result=miss
+[DEV] t=71.75 chase blip from=9.28,29.99 to=10.00,26.66 yaw=167.72
+[client] swing missed
+[DEV] t=71.90 swing Missed
+[DEV] t=72.41 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=72.77 chase blip from=10.11,27.13 to=12.00,23.36 yaw=163.69
+[DEV] t=72.91 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=72.94 killer prompt="Hold [E] to jam Terminal 1"
+[DEV] t=73.42 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=73.49 killer prompt=""
+[DEV] t=73.78 chase blip from=12.14,23.17 to=16.00,22.80 yaw=95.51
+[DEV] t=73.93 blips inView=1 occluded=5 edges=1 tracked=7
+[DEV] t=74.66 blips inView=1 occluded=5 edges=0 tracked=6
+[DEV] t=74.80 chase blip from=16.75,22.36 to=19.48,21.13 yaw=101.41
+[DEV] t=74.80 attack press (scripted, blip 2.99 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=74.80 swing pressed
+[DEV] t=74.80 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=74.81 swing Started
+[DEV] t=74.81 killer prompt=""
+[DEV] t=74.83 killer prompt="Click  Attack"
+[offline server] swing player=4 result=miss
+[client] swing missed
+[DEV] t=75.36 swing Missed
+[DEV] t=75.48 blips inView=0 occluded=5 edges=1 tracked=6
+[DEV] t=75.81 chase blip from=19.11,21.74 to=19.58,19.12 yaw=127.41
+[offline server] shutter 0 pull by player=1
+[DEV] t=76.00 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=76.03 attack press (scripted, blip 2.39 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=76.03 swing pressed
+[client] swing wind-up
+[DEV] t=76.06 swing Started
+[offline server] shutter 0 down by player=1 stun=killer
+[offline server] stun player=4 seconds=2 shutter=0
+[offline server] swing player=4 result=interrupted
+[audio] chase cue ShutterSlam at 21.0, 19.5
+[chase] killer stunned (own)
+[client] swing missed
+[DEV] t=76.18 swing Missed
+[DEV] t=76.51 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=76.81 chase blip from=19.66,20.41 to=19.58,18.94 yaw=183.26
+[DEV] t=77.24 attack press (scripted, blip 2.90 m)
+[DEV] t=77.27 killer prompt=""
+[DEV] t=77.61 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=77.82 chase blip from=19.66,20.41 to=20.34,15.23 yaw=172.50
+[DEV] t=78.11 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=78.16 killer prompt="Hold [E] to force the Shutter"
+[DEV] t=78.84 chase blip from=20.03,20.10 to=20.59,11.18 yaw=175.36
+[DEV] t=79.86 chase blip from=20.30,20.10 to=20.41,7.43 yaw=177.97
+[DEV] t=80.08 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=80.58 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=80.88 chase blip from=20.44,20.10 to=16.34,7.35 yaw=178.61
+[DEV] t=81.09 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=81.89 chase blip from=20.54,20.10 to=12.27,7.27 yaw=179.04
+[DEV] t=82.36 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=82.77 killer prompt=""
+[DEV] t=82.86 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=82.91 chase blip from=19.25,21.72 to=11.48,10.60 yaw=270.24
+[DEV] t=83.36 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=83.87 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=83.91 chase blip from=14.65,21.74 to=11.40,14.60 yaw=270.18
+[DEV] t=84.42 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=84.78 attack press (scripted, blip 2.91 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=84.78 swing pressed
+[DEV] t=84.79 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=84.81 swing Started
+[DEV] t=84.91 chase blip from=11.26,20.43 to=11.31,18.67 yaw=178.18
+[DEV] t=84.93 blips inView=1 occluded=0 edges=4 tracked=5
+[offline server] status player=1 Lagging reason=capture
+[offline server] swing player=4 result=hit target=1
+[client] swing hit
+[DEV] t=85.02 swing Hit
+[DEV] t=85.02 event r1-killer-hit.png
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=85.03 killer prompt=""
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-hit.png
+[DEV] t=85.24 event u8-killer-capture-1-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-1-strike.png
+[DEV] t=85.53 event u8-killer-capture-1-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-1-after.png
+[DEV] t=85.56 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=85.92 chase blip from=11.31,18.99 to=11.34,18.40 yaw=177.67
+[perf] capture frame times (killer capture) before: n=106 mean=9.5 max=22.4 ms; after: n=97 mean=10.2 max=27.5 ms; spikes>33ms=0
+[DEV] t=86.06 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=86.57 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=86.94 chase blip from=11.31,18.92 to=11.33,18.59 yaw=177.46
+[DEV] t=87.08 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=87.94 chase blip from=11.42,18.25 to=11.19,18.59 yaw=325.41
+[DEV] t=88.22 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] skill player=7 role=Survivor id=4
+[offline server] route player=7 terminal=7 complete progress=53.5
+[DEV] t=88.72 blips inView=1 occluded=0 edges=6 tracked=10
+[DEV] t=88.95 chase blip from=10.88,18.81 to=10.80,18.49 yaw=195.25
+[DEV] t=89.23 blips inView=1 occluded=0 edges=6 tracked=8
+[DEV] t=89.81 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=89.96 chase blip from=10.51,18.18 to=10.66,18.43 yaw=29.88
+[DEV] t=90.32 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=90.83 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=90.98 chase blip from=10.90,18.34 to=10.47,18.46 yaw=285.47
+[offline server] route player=8 terminal=7 complete progress=58.4
+[DEV] t=91.34 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=91.87 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=92.00 chase blip from=10.04,18.51 to=10.25,18.38 yaw=121.40
+[offline server] route player=7 terminal=7 complete progress=63.3
+[DEV] t=92.51 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=93.01 chase blip from=10.38,18.21 to=10.20,18.50 yaw=326.85
+[DEV] t=93.01 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=93.53 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=94.02 chase blip from=10.19,18.63 to=9.95,18.50 yaw=240.79
+[offline server] route player=8 terminal=7 error progress=62.5
+[DEV] t=94.61 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=95.04 chase blip from=9.71,18.17 to=9.97,18.21 yaw=81.87
+[DEV] t=95.11 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=95.62 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=96.05 chase blip from=10.15,18.10 to=9.90,18.23 yaw=296.21
+[offline server] route player=7 terminal=7 complete progress=69.2
+[DEV] t=96.55 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=8 terminal=7 complete progress=72.9
+[DEV] t=97.06 chase blip from=9.74,18.40 to=9.69,18.13 yaw=189.77
+[offline server] route player=6 terminal=3 complete progress=63.4
+[DEV] t=97.87 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=98.07 chase blip from=9.47,17.89 to=9.73,17.93 yaw=82.14
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=98.38 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=98.88 blips inView=0 occluded=0 edges=6 tracked=10
+[DEV] t=99.08 chase blip from=9.99,17.79 to=9.66,18.03 yaw=305.69
+[DEV] t=99.39 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=99.90 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=100.09 chase blip from=9.41,18.05 to=9.61,17.88 yaw=129.74
+[offline server] route player=2 terminal=3 complete progress=70.9
+[offline server] route player=8 terminal=7 complete progress=80.5
+[DEV] t=100.66 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=101.11 chase blip from=9.79,17.59 to=9.70,17.89 yaw=343.72
+[offline server] route player=6 terminal=3 complete progress=75.1
+[DEV] t=101.16 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=101.67 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=102.13 chase blip from=9.64,18.05 to=9.53,17.78 yaw=204.33
+[DEV] t=102.18 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=102.69 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] route player=7 terminal=7 complete progress=86.0
+[DEV] t=103.15 chase blip from=9.65,17.45 to=9.61,17.73 yaw=350.97
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=103.51 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=104.02 blips inView=1 occluded=0 edges=6 tracked=10
+[DEV] t=104.16 chase blip from=9.59,18.00 to=9.45,17.69 yaw=203.77
+[offline server] route player=2 terminal=3 complete progress=80.9
+[offline server] route player=8 terminal=7 complete progress=91.3
+[offline server] route player=6 terminal=3 complete progress=83.8
+[DEV] t=104.53 blips inView=0 occluded=0 edges=6 tracked=10
+[DEV] t=105.04 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=105.18 chase blip from=9.27,17.42 to=9.50,17.56 yaw=60.04
+[offline server] route player=6 terminal=3 error progress=83.7
+[DEV] t=105.55 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=106.05 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=106.20 chase blip from=9.60,17.71 to=9.39,17.65 yaw=256.23
+[DEV] t=106.56 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=7 terminal=7 complete progress=97.4
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=107.07 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=107.20 chase blip from=9.12,17.56 to=9.37,17.58 yaw=86.21
+[offline server] route player=3 terminal=7 error progress=96.3
+[offline server] route player=2 terminal=3 complete progress=87.9
+[DEV] t=107.67 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=108.17 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=108.22 chase blip from=9.68,17.45 to=9.36,17.58 yaw=291.98
+[offline server] route player=3 terminal=7 complete progress=101.2
+[offline server] terminal 7 complete
+[DEV] t=108.52 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=108.67 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] route player=6 terminal=3 complete progress=93.8
+[DEV] t=109.18 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=109.23 chase blip from=9.37,17.75 to=9.27,17.48 yaw=199.60
+[DEV] t=109.84 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=110.24 chase blip from=9.25,17.18 to=9.32,17.42 yaw=16.02
+[DEV] t=110.34 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=110.85 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=111.26 chase blip from=9.48,17.57 to=9.22,17.50 yaw=256.27
+[DEV] t=111.37 blips inView=0 occluded=0 edges=6 tracked=6
+[offline server] route player=2 terminal=3 complete progress=98.9
+[DEV] t=111.89 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=112.27 chase blip from=9.07,17.49 to=9.16,17.34 yaw=150.36
+[DEV] t=112.42 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=113.29 chase blip from=9.41,17.12 to=9.16,17.38 yaw=316.13
+[DEV] t=113.81 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=114.31 chase blip from=9.13,17.64 to=8.98,17.35 yaw=207.05
+[DEV] t=114.31 blips inView=0 occluded=0 edges=6 tracked=7
+[offline server] terminal 3 complete
+[DEV] t=114.36 terminals 0:0 1:0 2:0 3:100 4:0 5:0 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=114.82 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=115.33 chase blip from=8.84,17.11 to=9.09,17.31 yaw=52.29
+[DEV] t=115.38 blips inView=0 occluded=1 edges=6 tracked=9
+[DEV] t=115.89 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=116.33 chase blip from=9.33,17.41 to=9.01,17.37 yaw=263.08
+[DEV] t=116.40 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=117.02 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=117.33 chase blip from=8.62,17.40 to=8.92,17.28 yaw=113.25
+[DEV] t=117.53 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=118.35 chase blip from=9.04,16.96 to=8.97,17.27 yaw=346.61
+[DEV] t=118.72 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=119.23 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=119.36 chase blip from=9.03,17.45 to=8.89,17.17 yaw=205.59
+[DEV] t=120.12 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=120.36 chase blip from=8.66,17.06 to=8.95,17.10 yaw=80.36
+[DEV] t=120.63 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=121.14 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=121.36 chase blip from=9.14,16.96 to=8.98,17.21 yaw=327.97
+[DEV] t=121.65 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=122.16 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=122.36 chase blip from=8.95,17.40 to=8.88,17.18 yaw=199.11
+[DEV] t=122.67 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=123.31 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=123.37 chase blip from=8.67,17.01 to=9.01,17.05 yaw=83.72
+[DEV] t=123.81 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=124.33 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=124.38 chase blip from=9.17,16.95 to=9.04,17.17 yaw=329.35
+[DEV] t=124.84 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=8 terminal=5 complete progress=16.2
+[offline server] route player=3 terminal=1 complete progress=5.9
+[DEV] t=125.35 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=125.38 chase blip from=9.02,17.44 to=8.92,17.11 yaw=196.12
+[DEV] t=125.86 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=126.37 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=126.40 chase blip from=8.88,16.91 to=9.06,17.11 yaw=41.81
+[DEV] t=126.88 blips inView=1 occluded=0 edges=6 tracked=6
+[DEV] t=127.39 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=127.41 chase blip from=9.34,17.11 to=8.99,17.18 yaw=281.70
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=127.90 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=128.16 attack press (scripted, blip 2.92 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=128.16 swing pressed
+[DEV] t=128.17 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=128.21 swing Started
+[DEV] t=128.40 blips inView=0 occluded=0 edges=6 tracked=10
+[offline server] swing player=4 result=miss
+[DEV] t=128.42 chase blip from=9.08,17.36 to=8.87,17.17 yaw=228.68
+[offline server] status player=1 Normal reason=emergency restore
+[offline server] skill player=5 role=Survivor id=3
+[offline server] route player=8 terminal=5 complete progress=22.2
+[DEV] t=128.71 killer prompt=""
+[DEV] t=128.90 blips inView=2 occluded=2 edges=4 tracked=8
+[DEV] t=128.92 killer prompt="Click  Attack"
+[offline server] route player=7 terminal=5 complete progress=25.7
+[client] swing missed
+[DEV] t=129.21 swing Missed
+[DEV] t=129.38 attack press (scripted, blip 1.24 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=129.38 swing pressed
+[client] swing wind-up
+[DEV] t=129.41 swing Started
+[DEV] t=129.41 blips inView=2 occluded=0 edges=4 tracked=6
+[DEV] t=129.43 chase blip from=9.71,18.45 to=10.31,19.49 yaw=29.88
+[offline server] status player=5 Lagging reason=capture
+[offline server] swing player=4 result=hit target=5
+[client] swing hit
+[DEV] t=129.62 swing Hit
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=129.63 killer prompt=""
+[offline server] route player=3 terminal=1 complete progress=11.5
+[DEV] t=129.84 event u8-killer-capture-2-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-2-strike.png
+[DEV] t=129.92 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=130.07 killer prompt="Click  Attack"
+[DEV] t=130.13 event u8-killer-capture-2-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-2-after.png
+[DEV] t=130.42 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=130.44 chase blip from=9.77,18.62 to=9.54,18.29 yaw=214.73
+[DEV] t=130.59 attack press (scripted, blip 0.86 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=130.59 swing pressed
+[client] swing wind-up
+[DEV] t=130.61 swing Started
+[perf] capture frame times (killer capture) before: n=84 mean=12.0 max=23.0 ms; after: n=82 mean=12.1 max=32.1 ms; spikes>33ms=0
+[offline server] status player=1 Lagging reason=capture
+[offline server] swing player=4 result=hit target=1
+[client] swing hit
+[DEV] t=130.81 swing Hit
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=130.83 killer prompt=""
+[DEV] t=130.93 blips inView=2 occluded=0 edges=2 tracked=4
+[DEV] t=131.02 event u8-killer-capture-3-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-3-strike.png
+[DEV] t=131.31 event u8-killer-capture-3-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-3-after.png
+[DEV] t=131.43 blips inView=2 occluded=0 edges=1 tracked=3
+[DEV] t=131.45 chase blip from=9.81,18.79 to=10.76,20.26 yaw=32.65
+[perf] capture frame times (killer capture) before: n=82 mean=12.4 max=32.1 ms; after: n=82 mean=12.0 max=30.1 ms; spikes>33ms=0
+[DEV] t=131.94 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=132.46 chase blip from=10.93,20.54 to=10.97,20.60 yaw=32.66
+[DEV] t=132.48 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] route player=8 terminal=5 error progress=27.3
+[DEV] t=133.21 blips inView=1 occluded=0 edges=5 tracked=5
+[offline server] route player=7 terminal=5 complete progress=30.9
+[DEV] t=133.50 chase blip from=11.03,20.70 to=10.97,20.60 yaw=212.33
+[DEV] t=133.71 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=134.23 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=134.50 chase blip from=11.04,20.72 to=10.95,20.59 yaw=215.95
+[DEV] t=134.73 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=135.24 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=135.51 chase blip from=10.75,20.45 to=10.93,20.71 yaw=34.03
+[DEV] t=135.75 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=136.31 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=136.53 chase blip from=11.11,20.52 to=10.77,20.62 yaw=286.27
+[offline server] route player=8 terminal=5 complete progress=37.2
+[DEV] t=136.82 blips inView=1 occluded=0 edges=6 tracked=6
+[DEV] t=137.33 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=137.53 chase blip from=10.37,20.67 to=10.56,20.42 yaw=143.03
+[DEV] t=138.01 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=138.51 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=138.53 chase blip from=10.63,20.21 to=10.47,20.44 yaw=325.16
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=139.02 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=139.53 blips inView=0 occluded=0 edges=6 tracked=10
+[DEV] t=139.55 chase blip from=10.15,20.62 to=10.29,20.27 yaw=158.55
+[DEV] t=140.04 blips inView=1 occluded=1 edges=6 tracked=10
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=140.54 blips inView=2 occluded=0 edges=6 tracked=6
+[DEV] t=140.56 chase blip from=10.18,19.82 to=10.27,20.17 yaw=14.68
+[DEV] t=141.05 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=141.55 blips inView=0 occluded=0 edges=6 tracked=8
+[DEV] t=141.57 chase blip from=10.35,20.37 to=10.13,20.16 yaw=225.57
+[offline server] route player=2 terminal=5 complete progress=44.1
+[DEV] t=142.14 blips inView=1 occluded=0 edges=6 tracked=8
+[offline server] route player=3 terminal=5 complete progress=48.1
+[DEV] t=142.58 chase blip from=9.96,19.86 to=10.12,20.11 yaw=31.91
+[DEV] t=142.65 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=143.06 attack press (scripted, blip 2.98 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=143.06 swing pressed
+[DEV] t=143.06 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=143.11 swing Started
+[DEV] t=143.16 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] swing player=4 result=miss
+[offline server] status player=1 Normal reason=emergency restore
+[offline server] skill player=6 role=Survivor id=3
+[DEV] t=143.59 chase blip from=10.02,19.73 to=10.19,20.78 yaw=9.17
+[DEV] t=143.66 blips inView=2 occluded=0 edges=3 tracked=4
+[offline server] skill player=7 role=Survivor id=4
+[client] swing missed
+[DEV] t=144.12 swing Missed
+[DEV] t=144.17 blips inView=2 occluded=1 edges=1 tracked=4
+[offline server] route player=3 terminal=5 complete progress=54.4
+[DEV] t=144.27 attack press (scripted, blip 1.80 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=144.27 swing pressed
+[client] swing wind-up
+[DEV] t=144.31 swing Started
+[offline server] status player=6 Lagging reason=capture
+[offline server] swing player=4 result=hit target=6
+[client] swing hit
+[DEV] t=144.52 swing Hit
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=144.53 killer prompt=""
+[DEV] t=144.59 chase blip from=11.76,21.61 to=13.77,22.02 yaw=78.56
+[DEV] t=144.67 blips inView=2 occluded=5 edges=1 tracked=8
+[DEV] t=144.74 event u8-killer-capture-4-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-4-strike.png
+[DEV] t=144.96 killer prompt="Click  Attack"
+[DEV] t=145.03 event u8-killer-capture-4-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\u8-killer-capture-4-after.png
+[DEV] t=145.18 blips inView=1 occluded=0 edges=6 tracked=10
+[DEV] t=145.47 attack press (scripted, blip 0.72 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=145.47 swing pressed
+[client] swing wind-up
+[DEV] t=145.51 swing Started
+[perf] capture frame times (killer capture) before: n=91 mean=11.0 max=23.5 ms; after: n=90 mean=11.1 max=27.0 ms; spikes>33ms=0
+[DEV] t=145.61 chase blip from=11.20,21.00 to=11.85,21.54 yaw=36.15
+[DEV] t=145.68 blips inView=3 occluded=0 edges=2 tracked=5
+[offline server] route player=2 terminal=5 complete progress=58.9
+[offline server] status player=1 Eliminated reason=third capture
+[offline server] swing player=4 result=hit target=1
+[DEV] t=145.71 killer prompt=""
+[offline server] route player=8 terminal=1 error progress=11.2
+[DEV] t=146.19 blips inView=2 occluded=1 edges=2 tracked=5
+[client] swing hit (eliminating, entry gone)
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=146.31 swing Hit (eliminating)
+[DEV] t=146.31 event r1-killer-elim-hit.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\r1-killer-elim-hit.png
+[DEV] t=146.63 chase blip from=12.25,21.94 to=15.73,22.53 yaw=80.48
+[offline server] route player=3 terminal=5 error progress=58.1
+[DEV] t=146.70 blips inView=2 occluded=4 edges=0 tracked=6
+[DEV] t=147.37 blips inView=1 occluded=4 edges=1 tracked=6
+[DEV] t=147.64 chase blip from=16.83,22.71 to=16.61,22.67 yaw=260.49
+[DEV] t=147.87 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=148.40 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=148.64 chase blip from=16.38,22.64 to=16.53,22.66 yaw=80.79
+[DEV] t=148.90 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=3 terminal=5 complete progress=63.0
+[DEV] t=149.41 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=149.65 chase blip from=16.35,22.77 to=16.31,22.59 yaw=193.55
+[DEV] t=149.92 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=150.43 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=150.65 chase blip from=16.18,22.35 to=16.17,22.61 yaw=358.88
+[DEV] t=151.16 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=151.66 chase blip from=16.16,22.95 to=16.29,22.61 yaw=158.95
+[DEV] t=151.66 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=152.34 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=152.68 chase blip from=16.38,22.20 to=16.21,22.48 yaw=328.12
+[DEV] t=152.85 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=153.36 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] route player=3 terminal=5 complete progress=68.1
+[DEV] t=153.68 chase blip from=15.95,22.55 to=16.30,22.46 yaw=104.30
+[DEV] t=153.97 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=154.48 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=154.70 chase blip from=16.63,22.43 to=16.57,22.44 yaw=279.20
+[DEV] t=154.99 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=155.50 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=155.71 chase blip from=16.25,22.64 to=16.55,22.59 yaw=99.41
+[offline server] route player=7 terminal=5 complete progress=74.8
+[DEV] t=156.08 blips inView=1 occluded=0 edges=3 tracked=3
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=156.60 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=156.71 chase blip from=16.68,22.77 to=16.66,22.54 yaw=183.69
+[DEV] t=157.10 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=5 complete progress=80.0
+[DEV] t=157.73 chase blip from=16.59,22.32 to=16.56,22.61 yaw=354.53
+[DEV] t=157.81 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=158.31 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=158.75 chase blip from=16.70,22.82 to=16.74,22.58 yaw=171.12
+[DEV] t=158.82 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=159.33 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=159.75 chase blip from=16.65,22.35 to=16.67,22.61 yaw=6.27
+[DEV] t=159.84 blips inView=1 occluded=0 edges=6 tracked=9
+[offline server] route player=7 terminal=5 complete progress=86.0
+[DEV] t=160.36 blips inView=1 occluded=1 edges=6 tracked=9
+[DEV] t=160.76 chase blip from=16.75,22.88 to=16.91,22.59 yaw=150.58
+[DEV] t=160.86 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=161.46 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=161.77 chase blip from=16.98,22.23 to=16.88,22.50 yaw=339.26
+[offline server] route player=3 terminal=5 error progress=85.9
+[DEV] t=161.99 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=162.49 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=162.78 chase blip from=16.62,22.63 to=16.86,22.56 yaw=106.36
+[DEV] t=163.02 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=163.57 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=163.79 chase blip from=17.05,22.48 to=16.69,22.54 yaw=280.06
+[DEV] t=164.09 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=164.59 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=164.80 chase blip from=16.57,22.65 to=16.81,22.59 yaw=104.64
+[offline server] route player=3 terminal=5 complete progress=92.4
+[DEV] t=165.17 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=165.67 blips inView=1 occluded=1 edges=3 tracked=4
+[DEV] t=165.80 chase blip from=17.13,22.76 to=16.96,22.53 yaw=215.98
+[DEV] t=166.18 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=7 terminal=5 complete progress=97.4
+[DEV] t=166.78 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=166.81 chase blip from=16.47,22.42 to=16.78,22.56 yaw=66.56
+[DEV] t=167.30 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=167.81 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=167.81 chase blip from=17.19,22.63 to=16.99,22.52 yaw=243.32
+[DEV] t=168.32 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] terminal 5 complete
+[DEV] t=168.60 terminals 0:0 1:0 2:0 3:100 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 3/5"
+[DEV] t=168.82 chase blip from=16.75,22.50 to=16.79,22.57 yaw=31.70
+[DEV] t=168.82 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=169.34 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=169.82 chase blip from=16.89,22.69 to=16.83,22.53 yaw=202.60
+[DEV] t=169.85 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=170.48 blips inView=2 occluded=0 edges=4 tracked=4
+[DEV] t=170.83 chase blip from=16.52,22.37 to=16.64,22.58 yaw=29.17
+[offline server] status player=5 Normal reason=rescue
+[DEV] t=170.98 blips inView=1 occluded=1 edges=3 tracked=5
+[DEV] t=171.50 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=171.83 chase blip from=16.56,22.73 to=16.79,22.64 yaw=110.16
+[DEV] t=172.23 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=172.73 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=172.85 chase blip from=16.70,22.23 to=16.79,22.52 yaw=16.90
+[DEV] t=173.31 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=173.82 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=173.85 chase blip from=16.94,22.85 to=17.03,22.56 yaw=162.62
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=174.33 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=174.85 chase blip from=17.14,22.36 to=16.85,22.56 yaw=304.99
+[DEV] t=174.99 blips inView=1 occluded=0 edges=6 tracked=6
+[offline server] route player=3 terminal=1 complete progress=17.5
+[DEV] t=175.54 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=175.86 chase blip from=16.76,22.40 to=17.02,22.56 yaw=57.84
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=176.05 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=176.56 blips inView=0 occluded=0 edges=6 tracked=8
+[DEV] t=176.88 chase blip from=17.19,22.78 to=17.26,22.55 yaw=162.32
+[DEV] t=177.07 blips inView=0 occluded=0 edges=6 tracked=9
+[offline server] route player=7 terminal=1 complete progress=22.8
+[DEV] t=177.58 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=177.89 chase blip from=17.41,22.36 to=17.40,22.62 yaw=358.41
+[DEV] t=178.09 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=178.60 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=178.90 chase blip from=17.68,22.83 to=17.62,22.61 yaw=195.29
+[DEV] t=179.10 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=179.60 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=1 complete progress=27.9
+[DEV] t=179.90 chase blip from=17.60,22.44 to=17.66,22.62 yaw=19.14
+[DEV] t=180.10 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=180.61 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=180.92 chase blip from=17.94,22.58 to=17.79,22.53 yaw=251.89
+[DEV] t=181.12 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=181.63 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=181.93 chase blip from=17.69,22.58 to=17.88,22.65 yaw=71.70
+[DEV] t=182.14 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=7 terminal=1 complete progress=32.9
+[DEV] t=182.65 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=182.94 chase blip from=18.41,22.58 to=18.14,22.59 yaw=271.73
+[DEV] t=183.15 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=183.66 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=183.95 chase blip from=18.14,22.39 to=18.12,22.63 yaw=355.60
+[DEV] t=184.17 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=184.85 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=184.97 chase blip from=18.24,22.97 to=18.23,22.62 yaw=182.61
+[offline server] route player=3 terminal=1 complete progress=39.2
+[DEV] t=185.36 blips inView=1 occluded=2 edges=2 tracked=5
+[DEV] t=185.87 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=185.97 chase blip from=18.81,22.49 to=18.49,22.64 yaw=295.20
+[offline server] route player=7 terminal=1 complete progress=44.3
+[DEV] t=186.52 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=186.98 chase blip from=18.42,22.32 to=18.42,22.66 yaw=1.32
+[DEV] t=187.03 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=187.54 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=187.98 chase blip from=18.27,22.75 to=18.48,22.67 yaw=111.08
+[DEV] t=188.05 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=188.73 blips inView=1 occluded=0 edges=3 tracked=3
+[offline server] route player=8 terminal=4 error progress=0.0
+[DEV] t=189.00 chase blip from=18.83,22.54 to=18.64,22.50 yaw=258.07
+[DEV] t=189.24 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=3 role=Survivor id=0
+[offline server] route player=3 terminal=1 complete progress=49.4
+[DEV] t=190.00 chase blip from=18.70,22.42 to=18.80,22.59 yaw=31.78
+[DEV] t=190.03 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=190.54 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=191.02 chase blip from=19.12,22.71 to=19.05,22.53 yaw=199.52
+[DEV] t=191.24 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=1 complete progress=55.7
+[DEV] t=191.76 blips inView=1 occluded=1 edges=2 tracked=3
+[offline server] route player=8 terminal=4 complete progress=5.2 unlogged=1
+[DEV] t=192.02 chase blip from=19.34,22.42 to=19.09,22.53 yaw=293.35
+[DEV] t=192.27 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=192.78 blips inView=0 occluded=0 edges=6 tracked=7
+[offline server] route player=7 terminal=1 error progress=54.3
+[DEV] t=193.03 chase blip from=18.96,22.57 to=19.13,22.70 yaw=51.58
+[DEV] t=193.30 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=193.81 blips inView=1 occluded=1 edges=6 tracked=10
+[DEV] t=194.04 chase blip from=19.36,22.74 to=19.10,22.60 yaw=241.40
+[DEV] t=194.31 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=194.83 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=1 complete progress=60.9
+[DEV] t=195.06 chase blip from=18.98,22.23 to=19.16,22.57 yaw=28.36
+[DEV] t=195.33 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=195.94 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=196.06 chase blip from=19.07,22.83 to=19.28,22.57 yaw=140.16
+[DEV] t=196.45 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] route player=7 terminal=1 complete progress=64.8
+[DEV] t=196.97 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=197.07 chase blip from=19.53,22.53 to=19.19,22.52 yaw=268.57
+[offline server] route player=8 terminal=4 complete progress=11.0
+[DEV] t=197.49 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=197.99 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=198.07 chase blip from=19.12,22.28 to=19.14,22.60 yaw=2.54
+[DEV] t=198.50 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=199.00 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=199.07 chase blip from=19.17,22.86 to=19.29,22.58 yaw=157.68
+[DEV] t=199.52 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=200.07 chase blip from=19.71,22.57 to=19.41,22.49 yaw=254.65
+[DEV] t=200.22 blips inView=0 occluded=1 edges=4 tracked=5
+[offline server] route player=7 terminal=1 complete progress=71.4
+[offline server] route player=3 terminal=1 complete progress=74.9
+[DEV] t=200.73 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=201.07 chase blip from=19.39,22.29 to=19.40,22.55 yaw=2.90
+[DEV] t=201.25 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] route player=8 terminal=4 complete progress=16.9
+[DEV] t=201.75 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=202.09 chase blip from=19.43,22.75 to=19.62,22.54 yaw=137.02
+[DEV] t=202.26 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=202.78 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=203.10 chase blip from=19.93,22.59 to=19.73,22.44 yaw=232.43
+[DEV] t=203.30 blips inView=1 occluded=0 edges=3 tracked=3
+[offline server] route player=7 terminal=1 complete progress=81.1
+[DEV] t=203.80 blips inView=1 occluded=1 edges=4 tracked=5
+[DEV] t=204.12 chase blip from=19.86,22.17 to=19.74,22.48 yaw=339.51
+[DEV] t=204.32 blips inView=1 occluded=0 edges=4 tracked=5
+[offline server] skill player=3 role=Survivor id=0
+[offline server] stage player=6 count=2 reason=timeout
+[DEV] t=204.83 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] route player=3 terminal=1 complete progress=86.7
+[offline server] route player=8 terminal=4 complete progress=22.4
+[DEV] t=205.12 chase blip from=19.70,22.78 to=19.84,22.49 yaw=153.42
+[DEV] t=205.34 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=205.85 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=206.13 chase blip from=19.94,22.28 to=19.71,22.45 yaw=308.42
+[DEV] t=206.37 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=206.87 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=207.13 chase blip from=19.53,22.47 to=19.79,22.53 yaw=76.53
+[DEV] t=207.39 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=207.89 blips inView=0 occluded=0 edges=6 tracked=10
+[offline server] route player=7 terminal=1 complete progress=92.0
+[offline server] route player=3 terminal=1 error progress=90.2
+[DEV] t=208.14 chase blip from=19.93,22.81 to=19.83,22.54 yaw=200.39
+[DEV] t=208.40 blips inView=1 occluded=0 edges=6 tracked=9
+[offline server] route player=8 terminal=4 complete progress=28.1
+[DEV] t=208.90 blips inView=0 occluded=0 edges=6 tracked=9
+[DEV] t=209.14 chase blip from=19.60,22.47 to=19.82,22.62 yaw=55.02
+[DEV] t=209.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=209.99 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=210.14 chase blip from=19.92,22.73 to=20.10,22.57 yaw=130.67
+[DEV] t=210.50 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=1 complete progress=95.1
+[DEV] t=211.02 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=211.16 chase blip from=20.33,22.75 to=20.13,22.52 yaw=220.69
+[DEV] t=211.52 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=212.03 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=212.18 chase blip from=20.15,22.28 to=20.09,22.58 yaw=348.21
+[DEV] t=212.55 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=8 terminal=4 complete progress=33.8
+[DEV] t=213.07 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=213.19 chase blip from=20.15,22.92 to=20.23,22.61 yaw=167.08
+[DEV] t=213.57 blips inView=1 occluded=1 edges=2 tracked=3
+[offline server] route player=7 terminal=1 complete progress=101.9
+[offline server] terminal 1 complete
+[DEV] t=213.96 terminals 0:0 1:100 2:0 3:100 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 4/5"
+[DEV] t=214.07 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=214.20 chase blip from=20.54,22.40 to=20.24,22.51 yaw=290.73
+[DEV] t=214.58 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=215.09 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=215.21 chase blip from=19.94,22.75 to=20.31,22.65 yaw=105.95
+[DEV] t=215.60 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=216.12 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=216.22 chase blip from=20.71,22.66 to=20.42,22.60 yaw=260.09
+[DEV] t=216.63 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=8 terminal=4 complete progress=39.4
+[DEV] t=217.24 chase blip from=20.19,22.52 to=20.34,22.78 yaw=29.21
+[DEV] t=217.28 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=217.83 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=218.24 chase blip from=20.48,23.10 to=20.52,22.78 yaw=171.74
+[DEV] t=218.53 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=219.04 blips inView=1 occluded=1 edges=3 tracked=4
+[DEV] t=219.26 chase blip from=20.83,22.74 to=20.56,22.79 yaw=281.59
+[DEV] t=219.56 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=220.26 chase blip from=20.25,22.65 to=20.52,22.93 yaw=42.44
+[DEV] t=220.26 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=220.80 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=221.27 chase blip from=20.46,23.15 to=20.63,22.95 yaw=140.48
+[DEV] t=221.30 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=221.81 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=222.27 chase blip from=20.97,22.93 to=20.63,22.86 yaw=259.38
+[DEV] t=222.49 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=223.00 blips inView=1 occluded=1 edges=2 tracked=3
+[DEV] t=223.28 chase blip from=20.80,22.75 to=20.52,22.87 yaw=292.73
+[DEV] t=223.52 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=8 terminal=4 complete progress=45.7
+[DEV] t=224.24 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=224.29 chase blip from=20.26,22.96 to=20.59,22.99 yaw=85.95
+[DEV] t=224.79 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=225.29 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=225.31 chase blip from=20.77,23.17 to=20.67,22.93 yaw=203.57
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=225.81 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=226.31 chase blip from=20.83,22.87 to=20.60,22.85 yaw=266.10
+[DEV] t=226.33 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=226.85 blips inView=0 occluded=0 edges=6 tracked=10
+[offline server] route player=3 terminal=4 complete progress=52.4
+[DEV] t=227.31 chase blip from=20.30,22.78 to=20.56,22.98 yaw=52.10
+[DEV] t=227.36 blips inView=1 occluded=0 edges=6 tracked=10
+[DEV] t=227.88 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=228.33 chase blip from=20.43,23.11 to=20.67,23.06 yaw=102.63
+[DEV] t=228.42 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=228.94 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=229.34 chase blip from=20.90,23.22 to=20.71,22.97 yaw=217.79
+[DEV] t=229.55 blips inView=1 occluded=0 edges=3 tracked=3
+[offline server] route player=7 terminal=4 complete progress=57.7
+[DEV] t=230.07 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=230.34 chase blip from=20.44,22.78 to=20.60,23.04 yaw=32.80
+[DEV] t=230.58 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=3 terminal=4 complete progress=62.6
+[DEV] t=231.16 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=231.35 chase blip from=20.49,23.21 to=20.69,23.00 yaw=135.50
+[DEV] t=231.66 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=232.17 blips inView=1 occluded=1 edges=3 tracked=4
+[DEV] t=232.37 chase blip from=21.03,23.15 to=20.80,22.93 yaw=227.02
+[DEV] t=232.67 blips inView=1 occluded=0 edges=4 tracked=4
+[DEV] t=233.17 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=233.37 chase blip from=20.83,22.67 to=20.67,22.95 yaw=329.38
+[DEV] t=233.68 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=8 terminal=6 error progress=0.0
+[DEV] t=234.28 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] route player=3 terminal=4 complete progress=70.2
+[DEV] t=234.37 chase blip from=20.57,23.26 to=20.74,23.00 yaw=147.88
+[offline server] status player=6 Eliminated reason=timeout
+[DEV] t=234.78 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=235.30 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=235.37 chase blip from=24.34,22.64 to=40.26,19.21 yaw=93.30
+[offline server] route player=7 terminal=4 error progress=69.7
+[offline server] route player=8 terminal=6 complete progress=5.0
+[offline server] shutter 2 pull by player=5
+[DEV] t=235.70 attack press (scripted, blip 2.97 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=235.70 swing pressed
+[DEV] t=235.70 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=235.72 swing Started
+[DEV] t=235.82 blips inView=1 occluded=2 edges=0 tracked=3
+[offline server] shutter 2 down by player=5 stun=none
+[offline server] swing player=4 result=miss
+[audio] chase cue ShutterSlam at 28.0, 22.5
+[DEV] t=235.92 event chase-shutter-down.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\chase-shutter-down.png
+[client] swing missed
+[DEV] t=236.26 swing Missed
+[DEV] t=236.35 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=236.38 chase blip from=27.45,22.96 to=29.41,23.25 yaw=81.68
+[DEV] t=236.62 killer prompt="Hold [E] to force the Shutter"
+[DEV] t=236.96 blips inView=1 occluded=1 edges=2 tracked=4
+[DEV] t=237.40 chase blip from=27.45,23.19 to=33.00,24.74 yaw=89.25
+[DEV] t=237.47 blips inView=0 occluded=2 edges=2 tracked=4
+[offline server] route player=8 terminal=6 error progress=4.2
+[DEV] t=238.32 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=238.41 chase blip from=27.45,23.23 to=34.96,28.30 yaw=89.78
+[offline server] route player=7 terminal=4 complete progress=76.3
+[DEV] t=239.19 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=239.43 chase blip from=27.45,23.25 to=35.56,32.25 yaw=89.93
+[DEV] t=240.16 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=240.45 chase blip from=27.45,23.25 to=41.35,17.29 yaw=96.94
+[offline server] route player=3 terminal=4 complete progress=80.9
+[DEV] t=240.67 blips inView=0 occluded=1 edges=4 tracked=5
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=241.38 blips inView=1 occluded=0 edges=4 tracked=5
+[offline server] route player=8 terminal=6 complete progress=9.3
+[DEV] t=241.47 chase blip from=27.45,22.77 to=41.29,21.36 yaw=95.79
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=241.89 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=242.41 blips inView=1 occluded=1 edges=6 tracked=9
+[DEV] t=242.48 chase blip from=27.45,22.88 to=41.27,25.41 yaw=82.05
+[DEV] t=242.91 blips inView=0 occluded=2 edges=5 tracked=7
+[offline server] skill player=7 role=Survivor id=4
+[offline server] route player=7 terminal=4 complete progress=86.7
+[DEV] t=243.41 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=243.41 killer prompt=""
+[DEV] t=243.49 chase blip from=25.92,23.20 to=24.90,37.71 yaw=271.64
+[DEV] t=243.92 blips inView=0 occluded=1 edges=6 tracked=8
+[DEV] t=244.44 blips inView=0 occluded=1 edges=6 tracked=10
+[DEV] t=244.49 chase blip from=21.34,23.35 to=10.41,25.48 yaw=269.46
+[offline server] route player=3 terminal=4 complete progress=91.5
+[DEV] t=244.96 blips inView=1 occluded=1 edges=2 tracked=4
+[DEV] t=245.48 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=245.50 chase blip from=20.59,27.46 to=19.94,34.10 yaw=354.33
+[offline server] route player=8 terminal=6 complete progress=15.3
+[DEV] t=246.16 blips inView=1 occluded=0 edges=1 tracked=2
+[offline server] shutter 5 pull by player=5
+[DEV] t=246.33 attack press (scripted, blip 3.00 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=246.33 swing pressed
+[DEV] t=246.33 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=246.36 swing Started
+[DEV] t=246.50 chase blip from=19.96,31.91 to=19.69,34.22 yaw=353.25
+[offline server] shutter 5 down by player=5 stun=none
+[offline server] swing player=4 result=miss
+[audio] chase cue ShutterSlam at 19.5, 33.5
+[DEV] t=246.67 blips inView=1 occluded=0 edges=2 tracked=3
+[offline server] route player=7 terminal=4 complete progress=96.5
+[client] swing missed
+[DEV] t=246.92 swing Missed
+[DEV] t=247.18 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=247.52 chase blip from=19.61,32.91 to=19.27,35.46 yaw=352.37
+[DEV] t=247.55 attack press (scripted, blip 2.69 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=247.55 swing pressed
+[client] swing wind-up
+[DEV] t=247.55 swing Started
+[DEV] t=247.64 killer prompt="Hold [E] to force the Shutter"
+[offline server] swing player=4 result=miss
+[DEV] t=247.97 blips inView=1 occluded=0 edges=2 tracked=3
+[client] swing missed
+[DEV] t=248.11 swing Missed
+[offline server] route player=3 terminal=4 complete progress=102.4
+[offline server] terminal 4 complete
+[offline server] exits powered reason=terminals
+[audio] v2 cue ExitsPowered
+[DEV] t=248.21 terminals 0:0 1:100 2:0 3:100 4:100 5:100 6:0 7:100 required=5 exits=0:1/0 1:1/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 5/5"
+[DEV] t=248.21 event v2-killer-powered.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\v2-killer-powered.png
+[DEV] t=248.48 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=248.54 chase blip from=19.28,32.91 to=16.94,37.66 yaw=353.78
+[DEV] t=249.33 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=249.54 chase blip from=18.95,32.91 to=12.83,37.72 yaw=357.65
+[offline server] route player=8 terminal=6 complete progress=21.0
+[DEV] t=249.96 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=250.46 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=250.55 chase blip from=18.82,32.91 to=11.17,35.06 yaw=359.18
+[DEV] t=251.56 chase blip from=18.77,32.91 to=10.56,31.11 yaw=359.71
+[DEV] t=252.12 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=252.54 killer prompt=""
+[DEV] t=252.57 chase blip from=18.76,31.70 to=9.94,27.10 yaw=180.07
+[DEV] t=252.64 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] route player=8 terminal=6 complete progress=26.8
+[DEV] t=253.57 chase blip from=18.75,27.09 to=9.32,23.07 yaw=180.06
+[DEV] t=253.77 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=254.28 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=254.57 chase blip from=17.67,23.08 to=8.72,19.13 yaw=255.23
+[DEV] t=254.79 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=255.42 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=255.57 chase blip from=13.21,21.90 to=8.11,15.16 yaw=255.23
+[DEV] t=255.94 blips inView=1 occluded=0 edges=4 tracked=4
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=256.46 blips inView=1 occluded=0 edges=5 tracked=6
+[DEV] t=256.58 chase blip from=10.29,18.95 to=7.51,11.25 yaw=199.82
+[offline server] route player=7 terminal=6 complete progress=33.2
+[DEV] t=257.46 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=257.59 chase blip from=8.87,14.52 to=7.19,7.58 yaw=193.57
+[DEV] t=257.98 blips inView=1 occluded=0 edges=2 tracked=3
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=258.48 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=258.59 chase blip from=8.97,9.99 to=10.84,5.78 yaw=156.10
+[DEV] t=258.99 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=259.49 blips inView=1 occluded=1 edges=5 tracked=7
+[DEV] t=259.61 chase blip from=11.72,6.24 to=14.44,4.00 yaw=129.46
+[offline server] route player=3 terminal=6 complete progress=37.8
+[DEV] t=260.00 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=260.45 attack press (scripted, blip 3.00 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=260.45 swing pressed
+[DEV] t=260.45 killer prompt="Click  Attack"
+[DEV] t=260.45 killer prompt=""
+[client] swing wind-up
+[DEV] t=260.48 swing Started
+[DEV] t=260.48 killer prompt="Click  Attack"
+[DEV] t=260.48 killer prompt=""
+[DEV] t=260.50 killer prompt="Click  Attack"
+[DEV] t=260.51 killer prompt=""
+[DEV] t=260.53 killer prompt="Click  Attack"
+[DEV] t=260.53 killer prompt=""
+[DEV] t=260.55 killer prompt="Click  Attack"
+[DEV] t=260.56 killer prompt=""
+[DEV] t=260.58 killer prompt="Click  Attack"
+[DEV] t=260.58 killer prompt=""
+[DEV] t=260.64 chase blip from=15.44,3.69 to=18.10,2.19 yaw=119.33
+[offline server] swing player=4 result=miss
+[DEV] t=260.81 blips inView=0 occluded=0 edges=3 tracked=3
+[client] swing missed
+[DEV] t=261.01 swing Missed
+[DEV] t=261.31 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=261.64 chase blip from=17.33,4.59 to=45.10,45.28 yaw=46.50
+[DEV] t=262.66 chase blip from=20.73,7.83 to=45.58,49.27 yaw=6.23
+[DEV] t=262.71 blips inView=0 occluded=3 edges=0 tracked=3
+[offline server] route player=7 terminal=6 complete progress=43.9
+[DEV] t=263.23 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=263.66 chase blip from=19.27,5.95 to=15.64,3.45 yaw=235.39
+[DEV] t=264.41 attack press (scripted, blip 2.97 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=264.41 swing pressed
+[DEV] t=264.41 killer prompt="Click  Attack"
+[DEV] t=264.41 killer prompt=""
+[DEV] t=264.44 killer prompt="Click  Attack"
+[DEV] t=264.44 killer prompt=""
+[client] swing wind-up
+[DEV] t=264.46 swing Started
+[DEV] t=264.46 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=264.46 killer prompt="Click  Attack"
+[offline server] route player=3 terminal=6 complete progress=50.0
+[DEV] t=264.62 killer prompt=""
+[DEV] t=264.65 killer prompt="Click  Attack"
+[DEV] t=264.65 killer prompt=""
+[offline server] swing player=4 result=miss
+[DEV] t=264.67 chase blip from=15.16,4.93 to=12.24,5.61 yaw=283.14
+[DEV] t=264.67 killer prompt="Click  Attack"
+[DEV] t=264.68 killer prompt=""
+[DEV] t=264.96 blips inView=1 occluded=0 edges=1 tracked=2
+[client] swing missed
+[DEV] t=265.02 swing Missed
+[DEV] t=265.63 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=265.68 chase blip from=12.79,5.82 to=8.83,7.76 yaw=296.10
+[DEV] t=266.15 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=266.68 chase blip from=8.73,7.99 to=5.52,9.86 yaw=300.19
+[DEV] t=266.76 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=7 terminal=6 complete progress=54.5
+[DEV] t=267.11 attack press (scripted, blip 2.98 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=267.11 swing pressed
+[DEV] t=267.11 killer prompt="Click  Attack"
+[DEV] t=267.11 killer prompt=""
+[DEV] t=267.13 killer prompt="Click  Attack"
+[DEV] t=267.13 killer prompt=""
+[DEV] t=267.15 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=267.16 swing Started
+[DEV] t=267.27 blips inView=1 occluded=0 edges=4 tracked=5
+[offline server] swing player=4 result=miss
+[DEV] t=267.37 killer prompt=""
+[DEV] t=267.40 killer prompt="Click  Attack"
+[DEV] t=267.40 killer prompt=""
+[DEV] t=267.69 chase blip from=6.26,10.27 to=4.35,13.12 yaw=326.07
+[client] swing missed
+[DEV] t=267.71 swing Missed
+[DEV] t=267.78 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=268.29 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=268.69 chase blip from=4.77,13.16 to=3.17,17.00 yaw=337.38
+[DEV] t=269.37 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=269.71 chase blip from=3.12,17.54 to=2.01,20.83 yaw=341.39
+[offline server] route player=3 terminal=6 complete progress=59.7
+[DEV] t=269.88 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=270.39 blips inView=0 occluded=4 edges=0 tracked=4
+[DEV] t=270.71 chase blip from=3.89,21.76 to=35.99,58.71 yaw=25.48
+[offline server] route player=7 terminal=6 complete progress=64.6
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=271.11 blips inView=0 occluded=5 edges=0 tracked=5
+[DEV] t=271.61 blips inView=0 occluded=3 edges=0 tracked=3
+[DEV] t=271.72 chase blip from=5.90,25.96 to=35.99,58.71 yaw=25.48
+[DEV] t=272.21 blips inView=0 occluded=3 edges=1 tracked=4
+[DEV] t=272.72 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=272.72 chase blip from=5.85,26.92 to=2.67,22.96 yaw=218.75
+[offline server] skill player=2 role=Survivor id=4
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=273.23 blips inView=1 occluded=0 edges=6 tracked=9
+[DEV] t=273.26 blips tracked max=11
+[DEV] t=273.45 attack press (scripted, blip 2.97 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=273.45 swing pressed
+[DEV] t=273.45 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=273.47 swing Started
+[DEV] t=273.52 blips tracked max=13
+[offline server] swing player=4 result=miss
+[offline server] route player=3 terminal=6 complete progress=69.3
+[DEV] t=273.72 chase blip from=7.12,24.69 to=9.12,24.01 yaw=108.80
+[DEV] t=273.74 blips inView=1 occluded=1 edges=6 tracked=13
+[client] swing missed
+[DEV] t=274.02 swing Missed
+[DEV] t=274.29 blips inView=0 occluded=1 edges=6 tracked=13
+[DEV] t=274.50 killer prompt="Hold [E] to jam Terminal 1"
+[DEV] t=274.72 chase blip from=9.39,24.58 to=2.07,15.05 yaw=217.52
+[DEV] t=274.79 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=274.89 killer prompt=""
+[DEV] t=275.30 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=275.74 chase blip from=6.83,20.67 to=1.77,11.00 yaw=207.62
+[DEV] t=275.81 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=276.37 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=276.74 chase blip from=5.22,17.35 to=1.87,9.34 yaw=202.68
+[offline server] route player=7 terminal=6 complete progress=75.4
+[DEV] t=276.88 blips inView=1 occluded=0 edges=3 tracked=4
+[offline server] route player=3 terminal=6 error progress=73.9
+[DEV] t=277.39 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=277.75 chase blip from=4.10,12.90 to=4.90,9.25 yaw=167.55
+[DEV] t=278.16 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=278.21 attack press (scripted, blip 2.98 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=278.21 swing pressed
+[DEV] t=278.21 killer prompt="Click  Attack"
+[DEV] t=278.22 killer prompt=""
+[DEV] t=278.24 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=278.26 swing Started
+[offline server] swing player=4 result=miss
+[DEV] t=278.46 killer prompt=""
+[offline server] route player=3 terminal=6 error progress=74.6
+[DEV] t=278.67 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=278.77 chase blip from=5.89,9.76 to=8.68,7.70 yaw=126.36
+[client] swing missed
+[DEV] t=278.82 swing Missed
+[DEV] t=279.76 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=279.79 chase blip from=8.70,8.08 to=12.45,6.16 yaw=117.12
+[DEV] t=280.27 blips inView=1 occluded=0 edges=2 tracked=3
+[offline server] route player=7 terminal=6 complete progress=78.3
+[DEV] t=280.78 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=280.80 chase blip from=12.90,6.07 to=15.92,4.76 yaw=113.44
+[DEV] t=281.28 blips inView=1 occluded=0 edges=2 tracked=3
+[offline server] route player=3 terminal=6 complete progress=83.8
+[DEV] t=281.82 chase blip from=16.50,4.84 to=19.76,3.77 yaw=108.17
+[DEV] t=281.82 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=282.33 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=282.52 attack press (scripted, blip 3.00 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=282.52 swing pressed
+[DEV] t=282.52 killer prompt="Click  Attack"
+[DEV] t=282.53 killer prompt=""
+[DEV] t=282.54 killer prompt="Click  Attack"
+[DEV] t=282.55 killer prompt=""
+[client] swing wind-up
+[DEV] t=282.57 swing Started
+[DEV] t=282.57 killer prompt="Click  Attack"
+[DEV] t=282.57 killer prompt=""
+[DEV] t=282.59 killer prompt="Click  Attack"
+[DEV] t=282.59 killer prompt=""
+[DEV] t=282.62 killer prompt="Click  Attack"
+[DEV] t=282.62 killer prompt=""
+[DEV] t=282.64 killer prompt="Click  Attack"
+[DEV] t=282.64 killer prompt=""
+[DEV] t=282.66 killer prompt="Click  Attack"
+[DEV] t=282.67 killer prompt=""
+[DEV] t=282.69 killer prompt="Click  Attack"
+[DEV] t=282.69 killer prompt=""
+[offline server] swing player=4 result=miss
+[DEV] t=282.83 chase blip from=20.59,3.60 to=23.70,2.75 yaw=105.38
+[DEV] t=282.83 blips inView=1 occluded=0 edges=3 tracked=4
+[client] swing missed
+[DEV] t=283.10 swing Missed
+[DEV] t=283.46 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=283.85 chase blip from=23.22,2.89 to=27.54,1.75 yaw=104.84
+[DEV] t=283.97 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] route player=7 terminal=6 complete progress=88.5
+[DEV] t=284.48 blips inView=1 occluded=0 edges=5 tracked=5
+[DEV] t=284.87 chase blip from=22.57,3.36 to=29.09,1.94 yaw=102.28
+[DEV] t=284.99 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=285.49 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=285.88 chase blip from=27.09,2.66 to=33.14,2.44 yaw=92.07
+[offline server] exit 1 open
+[offline server] collapse start reason=exit
+[audio] v2 cue CollapseStart
+[DEV] t=286.27 terminals 0:0 1:100 2:0 3:100 4:100 5:100 6:0 7:100 required=5 exits=0:1/0 1:3/100 exitOpen=1 collapse=120.00 hatch=0 hud="Terminals 5/5"
+[DEV] t=286.27 event exit-open.png
+[DEV] t=286.27 selfstate #288 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=120.00 action=None:0.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\exit-open.png
+[DEV] t=286.32 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=286.83 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=286.90 chase blip from=31.78,2.67 to=37.18,2.93 yaw=87.21
+[offline server] status player=8 Escaped reason=exit
+[DEV] t=287.41 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=287.91 chase blip from=36.39,2.99 to=39.99,4.85 yaw=85.53
+[DEV] t=287.91 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=288.27 event v2-killer-collapse.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa\live\killer-chase\v2-killer-collapse.png
+[DEV] t=288.42 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=288.92 chase blip from=40.16,4.71 to=41.15,8.72 yaw=13.90
+[DEV] t=288.92 blips inView=2 occluded=2 edges=0 tracked=4
+[DEV] t=289.43 blips inView=1 occluded=3 edges=0 tracked=4
+[DEV] t=289.94 chase blip from=41.35,9.25 to=42.58,12.46 yaw=14.46
+[DEV] t=290.11 attack press (scripted, blip 2.99 m)
+[audio] v2 cue SwingWhoosh
+[client] swing pressed: sweep + whoosh
+[DEV] t=290.11 swing pressed
+[DEV] t=290.11 killer prompt="Click  Attack"
+[DEV] t=290.11 killer prompt=""
+[DEV] t=290.13 killer prompt="Click  Attack"
+[DEV] t=290.13 killer prompt=""
+[DEV] t=290.15 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=290.16 swing Started
+[DEV] t=290.21 blips inView=0 occluded=4 edges=0 tracked=4
+[DEV] t=290.33 killer prompt=""
+[offline server] swing player=4 result=miss
+[client] swing missed
+[DEV] t=290.71 swing Missed
+[DEV] t=290.71 blips inView=0 occluded=3 edges=1 tracked=4
+[DEV] t=290.96 chase blip from=42.20,12.15 to=46.59,13.00 yaw=43.62
+[DEV] t=291.22 blips inView=1 occluded=0 edges=3 tracked=4
+[DEV] t=291.73 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=291.97 chase blip from=42.47,14.31 to=52.69,64.06 yaw=319.78
+[offline server] shutter 4 pull by player=5
+[DEV] t=293.32 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] shutter 4 down by player=5 stun=none
+[audio] chase cue ShutterSlam at 47.5, 14.0
+[offline server] status player=2 Escaped reason=exit
+[DEV] t=294.31 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] quit after 300 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
