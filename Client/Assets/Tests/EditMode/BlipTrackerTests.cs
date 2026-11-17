@@ -316,7 +316,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(Count(t, BlipEventKind.StatusNormalToLagging), Is.Zero);
         }
 
-        [TestCase(3.0f, BlipStatus.Lagging)] // R1 (11/17): beyond SwingCaptureRadius (swing range 2.6 m + 0.2 m)
+        [TestCase(3.0f, BlipStatus.Lagging)] // R1 (11/17): beyond SwingCaptureRadius (swing range 2.75 m + 0.2 m, INTEG-R)
         [TestCase(0.5f, BlipStatus.Normal)]
         public void OtherNewEntriesDoNotConfirmCapture(float distance, BlipStatus status)
         {

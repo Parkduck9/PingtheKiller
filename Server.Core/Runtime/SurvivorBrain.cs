@@ -55,7 +55,8 @@ namespace PingTheKiller.ServerCore
         private const double BigTeamAvoidSeconds = 45;
         private const double SwitchStallSeconds = 30;
         // Quiet rescues are preferred; the timer can override these gates when arrival and the hold still fit.
-        private const double RescueQuietSeconds = 5;
+        // INTEG-R balance: 5 -> 7 s (bots wait longer after seeing the Killer before a non-urgent rescue).
+        private const double RescueQuietSeconds = 7;
         // Every available Normal survivor works. Lower Id wins a contested slot, using public teammate positions only.
         private const int TerminalCap = 2;
         private const float OccupiedRadius = 3f;

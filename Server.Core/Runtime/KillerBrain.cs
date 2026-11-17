@@ -23,7 +23,8 @@ namespace PingTheKiller.ServerCore
         private const int SmallLobbyTerminals = 5, MidLobbyTerminals = 7;
         private const float SmallLobbyNoticeRange = 7f, MidLobbyNoticeRange = 10f;
         // U6d-a3: mid lobby 0.65 -> 0.6 keeps 1v3 inside its win band once survivors commit (seeds 1001-1040 hit 78 %).
-        private const double SmallLobbyMissChance = 0.75, MidLobbyMissChance = 0.6;
+        // INTEG-R balance: mid lobby 0.6 -> 0.5 (1v3 was the weakest Killer setup after the merge).
+        private const double SmallLobbyMissChance = 0.75, MidLobbyMissChance = 0.5;
         // U6d-a3: from LateAttentionStart of the public match clock the small and mid lobby attention approaches the
         // large lobby values (NoticeRange, MissChance) by the time limit.
         internal const double LateAttentionStart = 600;
@@ -39,7 +40,8 @@ namespace PingTheKiller.ServerCore
         private const float FirewallExitDistance = 12f;
         // R1 (11/17): it swings at a Normal blip within SwingTrigger metres and SwingFrontDegrees of its facing (a decoy
         // can bait it), aiming the look yaw at that blip; Packet trace when a blip was near recently but none is now.
-        internal const float SwingTrigger = 2.2f, SwingFrontDegrees = 45f;
+        // INTEG-R balance: SwingTrigger 2.2 -> 2.75 m (the swing range).
+        internal const float SwingTrigger = 2.75f, SwingFrontDegrees = 45f;
         private const float TraceRecentDistance = 10f;
         private const double StrikeHoldSeconds = GameConstants.SwingWindUpSeconds + 0.1, TrailStrikeSeconds = 1.0;
         private const float StrikeTrackDistance = 3.5f;

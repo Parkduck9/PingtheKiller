@@ -17,9 +17,10 @@ namespace PingTheKiller.Shared.Game
         // line of sight; the nearest is captured), then a recovery: SwingHitRecoverySeconds at 0 % after a hit,
         // SwingMissRecoverySeconds at SwingMissSpeedMultiplier after a miss. No new swing until the recovery ends.
         // R1 balance (BalanceSweep): brief 2.2 m / 35 deg / 1.0 s at 40 % moved to 2.6 m / 40 deg / 0.8 s at 48 % (all within +-20 %).
+        // INTEG-R balance (11/17): range 2.6 -> 2.75 m (+6 %), with the bot changes, for a stronger Killer after the R1-R3 merge.
         public const float SwingWindUpSeconds = 0.2f;
         public const float SwingWindUpSpeedMultiplier = 0.5f;
-        public const float SwingRange = 2.6f;
+        public const float SwingRange = 2.75f;
         public const float SwingHalfAngleDegrees = 40f;
         public const float SwingHitRecoverySeconds = 0.6f;
         public const float SwingMissRecoverySeconds = 0.8f;

@@ -10,7 +10,8 @@ namespace PingTheKiller.ServerCore
     // shifts the bots' movement stream.
     internal sealed class RouteSolver
     {
-        internal const double KeyMinSeconds = 0.15, KeyMaxSeconds = 0.35, ErrorRate = 0.045;
+        // INTEG-R balance: 0.15-0.35 s -> 0.16-0.38 s per key (keeps the 1v7 median inside 540-660 s with the stronger Killer).
+        internal const double KeyMinSeconds = 0.16, KeyMaxSeconds = 0.38, ErrorRate = 0.045;
         private byte _routeId, _index;
         private double _dueAt = double.NaN;
 

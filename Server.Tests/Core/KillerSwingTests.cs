@@ -71,8 +71,8 @@ public sealed class KillerSwingTests
     }
 
     [Theory]
-    [InlineData(2.55f, 0f, 0f, true)]    // range 2.6 m
-    [InlineData(2.7f, 0f, 0f, false)]
+    [InlineData(2.7f, 0f, 0f, true)]     // range 2.75 m (INTEG-R balance; R1 had 2.6 m)
+    [InlineData(2.85f, 0f, 0f, false)]
     [InlineData(2.0f, 35f, 0f, true)]    // arc +-40 degrees
     [InlineData(2.0f, -39f, 0f, true)]
     [InlineData(2.0f, 45f, 0f, false)]
@@ -278,7 +278,7 @@ public sealed class KillerSwingTests
         int n = 0;
         while ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0 && n++ < 60) m.Tick();
         Assert.Equal(ticks, (int)(m.Killer.Last<S2C_WorldState>().Tick - rise));
-        Assert.Equal(distance < 2.6f ? (byte)PlayerStatus.Lagging : (byte)PlayerStatus.Normal, StatusOf(m, 0));
+        Assert.Equal(distance < GameConstants.SwingRange ? (byte)PlayerStatus.Lagging : (byte)PlayerStatus.Normal, StatusOf(m, 0));
     }
 
     [Fact]
@@ -528,7 +528,7 @@ public sealed class KillerSwingTests
         var close = new KillerBrain().Update(View(40.8f, 45.2f, false), server.Nav, server.Map, random);
         Assert.True(close.Attack);
         Assert.InRange(close.Yaw, 25f, 26f); // atan2(0.8, 1.7)
-        Assert.False(new KillerBrain().Update(View(40, 46.5f, false), server.Nav, server.Map, random).Attack); // 3 m
+        Assert.False(new KillerBrain().Update(View(40, 47.1f, false), server.Nav, server.Map, random).Attack); // 3.6 m (INTEG-R: trigger 2.75 m)
         Assert.False(new KillerBrain().Update(View(40, 45, true), server.Nav, server.Map, random).Attack);    // Lagging
     }
 
