@@ -1,0 +1,15 @@
+C:\Unity\MultiPlayGame\PtK-work\r1-killer\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:12.84]     PingTheKiller.Tests.QA.U2eAdversarialTests.SegmentBlockedAllocatesNothing [FAIL]
+  실패 PingTheKiller.Tests.QA.U2eAdversarialTests.SegmentBlockedAllocatesNothing [69 ms]
+  오류 메시지:
+   Assert.Equal() Failure: Values differ
+Expected: 0
+Actual:   5312
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2eAdversarialTests.SegmentBlockedAllocatesNothing() in C:\Unity\MultiPlayGame\PtK-work\r1-killer\Server.Tests\QA\U2eAdversarialTests.cs:line 203
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+실패!  - 실패:     1, 통과:  1142, 건너뜀:     0, 전체:  1143, 기간: 1 m 8 s - Server.Tests.dll (net10.0)

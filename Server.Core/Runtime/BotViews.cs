@@ -55,6 +55,8 @@ namespace PingTheKiller.ServerCore
         {
             internal float X, Z;
             internal bool Done;
+            // R1 (11/17): TerminalFlags.Locked, which the Killer's WorldState carries.
+            internal bool Locked;
         }
 
         internal double Time;
@@ -88,5 +90,7 @@ namespace PingTheKiller.ServerCore
         // 11/17 (R2): one route key (C2S_HackInput) when HackKey is set.
         internal bool HackKey;
         internal byte HackRouteId, HackDirection;
+        // R1 (11/17): a Killer swing press, applied like C2S_Attack.
+        internal bool Attack;
     }
 }

@@ -49,12 +49,12 @@ namespace PingTheKiller.Client.UI.RulesV2
     public struct TerminalFlagsView
     {
         public byte Id;
-        public bool Regressing, Overloaded;
+        public bool Regressing, Overloaded, Locked; // R1 (11/17): Locked = TerminalFlags.Locked (Firewall block)
         // TerminalState.Progress / 100 (the Killer view receives 0 or 1 only).
         public float Progress01;
 
         public static TerminalFlagsView FromWire(byte id, byte progress, byte flags)
-            => new TerminalFlagsView { Id = id, Progress01 = progress / 100f, Regressing = (flags & 1) != 0, Overloaded = (flags & 2) != 0 };
+            => new TerminalFlagsView { Id = id, Progress01 = progress / 100f, Regressing = (flags & 1) != 0, Overloaded = (flags & 2) != 0, Locked = (flags & 4) != 0 };
     }
 
     public struct ResultRow

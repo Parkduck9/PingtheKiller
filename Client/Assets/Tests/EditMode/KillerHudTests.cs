@@ -86,7 +86,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(KillerHudCopy.OneMoreLine(1, 3), Is.Null);
             Assert.That(KillerHudCopy.OneMoreLine(3, 3), Is.Null);
             Assert.That(KillerHudCopy.Overclock(2.14f), Is.EqualTo("Overclock: 1.5× speed " + Dot + " 2.1 s"));
-            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: cannot move " + Dot + " 0.8 s"));
+            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: slowed " + Dot + " 0.8 s"));
             Assert.That(KillerHudCopy.Slowed(1.6f), Is.EqualTo("Slowed by traffic overload " + Dot + " 1.6 s"));
             Assert.That(KillerHudCopy.Distance(23.6f), Is.EqualTo("24 m"));
             Assert.That(KillerHudCopy.LaggingDistance(24), Is.EqualTo("Lagging " + Dot + " 24 m"));
@@ -102,26 +102,24 @@ namespace PingTheKiller.Client.Tests
         [Test]
         public void AStunnedKillerSeesTheSkillBlockUnavailable()
         {
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 0, true), Is.EqualTo("Stunned"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 0, false), Is.EqualTo("Ready"));
-            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 0, true), Is.EqualTo(SkillRing.State.Disabled));
-            Assert.That(KillerHud.RingState(SkillIds.FirewallBlock, true, null, true), Is.EqualTo(SkillRing.State.Disabled));
-            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 0, false), Is.EqualTo(SkillRing.State.Ready));
-            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 3f, false), Is.EqualTo(SkillRing.State.Cooldown));
-            Assert.That(KillerHud.RingState(SkillIds.PacketAfterimage, false, null, true), Is.EqualTo(SkillRing.State.Passive), "passive stays passive");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 0, true), Is.EqualTo("Stunned"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 0, false), Is.EqualTo("Ready"));
+            Assert.That(KillerHud.RingState(0, true), Is.EqualTo(SkillRing.State.Disabled));
+            Assert.That(KillerHud.RingState(null, true), Is.EqualTo(SkillRing.State.Disabled));
+            Assert.That(KillerHud.RingState(0, false), Is.EqualTo(SkillRing.State.Ready));
+            Assert.That(KillerHud.RingState(3f, false), Is.EqualTo(SkillRing.State.Cooldown));
             Assert.That(CaptureImpactFx.Killer, Is.EqualTo((Color)new Color32(229, 72, 77, 255)), "M5: the impact uses palette danger");
         }
 
         [Test]
         public void TheSkillStateLineCoversEveryKillerSkillWithAndWithoutSelfState()
         {
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, false, null), Is.EqualTo("Passive — always on"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("Needs an Exit switch in progress"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, null), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, false, null), Is.EqualTo("Ready"), "no SelfState: no cooldown");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 6.2f), Is.EqualTo("Cooldown 7 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 0), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillName(SkillIds.PacketAfterimage), Is.EqualTo("Packet afterimage"));
+            // R1 (11/17): no skill is passive; Firewall block is Ready without a switch (it can lock a terminal).
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, null), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, null), Is.EqualTo("Ready"), "no SelfState: no cooldown");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 6.2f), Is.EqualTo("Cooldown 7 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 0), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillName(SkillIds.PacketTrace), Is.EqualTo("Packet trace"));
             for (byte id = 0; id < SkillIds.KillerSkillCount; id++)
             {
                 Assert.That(KillerHudCopy.SkillName(id), Does.Not.StartWith("Skill "));

@@ -72,6 +72,13 @@ namespace PingTheKiller.Client.Audio
             if (playing != ActionKind.None) hold.pitch = V2CueSynth.HoldPitch(playing, rules.HoldProgress(now));
         }
 
+        // R1 (11/17): a cue the rules never raise (the own missed swing), played at once.
+        public void Play(V2Cue cue)
+        {
+            if (cues != null && clips.TryGetValue(cue, out AudioClip clip)) cues.PlayOneShot(clip);
+            Debug.Log("[audio] v2 cue " + cue);
+        }
+
         public void End()
         {
             rules.End();

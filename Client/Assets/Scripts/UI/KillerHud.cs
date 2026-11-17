@@ -16,7 +16,9 @@ namespace PingTheKiller.Client.UI
     {
         public const float Width = 320, Margin = 24;
         private readonly VisualElement root, cluster, intro, prompt, info, effect, skill, timeBar, effectBar;
-        private readonly Label introSkill, introEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
+        private readonly Label introSkill, introEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillLine, skillState, skillKey;
+        // R1 (11/17): the skill block grew from 72 u to SkillHeight for the one-line effect under the name (6.1d).
+        public const float SkillHeight = 88;
         private readonly SkillRing ring;
         private readonly VisualElement[] blocks;
         public MarkerLayer Markers { get; }
@@ -78,6 +80,7 @@ namespace PingTheKiller.Client.UI
             skill.Add(ring);
             VisualElement column = Box(skill, "kskill-text");
             skillName = Text(column, string.Empty, "km", "kbold");
+            skillLine = Text(column, string.Empty, "ks", "kclip");
             skillState = Text(column, string.Empty, "ks", "kmuted");
             skillKey = Text(column, "[Q]", "ks", "kmuted");
             CastFlash = new SkillCastFlash(false, 8); // U9: right of the bottom-left cluster
@@ -125,7 +128,9 @@ namespace PingTheKiller.Client.UI
             introEffect.text = KillerHudCopy.SkillEffect(skillId);
             Menu.SetContent(introSkill.text, introEffect.text);
             skillName.text = KillerHudCopy.SkillName(skillId);
-            Show(skillKey, skillId != SkillIds.PacketAfterimage);
+            skillLine.text = PlayMenuCopy.KillerSkillLine(skillId);
+            Show(skillKey, true);
+            // R3: the IntroCard replaces the old 3 s block, so it starts hidden.
             Show(intro, false); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide(); CastFlash.Hide();
             Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Show(root, true);
@@ -184,22 +189,23 @@ namespace PingTheKiller.Client.UI
         // HUD_SPEC 13.5: the global collapse clock (hidden while it does not run).
         public void SetCollapse(in CollapseView view) => Collapse.Set(view);
 
-        // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready / Passive /
-        // Needs an Exit switch in progress only.
+        // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready only.
         // M4: stunned (the own Killer entry's Chase Stunned flag, set by ChasePropsLayer.ApplyKillerHud) shows the block unavailable.
         public bool Stunned { get; set; }
 
-        public static SkillRing.State RingState(byte skillId, bool switchInProgress, float? cooldown, bool stunned)
-            => skillId == SkillIds.PacketAfterimage ? SkillRing.State.Passive
-                : stunned || (skillId == SkillIds.FirewallBlock && !switchInProgress) ? SkillRing.State.Disabled
+        // R1 (11/17): no Killer skill is passive or waits for a switch any more.
+        public static SkillRing.State RingState(float? cooldown, bool stunned)
+            => stunned ? SkillRing.State.Disabled
                 : cooldown.HasValue && cooldown.Value > 0 ? SkillRing.State.Cooldown : SkillRing.State.Ready;
 
-        public void SetSkill(byte skillId, bool switchInProgress, ISelfState self, float activeFraction)
+        public string SkillLineText => skillLine.text;
+
+        public void SetSkill(byte skillId, ISelfState self, float activeFraction)
         {
             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;
-            string state = KillerHudCopy.SkillState(skillId, switchInProgress, cooldown, Stunned);
+            string state = KillerHudCopy.SkillState(skillId, cooldown, Stunned);
             if (skillState.text != state) skillState.text = state;
-            SkillRing.State ringState = RingState(skillId, switchInProgress, cooldown, Stunned);
+            SkillRing.State ringState = RingState(cooldown, Stunned);
             float fraction = cooldown.HasValue ? cooldown.Value / GameConstants.KillerSkillCooldownSeconds : 0;
             ring.Set(skillId, ringState, fraction, activeFraction, false);
         }
@@ -208,7 +214,7 @@ namespace PingTheKiller.Client.UI
         // fixed HUD_SPEC 6.1 heights (layout lags one frame behind a block being shown or hidden).
         public Rect ClusterRect(float screenHeight)
         {
-            float height = 72 + 8 + 72; // info + skill
+            float height = 72 + 8 + SkillHeight; // info + skill
             if (Visible(intro)) height += 208 + 8;
             else if (Visible(Menu)) height += MenuHeight + 8;
             if (Visible(prompt)) height += 56 + 8;

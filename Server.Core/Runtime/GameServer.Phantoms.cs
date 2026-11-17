@@ -363,7 +363,7 @@ namespace PingTheKiller.ServerCore
                 }
                 bool pending = _now < phantom.SpawnAt - TimeEpsilon;
                 bool resumable = Active(phantom.Until);
-                if (!pending && !resumable && !AfterimageWindow(false, phantom.LastVisibleAt)) _decoys.RemoveAt(i);
+                if (!pending && !resumable) _decoys.RemoveAt(i);
             }
         }
     }

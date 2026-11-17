@@ -17,6 +17,8 @@ namespace PingTheKiller.Client.World
         public static readonly Vector3 KillerBodyScale = CharacterViews.KillerBodyScale;
         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
         public float KillerAlpha => characters != null ? characters.KillerAlpha : 0;
+        // R1 (11/17): Killer swings whose wind-up this Survivor client started on the drawn model.
+        public int KillerSwings => characters != null ? characters.KillerSwings : 0;
         // Alpha of the Killer's visor material after the last Render; it fades with the body (KillerAlpha).
         public float KillerVisorAlpha => characters != null ? characters.KillerVisorAlpha : 0;
 

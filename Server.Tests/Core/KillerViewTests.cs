@@ -216,47 +216,6 @@ public sealed class KillerViewTests
             $"casts {whiteNoiseCasts}, dummies {dummies}, moving {moving}, standing {standing}, final {finalFrames}");
     }
 
-    // Frames a blip stays in the killer view after its last live frame, for a real survivor and for a dummy.
-    private static (int real, int phantom) Tails(byte killerSkill)
-    {
-        using var m = RulesMatch.Start(1, killerSkill, SkillIds.DummyPacket);
-        var a = m[0];
-        m.Tick(25);
-        for (int i = 0; i < 5; i++) { a.Move(0, 1); m.Tick(); }
-        a.Move(0, 0);
-        int realTail = 0, live = 0;
-        for (int i = 0; i < 60; i++)
-        {
-            m.Tick();
-            if (m.KillerSees(a) == null) break;
-            if (m.KillerSeesAfterimage(a)) ++realTail; else ++live;
-        }
-        Assert.InRange(live, 1, 3);
-        m.Tick(25);
-        a.Send(new C2S_UseSkill { SkillId = SkillIds.DummyPacket });
-        // The dummy may pause like a bot (Silent, then an afterimage) and reappear; count the tail after its last live frame.
-        var seen = new List<bool?>(); // null: absent, false: live, true: afterimage
-        for (int i = 0; i < 120; i++)
-        {
-            m.Tick();
-            var sources = m.F.Server.KillerViewSources.Where(s => s.Phantom).ToList();
-            seen.Add(sources.Count == 0 ? null : sources[0].Afterimage);
-        }
-        int lastLive = seen.LastIndexOf(false);
-        Assert.InRange(lastLive, 0, 59);
-        Assert.InRange(seen.Count(s => s == false), 1, 60);
-        int phantomTail = seen.Skip(lastLive + 1).TakeWhile(s => s == true).Count();
-        Assert.All(seen.Skip(lastLive + 1 + phantomTail), s => Assert.Null(s));
-        return (realTail, phantomTail);
-    }
-
-    [Fact]
-    public void AfterimageTailIsTwentyTicksForRealAndPhantomBlipsAlikeAndZeroWithoutTheSkill()
-    {
-        Assert.Equal((20, 20), Tails(SkillIds.PacketAfterimage));
-        Assert.Equal((0, 0), Tails(SkillIds.PingScanner));
-    }
-
     [Fact]
     public void KillerBoundTrafficOverloadCarriesNoCasterId()
     {

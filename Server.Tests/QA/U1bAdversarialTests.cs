@@ -60,7 +60,7 @@ public sealed class U1bAdversarialTests
         {
             parts.Add(Le32(i + 1));                   // PlayerId
             parts.Add(new byte[] { 1, 0, (byte)'a' }); // Nickname "a"
-            parts.Add(new[] { isBot, isHost });
+            parts.Add(new[] { isBot, isHost, (byte)0xFF }); // R1: SkillChoice none
         }
         return Concat(parts.ToArray());
     }
@@ -451,10 +451,10 @@ public sealed class U1bAdversarialTests
         Assert.Equal(8, l.Slots.Length);
         Assert.All(l.Slots, s => { Assert.NotNull(s); Assert.Equal(string.Empty, s.Nickname); });
 
-        // Hand-built: header, IsOffline 0, HostRoleChoice 0, count 8, then 8 x (int 0, ushort 0, 0, 0) = 8 bytes.
-        // Payload = 3 + 8*8 = 67; body = 69 = 0x45.
-        byte[] expected = Concat(Hex("45000000 0A00 00 00 08"),
-            Concat(Enumerable.Repeat(Hex("00000000 0000 00 00"), 8).ToArray()));
+        // Hand-built: header, IsOffline 0, HostRoleChoice 0, count 8, then 8 x (int 0, ushort 0, 0, 0, R1 SkillChoice FF)
+        // = 9 bytes. Payload = 3 + 8*9 = 75; body = 77 = 0x4D.
+        byte[] expected = Concat(Hex("4D000000 0A00 00 00 08"),
+            Concat(Enumerable.Repeat(Hex("00000000 0000 00 00 FF"), 8).ToArray()));
         Assert.Equal(expected, PacketCodec.Encode(l));
     }
 

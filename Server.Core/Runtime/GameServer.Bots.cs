@@ -56,6 +56,8 @@ namespace PingTheKiller.ServerCore
                         intent = brain.Update(_killerBotView, Nav, Map, _random);
                         if (brain.VaultWanted) intent.Interact = !bot.Interacting;
                         brain.Tactics.Killer(_killerBotView, Nav, ref intent);
+                        // R1 (11/17): a swing keeps its aim (the chase-prop route may turn the body, not the strike).
+                        if (brain.Striking) intent.Yaw = brain.StrikeYaw;
                     }
                     else
                     {
@@ -75,6 +77,7 @@ namespace PingTheKiller.ServerCore
                 SetInteract(bot, (byte)(intent.Interact ? 1 : 0));
                 if (intent.UseSkill) RequestSkill(bot, bot.Skill);
                 if (intent.HackKey) HackInput(bot, intent.HackRouteId, intent.HackDirection);
+                if (intent.Attack) RequestAttack(bot);
             }
         }
 
@@ -154,7 +157,11 @@ namespace PingTheKiller.ServerCore
                     view.Blips.Add(new KillerBotView.Blip { X = entry.X, Z = entry.Z, Lagging = entry.Status == (byte)PlayerStatus.Lagging });
             if (view.Terminals.Length < _terminals.Length) view.Terminals = new KillerBotView.Terminal[_terminals.Length];
             for (int i = 0; i < _terminals.Length; i++)
-                view.Terminals[i] = new KillerBotView.Terminal { X = _terminals[i].X, Z = _terminals[i].Z, Done = _terminals[i].Progress >= 100 };
+                view.Terminals[i] = new KillerBotView.Terminal
+                {
+                    X = _terminals[i].X, Z = _terminals[i].Z, Done = _terminals[i].Progress >= 100,
+                    Locked = (TerminalFlagsFor(i, true) & (byte)TerminalFlags.Locked) != 0
+                };
             view.TerminalCount = _terminals.Length;
             view.Exits = FillExits(view.Exits, out view.ExitCount);
             view.HatchVisible = HatchVisibleTo(bot);

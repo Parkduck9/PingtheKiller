@@ -29,9 +29,34 @@ namespace PingTheKiller.Client.UI
             }
         }
 
-        // R3 (11/17): the Killer's effect lines come from the one Killer table (KillerHudCopy.SkillEffect). R1 may replace this
-        // with its own version at integration; callers never write a skill string themselves.
-        public static string KillerEffect(byte skillId) => KillerHudCopy.SkillEffect(skillId);
+        // R1 (11/17) Killer effect lines: the play menu, the Killer intro, the lobby skill picker and the R3 intro card.
+        public static string KillerEffect(byte skillId)
+        {
+            switch (skillId)
+            {
+                case SkillIds.PingScanner: return "Shows the nearest Survivor for 3 s.";
+                case SkillIds.Overclock: return "1.5× speed for 3 s, then 0.3 s slowed.";
+                case SkillIds.PacketTrace: return "Survivors within 12 m of you turn Signal for 2.5 s.";
+                case SkillIds.FirewallBlock: return "Locks the Exit switch in progress for 5 s, or else the most hacked terminal for 8 s.";
+                default: return string.Empty;
+            }
+        }
+
+        // R1 (11/17) the one-line effect under the skill name in the Killer HUD skill block (6.1d, fits 232 u at S).
+        public static string KillerSkillLine(byte skillId)
+        {
+            switch (skillId)
+            {
+                case SkillIds.PingScanner: return "Nearest Survivor shown 3 s";
+                case SkillIds.Overclock: return "1.5× speed for 3 s";
+                case SkillIds.PacketTrace: return "Signal within 12 m, 2.5 s";
+                case SkillIds.FirewallBlock: return "Locks a switch or terminal";
+                default: return string.Empty;
+            }
+        }
+
+        // R1 (11/17) lobby picker: the effect line for either role.
+        public static string Effect(Role role, byte skillId) => role == Role.Killer ? KillerEffect(skillId) : SurvivorEffect(skillId);
 
         // (11/10) CaptureCount counts Lagging stages, not captures (HUD_SPEC 4.3, Q1), so the count >= 2 line names no count.
         // GDD v2 4: the first capture leaves 60 s for a rescue, the second 30 s, the third eliminates. The v1 sentence

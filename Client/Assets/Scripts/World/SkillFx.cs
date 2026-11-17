@@ -22,7 +22,7 @@ namespace PingTheKiller.Client.World
         public const float SpikeRadius = 1f, BeamRadius = .35f, BeamHeight = 3.2f, StaticSpread = 1.5f, GlyphStroke = 3f;
         public static readonly Color Signal = new Color32(255, 176, 32, 255), Ally = new Color32(63, 184, 175, 255);
         public static readonly Color Danger = new Color32(229, 72, 77, 255), Text = new Color32(232, 230, 225, 255);
-        private static readonly FxShape[] Shapes = { FxShape.PulseRings, FxShape.Streaks, FxShape.HexWall, FxShape.WireDouble, FxShape.Dome, FxShape.Spikes, FxShape.Beam, FxShape.Static };
+        private static readonly FxShape[] Shapes = { FxShape.PulseRings, FxShape.Streaks, FxShape.HexWall, FxShape.WireDouble, FxShape.Dome, FxShape.Spikes, FxShape.Beam, FxShape.Static, FxShape.TraceRing };
 
         private sealed class Rig
         {
@@ -147,6 +147,7 @@ namespace PingTheKiller.Client.World
                 case FxShape.Spikes: return new[] { Track(SkillShapes.Spikes(SpikeRadius, 0)), Track(SkillShapes.Spikes(SpikeRadius, 1)) };
                 case FxShape.Beam: return new[] { Track(SkillShapes.BeamColumns(BeamRadius, BeamHeight)), Track(SkillShapes.Ring("skill fx beam ring", BeamRadius + .15f)) };
                 case FxShape.Static: return new[] { Track(SkillShapes.FilledCross()) };
+                case FxShape.TraceRing: return new[] { Track(SkillShapes.Ring("skill fx trace ring", 1f)) };
                 default: return System.Array.Empty<Mesh>();
             }
         }
@@ -455,6 +456,14 @@ namespace PingTheKiller.Client.World
                         float y = still ? .8f * i : Mathf.Repeat(t * 5 + (i - 1) * BeamHeight / 3, BeamHeight);
                         rig.Parts[i].localPosition = new Vector3(0, y, 0);
                     }
+                    break;
+                }
+                case FxShape.TraceRing:
+                {
+                    // R1: grows from the record's start radius to its final radius over TraceGrowSeconds, then holds.
+                    float grow = still ? 1 : EaseOut(Mathf.Clamp01(t / SkillFeedback.TraceGrowSeconds));
+                    float radius = Mathf.Max(.001f, Mathf.Lerp(Mathf.Max(.5f, plan.StartDiameter * .5f), plan.Diameter * .5f, grow));
+                    root.localScale = new Vector3(radius, 1, radius);
                     break;
                 }
                 case FxShape.Static:

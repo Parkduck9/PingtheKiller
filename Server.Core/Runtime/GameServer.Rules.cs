@@ -33,7 +33,7 @@ namespace PingTheKiller.ServerCore
             _killerViewSources.Clear();
         }
 
-        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> capture -> rescue -> hacking (regression, packet routes)
+        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> swing (R1 capture) -> rescue -> hacking (regression, packet routes)
         // -> killer holds (kick, hatch close) -> exit switches -> escape -> hatch spawn -> time limit -> end check.
         private void RunRules(float dt)
         {
@@ -50,7 +50,7 @@ namespace PingTheKiller.ServerCore
             UpdateStatuses();
             RunCollapse(dt);
             ChaseProps(dt);
-            Capture();
+            Swing();
             Rescue(dt);
             Hack(dt);
             KillerHolds(dt);
@@ -106,23 +106,6 @@ namespace PingTheKiller.ServerCore
             }
             if (status != PlayerStatus.Normal) ClearRoute(player);
             WriteLog($"status player={player.Id} {status} reason={reason}");
-        }
-
-        // GDD v2 §4 capture stages: catching a Normal survivor counts one more capture (1 -> Lagging 60 s, 2 -> Lagging
-        // 30 s, 3 -> Eliminated). The killer cannot touch a Lagging survivor into the next stage: only its timer advances it.
-        private void Capture()
-        {
-            // GDD v2 section 8: a stunned killer cannot capture.
-            if (_killer == null || Active(_killer.StunnedUntil)) return;
-            foreach (var survivor in _players)
-            {
-                if (survivor.Role != Role.Survivor || survivor.Status != PlayerStatus.Normal) continue;
-                if (!Within(survivor, _killer.X, _killer.Z, GameConstants.CaptureRadius) || Active(survivor.InvulnerableUntil)) continue;
-                if (survivor.CaptureCount < byte.MaxValue) survivor.CaptureCount++;
-                if (survivor.CaptureCount >= GameConstants.EliminatingCaptureCount)
-                    SetStatus(survivor, PlayerStatus.Eliminated, "third capture");
-                else SetStatus(survivor, PlayerStatus.Lagging, "capture");
-            }
         }
 
         // R3 (11/17): a rescue needs the rescuer to HOLD Interact within RescueRadius of a Lagging ally; each rescuer works on

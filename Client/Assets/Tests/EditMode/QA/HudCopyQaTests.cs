@@ -128,7 +128,7 @@ namespace PingTheKiller.Client.QA.Tests
 
         // ---- skill names (GDD 4 order) ------------------------------------------------------------------------------------
 
-        private static readonly string[] KillerNames = { "Ping Scanner", "Overclock", "Packet Afterimage", "Firewall Block" };
+        private static readonly string[] KillerNames = { "Ping Scanner", "Overclock", "Packet Trace", "Firewall Block" };
         private static readonly string[] SurvivorNames = { "Dummy Packet", "Stealth Relay", "Traffic Overload", "Emergency Restore", "White Noise" };
 
         [Test]
@@ -167,25 +167,16 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void OnlyTheKillersPacketAfterimageIsPassive()
+        public void TheSkillLineSaysQForEverySkill()
         {
-            for (byte id = 0; id < 10; id++)
-            {
-                Assert.That(HudCopy.IsPassive(Role.Killer, id), Is.EqualTo(id == 2), "killer " + id);
-                Assert.That(HudCopy.IsPassive(Role.Survivor, id), Is.False, "survivor " + id);
-            }
-        }
-
-        [Test]
-        public void TheSkillLineSaysQForActiveSkillsAndPassiveForTheAfterimage()
-        {
+            // R1 (11/17): Packet trace replaced the passive Packet afterimage.
             Assert.That(HudCopy.SkillLine(Role.Killer, 0), Is.EqualTo("Q " + Dot + " Ping Scanner"));
             Assert.That(HudCopy.SkillLine(Role.Killer, 1), Is.EqualTo("Q " + Dot + " Overclock"));
-            Assert.That(HudCopy.SkillLine(Role.Killer, 2), Is.EqualTo("Passive " + Dot + " Packet Afterimage"));
+            Assert.That(HudCopy.SkillLine(Role.Killer, 2), Is.EqualTo("Q " + Dot + " Packet Trace"));
             Assert.That(HudCopy.SkillLine(Role.Killer, 3), Is.EqualTo("Q " + Dot + " Firewall Block"));
             Assert.That(HudCopy.SkillLine(Role.Survivor, 2), Is.EqualTo("Q " + Dot + " Traffic Overload"), "survivor skill 2 is not passive");
             Assert.That(HudCopy.SkillLine(Role.Survivor, 4), Is.EqualTo("Q " + Dot + " White Noise"));
-            Assert.That(HudCopy.SkillLine(Role.Killer, 9), Does.StartWith("Q "), "an unknown killer skill is not shown as passive");
+            Assert.That(HudCopy.SkillLine(Role.Killer, 9), Does.StartWith("Q "), "an unknown killer skill"); 
         }
 
         [Test]
@@ -199,13 +190,13 @@ namespace PingTheKiller.Client.QA.Tests
         // Supersedes TheSkillTableKeepsItsTodoForTheSharedSkillIds (orchestrator ruling, docs/briefs/U4b-qa-a2.md item 1):
         // U4b-a2 section 1 removes the TODO and keys the client tables by the Shared SkillIds constants.
         [Test]
-        public void TheNameAndPassiveTablesAreKeyedByTheSharedSkillIdsForEveryId()
+        public void TheNameTableIsKeyedByTheSharedSkillIdsForEveryId()
         {
             var killers = new[]
             {
                 new KeyValuePair<byte, string>(SkillIds.PingScanner, "Ping Scanner"),
                 new KeyValuePair<byte, string>(SkillIds.Overclock, "Overclock"),
-                new KeyValuePair<byte, string>(SkillIds.PacketAfterimage, "Packet Afterimage"),
+                new KeyValuePair<byte, string>(SkillIds.PacketTrace, "Packet Trace"),
                 new KeyValuePair<byte, string>(SkillIds.FirewallBlock, "Firewall Block"),
             };
             var survivors = new[]
@@ -222,14 +213,6 @@ namespace PingTheKiller.Client.QA.Tests
                 Assert.That(HudCopy.SkillName(Role.Killer, killer.Key), Is.EqualTo(killer.Value), "killer SkillIds value " + killer.Key);
             foreach (KeyValuePair<byte, string> survivor in survivors)
                 Assert.That(HudCopy.SkillName(Role.Survivor, survivor.Key), Is.EqualTo(survivor.Value), "survivor SkillIds value " + survivor.Key);
-            // The passive table: true only for (Killer, PacketAfterimage), for every role and every byte.
-            for (int role = 0; role < 2; role++)
-                for (int id = 0; id <= 255; id++)
-                {
-                    bool expected = (Role)role == Role.Killer && id == SkillIds.PacketAfterimage;
-                    Assert.That(HudCopy.IsPassive((Role)role, (byte)id), Is.EqualTo(expected), (Role)role + " " + id);
-                }
-            Assert.That(HudCopy.IsPassive(Role.Survivor, SkillIds.TrafficOverload), Is.False, "same number as the afterimage, other role");
         }
 
         [Test]
@@ -239,14 +222,9 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(raw, Does.Not.Contain("TODO"), "U4b-a2 section 1: the TODO is removed");
             Assert.That(raw, Does.Not.Contain("when U2b merges"));
             string code = QaSource.StripComments(raw);
-            foreach (string name in new[] { "PingScanner", "Overclock", "PacketAfterimage", "FirewallBlock", "DummyPacket", "StealthRelay", "TrafficOverload", "EmergencyRestore", "WhiteNoise" })
+            foreach (string name in new[] { "PingScanner", "Overclock", "PacketTrace", "FirewallBlock", "DummyPacket", "StealthRelay", "TrafficOverload", "EmergencyRestore", "WhiteNoise" })
                 Assert.That(code, Does.Contain("SkillIds." + name), "HudCopy must use the shared constant " + name);
-            // IsPassive is expression-bodied: take the text from its declaration to the closing semicolon.
-            int start = code.IndexOf("bool IsPassive(", StringComparison.Ordinal);
-            Assert.That(start, Is.GreaterThanOrEqualTo(0), "IsPassive exists");
-            string passive = code.Substring(start, code.IndexOf(';', start) - start);
-            Assert.That(passive, Does.Contain("SkillIds.PacketAfterimage"));
-            Assert.That(passive, Does.Not.Match(@"==\s*2\b"), "no raw skill number in IsPassive");
+            Assert.That(code, Does.Not.Contain("bool IsPassive("), "R1 (11/17): no skill is passive any more");
         }
 
         // ---- lobby rows ---------------------------------------------------------------------------------------------------

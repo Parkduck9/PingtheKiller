@@ -1,0 +1,34 @@
+R1-killer: Killer attack swing, skill rework and lobby skill picker
+
+Server-authoritative Killer attack replaces proximity capture.
+- Protocol (no version bump): C2S_Attack 0x0017 [uint Seq], C2S_ChooseSkill
+  0x0018 [byte]; ChaseFlags.Swinging = 16, TerminalFlags.Locked = 4.
+- Swing: 0.2 s wind-up at half speed, then one hit check (2.6 m, +-40 deg
+  arc, wall/shutter line of sight, nearest Normal Survivor). Hit: 0.6 s
+  recovery; miss: 0.8 s at 48 % speed. Stale Seq and swings during
+  wind-up/recovery are dropped. Swinging rides the Killer's own entry and the
+  Survivor view only with line of sight.
+- Skills: Ping scanner 3 s; Overclock tail 0.3 s at 60 % speed; Packet trace
+  (active, replaces Packet afterimage): Survivors within 12 m turn Signal for
+  2.5 s; Firewall block locks the switch in progress for 5 s, else the most
+  hacked terminal for 8 s.
+- Lobby: per-player skill choice (C2S_ChooseSkill); invalid or other-role
+  choices and bots get a random skill. Lobby picker column with one copy
+  source (PlayMenuCopy).
+- Bot Killer swings at 2.2 m; Firewall terminal use limited.
+- Client: LMB / RT attack, attack prompt within 3 m, miss line + whoosh +
+  camera sweep, Survivor sees the Killer's wind-up swipe, HUD skill effect
+  line, Packet trace ring and glyph, terminal Locked tag.
+- Harness H6 capture swings; tests for swing rules, masking, golden frames,
+  skill rework, lobby choice and client input/copy.
+- a2 (QA fixes): the press plays the swing sweep and whoosh at once; a hit
+  keeps the kick/impact, a miss shows a brief `Missed` (text tone, 1 s); the
+  view kick never goes NaN (a sweep before any capture blacked the world out);
+  an eliminating hit (entry removed) is read from the own Swinging flag's
+  length in server ticks after a Normal blip vanishes near the Killer; lobby
+  SkillChoice masked per recipient and C2S_ChooseSkill throttled to 4/s;
+  picker lines 18 u, evenly broken; a terminal cannot be relocked for 20 s
+  after its lock ends.
+- Docs: PROTOCOL.md, GDD-v2 section 9, HUD_SPEC 2.9 / 6.1 / 14.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

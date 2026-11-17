@@ -55,13 +55,10 @@ namespace PingTheKiller.Client.UI
         public static string SkillName(Role role, byte skillId) => role == Role.Killer ? KillerHudCopy.SkillName(skillId) : SurvivorReadout.SkillName(skillId);
         public static string SkillEffect(Role role, byte skillId) => role == Role.Killer ? PlayMenuCopy.KillerEffect(skillId) : PlayMenuCopy.SurvivorEffect(skillId);
 
-        public static bool Passive(Role role, byte skillId) => role == Role.Killer && skillId == SkillIds.PacketAfterimage;
-
-        // `Dummy packet [Q] · Cooldown 15 s`; the passive Packet afterimage has no key and no cooldown.
+        // `Dummy packet [Q] · Cooldown 15 s`. INTEG-R: every skill is active since R1 (Packet trace replaced the passive afterimage).
         public static string IntroSkillLine(Role role, byte skillId)
         {
             string name = SkillName(role, skillId);
-            if (Passive(role, skillId)) return name + " " + Dot + " Passive";
             float cooldown = role == Role.Killer ? GameConstants.KillerSkillCooldownSeconds : GameConstants.SurvivorSkillCooldownSeconds;
             return name + " [Q] " + Dot + " Cooldown " + Seconds(cooldown);
         }
@@ -104,7 +101,7 @@ namespace PingTheKiller.Client.UI
             string radius = GameConstants.RescueRadius.ToString("0.0", CultureInfo.InvariantCulture) + " m";
             var skills = new List<HelpSkill>();
             if (role == Role.Killer)
-                foreach (byte id in new[] { SkillIds.PingScanner, SkillIds.Overclock, SkillIds.PacketAfterimage, SkillIds.FirewallBlock })
+                foreach (byte id in new[] { SkillIds.PingScanner, SkillIds.Overclock, SkillIds.PacketTrace, SkillIds.FirewallBlock })
                     skills.Add(new HelpSkill(id, SkillName(role, id), SkillEffect(role, id)));
             else
                 foreach (byte id in new[] { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise })

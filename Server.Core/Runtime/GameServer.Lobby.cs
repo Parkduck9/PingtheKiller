@@ -33,6 +33,7 @@ namespace PingTheKiller.ServerCore
                     old.LastSignal = double.NegativeInfinity;
                     old.HasSeq = false;
                     old.InputTimes.Clear();
+                    old.HasAttackSeq = false;
                     SendJoin(connection, old);
                     if (_matchStarted) SendMatchStart(old);
                     WriteLog($"join player={old.Id} reconnect=true");
@@ -65,6 +66,8 @@ namespace PingTheKiller.ServerCore
             player.SelfSent = null;
             player.HasSeq = false;
             player.InputTimes.Clear();
+            player.HasAttackSeq = false;
+            player.SkillChoice = SkillIds.NoChoice;
             player.DirX = player.DirZ = 0;
             player.LastSignal = double.NegativeInfinity;
             player.Interacting = false;
@@ -135,7 +138,16 @@ namespace PingTheKiller.ServerCore
                 _players.Add(new Player { Id = id, Nickname = "Bot " + id, IsBot = true });
             }
         }
+        // R1 (11/17) a2: masked per recipient; each client receives only its own SkillChoice, every other slot NoChoice
+        // (a Killer must not learn which Survivor skills are in the match).
         private void BroadcastLobby()
+        {
+            foreach (var recipient in _players)
+                if (recipient.ConnectionId != null && _connections.TryGetValue(recipient.ConnectionId, out var binding))
+                    Send(binding.Connection, LobbyFor(recipient));
+        }
+
+        internal S2C_LobbyState LobbyFor(Player recipient)
         {
             var lobby = new S2C_LobbyState { IsOffline = (byte)(_offline ? 1 : 0), HostRoleChoice = (byte)_hostChoice };
             for (int i = 0; i < _players.Count; i++)
@@ -144,12 +156,11 @@ namespace PingTheKiller.ServerCore
                 lobby.Slots[i] = new Slot
                 {
                     PlayerId = player.Id, Nickname = player.Nickname,
-                    IsBot = (byte)(player.IsBot ? 1 : 0), IsHost = (byte)(player.IsHost ? 1 : 0)
+                    IsBot = (byte)(player.IsBot ? 1 : 0), IsHost = (byte)(player.IsHost ? 1 : 0),
+                    SkillChoice = player == recipient && !player.IsBot ? player.SkillChoice : SkillIds.NoChoice
                 };
             }
-            foreach (var player in _players)
-                if (player.ConnectionId != null && _connections.TryGetValue(player.ConnectionId, out var binding))
-                    Send(binding.Connection, lobby);
+            return lobby;
         }
         private void StartMatch()
         {
@@ -167,8 +178,13 @@ namespace PingTheKiller.ServerCore
             {
                 var player = _players[i];
                 player.Role = i == killer ? Role.Killer : Role.Survivor;
-                // Role-local IDs follow GDD table order (SkillIds): killer 0..3, survivor 0..4.
+                // Role-local IDs follow GDD table order (SkillIds): killer 0..3, survivor 0..4. R1 (11/17): a human's
+                // lobby choice for the role it got wins; otherwise (no choice, the other role's skill, a bot) the draw
+                // stands. The draw is always made so the private stream does not depend on the choices.
                 player.Skill = (byte)_random.Next(SkillCount(player.Role));
+                if (!player.IsBot && SkillIds.TryParseChoice(player.SkillChoice, out var choiceRole, out var choiceId) &&
+                    choiceRole == player.Role)
+                    player.Skill = choiceId;
                 // Slot zero is reserved for the killer; survivor slots remain unique.
                 int spawn = i == killer ? 0 : (i < killer ? i + 1 : i);
                 player.X = Map.SpawnPoints[spawn].X;
@@ -182,6 +198,22 @@ namespace PingTheKiller.ServerCore
             _matchStarted = true;
             WriteLog($"match start players={_players.Count} killer={_players[killer].Id} matchSeed={_matchSeed}");
         }
+        // R1 (11/17) a2: at most MaxSkillChoicesPerSecond accepted choices per player per second (each one rebroadcasts the
+        // lobby to everyone); presses beyond it are dropped.
+        public const int MaxSkillChoicesPerSecond = 4;
+
+        // R1 (11/17): any human may choose while in the lobby; it is checked against the role at match start.
+        private void ChooseSkill(Player player, byte choice)
+        {
+            if (player.IsBot || !SkillIds.ValidChoice(choice) || player.SkillChoice == choice) return;
+            while (player.ChoiceTimes.Count > 0 && _now - player.ChoiceTimes.Peek() >= 1 - TimeEpsilon) player.ChoiceTimes.Dequeue();
+            if (player.ChoiceTimes.Count >= MaxSkillChoicesPerSecond) return;
+            player.ChoiceTimes.Enqueue(_now);
+            player.SkillChoice = choice;
+            WriteLog($"skill choice player={player.Id} choice={choice}");
+            BroadcastLobby();
+        }
+
         private void SendMatchStart(Player player)
         {
             if (player.ConnectionId != null && _connections.TryGetValue(player.ConnectionId, out var binding))
@@ -198,6 +230,7 @@ namespace PingTheKiller.ServerCore
                 player.Token = 0;
                 player.HasSeq = false;
                 player.InputTimes.Clear();
+                player.SkillChoice = SkillIds.NoChoice;
                 player.ResetBotPlan();
                 changed = true;
             }

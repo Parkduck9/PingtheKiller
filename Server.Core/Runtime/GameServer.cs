@@ -359,6 +359,8 @@ namespace PingTheKiller.ServerCore
                 return;
             }
             if (packet is C2S_HackInput hack) { if (_matchStarted) HackInput(player, hack.RouteId, hack.Direction); return; }
+            if (packet is C2S_Attack attack) { if (_matchStarted) ApplyAttack(player, attack.Seq); return; }
+            if (packet is C2S_ChooseSkill choose) { if (!_matchStarted) ChooseSkill(player, choose.SkillId); return; }
             if (!_matchStarted && player.IsHost)
             {
                 if (packet is C2S_SetBots bots)

@@ -257,8 +257,8 @@ namespace PingTheKiller.Client.Tests
             Assert.That(card.SkillLine, Is.EqualTo("Overclock [Q] " + Dot + " Cooldown 12 s"));
             Assert.That(card.Effect, Is.EqualTo(PlayMenuCopy.KillerEffect(SkillIds.Overclock)));
             Assert.That(card.Controls, Is.EqualTo("WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu"));
-            card.Begin(Role.Killer, SkillIds.PacketAfterimage, 5);
-            Assert.That(card.SkillLine, Is.EqualTo("Packet afterimage " + Dot + " Passive"), "the passive skill has no key and no cooldown");
+            card.Begin(Role.Killer, SkillIds.PacketTrace, 5);
+            Assert.That(card.SkillLine, Is.EqualTo("Packet trace [Q] " + Dot + " Cooldown 12 s"), "R1: Packet trace is active, with a key and the cooldown");
         }
 
         [Test]
@@ -387,7 +387,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(screen.Page, Is.EqualTo(Role.Killer));
             Assert.That(screen.Texts, Does.Contain(HelpCopy.Page(Role.Killer).Goal));
             Assert.That(screen.Texts.Any(t => t.StartsWith("Ping scanner")), Is.True);
-            Assert.That(screen.Texts.Count(t => t.StartsWith("Firewall block") || t.StartsWith("Overclock") || t.StartsWith("Packet afterimage") || t.StartsWith("Ping scanner")), Is.EqualTo(4));
+            Assert.That(screen.Texts.Count(t => t.StartsWith("Firewall block") || t.StartsWith("Overclock") || t.StartsWith("Packet trace") || t.StartsWith("Ping scanner")), Is.EqualTo(4), "R1: Packet trace replaced Packet afterimage");
             screen.Close();
             Assert.That(screen.Visible, Is.False);
             Assert.That(closed, Is.EqualTo(1));

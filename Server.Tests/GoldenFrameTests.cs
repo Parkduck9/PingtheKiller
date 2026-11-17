@@ -64,7 +64,7 @@ public sealed class GoldenFrameTests
                 IsOffline = 1, HostRoleChoice = 255,
                 Slots = new Slot[]
                 {
-                    new() { PlayerId = 1, Nickname = "", IsBot = 0, IsHost = 1 },
+                    new() { PlayerId = 1, Nickname = "", IsBot = 0, IsHost = 1, SkillChoice = 0x82 },
                     new() { PlayerId = 2, Nickname = "", IsBot = 1, IsHost = 0 },
                     new() { PlayerId = 3, Nickname = "", IsBot = 1, IsHost = 0 },
                     new() { PlayerId = 4, Nickname = "", IsBot = 1, IsHost = 0 },
@@ -76,15 +76,16 @@ public sealed class GoldenFrameTests
             },
             new byte[]
             {
-                69, 0, 0, 0, 10, 0, 1, 255, 8,
-                1, 0, 0, 0, 0, 0, 0, 1,
-                2, 0, 0, 0, 0, 0, 1, 0,
-                3, 0, 0, 0, 0, 0, 1, 0,
-                4, 0, 0, 0, 0, 0, 1, 0,
-                5, 0, 0, 0, 0, 0, 1, 0,
-                6, 0, 0, 0, 0, 0, 1, 0,
-                7, 0, 0, 0, 0, 0, 1, 0,
-                8, 0, 0, 0, 0, 0, 1, 0
+                // R1 (11/17): each slot ends with SkillChoice (0xFF = none; slot 1 chose Killer skill 2 = 0x82).
+                77, 0, 0, 0, 10, 0, 1, 255, 8,
+                1, 0, 0, 0, 0, 0, 0, 1, 0x82,
+                2, 0, 0, 0, 0, 0, 1, 0, 255,
+                3, 0, 0, 0, 0, 0, 1, 0, 255,
+                4, 0, 0, 0, 0, 0, 1, 0, 255,
+                5, 0, 0, 0, 0, 0, 1, 0, 255,
+                6, 0, 0, 0, 0, 0, 1, 0, 255,
+                7, 0, 0, 0, 0, 0, 1, 0, 255,
+                8, 0, 0, 0, 0, 0, 1, 0, 255
             }
         };
         yield return new object[] { new C2S_StartMatch(), new byte[] { 2, 0, 0, 0, 11, 0 } };

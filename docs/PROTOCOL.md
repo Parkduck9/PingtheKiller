@@ -16,7 +16,21 @@ The source of truth is `Shared/Runtime/` (server and Unity compile the same file
 | 0x0014 | S2C_RttProbe | S→C | v0.5: `uint Nonce` |
 | 0x0015 | C2S_RttEcho | C→S | v0.5: `uint Nonce` |
 | 0x0016 | S2C_SkillRejected | S→C | v0.6: `byte SkillId, byte Reason` |
+| 0x0017 | C2S_Attack | C→S | v0.8 (R1): `uint Seq` |
+| 0x0018 | C2S_ChooseSkill | C→S | v0.8 (R1): `byte SkillId` (a skill choice) |
 | 0x0019 | C2S_HackInput | C→S | v0.8 (R2): `byte RouteId, byte Direction` |
+
+## Killer attack and skill choice (0x0017-0x0018, v0.8, R1)
+
+- **C2S_Attack** (4 bytes, `uint Seq`): the Killer's swing press. The server ignores it outside a match, from a
+  Survivor and in the sandbox; drops a Seq not newer than the last one (reset on join and reconnect); counts at most 5
+  presses per second. The swing itself is server-timed (GDD v2 section 9).
+- **C2S_ChooseSkill** (1 byte): `0x00-0x04` a Survivor skill, `0x80 | 0x00-0x03` a Killer skill, `0xFF` random. Other
+  values are rejected (`PacketFormatException`). Accepted in the lobby only.
+- **Lobby `Slot`** gains a trailing `byte SkillChoice` (same encoding; bots `0xFF`). R1 a2: masked per recipient, each client receives only its own slot's choice and `0xFF` in every other slot. The server applies at most 4 `C2S_ChooseSkill` per player per second (the rest are dropped).
+- **`ChaseFlags`** adds `Swinging = 16` (values above 31 are rejected); **`TerminalFlags`** adds `Locked = 4`
+  (Firewall block on a terminal, sent to both roles; values above 7 are rejected).
+- `SkillRejectReason.Passive` stays defined but is no longer sent (Packet trace is active).
 
 ## Shutters and rails (v0.7, GDD v2 section 8)
 

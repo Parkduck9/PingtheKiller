@@ -51,10 +51,10 @@ public sealed class U2bSkillTests
             frames++;
             r.Tick();
         }
-        Assert.InRange(frames, 29, 31); // 1.5 s
+        Assert.InRange(frames, 59, 61); // R1: 3 s
         var k = Effects(r.K);
         Assert.Single(k);
-        Assert.Equal(1.5f, k[0].Duration);
+        Assert.Equal(3f, k[0].Duration);
         var s0 = Effects(r.S[0]);
         var e = Assert.Single(s0);
         Assert.Equal(r.K.Id, e.CasterId);
@@ -107,13 +107,14 @@ public sealed class U2bSkillTests
             x = nx;
         }
         int boosted = steps.Count(s => s > baseStep * 1.4f);
-        int frozen = steps.Count(s => Math.Abs(s) < 1e-6f);
+        // R1 (11/17): the 1 s standstill became a 0.3 s tail at 60 % speed.
+        int frozen = steps.Count(s => Math.Abs(s - baseStep * 0.6f) < baseStep * 0.01f);
         Assert.InRange(boosted, 59, 61);
-        Assert.InRange(frozen, 19, 21);
+        Assert.InRange(frozen, 5, 7);
         Assert.Equal(90 - boosted - frozen, steps.Count(s => Math.Abs(s - baseStep) < baseStep * 0.01f));
-        // order: normal (cast tick), boosted block, frozen block, normal again
+        // order: normal (cast tick), boosted block, slow tail, normal again
         int firstBoost = steps.FindIndex(s => s > baseStep * 1.4f);
-        int firstFrozen = steps.FindIndex(s => Math.Abs(s) < 1e-6f);
+        int firstFrozen = steps.FindIndex(s => Math.Abs(s - baseStep * 0.6f) < baseStep * 0.01f);
         Assert.True(firstBoost <= 2 && firstFrozen == firstBoost + boosted);
         Assert.Empty(Effects(r.S[0])); // never announced to survivors
         var effect = Assert.Single(Effects(r.K));
@@ -146,10 +147,10 @@ public sealed class U2bSkillTests
         }
         int both = steps.Count(s => Math.Abs(s - b * 0.75f) < b * 0.01f);   // 1.5 x 0.5
         int boostOnly = steps.Count(s => Math.Abs(s - b * 1.5f) < b * 0.01f);
-        int frozen = steps.Count(s => Math.Abs(s) < 1e-6f);
+        int tail = steps.Count(s => Math.Abs(s - b * 0.6f) < b * 0.01f);
         Assert.InRange(both, 39, 41);      // Traffic Overload lasts 2 s
         Assert.InRange(boostOnly, 19, 21); // 3 s boost - 2 s overlap
-        Assert.InRange(frozen, 19, 21);    // 1 s recovery is not slowed further or shortened
+        Assert.InRange(tail, 5, 7);        // R1: the 0.3 s tail at 60 % is not slowed further or shortened
     }
 
     // ------------------------------------------------------------------ Firewall Block (see also U2bAdversarialTests)
@@ -163,70 +164,6 @@ public sealed class U2bSkillTests
         Assert.Empty(Effects(r.K));
         r.ArmFirewall();
         Assert.InRange(CastGap(r, r.K, SkillIds.FirewallBlock), 239, 241);
-    }
-
-    // ------------------------------------------------------------------ Packet Afterimage
-
-    [Fact]
-    public void PacketAfterimage_KeepsLastSeenPositionForOneSecond_EvenWhileTheSurvivorKeepsMovingStealthed_FlagsExact()
-    {
-        using var r = new QaRig(1);
-        r.SetSkill(r.K, SkillIds.PacketAfterimage);
-        r.SetSkill(r.S[0], SkillIds.StealthRelay);
-        r.Place(r.K, 3, 3);
-        r.Place(r.S[0], 8, 20);
-        for (int i = 0; i < 10; i++) { r.S[0].Move(0, 1); r.Tick(); }
-        var last = r.KillerSees(r.S[0])!.Value;
-        Assert.Equal((byte)PlayerFlags.Signal, last.Flags);
-        r.Use(r.S[0], SkillIds.StealthRelay);
-        int afterimages = 0, absentAfter = 0;
-        for (int i = 0; i < 38; i++) // Stealth lasts 40 ticks; afterwards the moving survivor is a normal Signal again
-        {
-            r.S[0].Move(0, 1); // keeps moving; Stealth hides it
-            r.Tick();
-            var truth = r.Truth(r.S[0]);
-            // U2c migration: the afterimage is no longer flagged (Flags is Signal only), so it is the one anonymous entry
-            // that does NOT sit at the survivor's live position.
-            var entries = r.KillerSurvivorEntries.ToList();
-            Assert.Null(r.KillerSees(r.S[0])); // the live, hidden position is never shown
-            if (entries.Count == 1)
-            {
-                var seen = entries[0];
-                Assert.Equal((byte)PlayerFlags.Signal, seen.Flags);
-                // The afterimage must be frozen at a position the killer really saw, never the live (hidden) position.
-                Assert.True(seen.Z <= last.Z + 0.21f, "afterimage drifted with the hidden survivor: " + seen.Z + " vs " + last.Z);
-                Assert.NotEqual(truth.Z, seen.Z);
-                byte[] frame = PingTheKiller.Shared.Net.PacketCodec.Encode(r.KW);
-                Assert.False(QaWire.ContainsFloat(frame, truth.Z), "live Z of the hidden survivor leaked");
-                afterimages++;
-            }
-            else { Assert.Empty(entries); absentAfter++; }
-        }
-        Assert.InRange(afterimages, 19, 21); // 1 s
-        Assert.True(absentAfter >= 17);      // Stealth still hides it after the afterimage ended
-    }
-
-    [Fact]
-    public void PacketAfterimage_OnlyForAKillerThatOwnsIt_AndUseSkillOnPassiveIdIsIgnored()
-    {
-        using var r = new QaRig(1);
-        r.SetSkill(r.K, SkillIds.PingScanner); // a different skill: no afterimage
-        r.Place(r.S[0], 8, 20);
-        for (int i = 0; i < 5; i++) { r.S[0].Move(0, 1); r.Tick(); }
-        // U2c migration: without the skill the tail is 0 ticks. The afterimage flag no longer exists, so "no afterimage" is
-        // observed as "no survivor entry at all once the 0.15 s Signal hold (3 ticks) is over".
-        int lingering = 0;
-        for (int i = 0; i < 40; i++)
-        {
-            r.Tick();
-            if (i >= 4 && r.KillerSurvivorEntries.Any()) lingering++;
-        }
-        Assert.Equal(0, lingering);
-        using var q = new QaRig(1);
-        q.SetSkill(q.K, SkillIds.PacketAfterimage);
-        for (int i = 0; i < 30; i++) { q.Use(q.K, SkillIds.PacketAfterimage); q.Tick(); }
-        Assert.Empty(Effects(q.K));
-        Assert.Empty(Effects(q.S[0]));
     }
 
     // ------------------------------------------------------------------ Dummy Packet

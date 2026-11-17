@@ -148,9 +148,9 @@ public sealed class ServerReverifyTests
     [Fact]
     public void U2c_Sec2_PhantomAndReal_IdenticalFields_AndAfterimageLinger()
     {
-        // Killer has PacketAfterimage
+        // R1 (11/17): the passive Packet afterimage became the active Packet trace; no entry lingers any more.
         using var r = new QaRig(1, seed: 303);
-        r.SetSkill(r.K, SkillIds.PacketAfterimage);
+        r.SetSkill(r.K, SkillIds.PacketTrace);
         r.SetSkill(r.S[0], SkillIds.DummyPacket);
         r.Place(r.K, 5, 5);
         r.Place(r.S[0], 20, 20);
@@ -183,7 +183,7 @@ public sealed class ServerReverifyTests
         // Advance until Dummy expires (at 60 ticks)
         for (int i = 55; i < 62; i++) r.Tick();
 
-        // Now Dummy has expired. With PacketAfterimage, it lingers frozen at its last position
+        // Now Dummy has expired: nothing lingers (no afterimage skill since R1).
         int afterimageTicksSeen = 0;
         for (int i = 0; i < 25; i++)
         {
@@ -201,8 +201,7 @@ public sealed class ServerReverifyTests
             }
         }
 
-        // Lingers for afterimage window (up to 20 ticks / 1.0 s from last visible)
-        Assert.True(afterimageTicksSeen > 0 && afterimageTicksSeen <= 21);
+        Assert.Equal(0, afterimageTicksSeen);
 
         // After 1.0s afterimage window, phantom must be completely gone
         for (int i = 0; i < 10; i++) r.Tick();

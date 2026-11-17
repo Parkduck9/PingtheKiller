@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Client.Killer
 {
@@ -60,6 +61,9 @@ namespace PingTheKiller.Client.Killer
         public const int MaxTickGap = 10;                // larger gap: nothing matches
         public const float TickSeconds = 0.05f;
         public const float CaptureRadius = 1.2f;
+        // R1 (11/17): a Lagging blip that appears this near the Killer is a capture by its swing (the swing reaches
+        // GameConstants.SwingRange; 0.2 m of slack for the 100 ms the Killer moved since the hit).
+        public const float SwingCaptureRadius = GameConstants.SwingRange + .2f;
         public const float FacingMinDisplacement = 0.03f;
         public const float WalkingSpeed = 0.5f;
         public const int SpeedWindow = 4;
@@ -109,6 +113,13 @@ namespace PingTheKiller.Client.Killer
         // Events produced by the last Accept.
         public IReadOnlyList<BlipEvent> Events => events;
 
+        // R1 (11/17) a2: the last snapshot dropped a Normal blip that was within SwingCaptureRadius of the Killer (an
+        // eliminating hit removes the entry; so does a Survivor turning Silent, which KillerSwingWatch tells apart by the
+        // own swing's length). The dropped blip's last position (a position this client already had).
+        public bool NormalVanishedNear { get; private set; }
+        public float VanishedX { get; private set; }
+        public float VanishedZ { get; private set; }
+
         // New match / reconnect. Handles keep increasing so a stale handle is never reused.
         public void Reset()
         {
@@ -125,6 +136,7 @@ namespace PingTheKiller.Client.Killer
         public void Accept(uint tick, IReadOnlyList<BlipInput> input, float killerX, float killerZ)
         {
             events.Clear();
+            NormalVanishedNear = false;
 
             // 1. Copy finite entries, then shuffle before anything else.
             int inputCount = input == null ? 0 : input.Count;
@@ -190,6 +202,11 @@ namespace PingTheKiller.Client.Killer
                 if (oldMatched[o]) continue;
                 Blip b = blips[o];
                 events.Add(new BlipEvent(BlipEventKind.Despawned, b.Handle));
+                if (continuous && b.Status == BlipStatus.Normal && !NormalVanishedNear &&
+                    Dist2(b.X, b.Z, prevKillerX, prevKillerZ) <= SwingCaptureRadius * SwingCaptureRadius)
+                {
+                    NormalVanishedNear = true; VanishedX = b.X; VanishedZ = b.Z;
+                }
                 if (continuous && b.Status == BlipStatus.Lagging &&
                     Dist2(b.X, b.Z, prevKillerX, prevKillerZ) <= CaptureRadius * CaptureRadius)
                 {
@@ -226,7 +243,7 @@ namespace PingTheKiller.Client.Killer
                     Blip b = Spawn(entry);
                     events.Add(new BlipEvent(BlipEventKind.Spawned, b.Handle));
                     if (continuous && !captureCandidate && entry.Status == BlipStatus.Lagging &&
-                        Dist2(entry.X, entry.Z, killerX, killerZ) <= CaptureRadius * CaptureRadius)
+                        Dist2(entry.X, entry.Z, killerX, killerZ) <= SwingCaptureRadius * SwingCaptureRadius)
                     {
                         captureCandidate = true;
                         captureHandle = b.Handle;

@@ -1,5 +1,6 @@
 using System;
 using NUnit.Framework;
+using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
@@ -93,6 +94,30 @@ namespace PingTheKiller.Client.Tests
                     Assert.That(line, Does.Not.Contain("touch"), line);
                 }
                 Assert.That(page.Ladder[2], Does.StartWith("Rescue:").And.Contain("1.5 s").And.Contain("cannot move"));
+            }
+        }
+
+        // R1 QA M4: 16 ticks is the hit length; 17 keeps one tick of slack; 18 (a miss read with lost snapshots) is not a hit.
+        [Test]
+        public void TheSwingHitLengthStopsAtSeventeenTicks()
+        {
+            Assert.That(KillerSwingWatch.HitTicks, Is.EqualTo(16));
+            Assert.That(KillerSwingWatch.MissTicks, Is.EqualTo(20));
+            Assert.That(KillerSwingWatch.HitLength(16) && KillerSwingWatch.HitLength(17), Is.True);
+            Assert.That(KillerSwingWatch.HitLength(18), Is.False);
+        }
+
+        // R1 QA M1: a press while the own entry is stunned, pulling, vaulting or breaking plays no sweep or whoosh.
+        [Test]
+        public void APressTheServerWillRefusePlaysNoSwing()
+        {
+            foreach (ChaseFlags flag in new[] { ChaseFlags.Stunned, ChaseFlags.Pulling, ChaseFlags.Vaulting, ChaseFlags.Breaking })
+            {
+                var watch = new KillerSwingWatch();
+                watch.OwnChase = (byte)flag;
+                Assert.That(watch.Predict(1), Is.False, flag.ToString());
+                watch.OwnChase = 0;
+                Assert.That(watch.Predict(1.01), Is.True, flag + " cleared: the next press plays");
             }
         }
     }

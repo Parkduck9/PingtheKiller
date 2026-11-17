@@ -9,7 +9,8 @@ namespace PingTheKiller.Shared.Game
     // v0.4 (GDD v2 ¡×1): the match ends once every survivor escaped or was eliminated, or at the time limit.
     public enum GameEndReason : byte { AllResolved = 0, AllSurvivorsDown = 1, TimeUp = 2, Collapse = 3 }
     [Flags]
-    public enum TerminalFlags : byte { None = 0, Regressing = 1, Overloaded = 2 }
+    // R1 (11/17): Locked = 4 while a Firewall block holds the terminal (no hacking).
+    public enum TerminalFlags : byte { None = 0, Regressing = 1, Overloaded = 2, Locked = 4 }
     [Flags]
     public enum ExitFlags : byte { None = 0, Powered = 1, Open = 2, Locked = 4 }
     // 11/17 (R2) packet routing: one route direction (C2S_HackInput.Direction, S2C_SelfState.RouteDirs).
@@ -25,12 +26,12 @@ namespace PingTheKiller.Shared.Game
         internal static byte ReadRole(ref PacketReader r) => r.ReadByte((byte)Role.Killer);
         internal static byte ReadStatus(ref PacketReader r) => r.ReadByte((byte)PlayerStatus.Eliminated);
         internal static byte ReadReason(ref PacketReader r) => r.ReadByte((byte)GameEndReason.Collapse);
-        internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded));
+        internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded | TerminalFlags.Locked));
         internal static byte ReadExitFlags(ref PacketReader r) => r.ReadByte((byte)(ExitFlags.Powered | ExitFlags.Open | ExitFlags.Locked));
         internal static byte ReadRouteDirection(ref PacketReader r) => r.ReadByte((byte)RouteDirection.Right);
         internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.Rescue);
         internal static byte ReadChaseFlags(ref PacketReader r) => r.ReadByte(
-            (byte)(ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking | ChaseFlags.Stunned));
+            (byte)(ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking | ChaseFlags.Stunned | ChaseFlags.Swinging));
         internal static byte ReadShutterState(ref PacketReader r) => r.ReadByte((byte)ShutterState.Broken);
         internal static byte ReadFlags(ref PacketReader r) => r.ReadByte(
             (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage | PlayerFlags.Stealthed | PlayerFlags.Hacking | PlayerFlags.Rescuing | PlayerFlags.GettingUp));
@@ -66,7 +67,7 @@ namespace PingTheKiller.Shared.Game
         public byte Flags;
         public float StatusTimer;
         public byte CaptureCount;
-        // v0.7: ChaseFlags (Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8); values above 15 are rejected.
+        // v0.7: ChaseFlags (Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8; R1 Swinging = 16); values above 31 are rejected.
         public byte Chase;
 
         public void Write(PacketWriter w)
@@ -147,6 +148,8 @@ namespace PingTheKiller.Shared.Game
         public string Nickname = string.Empty;
         public byte IsBot;
         public byte IsHost;
+        // R1 (11/17): this player's lobby skill choice (SkillIds.Choice encoding; NoChoice = random).
+        public byte SkillChoice = SkillIds.NoChoice;
 
         public void Write(PacketWriter w)
         {
@@ -154,12 +157,14 @@ namespace PingTheKiller.Shared.Game
             w.WriteString(Nickname, Protocol.MaxNicknameBytes);
             w.WriteByte(IsBot);
             w.WriteByte(IsHost);
+            if (!SkillIds.ValidChoice(SkillChoice)) throw new PacketFormatException("Undefined skill choice.");
+            w.WriteByte(SkillChoice);
         }
 
         public static Slot Read(ref PacketReader r) => new Slot
         {
             PlayerId = r.ReadInt32(), Nickname = r.ReadString(Protocol.MaxNicknameBytes),
-            IsBot = r.ReadByte(), IsHost = r.ReadByte()
+            IsBot = r.ReadByte(), IsHost = r.ReadByte(), SkillChoice = SkillIds.ReadChoice(ref r)
         };
     }
 }

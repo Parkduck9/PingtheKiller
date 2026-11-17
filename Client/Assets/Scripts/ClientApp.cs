@@ -37,6 +37,9 @@ namespace PingTheKiller.Client
         private MovementInput movement = new MovementInput();
         private readonly InteractInput interact = new InteractInput();
         private readonly RouteKeys routeKeys = new RouteKeys(); // HUD_SPEC 13.2: the left-stick flick re-arm
+        // R1 (11/17): the Killer's attack press (C2S_Attack) and its own swing as the snapshots show it.
+        private readonly AttackInput attackInput = new AttackInput();
+        private readonly KillerSwingWatch swingWatch = new KillerSwingWatch();
         private readonly CharacterFacing facing = new CharacterFacing();
         private readonly SelfStateHolder selfState = new SelfStateHolder();
         private readonly HashSet<byte> loggedEffects = new HashSet<byte>();
@@ -123,6 +126,7 @@ namespace PingTheKiller.Client
             screens.Leave += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             screens.ChangeBots += delta => { if (IsHost()) link.Send(new C2S_SetBots { Count = (byte)Mathf.Clamp(botCount + delta, 0, 7) }); };
             screens.ChangeRole += choice => { if (IsHost()) link.Send(new C2S_SetRole { RoleChoice = choice }); };
+            screens.ChooseSkill += choice => link?.Send(new C2S_ChooseSkill { SkillId = choice }); // R1: lobby skill picker
             screens.StartMatch += () => { if (IsHost()) link.Send(new C2S_StartMatch()); };
             screens.BackToLobby += () => { if (lobby != null && link != null && link.IsConnected) screens.ShowLobby(lobby, playerId); };
             // Play menu, both roles (HUD_SPEC 5, 6.6): Resume, or leave the match like the lobby's Leave.
@@ -207,7 +211,7 @@ namespace PingTheKiller.Client
             Release();
             link = next; endpointText = endpoint;
             movement = new MovementInput(); // Seq lives as long as the link.
-            interact.Reset();
+            interact.Reset(); attackInput.Reset();
             selfState.Reset();
             link.PacketReceived += Receive;
             link.Disconnected += Disconnect;
@@ -240,7 +244,7 @@ namespace PingTheKiller.Client
                     DestroyWorld();
                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
-                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu();
+                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu(); swingWatch.Reset();
                     selfState.Reset(); facing.Reset(0); screens.Survivor.Route.Reset(); routeKeys.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
                     intro.Begin(role, skillId, LinkClock.Now); hints.Reset();
@@ -269,11 +273,13 @@ namespace PingTheKiller.Client
                     world.Accept(state, received.Time);
                     intro.SetTerminals(state.TerminalsRequired);
                     killerLayer?.Accept(state, received.Time);
+                    if (killerLayer != null && killerLayer.VanishedNear) swingWatch.OnVanish(received.Time); // a2: maybe an eliminating hit
                     if (killerLayer != null && killerLayer.Captures != killerCaptures)
                     {
                         // U8: the own capture's impact at the tracker instance (a position this client already has).
                         killerCaptures = killerLayer.Captures;
                         killerImpactUntil = LinkClock.Now + .3; // played once the tracker instance is in the rendered views
+                        if (swingWatch.OnCapture(received.Time) == SwingEvent.Hit) { Debug.Log("[client] swing hit"); dev?.OnSwing(SwingEvent.Hit); }
                         frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "killer capture");
                     }
                     chase.Accept(state, received.Time);
@@ -284,6 +290,7 @@ namespace PingTheKiller.Client
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
                         if (role == Role.Killer ? player.Role != (byte)Role.Killer : player.Id != playerId) continue;
                         localStatus = (PlayerStatus)player.Status;
+                        if (role == Role.Killer) ObserveOwnSwing(player.Chase, state.Tick, received.Time); // R1: the own Swinging flag
                         if (role == Role.Killer) break;
                         // HUD_SPEC 13.2: a route only exists while Normal (the server clears it otherwise).
                         if (localStatus != PlayerStatus.Normal) screens.Survivor.Route.Clear();
@@ -529,6 +536,7 @@ namespace PingTheKiller.Client
             bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
+            if (!survivor) AttackFrame(presses, gamepad, position, now);
             SkillFeedbackFrame(now, position);
             if (!survivor) rig.KillerFovOffset += chase.Stun.FovOffset(now, skillFx.Reduced); // HUD_SPEC 15.4 stun impulse
             chase.Frame(now);
@@ -548,6 +556,7 @@ namespace PingTheKiller.Client
                 if (own.Status == PlayerStatus.Normal) screens.Survivor.DrawAllyMarkers(own.X, own.Z, mates, nameOf ??= NameOf, rig.Pose);
                 else screens.Survivor.ClearAllyMarkers();
                 dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
+                dev?.OnKillerSwingSeen(world.KillerSwings); // R1: the Killer model winding up
             }
             else if (killerLayer != null && located)
             {
@@ -591,7 +600,7 @@ namespace PingTheKiller.Client
             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
             bool survivor = role == Role.Survivor;
             bool precondition = survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
-                : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+                : true; // R1 (11/17): Firewall block also locks a terminal; only the server knows whether one has progress
             string reason = SkillFeedback.PressReason(role, skillId, localStatus, cooldown, precondition, out bool watch);
             if (survivor)
             {
@@ -607,9 +616,57 @@ namespace PingTheKiller.Client
             Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
         }
 
+        // R1 (11/17): the own Killer entry's Swinging flag (and the snapshot's server tick): its rise is the server's accepted
+        // swing (the wind-up); a2: its fall settles a swing whose verdict was held (an eliminating hit or a miss).
+        private void ObserveOwnSwing(byte chase, uint tick, double time)
+        {
+            swingWatch.OwnChase = chase; // INTEG-R (R1 QA M1): a press the server will refuse plays no sweep
+            SwingEvent swing = swingWatch.Observe((chase & (byte)ChaseFlags.Swinging) != 0, tick, time);
+            if (swing == SwingEvent.Started) { Debug.Log("[client] swing wind-up"); dev?.OnSwing(SwingEvent.Started); }
+            else if (swing == SwingEvent.Hit)
+            {
+                // The eliminating hit: no CaptureConfirm (the entry is gone); the kick and the impact where the blip was.
+                Debug.Log("[client] swing hit (eliminating, entry gone)");
+                killerLayer?.PlayUnseenHit();
+                if (killerLayer != null) PlayImpact(killerLayer.VanishedPoint);
+                dev?.OnSwing(SwingEvent.Hit, true);
+            }
+            else if (swing == SwingEvent.Missed) OnSwingMissed(time);
+            else if (swing == SwingEvent.LateHit) Debug.Log("[client] swing hit (late: an unseen Survivor, shown as missed)");
+        }
+
+        private void OnSwingMissed(double now)
+        {
+            killerLayer?.Fx.OnMissed(now);
+            Debug.Log("[client] swing missed");
+            dev?.OnSwing(SwingEvent.Missed);
+        }
+
+        // R1 (11/17): left mouse button or gamepad right trigger swings (the play menu, a lost focus or a released cursor
+        // blocks it like every other press). a2: the press itself plays the swing (view sweep and whoosh) at once; the
+        // result follows from the server: a hit (CaptureConfirm: kick, impact) or Missed (the line).
+        private void AttackFrame(bool presses, Gamepad gamepad, Vector3 position, double now)
+        {
+            if (killerLayer == null) return;
+            killerLayer.PadPrompt = gamepad != null && Keyboard.current == null;
+            bool key = presses && ((Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) || (gamepad != null && gamepad.rightTrigger.wasPressedThisFrame));
+            bool scripted = dev != null && dev.PressAttack(killerLayer.NearestNormalBlip(position)); // dev: -ptk-chase swings
+            if (attackInput.TryCreate(key || scripted, role, out C2S_Attack attack))
+            {
+                link.Send(attack);
+                if (swingWatch.Predict(now))
+                {
+                    v2Audio.Play(V2Cue.SwingWhoosh);
+                    killerLayer.Kick?.PlaySwing(Time.unscaledTimeAsDouble);
+                    Debug.Log("[client] swing pressed: sweep + whoosh");
+                    dev?.OnSwingPressed();
+                }
+            }
+            if (swingWatch.Tick(now) == SwingEvent.Missed) OnSwingMissed(now);
+        }
+
         // Dev only (-ptk-skill-when-able): the same derived precondition OnSkillPress uses (Restore target, switch in progress).
-        private bool DevSkillAble() => role == Role.Survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
-            : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+        private bool DevSkillAble() => role != Role.Survivor || skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates);
 
         // HUD_SPEC 14.3 (Q3): the server's reason for refusing the own pending press replaces the 0.5 s inference.
         private void OnSkillRejected(S2C_SkillRejected rejected, double time)

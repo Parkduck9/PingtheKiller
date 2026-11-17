@@ -10,7 +10,8 @@ namespace PingTheKiller.Shared.Game
 
     // GDD v2 §8 (protocol v0.7): what a player is doing with a shutter or rail, for animation. PlayerState.Chase.
     [Flags]
-    public enum ChaseFlags : byte { None = 0, Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8 }
+    // R1 (11/17): Swinging = 16 is set on the Killer during a swing's wind-up and recovery.
+    public enum ChaseFlags : byte { None = 0, Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8, Swinging = 16 }
 
     // A thin axis-aligned prop box (a shutter across an alley or a low rail). It blocks movement only, never sight.
     // The long side runs along X when AlongX, otherwise along Z; it is crossed along (CrossX, CrossZ).

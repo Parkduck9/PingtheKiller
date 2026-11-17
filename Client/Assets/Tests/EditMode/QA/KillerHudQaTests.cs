@@ -107,9 +107,9 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheEffectLinesUseTheSpecWordsAndOneDecimalOfSeconds()
         {
             Assert.That(KillerHudCopy.Overclock(2.1f), Is.EqualTo("Overclock: 1.5× speed " + Dot + " 2.1 s"));
-            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: cannot move " + Dot + " 0.8 s"));
+            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: slowed " + Dot + " 0.8 s"));
             Assert.That(KillerHudCopy.Slowed(1.6f), Is.EqualTo("Slowed by traffic overload " + Dot + " 1.6 s"));
-            Assert.That(SkillIds.OverclockRecoverySeconds, Is.EqualTo(1f), "Recovering lasts a static 1 s after the Overclock Duration");
+            Assert.That(SkillIds.OverclockRecoverySeconds, Is.EqualTo(.3f), "R1: the slow tail lasts a static 0.3 s after the Overclock Duration");
             Assert.That(KillerHudCopy.Slowed(-4f), Does.Not.Contain("-"), "a negative remainder never shows");
             Assert.That(KillerHudCopy.Slowed(float.NaN), Does.Not.Contain("NaN"));
         }
@@ -117,29 +117,27 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheSkillBlockStateLineCoversReadyCooldownPassiveAndAfterTheExitOpens()
         {
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, false, null), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, false, 0f), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, false, 6.2f), Is.EqualTo("Cooldown 7 s"), "ceil of the server's value");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, true, .1f), Is.EqualTo("Cooldown 1 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, true, 12f), Is.EqualTo("Cooldown 12 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, false, null), Is.EqualTo("Passive " + Dash + " always on"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, true, 5f), Is.EqualTo("Passive " + Dash + " always on"), "a passive skill has no cooldown");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("Needs an Exit switch in progress"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 3f), Is.EqualTo("Needs an Exit switch in progress"), "disabled until an Exit switch is in progress");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, null), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 4.5f), Is.EqualTo("Cooldown 5 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, null), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, 0f), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, 6.2f), Is.EqualTo("Cooldown 7 s"), "ceil of the server's value");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, .1f), Is.EqualTo("Cooldown 1 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 12f), Is.EqualTo("Cooldown 12 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketTrace, null), Is.EqualTo("Ready"), "R1: Packet trace is active");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketTrace, 5f), Is.EqualTo("Cooldown 5 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, null), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, 4.5f), Is.EqualTo("Cooldown 5 s"));
         }
 
         [Test]
         public void TheKillerSkillNamesAndEffectLinesAreTheSpecTable()
         {
-            string[] names = { "Ping scanner", "Overclock", "Packet afterimage", "Firewall block" };
+            string[] names = { "Ping scanner", "Overclock", "Packet trace", "Firewall block" };
             string[] effects =
             {
-                "Shows the nearest Survivor for 1.5 s.",
-                "1.5× speed for 3 s, then 1 s unable to move.",
-                "Passive: Survivors stay visible 1 s after their Signal ends.",
-                "Locks the Exit switch in progress for 5 s.", // U6c-wire: v2 Firewall block locks a switch, not an open Exit
+                "Shows the nearest Survivor for 3 s.",
+                "1.5× speed for 3 s, then 0.3 s slowed.",
+                "Survivors within 12 m of you turn Signal for 2.5 s.",
+                "Locks the Exit switch in progress for 5 s, or else the most hacked terminal for 8 s.", // R1 (11/17)
             };
             for (byte id = 0; id < SkillIds.KillerSkillCount; id++)
             {
@@ -273,7 +271,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(LabelShown(root, "Overclock: 1.5× speed " + Dot + " 2.1 s"), Is.True);
             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.None), "Overclock is not a threat");
             hud.SetEffect(KillerHudCopy.Recovering(.8f), false);
-            Assert.That(LabelShown(root, "Recovering: cannot move " + Dot + " 0.8 s"), Is.True);
+            Assert.That(LabelShown(root, "Recovering: slowed " + Dot + " 0.8 s"), Is.True);
             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.None));
             hud.SetEffect(KillerHudCopy.Slowed(1.6f), true);
             Assert.That(LabelShown(root, "Slowed by traffic overload " + Dot + " 1.6 s"), Is.True);
@@ -296,46 +294,44 @@ namespace PingTheKiller.Client.QA.Tests
 
             // S2C_SelfState has not arrived: even a stale 9 s on the holder must not draw a cooldown.
             var self = new StubSelf { Available = false, SkillCooldown = 9 };
-            hud.SetSkill(SkillIds.Overclock, true, self, -1);
+            hud.SetSkill(SkillIds.Overclock, self, -1);
             Assert.That(LabelShown(skill, "Ready"), Is.True);
             Assert.That(LabelWithText(skill, "Cooldown 9 s"), Is.Null);
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"), "a full ring, never the cooldown arc");
-            hud.SetSkill(SkillIds.Overclock, true, null, -1);
+            hud.SetSkill(SkillIds.Overclock, null, -1);
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"), "a null seam behaves the same");
 
             // Once it is available, the same call shows the server's cooldown.
             self.Available = true;
-            hud.SetSkill(SkillIds.Overclock, true, self, -1);
+            hud.SetSkill(SkillIds.Overclock, self, -1);
             Assert.That(LabelShown(skill, "Cooldown 9 s"), Is.True);
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Cooldown"));
             self.SkillCooldown = 0;
-            hud.SetSkill(SkillIds.Overclock, true, self, -1);
+            hud.SetSkill(SkillIds.Overclock, self, -1);
             Assert.That(LabelShown(skill, "Ready"), Is.True);
             Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"));
         }
 
         [Test]
-        public void PassiveAndAfterExitSkillsHaveTheirOwnRingStateAndNoKeyGlyphWhenPassive()
+        public void EverySkillIsPressedWithQAndShowsItsOneLineEffect()
         {
+            // R1 (11/17): Packet trace became active and Firewall block also locks a terminal: every skill has the key
+            // glyph, a ring and the one-line effect under the name (6.1d).
             KillerHud hud = NewHud(out VisualElement root);
             FieldInfo state = typeof(SkillRing).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic);
             SkillRing ring = root.Q<SkillRing>();
             VisualElement skill = Block(root, "kskill");
-
-            hud.Begin(SkillIds.PacketAfterimage);
-            hud.SetSkill(SkillIds.PacketAfterimage, false, null, -1);
-            Assert.That(LabelShown(skill, "Passive " + Dash + " always on"), Is.True);
-            Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Passive"), "no ring for a passive skill");
-            Assert.That(LabelShown(skill, "[Q]"), Is.False, "nothing to press");
-
-            hud.Begin(SkillIds.FirewallBlock);
-            hud.SetSkill(SkillIds.FirewallBlock, false, null, -1);
-            Assert.That(LabelShown(skill, "Needs an Exit switch in progress"), Is.True);
-            Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Disabled"));
-            Assert.That(LabelShown(skill, "[Q]"), Is.True);
-            hud.SetSkill(SkillIds.FirewallBlock, true, null, -1);
-            Assert.That(LabelShown(skill, "Ready"), Is.True);
-            Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"));
+            for (byte id = 0; id < SkillIds.KillerSkillCount; id++)
+            {
+                hud.Begin(id);
+                hud.SetSkill(id, null, -1);
+                Assert.That(LabelShown(skill, "Ready"), Is.True, "skill " + id);
+                Assert.That(state.GetValue(ring).ToString(), Is.EqualTo("Ready"));
+                Assert.That(LabelShown(skill, "[Q]"), Is.True);
+                Assert.That(LabelShown(skill, PlayMenuCopy.KillerSkillLine(id)), Is.True, "the effect line");
+                Assert.That(hud.SkillLineText, Is.EqualTo(PlayMenuCopy.KillerSkillLine(id)));
+                Assert.That(PlayMenuCopy.KillerSkillLine(id).Length, Is.LessThanOrEqualTo(28), "one S line in the 232 u text column");
+            }
         }
 
         // U6c-wire K1/K2: the prompt block now carries the kick / hatch-close prompt; it hides with the menu or without one.
@@ -378,7 +374,7 @@ namespace PingTheKiller.Client.QA.Tests
             foreach (Button b in Block(root, "kmenu").Query<Button>().ToList()) buttons.Add(b.text);
             Assert.That(buttons, Is.EqualTo(new[] { "Resume", "Settings", "Leave match" }));
             Assert.That(LabelShown(Block(root, "kmenu"), "Firewall block"), Is.True, "the menu names the skill");
-            Assert.That(LabelShown(Block(root, "kmenu"), "Locks the Exit switch in progress for 5 s."), Is.True, "and states its effect");
+            Assert.That(LabelShown(Block(root, "kmenu"), PlayMenuCopy.KillerEffect(SkillIds.FirewallBlock)), Is.True, "and states its effect");
             Assert.That(Shown(Block(root, "kinfo"), root), Is.True);
             Assert.That(Shown(Block(root, "kskill"), root), Is.True);
             hud.SetMenu(false);
@@ -388,30 +384,31 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void TheClusterRectangleGrowsByTheSpecBlockHeightsAndTheWorstCaseIs472()
+        public void TheClusterRectangleGrowsByTheSpecBlockHeightsAndTheWorstCaseIs488()
         {
             KillerHud hud = NewHud(out _);
             hud.Begin(SkillIds.PingScanner);
-            // HUD_SPEC 6.1: info 72 + skill 72 + 8 gap = 152 in normal play; intro 208 + 8; prompt 56 + 8; effect line 32 + 8.
+            // HUD_SPEC 6.1: info 72 + skill 88 (R1: + the effect line) + 8 gap = 168 in normal play; intro 208 + 8; prompt 56 + 8;
+            // effect line 32 + 8.
             hud.SetIntro(false);
             Rect normal = hud.ClusterRect(900);
             Assert.That(normal.width, Is.EqualTo(320f));
-            Assert.That(normal.height, Is.EqualTo(152f));
+            Assert.That(normal.height, Is.EqualTo(168f));
             Assert.That(normal.x, Is.EqualTo(24f));
             Assert.That(normal.yMax, Is.EqualTo(900f - 24), "bottom-left, margin 24");
             hud.SetEffect("Overclock", false);
-            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(192f), "normal play with the effect line");
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(208f), "normal play with the effect line");
             hud.SetEffect(null, false);
             hud.SetPrompt(new InteractPrompt { Text = InteractCopy.Kick(0), Hint = InteractCopy.KickHint }, default);
-            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(152f + 64));
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(168f + 64));
             hud.SetEffect("Overclock", false);
             hud.SetIntro(true);
             Rect worst = hud.ClusterRect(900);
-            Assert.That(worst.height, Is.EqualTo(472f), "everything shown");
-            Assert.That(worst.yMin, Is.EqualTo(404f), "HUD_SPEC 6.1: the top edge sits at 900 - 24 - 472 = 404 u");
+            Assert.That(worst.height, Is.EqualTo(488f), "everything shown");
+            Assert.That(worst.yMin, Is.EqualTo(388f), "HUD_SPEC 6.1: the top edge sits at 900 - 24 - 488 = 388 u");
             // The play menu is 256 u (U7a: Resume, Settings, Leave match), 48 u taller than the intro slot.
             hud.SetMenu(true);
-            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(472f - 64 + 48), "menu replaces the intro; the prompt is hidden while the menu is open");
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(488f - 64 + 48), "menu replaces the intro; the prompt is hidden while the menu is open");
         }
 
         // ---- 8. rules v2 Killer readouts (pure). U6c-wire K1: these seven tests checked the v1 execution guidance, which
@@ -425,14 +422,13 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
-        public void FirewallBlockIsUsableOnlyWhileAnUnopenedExitHasSwitchProgress()
+        public void SwitchInProgressStillReadsTheWireButFirewallBlockIsAlwaysReady()
         {
             Assert.That(V2Wire.SwitchInProgress(null), Is.False);
             Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 1 })), Is.False, "powered, nobody on the switch");
             Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 1, SwitchProgress = 1 })), Is.True);
             Assert.That(V2Wire.SwitchInProgress(WorldWith(new ExitState { Flags = 3, SwitchProgress = 100 })), Is.False, "an open exit is no target");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo(KillerHudCopy.NeedsSwitch));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, null), Is.EqualTo(KillerHudCopy.Ready));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, null), Is.EqualTo(KillerHudCopy.Ready), "R1: a terminal lock needs no switch");
         }
 
         [Test]
@@ -496,7 +492,7 @@ namespace PingTheKiller.Client.QA.Tests
             hud.SetIntro(false);
             hud.SetPrompt(default, new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .55f });
             Assert.That(hud.Hold.Text, Is.EqualTo("Jamming the Terminal " + Dot + " 55%"));
-            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(152f + 80), "the 72 u hold block and its 8 u gap");
+            Assert.That(hud.ClusterRect(900).height, Is.EqualTo(168f + 80), "the 72 u hold block and its 8 u gap");
             hud.SetPrompt(default, default);
             Assert.That(hud.Hold.style.display.value, Is.EqualTo(DisplayStyle.None));
         }

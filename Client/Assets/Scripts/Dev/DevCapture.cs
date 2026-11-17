@@ -59,6 +59,13 @@ namespace PingTheKiller.Client.Dev
         private NavGrid nav;
         private int chaseTerminal;
         private double chaseLogAt = -1;
+        // R1 (11/17) dev only: -ptk-chase on the Killer swings at a Normal blip within DevAttackRange (some reach, some
+        // miss), at most once per DevAttackGap seconds; the shots of its wind-up, a hit and a miss, and of a Survivor
+        // client seeing the Killer model wind up.
+        public const float DevAttackRange = 3f;
+        public const double DevAttackGap = 1.2;
+        private double nextAttack = -1;
+        private int swingsSeen;
         private readonly List<Vector3> terminalPoints = new List<Vector3>();
         private bool rescueFound;
         private byte threatLevel;
@@ -203,6 +210,45 @@ namespace PingTheKiller.Client.Dev
             skillPresses++; nextSkillPress = Now + 1;
             Debug.Log("[DEV] t=" + Stamp(t) + " skill press " + skillPresses + " (scripted Q)");
             return true;
+        }
+
+        // R1 (11/17) -ptk-chase (Killer): true on the frame a scripted attack press is due.
+        public bool PressAttack(float nearestBlip)
+        {
+            if (!Chasing || nearestBlip > DevAttackRange || (nextAttack >= 0 && Now < nextAttack)) return false;
+            nextAttack = Now + DevAttackGap;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " attack press (scripted, blip " + Stamp(nearestBlip) + " m)");
+            return true;
+        }
+
+        // R1 (11/17): the own swing events (KillerSwingWatch): one shot each of the wind-up, a hit and a miss; a2 also the
+        // press (the sweep mid-way), the first swing's result and an eliminating hit.
+        private int swingResults;
+        public void OnSwing(SwingEvent swing, bool eliminating = false)
+        {
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " swing " + swing + (eliminating ? " (eliminating)" : string.Empty));
+            if (swing == SwingEvent.Started) { EventShot("r1-killer-windup.png", 0, .08f); return; }
+            if (swing != SwingEvent.Hit && swing != SwingEvent.Missed) return;
+            if (++swingResults == 1) EventShot(swing == SwingEvent.Hit ? "r1-killer-first-swing-hit.png" : "r1-killer-first-swing-miss.png", 0, .12f);
+            if (eliminating) EventShot("r1-killer-elim-hit.png", 0, .12f);
+            else if (swing == SwingEvent.Hit) EventShot("r1-killer-hit.png", 0, .12f);
+            else EventShot("r1-killer-miss.png", 0, .1f);
+        }
+
+        // a2: the local press played the sweep (the shot catches it mid-way).
+        public void OnSwingPressed()
+        {
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " swing pressed");
+            EventShot("r1-killer-press.png", 0, .1f);
+        }
+
+        // R1 (11/17), Survivor client: the drawn Killer model started a wind-up; the shot catches the raised arm.
+        public void OnKillerSwingSeen(int swings)
+        {
+            if (swings <= swingsSeen) return;
+            swingsSeen = swings;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " killer wind-up seen #" + swings);
+            EventShot(swings == 1 ? "r1-survivor-windup.png" : "r1-survivor-windup-" + Math.Min(swings, 3) + ".png", 0, .12f);
         }
 
         // Every S2C_SelfState packet: the first, then any that carries a non-zero value (capped), with the countdown.

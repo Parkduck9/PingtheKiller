@@ -22,7 +22,10 @@ namespace PingTheKiller.Shared.Packets
         S2C_RttProbe = 0x0014,
         C2S_RttEcho = 0x0015,
         S2C_SkillRejected = 0x0016,
-        // 11/17 (R2): one packet-routing key press of the hacking Survivor (0x0017-0x0018 are allocated to R1).
+        // R1 (11/17): the Killer swing and the lobby skill choice.
+        C2S_Attack = 0x0017,
+        C2S_ChooseSkill = 0x0018,
+        // 11/17 (R2): one packet-routing key press of the hacking Survivor.
         C2S_HackInput = 0x0019
     }
 }

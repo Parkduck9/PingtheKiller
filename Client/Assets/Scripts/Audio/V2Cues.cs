@@ -6,7 +6,8 @@ using PingTheKiller.Shared.Packets;
 namespace PingTheKiller.Client.Audio
 {
     // Rules v2 event cues (2D one-shots). The hold loop (exit switch, kick, hatch close) is separate: V2CueSynth.BuildHold.
-    public enum V2Cue : byte { RouteKey, RouteDone, RouteError, ExitsPowered, ExitOpen, CollapseStart, HatchOpen, HatchClose, Capture, Rescue, TerminalKick }
+    // R1 (11/17): SwingWhoosh is the Killer's own swing (a2: played on the local press), played directly, never by V2CueRules.
+    public enum V2Cue : byte { RouteKey, RouteDone, RouteError, ExitsPowered, ExitOpen, CollapseStart, HatchOpen, HatchClose, Capture, Rescue, TerminalKick, SwingWhoosh }
 
     // Pure trigger rules: snapshots in, edges out. The caller plays whatever lands in Pending and clears it. The first
     // WorldState after Begin only sets the baseline; every cue fires on an edge, at most once per kind and snapshot.
@@ -200,6 +201,7 @@ namespace PingTheKiller.Client.Audio
                 case V2Cue.HatchClose: return .35f;
                 case V2Cue.Capture: return .3f;
                 case V2Cue.Rescue: return .5f;
+                case V2Cue.SwingWhoosh: return .26f;
                 default: return .18f; // TerminalKick
             }
         }
@@ -259,6 +261,13 @@ namespace PingTheKiller.Client.Audio
                         break;
                     case V2Cue.Rescue: // warm rising arpeggio E4 G#4 B4 E5
                         v = .42f * (Note(time, 0, 329.63f, 5) + Note(time, .08f, 415.3f, 5) + Note(time, .16f, 493.88f, 5) + Note(time, .24f, 659.25f, 5));
+                        break;
+                    case V2Cue.SwingWhoosh: // whoosh: noise through a low-pass whose cutoff sweeps up and back, sine-swelled
+                        float sweep = (float)Math.Sin(Math.PI * t);
+                        float cutoff = .04f + .3f * sweep;
+                        low += cutoff * ((float)(noise.NextDouble() * 2 - 1) - low);
+                        held += .5f * cutoff * (low - held);
+                        v = 2.6f * sweep * sweep * (low - .6f * held);
                         break;
                     default: // TerminalKick: digital crunch over a short thump
                         if (i % 14 == 0) held = (float)Math.Round((noise.NextDouble() * 2 - 1) * 2) / 2;

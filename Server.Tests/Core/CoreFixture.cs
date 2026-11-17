@@ -55,6 +55,9 @@ internal sealed class CoreFixture : IDisposable
             IsOffline = offline, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
             MatchSeedForTests = matchSeed, ClockForTests = Clock.Read
         });
+        // R1 (11/17): the pre-R1 rule tests capture by walking a human Killer into a Survivor; the hook presses the swing
+        // for it. R1 swing tests (KillerSwingTests) switch it off.
+        Server.ContactSwingForTests = true;
         Transport = new InMemoryTransport();
         Transport.ConnectionAccepted += Server.AddConnection;
         Transport.Start();
@@ -104,7 +107,7 @@ internal sealed class CoreFixture : IDisposable
         {
             var f = new CoreFixture(seed: seed);
             var (killer, survivor) = f.StartPair();
-            if (killer.Last<S2C_MatchStart>().SkillId != SkillIds.PacketAfterimage) return (f, killer, survivor);
+            if (killer.Last<S2C_MatchStart>().SkillId != SkillIds.PacketTrace) return (f, killer, survivor);
             f.Dispose();
         }
     }

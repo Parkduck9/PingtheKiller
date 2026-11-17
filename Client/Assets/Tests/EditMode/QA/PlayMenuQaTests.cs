@@ -45,10 +45,10 @@ namespace PingTheKiller.Client.Tests.QA
         public void TheKillerMenuClosesOnBeginAndKeepsTheStackedSizes()
         {
             var hud = new KillerHud(new VisualElement(), HudFont());
-            hud.Begin(SkillIds.PacketAfterimage);
+            hud.Begin(SkillIds.PacketTrace);
             hud.SetMenu(true);
             Assert.That(hud.MenuOpen, Is.True);
-            hud.Begin(SkillIds.PacketAfterimage);
+            hud.Begin(SkillIds.PacketTrace);
             Assert.That(hud.MenuOpen, Is.False, "next match: menu hidden");
             Assert.That(hud.Menu.Layout, Is.EqualTo(PlayMenuLayout.Stacked));
             Assert.That(KillerHud.MenuHeight, Is.EqualTo(256f));
