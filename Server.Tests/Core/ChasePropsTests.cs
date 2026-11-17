@@ -416,20 +416,20 @@ public sealed class ChaseTacticsTests
         var tactics = new ChaseTactics();
         var view = new SurvivorBotView { Status = PlayerStatus.Normal, X = 19.5f, Z = 31.5f, KillerVisible = true, KillerX = 19.5f, KillerZ = 27f };
         var intent = new BotIntent();
-        tactics.Survivor(view, ref intent);
+        tactics.Survivor(view, null, ref intent);
         Assert.True(intent.DirZ > 0.9f); // through the gap, away from the killer
         Assert.False(intent.Interact);
         view.Z = 34.6f; // past shutter 5, killer 3 m behind the box: wait
         view.KillerZ = 30.3f;
         view.Time = 0.2;
         intent = new BotIntent();
-        tactics.Survivor(view, ref intent);
+        tactics.Survivor(view, null, ref intent);
         Assert.False(intent.Interact);
         Assert.Equal(0f, intent.DirZ);
         view.KillerZ = 32f; // close behind: pull
         view.Time = 0.4;
         intent = new BotIntent();
-        tactics.Survivor(view, ref intent);
+        tactics.Survivor(view, null, ref intent);
         Assert.True(intent.Interact);
     }
 
@@ -439,7 +439,7 @@ public sealed class ChaseTacticsTests
         var tactics = new ChaseTactics();
         var view = new SurvivorBotView { Status = PlayerStatus.Normal, X = 19.5f, Z = 31.5f, KillerVisible = false };
         var intent = new BotIntent { DirX = 1 };
-        tactics.Survivor(view, ref intent);
+        tactics.Survivor(view, null, ref intent);
         Assert.Equal(1f, intent.DirX);
         Assert.False(intent.Interact);
     }

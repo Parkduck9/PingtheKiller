@@ -1,23 +1,23 @@
-Q5a-rules: shutters and vault rails on the server, with bot use
+Q5a-rules a2: bots use shutters and rails on purpose, not by chance
 
-GDD v2 section 8. Ten roll-down shutters and eight low rails (WorldChaseProps)
-block movement but never sight. A Normal survivor pulls an Up shutter within
-1.5 m (0.3 s, frozen); a killer within the box + 0.6 m is stunned 2 s (no move,
-capture, interact or skill) and pushed to the far side; bodies in the gap are
-pushed out, the puller keeps its side. Survivors vault a Down shutter (1.0 s);
-both roles vault rails (0.8 s / 1.6 s); the killer breaks a Down shutter by
-holding still for 2 s (Broken is permanent). Pulls and vaults force Signal
-for their length plus 1 s. Interact priority: rescue contact > props (fresh
-press, nearest in range) > switch/terminal (killer: props > hatch > kick).
+QA finding F2: chased bots almost never pulled or vaulted. Attempt 1 only
+reacted to a prop within 3 m straight ahead (rails: killer within 2.5 m), so
+use depended on chase geometry. ChaseTactics now plans:
+- a chased survivor (killer visible within 8 m) picks the nearest Up shutter,
+  rail or Down shutter on its side whose approach point is within 9 m and
+  that it reaches first (killer distance >= 1.15 x its own + 1 m, path detour
+  <= 1.4x), runs there on the A* route, pulls the shutter behind itself once
+  the killer is within 2.3 m of the box (or after 2 s), or vaults;
+- the killer walks to a Down shutter within 6 m and breaks it when going
+  around is more than 8 m longer than through, and vaults a rail after a
+  target that has crossed it back and forth twice within 12 s.
+A* vault-link costs: survivor 2 m, killer 6 m. Phantoms still never vault.
+No rule number changed.
 
-WorldState carries the shutter states for everyone; PlayerState.Chase flags go
-to survivors (anonymous killer entries keep 0); SelfState reports Pull, Vault
-and Break progress. NavGrid blocks Down shutters on change and offers rail
-vault links; ChaseTactics makes chased survivor bots pull, vault and run to
-rails and lets the killer bot break a shutter when the detour exceeds 8 m.
-
-Also moves three rails off long-standing test lanes (SHARED_CHANGED), teaches
-the harness planner to avoid rails, and exempts the idle-human-only wait from
-the stall invariant.
+Also: a Dummy Packet cast mid-vault spawns its phantom on the nearer
+standable end, not over the rail; BotMatchTests allows a mid-vault body over
+a prop (never a wall); new ChasePropsBotUseTests floor (>= 1 pull and >= 1
+rail vault per match, 12 seeded 1v7 all-bot matches, 300 s each) and
+ChasePlanTests.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
