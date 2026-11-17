@@ -309,6 +309,7 @@ namespace PingTheKiller.Client
                     selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
                     v2Audio.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
                     chase?.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
+                    if (world != null) world.SetOwnAction(self.ActionKind); // U10: the own exit switch pose
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
                     dev?.OnSelfState(self, selfState.Received);
                     break;

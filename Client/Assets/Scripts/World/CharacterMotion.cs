@@ -314,6 +314,9 @@ namespace PingTheKiller.Client.World
             return true;
         }
 
+        // U10: set when an InteractionMotion drives this character's hands (CharacterViews); MotionReach then stays off.
+        public bool InteractionDriven { get; set; }
+
         // The right-hand reach while ButtonPushing (0..1), eased in and out over ButtonReachIn.
         public float Reach => reach != null ? reach.Weight : 0;
 
@@ -372,7 +375,8 @@ namespace PingTheKiller.Client.World
             animator.SetLayerWeight(1, weight);
             if (reach != null)
             {
-                float target = pose == MotionPose.Working ? 1 : 0;
+                // U10: with the interaction rig (InteractionDriven) the hack is two-handed on a holo panel, not this press.
+                float target = pose == MotionPose.Working && !InteractionDriven ? 1 : 0;
                 if (double.IsNegativeInfinity(reachAt) && pose == MotionPose.Working && double.IsNegativeInfinity(Tracker.PoseSince)) reach.Weight = 1; // first seen hacking
                 else if (!double.IsNegativeInfinity(reachAt))
                     reach.Weight = Mathf.MoveTowards(reach.Weight, target, (float)(Math.Max(0, now - reachAt) / MotionTiming.ButtonReachIn));

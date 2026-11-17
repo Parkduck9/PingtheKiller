@@ -154,22 +154,28 @@ namespace PingTheKiller.Editor.Setup
 
             AnimationClip idle = Shared("Idle"), walk = Shared("Walk"), run = Shared("Run");
             AnimatorStateMachine body = controller.layers[0].stateMachine;
+            // U10: speed-driven idle -> walk -> run. Each child's time scale = its threshold speed / the clip's own ground
+            // speed (LocomotionBlend), so the feet do not slide; a Survivor at 4.0 m/s is fully in the run (it played the
+            // walk up to 4.0 before), the Killer at 4.6 / 6.9 (Overclock) runs faster. There is no Survivor speed above 4.0,
+            // so no sprint clip is needed.
             AnimatorState locomotion = State(body, MotionStates.Locomotion, Tree(controller, "Idle Walk Run", new[]
             {
-                new ChildMotion { motion = idle, threshold = .49f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = .5f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
-                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
+                new ChildMotion { motion = idle, threshold = LocomotionBlend.IdleBelow, timeScale = 1 },
+                new ChildMotion { motion = walk, threshold = LocomotionBlend.WalkFrom, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkFrom, LocomotionBlend.WalkNatural) },
+                new ChildMotion { motion = walk, threshold = LocomotionBlend.WalkSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkSpeed, LocomotionBlend.WalkNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.RunSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.RunSpeed, LocomotionBlend.RunNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.FastSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.FastSpeed, LocomotionBlend.RunNatural) }
             }), 1);
-            // Injured (survivor view only): the limp when still or slow; the normal walk/run cycle at full speed.
+            // Injured (survivor view only): the limp when still or slow, then the same run at full speed (U10: a sped-up
+            // limp read wrong at 4.0 m/s).
+            AnimationClip injuredWalk = LoadClip("InjuredWalk");
             State(body, MotionStates.Injured, Tree(controller, "Injured", new[]
             {
-                new ChildMotion { motion = LoadClip("InjuredIdle"), threshold = .49f, timeScale = 1 },
-                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = .5f, timeScale = 1 },
-                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = 2f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 2.5f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
-                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
+                new ChildMotion { motion = LoadClip("InjuredIdle"), threshold = LocomotionBlend.IdleBelow, timeScale = 1 },
+                new ChildMotion { motion = injuredWalk, threshold = LocomotionBlend.WalkFrom, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkFrom, LocomotionBlend.InjuredWalkNatural) },
+                new ChildMotion { motion = injuredWalk, threshold = LocomotionBlend.InjuredLimpSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.InjuredLimpSpeed, LocomotionBlend.InjuredWalkNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.RunSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.RunSpeed, LocomotionBlend.RunNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.FastSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.FastSpeed, LocomotionBlend.RunNatural) }
             }), 1);
             // Lagging states run under CharacterInstance's 0.55 Lagging time scale; the speed undoes it so the knock-down
             // takes its real length (the 8 Hz stepping stays).
@@ -188,7 +194,7 @@ namespace PingTheKiller.Editor.Setup
             if (body.defaultState != locomotion) body.defaultState = locomotion;
 
             AnimatorControllerLayer[] layers = controller.layers;
-            // The base layer's IK pass runs MotionReach (the ButtonPushing hand on the terminal).
+            // The base layer's IK pass runs MotionReach and the U10 InteractionRig (hack panel, restore, switch, jam).
             if (!layers[0].iKPass) { layers[0].iKPass = true; controller.layers = layers; layers = controller.layers; }
             if (layers.Length < 2)
             {

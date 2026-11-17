@@ -58,6 +58,9 @@ namespace PingTheKiller.Client.World
         // Survivor view: the own character faces the local facing (HUD_SPEC 4.10) and is dithered while the boom is short.
         public void SetLocalLook(float facing, bool dither) => characters.SetLocalLook(facing, dither);
 
+        // U10: the own hold action (S2C_SelfState.ActionKind) for the own exit switch pose.
+        public void SetOwnAction(byte kind) => characters?.SetOwnAction(kind);
+
         public void Render(double now)
         {
             characters.Render(now, snapshots);
