@@ -208,10 +208,10 @@ namespace PingTheKiller.Client.QA.Tests
         {
             KillerHud hud = NewHud(out VisualElement root);
             hud.Begin(SkillIds.Overclock);
-            Assert.That(LabelShown(root, "You are the Killer"), Is.True);
+            // R3 (11/17): the 3 s cluster intro block is superseded by the 7 s IntroCard (UI/Help); Begin leaves the block hidden.
+            Assert.That(LabelShown(root, "You are the Killer"), Is.False);
             Assert.That(root.Query<Label>().Where(l => l.text == "Overclock").ToList().Count, Is.GreaterThanOrEqualTo(2), "intro, menu and skill block carry the name");
-            Assert.That(LabelShown(root, KillerHudCopy.SkillEffect(SkillIds.Overclock)), Is.True);
-            Assert.That(Shown(Block(root, "kintro"), root), Is.True);
+            Assert.That(Shown(Block(root, "kintro"), root), Is.False);
             Assert.That(Shown(Block(root, "kmenu"), root), Is.False);
             Assert.That(Shown(Block(root, "kprompt"), root), Is.False, "no execution prompt without a target");
             Assert.That(Shown(Block(root, "keffect"), root), Is.False, "no effect line without an effect");

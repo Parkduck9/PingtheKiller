@@ -207,7 +207,8 @@ namespace PingTheKiller.Client.Killer
 
         private void UpdateHud(double now, bool menuOpen, Vector3 eye)
         {
-            hud.SetIntro(now - startedAt < IntroSeconds && !menuOpen);
+            // R3 (11/17): the 7 s intro card (UI/Help/IntroCard, HUD_SPEC 3) replaces this 3 s block; the block stays in KillerHud for tests.
+            hud.SetIntro(false);
             if (last != null) hud.SetInfo(last.TimeLeft, HudDone(last), last.TerminalsRequired);
             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
             exitCache.For(last);

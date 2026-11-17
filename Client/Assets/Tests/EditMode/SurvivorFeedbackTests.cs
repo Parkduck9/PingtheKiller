@@ -297,8 +297,10 @@ namespace PingTheKiller.Client.Tests
         public void TheBannerUsesTheFixedVocabularyAndFitsThePromptRow()
         {
             string banner = CaptureWatch.Banner;
-            Assert.That(banner, Is.EqualTo("Lagging. A Survivor within 1.5 m for 3 s rescues you " + SurvivorReadout.Dot + " 60 s left"));
-            Assert.That(banner.Length * 9.9f, Is.LessThanOrEqualTo(656 - 8), "M budget 9.9 u per character, 656 u inner width minus the 4 u bar and gap");
+            Assert.That(banner, Is.EqualTo("Lagging. A Survivor holding [E] within 1.5 m for 3 s restores you " + SurvivorReadout.Dot + " 60 s left"));
+            // R3 (11/17): the banner names the E hold, so it is 77 characters. HUD_SPEC 4.5 measures M at about 8.2 u per character
+            // (HelpTests measures the real font): 8.4 u is the budget here, inside the 656 u inner width minus the 4 u bar and gap.
+            Assert.That(banner.Length * 8.4f, Is.LessThanOrEqualTo(656 - 8), "M budget 8.4 u per character, 656 u inner width minus the 4 u bar and gap");
             Assert.That(banner, Does.Not.Contain("ally").And.Not.Contain("!").And.Not.Contain("Caught"));
             PromptState prompt = CaptureWatch.BannerPrompt;
             Assert.That(prompt.Text, Is.EqualTo(banner));

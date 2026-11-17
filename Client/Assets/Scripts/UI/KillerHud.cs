@@ -126,7 +126,7 @@ namespace PingTheKiller.Client.UI
             Menu.SetContent(introSkill.text, introEffect.text);
             skillName.text = KillerHudCopy.SkillName(skillId);
             Show(skillKey, skillId != SkillIds.PacketAfterimage);
-            Show(intro, true); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide(); CastFlash.Hide();
+            Show(intro, false); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide(); CastFlash.Hide();
             Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Show(root, true);
         }
@@ -178,6 +178,8 @@ namespace PingTheKiller.Client.UI
         }
 
         public string PromptText => prompt.style.display == DisplayStyle.None ? null : promptTitle.text;
+        // R3 (HUD_SPEC 6.1p): true when neither the prompt nor the hold block shows, so a first-time hint may use the slot.
+        public bool PromptFree => !MenuOpen && prompt.style.display == DisplayStyle.None && Hold.style.display == DisplayStyle.None;
 
         // HUD_SPEC 13.5: the global collapse clock (hidden while it does not run).
         public void SetCollapse(in CollapseView view) => Collapse.Set(view);

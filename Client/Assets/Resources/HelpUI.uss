@@ -1,0 +1,23 @@
+/* Onboarding UI (11/17 R3): the match intro card (HUD_SPEC 3) and the How to play screen (HUD_SPEC 1.7). Loaded after
+   RulesV2.uss on the same .root. Units are logical (1080p pixels); spacing only 4/8/12/16/24/32; radius 0; flat fills;
+   no animation, so Reduced motion needs no variant. */
+.root .introcard {
+    position: absolute; left: 50%; translate: -50% 0; width: 672px; padding: 12px; flex-direction: column;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .introcard.ic-survivor { bottom: 104px; }
+.root .introcard.ic-killer { bottom: 24px; }
+.root .unity-label.ic-wrap { white-space: normal; width: 646px; flex-shrink: 0; }
+
+.root .howto { position: absolute; left: 32px; top: 32px; width: 1280px; align-items: flex-start; }
+.root .howto .title { margin-bottom: 16px; }
+.root .howto .row { margin-bottom: 16px; }
+.root .howto .row .unity-button { margin-right: 8px; min-width: 160px; }
+.root .htp-body { width: 1280px; margin-bottom: 16px; }
+.root .unity-label.htp-h { -unity-font-style: bold; margin-top: 8px; margin-bottom: 4px; }
+.root .unity-label.htp-t { font-size: 14px; white-space: normal; width: 1280px; margin-bottom: 4px; color: #E8E6E1; }
+.root.s-floor .unity-label.htp-t { font-size: 15px; }
+.root .htp-skill { flex-direction: row; align-items: flex-start; margin-bottom: 4px; }
+.root .unity-label.htp-sn { font-size: 14px; -unity-font-style: bold; width: 200px; margin-bottom: 0; flex-shrink: 0; }
+.root .unity-label.htp-se { font-size: 14px; white-space: normal; width: 1060px; margin-bottom: 0; color: #9A9890; }
+.root.s-floor .unity-label.htp-sn, .root.s-floor .unity-label.htp-se { font-size: 15px; }

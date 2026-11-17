@@ -31,7 +31,7 @@ namespace PingTheKiller.Client.Dev
         private double orbitAt = -1, aimAt = -1;
         private bool menuWanted;
         private double settingsAt = -1;
-        private int settingsStage, settingsPlayStage;
+        private int settingsStage, settingsPlayStage, howToStage;
         private double leaveAt = -1; // -ptk-menu-leave: when the play menu's Leave match was pressed
         private int participants, match;
         private Role role;
@@ -144,7 +144,11 @@ namespace PingTheKiller.Client.Dev
                 return walking;
             }
         }
-        public bool HoldInteract => Piloting && pilot.Hold;
+        public bool HoldInteract => (Piloting && pilot.Hold) || RescueHold;
+        // R3: -ptk-rescue also holds E once within reach of the Lagging ally (the rescue needs the hold, HUD_SPEC 4.4).
+        private const float RescueHoldReach = 1.4f;
+        private bool RescueHold => role == Role.Survivor && args.Rescue && rescueFound && located && resultAt < 0 && localStatus == (byte)PlayerStatus.Normal
+            && new Vector2(rescueAt.x - position.x, rescueAt.z - position.z).magnitude <= RescueHoldReach;
         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
         private const float RescueStop = 1f;
         // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
@@ -406,6 +410,17 @@ namespace PingTheKiller.Client.Dev
             if (Want("u8-capture-0-hit.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= .3)) return;
             if (Want("u8-capture-1-burst.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= .45)) return;
             if (Want("u8-capture-2-after.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= 1.1)) return;
+            // R3 (11/17): the Lagging-ally tag and edge arrow, the helper prompt and the downed player's persistent line.
+            if (hud != null)
+            {
+                if (Want("r3-ally-tag.png", located && hud.Allies.OnScreenCount > 0 && status == PlayerStatus.Normal)) return;
+                if (Want("r3-ally-edge.png", located && hud.Allies.EdgeCount > 0 && status == PlayerStatus.Normal)) return;
+                string line = hud.PromptText;
+                if (Want("r3-rescue-prompt.png", line != null && line.StartsWith("Hold [E] to restore"))) return;
+                if (Want("r3-restoring.png", line != null && line.StartsWith("Restoring") && self != null && self.RescueProgress >= .3f)) return;
+                if (Want("r3-getting-up.png", line != null && line == HelpCopy.GettingUp)) return;
+                if (Want("r3-downed-line.png", status == PlayerStatus.Lagging && !banner && line != null && line.StartsWith(HelpCopy.DownedPrefix) && capturedAt >= 0 && t - capturedAt >= 3.3)) return;
+            }
             if (Want("capture-banner.png", banner && capturedAt >= 0 && t - capturedAt >= .6)) return;
             if (Want("lagging-stutter.png", status == PlayerStatus.Lagging && !banner && stutterFrames >= 4 && capturedAt >= 0 && t - capturedAt >= 3.3)) return;
             if (Want("eliminated-reason.png", status == PlayerStatus.Eliminated && eliminatedAt >= 0 && t - eliminatedAt >= 1)) return;
@@ -639,6 +654,20 @@ namespace PingTheKiller.Client.Dev
             if (settingsStage == 2) { screens.CloseSettings(); settingsStage = 3; return false; }
             return true;
         }
+        // -ptk-howto: open the How to play screen, shoot the Survivor page, the Killer page, close. Stages 0..5 (done).
+        private double howToAt = -1;
+        private bool HowToShot(double t)
+        {
+            if (screens == null) { howToStage = 5; return false; }
+            switch (howToStage)
+            {
+                case 0: screens.ShowHowTo(Role.Survivor); howToAt = t; howToStage = 1; return true;
+                case 1: if (t < howToAt + .5) return true; howToStage = 2; Shot("howto-survivor.png"); return true;
+                case 2: screens.HowTo.SetPage(Role.Killer); howToAt = t; howToStage = 3; return true;
+                case 3: if (t < howToAt + .5) return true; howToStage = 4; Shot("howto-killer.png"); return true;
+                default: screens.CloseHowTo(); howToStage = 5; return false;
+            }
+        }
         private bool SettingsPlayShot(double t)
         {
             if (screens == null) { settingsPlayStage = 3; return false; }
@@ -689,7 +718,8 @@ namespace PingTheKiller.Client.Dev
             bool shots = args.Shots != null;
             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
             if (args.Settings && shots && menuShot && settingsStage < 3 && SettingsMenuShot(t)) return;
-            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot) && (!args.Settings || !shots || settingsStage >= 3))
+            if (args.HowTo && shots && menuShot && (!args.Settings || settingsStage >= 3) && howToStage < 5 && HowToShot(t)) return;
+            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot) && (!args.Settings || !shots || settingsStage >= 3) && (!args.HowTo || !shots || howToStage >= 5))
             {
                 joined = true;
                 if (args.Offline) Offline?.Invoke(); else Join?.Invoke(args.Join);

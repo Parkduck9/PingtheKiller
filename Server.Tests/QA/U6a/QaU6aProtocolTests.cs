@@ -52,11 +52,11 @@ public sealed class QaU6aProtocolTests
     [Trait("Category", "QaU6a")]
     public void SelfStateInvalidActionKindIsRejected()
     {
-        var state = new S2C_SelfState { ActionKind = 7 }; // v0.7: 4-6 are Pull, Vault, Break
+        var state = new S2C_SelfState { ActionKind = 8 }; // v0.7: 4-6 are Pull, Vault, Break; R3: 7 is Rescue
         // Orchestrator: enum ranges are validated on decode only (codec convention), so encode is not asserted.
 
         byte[] valid = PacketCodec.Encode(new S2C_SelfState { ActionKind = (byte)ActionKind.HatchClose });
-        valid[^1] = 7; // Corrupt ActionKind to 7 (v0.7 defines 4-6)
+        valid[^1] = 8; // Corrupt ActionKind to 8 (v0.7 defines 4-6, R3 adds 7)
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.S2C_SelfState, valid.AsSpan(6)));
     }
 

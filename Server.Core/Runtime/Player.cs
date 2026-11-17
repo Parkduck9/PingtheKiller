@@ -25,6 +25,7 @@ namespace PingTheKiller.ServerCore
         internal byte CaptureCount;
         internal double LaggingUntil;
         internal double InvulnerableUntil;
+        internal double GetUpUntil;
         internal double RescueProgress;
         internal bool Interacting, Hacking, Rescuing;
         internal double SkillReadyAt;
@@ -127,7 +128,7 @@ namespace PingTheKiller.ServerCore
         {
             Status = PlayerStatus.Normal;
             CaptureCount = 0;
-            LaggingUntil = InvulnerableUntil = RescueProgress = 0;
+            LaggingUntil = InvulnerableUntil = GetUpUntil = RescueProgress = 0;
             Interacting = Hacking = Rescuing = false;
             HackTerminal = SwitchExit = KickTerminal = RouteTerminal = -1;
             KickHeld = HatchHeld = 0;

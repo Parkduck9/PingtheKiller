@@ -323,10 +323,10 @@ namespace PingTheKiller.Client.QA.Tests
             }
             Fill(false); layout.Solve(safe);
             Fill(false); layout.Solve(safe);
-            int baseline = GcAllocs(() => { Fill(false); layout.Solve(safe); });
+            int baseline = int.MaxValue; for (int r = 0; r < 5; r++) baseline = Mathf.Min(baseline, GcAllocs(() => { Fill(false); layout.Solve(safe); })); // minimum of 5: a stray editor allocation in a long run must not decide the comparison
             Fill(true); layout.Solve(safe);
             Fill(true); layout.Solve(safe);
-            int q2 = GcAllocs(() => { Fill(true); layout.Solve(safe); });
+            int q2 = int.MaxValue; for (int r = 0; r < 5; r++) q2 = Mathf.Min(q2, GcAllocs(() => { Fill(true); layout.Solve(safe); }));
             TestContext.Out.WriteLine("TagLayout.Solve GC.Alloc samples per frame (10 items): pre-Q2 priorities " + baseline + ", with Overloaded/Exit items " + q2);
             Assert.That(q2, Is.EqualTo(baseline), "the Q2 slot path allocates (pre-Q2 solve: " + baseline + " sample(s), with v2 tags: " + q2 + ")");
         }

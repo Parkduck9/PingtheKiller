@@ -166,6 +166,9 @@ namespace PingTheKiller.ServerCore
                 Stop(ref intent, view.X, view.Z);
                 intent.Interact = _mode == ModeHack;
             }
+            // R3: a rescue needs the E hold. The old automatic rescue worked for any Normal survivor standing within reach, so a
+            // bot holds Interact whenever a Lagging ally is within reach (a planned rescue or just passing close), as it did by standing near.
+            if (LaggingAllyInReach(view)) intent.Interact = true;
             UseSkills(ref intent, view);
             if (intent.Interact && _terminal >= 0 && Occupants(view, _terminal) >= TerminalCap)
             {
@@ -985,6 +988,14 @@ namespace PingTheKiller.ServerCore
             _terminal = -1;
             if (Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.5f) _mode = ModePause;
             else Plan(ally.X, ally.Z, GameConstants.RescueRadius - 0.7f, false);
+        }
+
+        private static bool LaggingAllyInReach(SurvivorBotView view)
+        {
+            foreach (var ally in view.Team)
+                if (ally.Id != view.SelfId && ally.Status == (byte)PlayerStatus.Lagging &&
+                    Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.1f) return true;
+            return false;
         }
 
         private static bool RescueUrgent(SurvivorBotView view, int target)

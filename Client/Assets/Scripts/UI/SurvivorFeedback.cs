@@ -67,8 +67,9 @@ namespace PingTheKiller.Client.UI
         // capture or when the first stage runs out and escalates.
         public static readonly string Banner = BannerText(SurvivorReadout.LaggingTotal(1));
         public static readonly string SecondBanner = BannerText(SurvivorReadout.LaggingTotal(2));
-        private static string BannerText(float seconds) => "Lagging. A Survivor within " + Num(GameConstants.RescueRadius) + " m for "
-            + Num(GameConstants.RescueTimeSeconds) + " s rescues you " + SurvivorReadout.Dot + " " + Num(seconds) + " s left";
+        // R3 (11/17): the rescue is an explicit E hold, so the banner says so.
+        private static string BannerText(float seconds) => "Lagging. A Survivor holding [E] within " + Num(GameConstants.RescueRadius) + " m for "
+            + Num(GameConstants.RescueTimeSeconds) + " s restores you " + SurvivorReadout.Dot + " " + Num(seconds) + " s left";
         public static string BannerFor(byte captureCount) => SurvivorReadout.SecondStage(captureCount) ? SecondBanner : Banner;
         // GDD v2 4: no execution. The second Lagging stage running out, a third capture, or the collapse eliminates.
         public const string Collapse = "Disconnected: the shutdown reached you.";

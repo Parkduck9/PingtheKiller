@@ -25,10 +25,12 @@ public sealed class DecoyAndLeakTests
         var (a, b) = (m[0], m[1]);
         // Survivor 0 is captured and rescued so its CaptureCount is 1; the killer must not learn it.
         m.WalkTo(m.Killer, 5, 25, GameConstants.KillerSpeed);
+        b.Send(new C2S_Interact { Active = 1 }); // R3: hold E to restore
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         m.Tick(60);
         Assert.Equal((byte)PlayerStatus.Normal, m.Truth(a).Status);
         Assert.Equal(1, m.Truth(a).CaptureCount);
+        b.Send(new C2S_Interact { Active = 0 });
         m.WalkTo(a, 5, 30, GameConstants.SurvivorSpeed);
         m.WalkTo(b, 10, 26, GameConstants.SurvivorSpeed);
         m.Tick(5);

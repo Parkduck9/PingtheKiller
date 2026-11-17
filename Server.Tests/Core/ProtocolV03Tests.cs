@@ -173,6 +173,7 @@ public sealed class ProtocolV03Tests
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(a).Status);
         m.WalkTo(m.Killer, 5, 20, GameConstants.KillerSpeed);
         Assert.Equal(0f, Now(a).RescueProgress);
+        b.Send(new C2S_Interact { Active = 1 }); // R3: the rescue counts only while E is held
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         // b arrived this tick: the rescue has counted one tick (0.05 s of 3 s) for both.
         Assert.Equal(0.05f / 3f, Now(a).RescueProgress, 4);

@@ -18,7 +18,7 @@ public sealed class ProtocolV02Tests
         yield return new object[] { world, 8, new byte[] { 0, 1, 2, 3 } }; // ThreatLevel
         yield return new object[] { world, 22, new byte[] { 0, 1 } }; // Player.Role
         yield return new object[] { world, 23, new byte[] { 0, 1, 2, 3 } }; // Player.Status
-        yield return new object[] { world, 36, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
+        yield return new object[] { world, 36, Enumerable.Range(0, 64).Select(i => (byte)i).ToArray() }; // Flags combinations
         yield return new object[] { world, 42, Enumerable.Range(0, 16).Select(i => (byte)i).ToArray() }; // v0.7 Chase flags
         var shutters = new S2C_WorldState { Shutters = new() { 0 } };
         yield return new object[] { shutters, 19, new byte[] { 0, 1, 2 } }; // v0.7 ShutterState (count at 18)
@@ -30,7 +30,7 @@ public sealed class ProtocolV02Tests
         yield return new object[] { exits, 25, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // SwitchProgress
         yield return new object[] { new S2C_GameResult(), 0, new byte[] { 0, 1 } }; // WinnerRole
         yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2, 3 } }; // Reason
-        yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3, 4, 5, 6 } }; // ActionKind (v0.7: 4-6)
+        yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 } }; // ActionKind (v0.7: 4-6, R3: 7 Rescue)
         yield return new object[] { new S2C_SelfState(), 26, new byte[] { 0, 1, 2, 3, 4 } }; // 11/17 RouteLength (<= 4)
         yield return new object[] { new S2C_SelfState { RouteLength = 4 }, 28, new byte[] { 0, 1, 2, 3, 4 } }; // RouteIndex (<= length)
         yield return new object[] { new C2S_HackInput(), 1, new byte[] { 0, 1, 2, 3 } }; // 11/17 RouteDirection

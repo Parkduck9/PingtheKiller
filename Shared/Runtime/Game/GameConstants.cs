@@ -17,6 +17,8 @@ namespace PingTheKiller.Shared.Game
         public const float SecondLaggingTimeoutSeconds = 30f;
         public const int EliminatingCaptureCount = 3;
         public const float PostRescueInvulnerabilitySeconds = 2f;
+        // R3: a rescued Survivor cannot move, interact or use a skill while getting up (inside the invulnerability).
+        public const float GetUpSeconds = 1.5f;
         public const float TerminalRadius = 1.5f;
         // GDD v2 §2 (11/17, R2): the passive part of hacking. One idle holder needs 90 s; co-hackers speed the passive part up
         // with diminishing returns (see CoHackRate). Packet routing bursts come on top (Route* below).

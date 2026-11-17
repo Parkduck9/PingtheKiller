@@ -80,6 +80,7 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
 - **ExitState** (11 bytes): `byte Id, float X, float Z, byte Flags, byte SwitchProgress (0-100)`.
   - Flags: `Powered = 1`, `Open = 2`, `Locked = 4` (the switch is locked by Firewall Block). Values above 7 are rejected.
 - **PlayerState** (25 bytes, v0.7): `int32 Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float StatusTimer, byte CaptureCount, byte Chase`.
+  - Flags (R3, 11/17): `Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16, GettingUp = 32` (the 1.5 s after a rescue, Survivor entries only; the Killer's entries never carry it). Values above 63 are rejected.
 - **TerminalState** (11 bytes): `byte Id, float X, float Z, byte Progress (0-100), byte Flags`.
   - Flags: `Regressing = 1`, sent to survivors only (the killer kicked the terminal); `Overloaded = 2`, sent to everyone for 2 s after a failed sync check. Values above 3 are rejected.
   - The killer still receives Progress as 0 or 100 only.

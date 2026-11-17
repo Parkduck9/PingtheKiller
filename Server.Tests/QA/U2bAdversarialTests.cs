@@ -159,6 +159,7 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[0], 10, 10);
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 11, 10);
+        r.Interact(r.S[1], true); // R3: the rescue needs the E hold
         int guard = 0;
         do { r.Tick(); guard++; } while (!Is(r.Truth(r.S[0]), PlayerStatus.Normal) && guard < 200);
         Assert.True(guard is >= 58 and <= 62, "3 s rescue took " + guard + " ticks");
@@ -184,6 +185,8 @@ public sealed class U2bAdversarialTests
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 11, 10);
         r.Place(r.S[2], 10, 11);
+        r.Interact(r.S[1], true);
+        r.Interact(r.S[2], true);
         int n = 0;
         while (n < 200)
         {
@@ -211,6 +214,7 @@ public sealed class U2bAdversarialTests
         r.Place(r.S[0], 10, 10);
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 11, 10);
+        r.Interact(r.S[1], true);
         r.Tick(55); // 2.75 s of contact
         Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
         r.Place(r.S[1], 12.5f, 10); // 2.5 m: out of range for exactly one tick
@@ -229,6 +233,8 @@ public sealed class U2bAdversarialTests
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 11.3f, 10);
         r.Place(r.S[2], 10, 11.4f);
+        r.Interact(r.S[1], true);
+        r.Interact(r.S[2], true);
         r.Tick(20);
         r.Place(r.K, 12.4f, 10); // 1.1 m from S1 only
         r.Tick();
@@ -248,6 +254,7 @@ public sealed class U2bAdversarialTests
         r.MakeLagging(r.S[0]);
         r.Place(r.S[1], 11.3f, 10);
         r.Place(r.S[2], 40, 55);
+        r.Interact(r.S[1], true);
         r.Tick(30); // 1.5 s of progress
         r.Place(r.K, 12.4f, 10);
         r.Tick();
@@ -255,6 +262,7 @@ public sealed class U2bAdversarialTests
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
         r.Tick(8);
         r.Place(r.S[2], 10, 11.4f); // arrives; contact starts now
+        r.Interact(r.S[2], true);
         int n = 0;
         do { r.Tick(); n++; } while (!Is(r.Truth(r.S[0]), PlayerStatus.Normal) && n < 300);
         Assert.InRange(n, 59, 63); // fresh 3 s from arrival (the 1.5 s earned before the capture is gone)
@@ -350,15 +358,15 @@ public sealed class U2bAdversarialTests
         r.Tick();
         r.Place(r.K, 5, 5);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
-        // S0 keeps hacking alone (rate 1x) and, in range, automatically rescues S1 over 3 s.
+        // R3 E priority: S0 keeps holding E, so with S1 Lagging in reach it restores S1 over 3 s instead of hacking.
         // The capture tick already counts as the first rescue-contact tick (rescue runs after capture), so 3 s = 59 more ticks.
         r.Tick(57);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
         r.Tick(4);
         Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Normal));
         int atRescue = r.SW.Terminals[0].Progress;
-        Assert.InRange(atRescue, 22, 24); // 20 % + ~3 s at 1x (1.1 %/s)
-        r.Tick(180);
+        Assert.InRange(atRescue, 19, 22); // rescue wins the E hold: the terminal gained nothing during the 3 s
+        r.Tick(180); // 9 s solo at 1.11 %/s (11/17 R2: 90 s passive)
         Assert.InRange(r.SW.Terminals[0].Progress - atRescue, 9, 11); // S1 does NOT hack again until it presses Interact
         r.Interact(r.S[1], true);
         r.Tick(1);

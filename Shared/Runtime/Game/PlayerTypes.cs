@@ -15,10 +15,10 @@ namespace PingTheKiller.Shared.Game
     // 11/17 (R2) packet routing: one route direction (C2S_HackInput.Direction, S2C_SelfState.RouteDirs).
     public enum RouteDirection : byte { Up = 0, Down = 1, Left = 2, Right = 3 }
     // S2C_SelfState.ActionKind: the own hold action in progress.
-    // v0.7 (GDD v2 section 8): Pull, Vault (shutter or rail) and Break (Killer on a shutter).
-    public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3, Pull = 4, Vault = 5, Break = 6 }
+    // v0.7 (GDD v2 section 8): Pull, Vault (shutter or rail) and Break (Killer on a shutter). R3: Rescue (a Survivor holding Interact next to a Lagging ally).
+    public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3, Pull = 4, Vault = 5, Break = 6, Rescue = 7 }
     [Flags]
-    public enum PlayerFlags : byte { None = 0, Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16 }
+    public enum PlayerFlags : byte { None = 0, Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16, GettingUp = 32 }
 
     internal static class GameWireValues
     {
@@ -28,12 +28,12 @@ namespace PingTheKiller.Shared.Game
         internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded));
         internal static byte ReadExitFlags(ref PacketReader r) => r.ReadByte((byte)(ExitFlags.Powered | ExitFlags.Open | ExitFlags.Locked));
         internal static byte ReadRouteDirection(ref PacketReader r) => r.ReadByte((byte)RouteDirection.Right);
-        internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.Break);
+        internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.Rescue);
         internal static byte ReadChaseFlags(ref PacketReader r) => r.ReadByte(
             (byte)(ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking | ChaseFlags.Stunned));
         internal static byte ReadShutterState(ref PacketReader r) => r.ReadByte((byte)ShutterState.Broken);
         internal static byte ReadFlags(ref PacketReader r) => r.ReadByte(
-            (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage | PlayerFlags.Stealthed | PlayerFlags.Hacking | PlayerFlags.Rescuing));
+            (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage | PlayerFlags.Stealthed | PlayerFlags.Hacking | PlayerFlags.Rescuing | PlayerFlags.GettingUp));
 
         internal static byte ReadRoleChoice(ref PacketReader r)
         {
