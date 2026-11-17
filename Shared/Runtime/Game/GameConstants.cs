@@ -54,6 +54,22 @@ namespace PingTheKiller.Shared.Game
         public const float ThreatLevel1Distance = 18f;
         public const float ThreatLevel2Distance = 12f;
         public const float ThreatLevel3Distance = 6f;
+        // GDD v2 §8 (Q5a): shutters and vault rails. Ranges are measured to the prop box (shutters) or the vault point
+        // (rails). A Survivor is forced Signal during a pull or vault and for ChaseSignalTailSeconds after.
+        public const float ShutterPullRadius = 1.5f;
+        public const float ShutterPullSeconds = 0.3f;
+        public const float ShutterStunSeconds = 2.0f;
+        public const float ShutterStunInflate = 0.6f;
+        public const float ShutterVaultRadius = 1.0f;
+        public const float ShutterVaultSeconds = 1.0f;
+        public const float ShutterBreakRadius = 1.5f;
+        public const float ShutterBreakSeconds = 2.0f;
+        public const float RailVaultRadius = 1.0f;
+        public const float RailVaultSurvivorSeconds = 0.8f;
+        public const float RailVaultKillerSeconds = 1.6f;
+        public const float ChaseSignalTailSeconds = 1.0f;
+        public const float ShutterHeight = 1.2f;
+        public const float RailHeight = 1.0f;
         public const float KillerSkillCooldownSeconds = 12f;
         public const float SurvivorSkillCooldownSeconds = 15f;
 

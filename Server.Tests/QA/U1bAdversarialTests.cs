@@ -44,7 +44,9 @@ public sealed class U1bAdversarialTests
             new byte[] { 5 }, Hex("0000803F"), Hex("00000000"), new[] { progress, terminalFlags },
             new byte[] { 1 },               // one player
             Le32(7), new[] { role, status }, Hex("0000803F"), Hex("00000040"), Hex("00000000"),
-            new[] { flags }, Hex("00000000"), new byte[] { 0 });
+            new[] { flags }, Hex("00000000"), new byte[] { 0 },
+            new byte[] { 0 },               // v0.7 Chase = 0
+            new byte[] { 0 });              // v0.7 no shutters
     }
 
     // v0.2 S2C_GameResult payload with no escaped ids: byte WinnerRole, byte Reason, byte count.
@@ -82,12 +84,14 @@ public sealed class U1bAdversarialTests
     //     StatusTimer 0.5f (0x3F000000)  -> 00 00 00 3F
     //     CaptureCount 1                 -> 01
     // v0.4: TerminalsRequired is followed by CollapseLeft -1f (0xBF800000), no exits, HatchVisible 0; TerminalState
-    // gains Flags 0. Body = 2 (id) + 53 = 55 = 0x37. Frame = 4 + 55 = 59 bytes.
+    // gains Flags 0. v0.7: PlayerState gains Chase 0 and the snapshot ends with shutter count 0.
+    // Body = 2 (id) + 55 = 57 = 0x39. Frame = 4 + 57 = 61 bytes.
     private const string WorldGoldenHex =
-        "37000000 0500" +
+        "39000000 0500" +
         "04030201 0000803F 03 02 000080BF 00 00" +
         "01 05 0000803F 00000000 64 00" +
-        "01 07000000 00 01 0000803F 00000040 000080BF 09 0000003F 01";
+        "01 07000000 00 01 0000803F 00000040 000080BF 09 0000003F 01 00" +
+        "00";
 
     [Fact]
     public void WorldState_V02_GoldenFrame_Encodes()
@@ -103,7 +107,7 @@ public sealed class U1bAdversarialTests
         });
 
         byte[] expected = Hex(WorldGoldenHex);
-        Assert.Equal(59, expected.Length);
+        Assert.Equal(61, expected.Length);
         Assert.Equal(expected, PacketCodec.Encode(w));
     }
 
@@ -114,7 +118,7 @@ public sealed class U1bAdversarialTests
         a.Append(Hex(WorldGoldenHex));
         Assert.Equal(AssembleResult.Packet, a.TryRead(out ushort id, out ReadOnlyMemory<byte> payload));
         Assert.Equal((ushort)5, id);
-        Assert.Equal(53, payload.Length);
+        Assert.Equal(55, payload.Length);
 
         var w = Assert.IsType<S2C_WorldState>(PacketCodec.Decode(id, payload.Span));
         Assert.Equal(0x01020304u, w.Tick);
@@ -461,7 +465,8 @@ public sealed class U1bAdversarialTests
         Assert.NotNull(w.Terminals);
         Assert.NotNull(w.Players);
         // Tick 0, TimeLeft 0f, 4 flag bytes 0, terminal count 0, player count 0 = 4+4+4+1+1 = 14; body 16 = 0x10.
-        Assert.Equal(Hex("14000000 0500 00000000 00000000 00 00 000080BF 00 00 00 00"), PacketCodec.Encode(w));
+        // v0.7 appends the shutter count 0.
+        Assert.Equal(Hex("15000000 0500 00000000 00000000 00 00 000080BF 00 00 00 00 00"), PacketCodec.Encode(w));
 
         var g = new S2C_GameResult();
         Assert.NotNull(g.EscapedIds);

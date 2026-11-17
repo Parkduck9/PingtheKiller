@@ -80,6 +80,7 @@ public sealed class ServerReverifyTests
                     Assert.Equal(0f, entry.Timer); // StatusTimer MUST BE ZERO
                     Assert.Equal(0, entry.CaptureCount); // CaptureCount MUST BE ZERO
                     Assert.Equal((byte)PlayerFlags.Signal, entry.Flags); // ONLY Signal flag!
+                    Assert.Equal(0, entry.Chase); // v0.7: no chase flags on an anonymous entry
                     Assert.True(entry.Status == (byte)PlayerStatus.Normal || entry.Status == (byte)PlayerStatus.Lagging);
 
                     // Byte check at entry offset

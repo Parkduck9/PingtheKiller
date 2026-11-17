@@ -17,14 +17,15 @@ namespace PingTheKiller.Tests.QA;
 // Expected values derive from docs/briefs/U2c-a1.md and the QA brief, not from the implementation. Server internals
 // (KillerViewSources, PhantomSnapshot, PlayerSnapshot, Spy) are used only as ground truth, never to produce the observation.
 
-internal readonly record struct RawEntry(int Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float Timer, byte CaptureCount, int Offset);
+internal readonly record struct RawEntry(int Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float Timer, byte CaptureCount, int Offset, byte Chase = 0);
 
 internal static class RawFrame
 {
     // Independent parser of the S2C_WorldState wire layout (not the Shared codec):
     // [Length:4][PacketId:2][Tick:4][TimeLeft:4][Threat:1][Required:1][CollapseLeft:4]
     // [ExitCount:1][Exit x (Id:1 X:4 Z:4 Flags:1 Switch:1)][HatchVisible:1][(X:4 Z:4) if visible] (v0.4)
-    // [TermCount:1][Terminal x (Id:1 X:4 Z:4 Progress:1 Flags:1)][PlayerCount:1][Player x (Id:4 Role:1 Status:1 X:4 Z:4 Yaw:4 Flags:1 Timer:4 Cc:1)]
+    // [TermCount:1][Terminal x (Id:1 X:4 Z:4 Progress:1 Flags:1)][PlayerCount:1][Player x (Id:4 Role:1 Status:1 X:4 Z:4 Yaw:4 Flags:1 Timer:4 Cc:1 Chase:1)]
+    // [ShutterCount:1][ShutterState x count] (v0.7)
     internal static (byte Threat, List<(byte Id, byte Progress)> Terminals, List<RawEntry> Entries) ParseWorld(byte[] frame)
     {
         int length = BinaryPrimitives.ReadInt32LittleEndian(frame);
@@ -46,9 +47,12 @@ internal static class RawFrame
             var s = frame.AsSpan(p);
             entries.Add(new RawEntry(BinaryPrimitives.ReadInt32LittleEndian(s), s[4], s[5],
                 BinaryPrimitives.ReadSingleLittleEndian(s.Slice(6)), BinaryPrimitives.ReadSingleLittleEndian(s.Slice(10)),
-                BinaryPrimitives.ReadSingleLittleEndian(s.Slice(14)), s[18], BinaryPrimitives.ReadSingleLittleEndian(s.Slice(19)), s[23], p));
-            p += 24;
+                BinaryPrimitives.ReadSingleLittleEndian(s.Slice(14)), s[18], BinaryPrimitives.ReadSingleLittleEndian(s.Slice(19)), s[23], p, s[24]));
+            p += 25;
         }
+        int shutters = frame[p++];
+        Assert.True(shutters <= Protocol.MaxShutters, "shutter count byte " + shutters);
+        p += shutters;
         Assert.Equal(frame.Length, p);
         return (threat, terminals, entries);
     }

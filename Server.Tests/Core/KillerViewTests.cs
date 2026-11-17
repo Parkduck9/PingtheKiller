@@ -49,7 +49,7 @@ internal sealed class KillerMatchRecorder : IDisposable
 public sealed class KillerViewTests
 {
     private const int HeaderBytes = 4 + 2;
-    private const int EntryBytes = 24;
+    private const int EntryBytes = 25; // v0.7: + Chase
 
     [Fact]
     public void NoKillerBoundFrameCarriesASurvivorIdAndEntriesAreAnonymous()
@@ -87,7 +87,9 @@ public sealed class KillerViewTests
                         Assert.Equal((byte)PlayerFlags.Signal, bytes[offset + 18]);
                         Assert.Equal(0f, BitConverter.ToSingle(bytes, offset + 19)); // StatusTimer
                         Assert.Equal(0, bytes[offset + 23]); // CaptureCount
+                        Assert.Equal(0, bytes[offset + 24]); // v0.7 Chase: never on an anonymous entry
                     }
+                    offset += 1 + world.Shutters.Count; // v0.7 shutter list ends the frame
                     Assert.Equal(bytes.Length, offset);
                     Assert.All(world.Terminals, t => Assert.True(t.Progress == 0 || t.Progress == 100));
                 }

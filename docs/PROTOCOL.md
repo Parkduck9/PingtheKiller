@@ -1,6 +1,6 @@
-# Ping the Killer: wire protocol v0.6 (GDD v2, units U6g, Q3)
+# Ping the Killer: wire protocol v0.7 (GDD v2, units U6g, Q3, Q5a)
 
-The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts, v0.5 RTT probes and the v0.6 skill rejection. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
+The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts, v0.5 RTT probes, the v0.6 skill rejection and the v0.7 shutters and rails. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
 
 ## Frame
 
@@ -18,6 +18,23 @@ The source of truth is `Shared/Runtime/` (server and Unity compile the same file
 | 0x0014 | S2C_RttProbe | S→C | v0.5: `uint Nonce` |
 | 0x0015 | C2S_RttEcho | C→S | v0.5: `uint Nonce` |
 | 0x0016 | S2C_SkillRejected | S→C | v0.6: `byte SkillId, byte Reason` |
+
+## Shutters and rails (v0.7, GDD v2 section 8)
+
+No new packet id. Shutter state rides at the **end of every `S2C_WorldState`** instead of a separate
+`S2C_PropState`: the snapshot is self-healing (match start, late join and reconnect need no extra send path and no
+ordering against `S2C_MatchStart`), and it costs at most 11 bytes per snapshot. Shutter state is public, so every
+recipient gets the same list.
+
+- Static geometry: `Shared/Runtime/Game/WorldChaseProps.cs` (`Shutters` 10, `Rails` 8, `ChaseProp` boxes with ids
+  equal to their index). A rail's vault point is its centre; a prop is crossed along `(CrossX, CrossZ)`.
+- `ShutterState`: `Up = 0`, `Down = 1`, `Broken = 2`. Values above 2 are rejected.
+- `PlayerState` gains a trailing `byte Chase` (`ChaseFlags`): `Pulling = 1`, `Vaulting = 2`, `Breaking = 4`,
+  `Stunned = 8`. Values above 15 are rejected. Masking is unchanged (a Silent survivor is still omitted for the killer;
+  a pulling or vaulting survivor is Signal anyway).
+- `S2C_SelfState.ActionKind` adds `Pull = 4`, `Vault = 5`, `Break = 6` with `ActionProgress` 0-1. Values above 6 are
+  rejected.
+- The client sends nothing new: shutters and rails use `C2S_Interact`.
 
 ## Server-timed RTT (0x0014-0x0015, v0.5)
 
@@ -57,10 +74,12 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
 | | HatchVisible | byte 0/1 | per recipient: 1 only within 15 m with a wall-free line |
 | | HatchX, HatchZ | float, float | present only when HatchVisible = 1 |
 | | terminal count | byte ≤ MaxTerminals | then `TerminalState` × count |
-| | player count | byte ≤ MaxWorldEntries | then `PlayerState` × count (unchanged) |
+| | player count | byte ≤ MaxWorldEntries | then `PlayerState` × count (v0.7: + `byte Chase`) |
+| | shutter count | byte ≤ MaxShutters (10) | v0.7: then `byte ShutterState` × count, indexed by shutter id |
 
 - **ExitState** (11 bytes): `byte Id, float X, float Z, byte Flags, byte SwitchProgress (0-100)`.
   - Flags: `Powered = 1`, `Open = 2`, `Locked = 4` (the switch is locked by Firewall Block). Values above 7 are rejected.
+- **PlayerState** (25 bytes, v0.7): `int32 Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float StatusTimer, byte CaptureCount, byte Chase`.
 - **TerminalState** (11 bytes): `byte Id, float X, float Z, byte Progress (0-100), byte Flags`.
   - Flags: `Regressing = 1`, sent to survivors only (the killer kicked the terminal); `Overloaded = 2`, sent to everyone for 2 s after a failed sync check. Values above 3 are rejected.
   - The killer still receives Progress as 0 or 100 only.
@@ -85,7 +104,7 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
 2. v0.4 fields:
    - `float CollapseLeft`: the survivor's personal clock, which runs at 2× while Lagging; the killer gets the global clock. -1 when not running.
    - `float ActionProgress` (0-1).
-   - `byte ActionKind`: `None = 0`, `Switch = 1`, `Kick = 2`, `HatchClose = 3`. Values above 3 are rejected.
+   - `byte ActionKind`: `None = 0`, `Switch = 1`, `Kick = 2`, `HatchClose = 3`; v0.7 `Pull = 4`, `Vault = 5`, `Break = 6`. Values above 6 are rejected.
 
 ## Sync check (0x0011-0x0013)
 
