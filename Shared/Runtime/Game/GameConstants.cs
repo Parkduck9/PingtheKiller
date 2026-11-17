@@ -18,9 +18,11 @@ namespace PingTheKiller.Shared.Game
         // SwingMissRecoverySeconds at SwingMissSpeedMultiplier after a miss. No new swing until the recovery ends.
         // R1 balance (BalanceSweep): brief 2.2 m / 35 deg / 1.0 s at 40 % moved to 2.6 m / 40 deg / 0.8 s at 48 % (all within +-20 %).
         // INTEG-R balance (11/17): range 2.6 -> 2.75 m (+6 %), with the bot changes, for a stronger Killer after the R1-R3 merge.
+        // B1 balance (11/18): range 2.75 -> 2.95 m (+7 %) for a stronger Killer at 1v7 (the gain grows with the team size:
+        // 1v7 -7 points, 1v3 -1 over 1000 seeds). The Killer bot's swing trigger stays 2.75 m (KillerBrain.SwingTrigger).
         public const float SwingWindUpSeconds = 0.2f;
         public const float SwingWindUpSpeedMultiplier = 0.5f;
-        public const float SwingRange = 2.75f;
+        public const float SwingRange = 2.95f;
         public const float SwingHalfAngleDegrees = 40f;
         public const float SwingHitRecoverySeconds = 0.6f;
         public const float SwingMissRecoverySeconds = 0.8f;
@@ -59,10 +61,11 @@ namespace PingTheKiller.Shared.Game
         public const float RouteMinCycleSeconds = 1.3f;
         public const int RouteInputsPerSecond = 12;
         public const float OverloadedSeconds = 1.5f;
-        // GDD v2 §3: both exits are powered once the required terminals are done; a switch is held 15 s within 1.5 m.
+        // GDD v2 §3: both exits are powered once the required terminals are done; a switch is held 17 s within 1.5 m.
+        // B1 balance (11/18): 15 -> 17 s, so the Killer has time to reach a switch before the exits open.
         public const float ExitRadius = 2.0f;
         public const float ExitSwitchRadius = 1.5f;
-        public const float ExitSwitchSeconds = 15f;
+        public const float ExitSwitchSeconds = 17f;
         // GDD v2 §3: the collapse runs 120 s from the first open exit (or the hatch closing); Lagging clocks run 2x.
         public const float CollapseSeconds = 120f;
         public const float CollapseLaggingRate = 2f;

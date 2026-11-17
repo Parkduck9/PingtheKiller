@@ -71,8 +71,8 @@ public sealed class KillerSwingTests
     }
 
     [Theory]
-    [InlineData(2.7f, 0f, 0f, true)]     // range 2.75 m (INTEG-R balance; R1 had 2.6 m)
-    [InlineData(2.85f, 0f, 0f, false)]
+    [InlineData(2.9f, 0f, 0f, true)]     // range 2.95 m (B1 balance; INTEG-R had 2.75 m, R1 2.6 m)
+    [InlineData(3.05f, 0f, 0f, false)]
     [InlineData(2.0f, 35f, 0f, true)]    // arc +-40 degrees
     [InlineData(2.0f, -39f, 0f, true)]
     [InlineData(2.0f, 45f, 0f, false)]

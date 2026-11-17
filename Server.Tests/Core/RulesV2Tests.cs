@@ -163,7 +163,7 @@ public sealed class RulesV2Tests
     }
 
     [Fact]
-    public void SwitchNeedsPowerFillsOverFifteenSecondsKeepsProgressDoesNotStackAndStopsWhileLocked()
+    public void SwitchNeedsPowerFillsOverExitSwitchSecondsKeepsProgressDoesNotStackAndStopsWhileLocked()
     {
         using var m = RulesMatch.Start(2);
         var srv = m.F.Server; var a = m[0]; var b = m[1];
@@ -180,29 +180,32 @@ public sealed class RulesV2Tests
         Assert.True(World(a).Powered());
 
         Hold(a, true);
-        m.Tick(100); // 5 s of 15 s
-        Assert.InRange(World(a).SwitchProgress(0), (byte)32, (byte)34);
-        Assert.InRange(World(m.Killer).SwitchProgress(0), (byte)32, (byte)34);
+        m.Tick(100); // 5 s of ExitSwitchSeconds (B1: 17 s)
+        Assert.InRange(World(a).SwitchProgress(0), SwitchPercent(5) - 1, SwitchPercent(5) + 1);
+        Assert.InRange(World(m.Killer).SwitchProgress(0), SwitchPercent(5) - 1, SwitchPercent(5) + 1);
         Assert.Equal((byte)ActionKind.Switch, a.Last<S2C_SelfState>().ActionKind);
         Assert.NotNull(m.KillerSees(a)); // holding a switch is a Signal
         Hold(a, false);
         m.Tick(40);
-        Assert.InRange(World(a).SwitchProgress(0), (byte)32, (byte)34); // releasing keeps the progress
+        Assert.InRange(World(a).SwitchProgress(0), SwitchPercent(5) - 1, SwitchPercent(5) + 1); // releasing keeps the progress
 
         var near = FindPoint(srv.Map, sw.X, sw.Z, (x, z) => Distance(x, z, sw.X, sw.Z) is > 0.5f and < 1.2f);
         srv.PlaceForTests(b.Id, near.X, near.Z);
         Hold(a, true); Hold(b, true);
         m.Tick(100);
-        Assert.InRange(World(a).SwitchProgress(0), (byte)65, (byte)67); // two holders = one
+        Assert.InRange(World(a).SwitchProgress(0), SwitchPercent(10) - 1, SwitchPercent(10) + 1); // two holders = one
 
         Spy.Server<double[]>(srv, "_exitLockedUntil")[0] = Now(m) + 5;
         m.Tick(40);
         Assert.True(World(m.Killer).Locked(0));
-        Assert.InRange(World(a).SwitchProgress(0), (byte)65, (byte)67);
+        Assert.InRange(World(a).SwitchProgress(0), SwitchPercent(10) - 1, SwitchPercent(10) + 1);
         m.Tick(70);
         Assert.False(World(a).Locked(0));
-        Assert.InRange(World(a).SwitchProgress(0), (byte)68, (byte)72);
+        Assert.InRange(World(a).SwitchProgress(0), SwitchPercent(10.5) - 2, SwitchPercent(10.5) + 2);
     }
+
+    // The wire percentage of a switch held for the given seconds (floor, as the server sends it).
+    internal static int SwitchPercent(double seconds) => (int)Math.Floor(seconds * 100 / GameConstants.ExitSwitchSeconds);
 
     [Fact]
     public void OnlyANormalSurvivorAtAnOpenExitEscapes()
@@ -218,7 +221,7 @@ public sealed class RulesV2Tests
         Hold(a, true);
         int n = 0;
         while (!World(a).Open(0) && n < 400) { m.Tick(); n++; }
-        Assert.InRange(n, 299, 301);
+        Assert.InRange(n, RulesMatch.SwitchTicks - 1, RulesMatch.SwitchTicks + 1);
         Assert.InRange(World(a).CollapseLeft, GameConstants.CollapseSeconds - 0.11f, GameConstants.CollapseSeconds);
         m.Tick(5);
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(b).Status); // a Lagging survivor cannot escape

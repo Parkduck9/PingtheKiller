@@ -87,8 +87,8 @@ public sealed class EscapeAndResultTests
         var point = m.F.Server.Map.ExitSwitches[0];
         m.WalkTo(a, point.X, point.Z, GameConstants.SurvivorSpeed);
         a.Send(new C2S_Interact { Active = 1 });
-        m.Tick(60); // 3 s of 15 s
-        Assert.Equal(20, m.Killer.Last<S2C_WorldState>().SwitchProgress(0));
+        m.Tick(60); // 3 s of ExitSwitchSeconds (B1: 17 s, 17 %)
+        Assert.Equal(RulesV2Tests.SwitchPercent(3), m.Killer.Last<S2C_WorldState>().SwitchProgress(0));
         m.Killer.Send(new C2S_UseSkill { SkillId = SkillIds.FirewallBlock });
         m.Tick();
         foreach (var peer in new[] { m.Killer, m[0], m[1] })
@@ -114,8 +114,8 @@ public sealed class EscapeAndResultTests
         }
         Assert.InRange(ticks, 100, 101); // locked for the 100 frames [cast, cast + 5 s)
         Assert.Single(m.Killer.All<S2C_SkillEffect>());
-        // Held on, the switch finishes the remaining 12 s and the exit opens.
-        m.Tick(238);
+        // Held on, the switch finishes the remaining ExitSwitchSeconds - 3 s (B1: 14 s) and the exit opens.
+        m.Tick(RulesMatch.SwitchTicks - 60 - 2);
         Assert.False(m.Killer.Last<S2C_WorldState>().Open(0));
         m.Tick(3);
         Assert.True(m.Killer.Last<S2C_WorldState>().Open(0));

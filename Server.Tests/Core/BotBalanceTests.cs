@@ -16,8 +16,10 @@ public sealed class BotBalanceTests
     {
         // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share.
         // U6d: enforce the GDD v2 win, median and timeout bands on both fixed seed sets.
-        new object[] { "1v7", 7, 0.35, 0.65, 540.0, 660.0, 0.10 },
-        new object[] { "1v3", 3, 0.25, 0.75, 0.0, 660.0, 0.20 },
+        // B1 (11/18): a stronger Killer at 1v7 (target 38-46 %, about 42 % on 240 seeds) and 1v3 (target 40-55 %). The bands
+        // leave room for the +-8 point noise of 40 seeds but fail a return to the pre-B1 1v7 balance (50 %+ is common there).
+        new object[] { "1v7", 7, 0.30, 0.55, 540.0, 660.0, 0.10 },
+        new object[] { "1v3", 3, 0.30, 0.65, 0.0, 660.0, 0.20 },
         new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30 },
         new object[] { "idle killer + 7", 0, 0.90, 1.0, 0.0, 900.0, 1.0 },
     };

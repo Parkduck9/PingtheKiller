@@ -1,0 +1,24 @@
+B1-balance a1: stronger Killer at 1v7 (swing range 2.95 m, exit switch 17 s)
+
+The user asked for a stronger Killer at 1v7. Diagnosis on all-bot sweeps
+(fixed seeds 1-40 / 1001-1040, 240 seeds 5001-5240, 1000 seeds 20001-21000):
+the repeat-rescue lever does not move the result, an extra terminal at 1v7
+overshoots (34 %, median 718 s, 8 % time-ups), and the swing range acts mostly
+at 1v7, where Survivors are often in reach (1000 seeds: 1v7 -7 points, 1v3 -1).
+
+Rule changes (Shared constants, so the client follows without code changes):
+- SwingRange 2.75 -> 2.95 m (+7 %, within the +-15 % lever).
+- ExitSwitchSeconds 15 -> 17 s.
+The Killer bot is unchanged: its swing trigger stays 2.75 m.
+
+Survivor win % (seeds 1-40 / 1001-1040, 240 seeds):
+- 1v7: 50 / 53 (50) -> 45 / 43 (40); captures 12.0 -> 13.0 per match;
+  medians 598 / 604 s; no match under 4 min.
+- 1v3: 53 / 48 (55) -> 48 / 48 (50).
+- 1v1: 33 / 43 (38) -> 38 / 35 (35).
+
+Tests: BalanceSweep bands 1v7 30-55 %, 1v3 30-65 %; switch-time tests derive
+from ExitSwitchSeconds; the swing range case moves to 2.9 / 3.05 m.
+Docs: GDD-v2 section 11 and the section 3 / 9 numbers, HUD_SPEC 6.1f.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
