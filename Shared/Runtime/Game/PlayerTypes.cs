@@ -12,7 +12,8 @@ namespace PingTheKiller.Shared.Game
     public enum TerminalFlags : byte { None = 0, Regressing = 1, Overloaded = 2 }
     [Flags]
     public enum ExitFlags : byte { None = 0, Powered = 1, Open = 2, Locked = 4 }
-    public enum SyncResult : byte { Fail = 0, Good = 1, Great = 2 }
+    // 11/17 (R2) packet routing: one route direction (C2S_HackInput.Direction, S2C_SelfState.RouteDirs).
+    public enum RouteDirection : byte { Up = 0, Down = 1, Left = 2, Right = 3 }
     // S2C_SelfState.ActionKind: the own hold action in progress.
     // v0.7 (GDD v2 section 8): Pull, Vault (shutter or rail) and Break (Killer on a shutter).
     public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3, Pull = 4, Vault = 5, Break = 6 }
@@ -26,7 +27,7 @@ namespace PingTheKiller.Shared.Game
         internal static byte ReadReason(ref PacketReader r) => r.ReadByte((byte)GameEndReason.Collapse);
         internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded));
         internal static byte ReadExitFlags(ref PacketReader r) => r.ReadByte((byte)(ExitFlags.Powered | ExitFlags.Open | ExitFlags.Locked));
-        internal static byte ReadSyncResult(ref PacketReader r) => r.ReadByte((byte)SyncResult.Great);
+        internal static byte ReadRouteDirection(ref PacketReader r) => r.ReadByte((byte)RouteDirection.Right);
         internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.Break);
         internal static byte ReadChaseFlags(ref PacketReader r) => r.ReadByte(
             (byte)(ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking | ChaseFlags.Stunned));
@@ -41,6 +42,17 @@ namespace PingTheKiller.Shared.Game
                 throw new PacketFormatException("Undefined role choice.");
             return value;
         }
+    }
+
+    // 11/17 (R2) packet routing: the packed route of S2C_SelfState, 2 bits per direction, the first in the low bits.
+    public static class HackRoute
+    {
+        public const byte MaxLength = 4;
+
+        public static RouteDirection DirectionAt(byte packed, int index) => (RouteDirection)((packed >> (2 * index)) & 3);
+
+        public static byte WithDirection(byte packed, int index, RouteDirection direction) =>
+            (byte)((packed & ~(3 << (2 * index))) | (((int)direction & 3) << (2 * index)));
     }
 
     public struct PlayerState

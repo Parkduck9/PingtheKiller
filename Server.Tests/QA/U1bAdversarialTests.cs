@@ -589,7 +589,7 @@ public sealed class U1bAdversarialTests
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);           // 3.3: 60 s
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds); // 3.3: 2 s
         Assert.Equal(1.5f, GameConstants.TerminalRadius);                 // 3.4: 1.5 m
-        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);         // GDD v2 2: 45 s
+        Assert.Equal(90f, GameConstants.TerminalPassiveSeconds);          // GDD v2 2 (11/17 R2): 90 s passive
         Assert.Equal(2.4f, GameConstants.CoHackRate(3));                  // GDD v2 2: 3 or more 2.4x
         Assert.Equal(2.0f, GameConstants.ExitRadius);                     // 3.5: 2 m
         Assert.Equal(900f, GameConstants.MatchLengthSeconds);             // GDD v2 1: 900 s

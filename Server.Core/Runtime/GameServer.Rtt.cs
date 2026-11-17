@@ -44,8 +44,8 @@ namespace PingTheKiller.ServerCore
 
         // Both ends use the server clock. An unpredictable nonce prevents echoing before receiving the probe,
         // so the measured RTT cannot be shorter than the real path. Delaying/dropping echoes can only inflate it
-        // (bounded at 0.25 s): the judge shifts the same-width window and Fail limit by that constant, granting
-        // nothing beyond a fair client with that RTT. S2C_SyncCheck already tells clients the zone.
+        // (bounded at 0.25 s). Since the sync check was retired (11/17, R2) no rule reads the estimate: packet routing is
+        // judged by order, not timing, so the probe only keeps a diagnostic RTT per connection.
         private void ReceiveRttEcho(Player player, uint nonce, double receivedAt)
         {
             if (_offline || player.IsBot || !player.RttProbePending || nonce != player.RttProbeNonce) return;
@@ -69,12 +69,12 @@ namespace PingTheKiller.ServerCore
         }
 
         // Read-only, locked inspection for tests, including a running TCP game loop.
-        internal (double Seconds, int Samples, bool Outstanding, double JudgeSeconds) RttStateForTests(int playerId)
+        internal (double Seconds, int Samples, bool Outstanding) RttStateForTests(int playerId)
         {
             lock (_tickGate)
                 foreach (var player in _players)
                     if (player.Id == playerId)
-                        return (player.RttSeconds, player.RttSampleCount, player.RttProbePending, RttOf(player));
+                        return (player.RttSeconds, player.RttSampleCount, player.RttProbePending);
             throw new ArgumentOutOfRangeException(nameof(playerId));
         }
     }

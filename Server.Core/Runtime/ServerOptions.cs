@@ -18,7 +18,8 @@ namespace PingTheKiller.ServerCore
         // skills, decoys, afterimage, escape or win/lose; only TimeUp ends a match. Never enabled implicitly.
         public bool Sandbox { get; set; }
         // Test hook (Server.Tests only): the server's monotonic wall clock in seconds. Unset, a Stopwatch started with
-        // the server. It times sync presses by their arrival; Run keeps its own pacing clock.
+        // the server. It stamps input arrival and the RTT probes (11/17 R2: the RTT estimate feeds no rule now that the
+        // sync check is gone; the probe stays for the harness). Run keeps its own pacing clock.
         internal Func<double> ClockForTests { get; set; }
 
         // The online factory is lazy: offline hosts never construct a TCP listener.

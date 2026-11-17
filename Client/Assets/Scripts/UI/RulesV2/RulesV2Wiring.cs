@@ -8,86 +8,8 @@ using UnityEngine;
 
 namespace PingTheKiller.Client.UI.RulesV2
 {
-    // HUD_SPEC 13.2 wiring, pure: S2C_SyncCheck / S2C_SyncResult in, the ring's SyncCheckState out. Elapsed is the local
-    // time since the check arrived. A check older than (or equal to) the last accepted CheckId is stale and ignored; a
-    // result for any CheckId other than the current one is ignored; a check without a result hides NoResultSeconds after
-    // its sweep ends. Clear drops the current check at once (the own status left Normal, the match ended, the link went).
-    public sealed class SyncCheckTracker
-    {
-        public const float NoResultSeconds = 1f;
-        private SyncCheckView view;
-        private double arrivedAt, resultAt = -1;
-        private bool current, anyId;
-        private uint lastId;
-        public SyncCheckState State { get; } = new SyncCheckState();
-        public bool Current => current;
-        public SyncCheckView View => view;
-        public byte TerminalId { get; private set; }
-        // Raised by OnResult when it returns true (the first result of the current check): the sync cue.
-        public event System.Action<SyncResult> Resolved;
-
-        // True when the check became the current one.
-        public bool OnCheck(uint checkId, byte terminalId, float duration, float zoneStart, float zoneSize, float greatSize, double now)
-        {
-            if (anyId && checkId <= lastId) return false;
-            anyId = true; lastId = checkId;
-            current = true; arrivedAt = now; resultAt = -1; TerminalId = terminalId;
-            view = new SyncCheckView
-            {
-                CheckId = checkId, Duration = Finite(duration, GameConstants.SyncCheckDurationSeconds), ZoneStart = Finite(zoneStart, 0),
-                ZoneSize = Finite(zoneSize, 0), GreatSize = Finite(greatSize, 0)
-            };
-            State.Update(view, true, now);
-            return true;
-        }
-
-        public bool OnCheck(S2C_SyncCheck check, double now)
-            => OnCheck(check.CheckId, check.TerminalId, check.Duration, check.ZoneStart, check.ZoneSize, check.GreatSize, now);
-
-        // True when the result belongs to the current check and is its first.
-        public bool OnResult(uint checkId, byte result, double now)
-        {
-            if (!current || checkId != view.CheckId || view.Result.HasValue) return false;
-            view.Result = result <= (byte)SyncResult.Great ? (SyncResult)result : SyncResult.Fail;
-            resultAt = now;
-            State.Update(view, true, now);
-            Resolved?.Invoke(view.Result.Value);
-            return true;
-        }
-
-        // Every frame: the needle advances by local time; the result word holds for ResultSeconds, then the ring hides.
-        public void Tick(double now)
-        {
-            if (current)
-            {
-                view.Elapsed = (float)System.Math.Max(0, now - arrivedAt);
-                bool timedOut = !view.Result.HasValue && now - arrivedAt > view.Duration + NoResultSeconds;
-                bool shown = view.Result.HasValue && now - resultAt >= SyncCheckMath.ResultSeconds;
-                if (timedOut || shown) current = false;
-            }
-            State.Update(view, current, now);
-            if (!current && !State.Visible) State.Reset();
-        }
-
-        // Space / gamepad A (or the dev auto-sync): true when this press raised State.Press (once per check).
-        public bool TryPress() => State.TryPress();
-
-        // The own status left Normal: the check is gone, the next CheckId is still accepted.
-        public void Clear()
-        {
-            current = false; resultAt = -1; view = default;
-            State.Reset();
-        }
-
-        // MatchStart, GameResult, disconnect: everything, including the stale-id memory.
-        public void Reset()
-        {
-            Clear();
-            anyId = false; lastId = 0; TerminalId = 0;
-        }
-
-        private static float Finite(float value, float fallback) => float.IsNaN(value) || float.IsInfinity(value) ? fallback : value;
-    }
+    // HUD_SPEC 13.2 (11/17, R2): the sync check and its tracker were retired; the route panel (RoutePanel.cs) reads
+    // S2C_SelfState's route through RouteTracker.
 
     // Packet -> view model copies for the rules v2 HUD (HUD_SPEC 13). Pure.
     public static class V2Wire

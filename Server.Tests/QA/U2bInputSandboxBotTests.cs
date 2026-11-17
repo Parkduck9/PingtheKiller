@@ -86,12 +86,12 @@ public sealed class U2bInputSandboxBotTests
         Assert.Equal(0, d.S.Last<S2C_WorldState>().Terminals[0].Progress);
         Assert.False(d.S.IsClosed);
         d.S.Push(new C2S_Interact { Active = 1 });
-        d.Tick(10);
+        d.Tick(20); // 11/17 (R2): 1 % takes 0.9 s passive
         Assert.True(d.S.Last<S2C_WorldState>().Terminals[0].Progress > 0);
         d.S.Push(new C2S_Interact { Active = 7 }); // an invalid value must not even release the hold
         d.Tick(5);
         int p1 = d.S.Last<S2C_WorldState>().Terminals[0].Progress;
-        d.Tick(10);
+        d.Tick(20); // 11/17 (R2): 1 % takes 0.9 s passive
         Assert.True(d.S.Last<S2C_WorldState>().Terminals[0].Progress > p1, "invalid Interact value released the hold");
 
         // Killer Interact is ignored (no hack, no state change).

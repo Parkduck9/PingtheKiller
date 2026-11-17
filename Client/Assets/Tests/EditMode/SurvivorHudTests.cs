@@ -140,7 +140,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(p.Bar, Is.EqualTo(BarFill.Text)); Assert.That(p.Width, Is.EqualTo(.47f).Within(1e-5f));
             Assert.That(SurvivorReadout.Prompt(own, cohack, terminals, new Self(), Names, false, 0, false).Text, Is.EqualTo("Hacking Terminal 2 " + Dot + " 47% " + Dot + " 2 hacking"));
             p = SurvivorReadout.Prompt(Own(), Mates(), terminals, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Hold [E] to hack Terminal 2 " + Dot + " 47% " + Dash + " you will be Signal"));
+            Assert.That(p.Text, Is.EqualTo("Hold [E] + WASD to hack Terminal 2 " + Dot + " 47% " + Dash + " you will be Signal")); // 11/17 (R2): names the route keys
             p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging), Mates(), terminals, new Self(), Names, false, 0, false);
             Assert.That(p.Text, Is.EqualTo("Lagging Survivors cannot hack.")); Assert.That(p.Muted, Is.True);
             p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging, 40, 40), Mates(), terminals, new Self(), Names, false, 0, false);

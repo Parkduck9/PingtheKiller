@@ -217,7 +217,6 @@ public sealed class U2eAdversarialTests
             for (int seed = seed0; seed < 20000; seed++)
             {
                 var f = new QaFixture(seed: seed);
-                f.Server.SyncChecksEnabled = false;
                 var killer = f.Join("Killer");
                 var list = new QaPeer[survivors];
                 for (int i = 0; i < survivors; i++) list[i] = f.Join("S" + i);
@@ -476,7 +475,14 @@ public sealed class U2eAdversarialTests
             m.Place(b, terminal.X + 0.5f, terminal.Z);
             a.Send(new C2S_Interact { Active = 1 });
             b.Send(new C2S_Interact { Active = 1 });
-            for (int i = 0; i < 1000 && m.S[0].World().Terminals[t].Progress < 100; i++) m.Tick();
+            // 11/17 (R2): the 90 s passive part doubles these ticks, so every peer is drained each tick; an unread peer would
+            // pass FramedConnection.MaxPendingPackets and be closed (the killer left mid-hack before this drain).
+            for (int i = 0; i < 2000 && m.S[0].World().Terminals[t].Progress < 100; i++)
+            {
+                m.Tick();
+                m.K.Drain();
+                foreach (var peer in m.S) peer.Drain();
+            }
             Assert.Equal(100, m.S[0].World().Terminals[t].Progress);
             a.Send(new C2S_Interact { Active = 0 });
             b.Send(new C2S_Interact { Active = 0 });

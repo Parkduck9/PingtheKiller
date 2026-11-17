@@ -25,7 +25,7 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players) if (player.Role == Role.Survivor) ++_startingSurvivors;
             ResetTerminals();
             ResetExits();
-            ResetSyncChecks();
+            ResetRoutes();
             ResetChaseProps();
             _skillRequests.Clear();
             _decoys.Clear();
@@ -33,7 +33,7 @@ namespace PingTheKiller.ServerCore
             _killerViewSources.Clear();
         }
 
-        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> capture -> rescue -> hacking (regression, sync checks)
+        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> capture -> rescue -> hacking (regression, packet routes)
         // -> killer holds (kick, hatch close) -> exit switches -> escape -> hatch spawn -> time limit -> end check.
         private void RunRules(float dt)
         {
@@ -102,7 +102,7 @@ namespace PingTheKiller.ServerCore
                 player.DirX = player.DirZ = 0;
                 player.LastSignal = double.NegativeInfinity;
             }
-            if (status != PlayerStatus.Normal) CancelSyncCheck(player);
+            if (status != PlayerStatus.Normal) ClearRoute(player);
             WriteLog($"status player={player.Id} {status} reason={reason}");
         }
 
@@ -197,7 +197,8 @@ namespace PingTheKiller.ServerCore
                 player.Interacting = player.Hacking = player.Rescuing = false;
                 player.DirX = player.DirZ = 0;
                 player.LastSignal = double.NegativeInfinity;
-                player.SyncPending = false;
+                player.RouteId = 0;
+                player.RouteTerminal = -1;
             }
             _killer = null;
             _skillRequests.Clear();

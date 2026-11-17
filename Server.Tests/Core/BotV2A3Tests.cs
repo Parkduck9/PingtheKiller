@@ -115,7 +115,7 @@ public sealed class BotV2A3Tests
     private SurvivorBotView LateSurvivor()
     {
         var view = Survivor();
-        view.TerminalsRequired = 2; // 60 % + 80 % of TerminalHackTimeSeconds left, one Normal survivor
+        view.TerminalsRequired = 2; // 60 % + 80 % of SurvivorBrain.ExpectedHackSeconds left, one Normal survivor
         view.Time = 700;
         view.Team.Add(new PlayerState { Id = 1, X = view.X, Z = view.Z, Status = (byte)PlayerStatus.Normal, Flags = (byte)PlayerFlags.Signal });
         return view;

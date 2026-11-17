@@ -15,143 +15,51 @@ using UnityEngine.UIElements;
 
 namespace PingTheKiller.Client.Tests
 {
-    // U6c-wire: protocol v0.4 -> the rules v2 HUD (HUD_SPEC 13). Sync check tracking, the SelfState v0.4 fields, exit and
+    // U6c-wire: protocol v0.4 -> the rules v2 HUD (HUD_SPEC 13). The own route from SelfState (11/17, R2), the SelfState v0.4 fields, exit and
     // terminal-flag mapping, the result rows, the absence of execution copy, the dev flags and the autopilot.
     public sealed class RulesV2WiringTests
     {
         private const string Dot = "·";
 
-        private static S2C_SyncCheck Check(uint id, float zoneStart = .6f)
-            => new S2C_SyncCheck { CheckId = id, TerminalId = 2, Duration = 1.1f, ZoneStart = zoneStart, ZoneSize = .12f, GreatSize = .035f };
+        private static S2C_SelfState Self(byte id, byte dirs, byte index)
+            => new S2C_SelfState { SkillCooldown = 0, CollapseLeft = -1, RouteId = id, RouteLength = id == 0 ? (byte)0 : (byte)HackRoute.MaxLength, RouteDirs = dirs, RouteIndex = index };
 
-        // ---- 13.2 sync check ---------------------------------------------------------------------------------------------
+        // ---- 13.2 packet routing (11/17, R2) ------------------------------------------------------------------------------
 
         [Test]
-        public void ACheckShowsTheRingAndTheNeedleFollowsLocalTimeSinceArrival()
+        public void TheOwnRouteComesFromSelfStateAndOnlyANewIdCountsAsNew()
         {
-            var sync = new SyncCheckTracker();
-            Assert.That(sync.OnCheck(Check(5), 10), Is.True);
-            sync.Tick(10.55);
-            Assert.That(sync.State.Visible, Is.True);
-            Assert.That(sync.View.Elapsed, Is.EqualTo(.55f).Within(1e-4f));
-            Assert.That(sync.State.Needle, Is.EqualTo(.5f).Within(1e-4f));
-            Assert.That(sync.TerminalId, Is.EqualTo(2));
+            var route = new RouteTracker();
+            byte dirs = HackRoute.WithDirection(HackRoute.WithDirection(0, 0, RouteDirection.Right), 1, RouteDirection.Down);
+            Assert.That(route.OnSelf(Self(7, dirs, 0), 1), Is.True);
+            Assert.That(route.Present, Is.True);
+            Assert.That(route.Expected, Is.EqualTo(RouteDirection.Right));
+            Assert.That(route.OnSelf(Self(7, dirs, 1), 1.05), Is.False, "the same route, the server's index");
+            Assert.That(route.Index, Is.EqualTo(1));
+            Assert.That(route.Expected, Is.EqualTo(RouteDirection.Down));
+            Assert.That(route.OnSelf(Self(0, 0, 0), 1.1), Is.True, "cleared: the gap after a route or a done terminal");
+            Assert.That(route.Held, Is.False);
+            Assert.That(route.OnSelf(Self(0, 0, 0), 1.15), Is.False);
         }
 
         [Test]
-        public void SpaceSendsExactlyOnePressPerCheck()
-        {
-            var sync = new SyncCheckTracker();
-            var sent = new List<uint>();
-            sync.State.Press += sent.Add;
-            sync.OnCheck(Check(1), 0);
-            sync.Tick(.3);
-            Assert.That(sync.TryPress(), Is.True);
-            sync.Tick(.4);
-            Assert.That(sync.TryPress(), Is.False, "a second press for the same check does nothing");
-            Assert.That(sync.TryPress(), Is.False);
-            Assert.That(sent, Is.EqualTo(new[] { 1u }));
-            sync.OnResult(1, (byte)SyncResult.Fail, .45);
-            Assert.That(sync.TryPress(), Is.False, "nor after the result");
-            sync.Tick(2);
-            sync.OnCheck(Check(2), 20);
-            sync.Tick(20.2);
-            Assert.That(sync.TryPress(), Is.True, "the next check takes one press again");
-            Assert.That(sent, Is.EqualTo(new[] { 1u, 2u }));
-        }
-
-        [Test]
-        public void TheResultShowsForFourTenthsThenTheRingHides()
-        {
-            var sync = new SyncCheckTracker();
-            sync.OnCheck(Check(3), 0);
-            sync.Tick(.7);
-            sync.TryPress();
-            Assert.That(sync.OnResult(3, (byte)SyncResult.Great, .75), Is.True);
-            sync.Tick(.8);
-            Assert.That(sync.State.Visible, Is.True);
-            Assert.That(sync.State.Result, Is.EqualTo(SyncResult.Great));
-            Assert.That(SyncCheckMath.ResultWord(sync.State.Result.Value), Is.EqualTo("Great"));
-            sync.Tick(1.1);
-            Assert.That(sync.State.Visible, Is.True, "0.35 s after the result");
-            sync.Tick(1.16);
-            Assert.That(sync.State.Visible, Is.False, "0.41 s after the result");
-            Assert.That(sync.Current, Is.False);
-        }
-
-        [Test]
-        public void StaleAndUnknownCheckIdsAreIgnored()
-        {
-            var sync = new SyncCheckTracker();
-            sync.OnCheck(Check(7), 0);
-            Assert.That(sync.OnCheck(Check(6), .1), Is.False, "older than the current check");
-            Assert.That(sync.OnCheck(Check(7), .1), Is.False, "a repeat of the current check");
-            Assert.That(sync.View.CheckId, Is.EqualTo(7u));
-            Assert.That(sync.OnResult(99, (byte)SyncResult.Great, .2), Is.False, "unknown id");
-            Assert.That(sync.OnResult(6, (byte)SyncResult.Great, .2), Is.False, "stale id");
-            sync.Tick(.3);
-            Assert.That(sync.State.Result.HasValue, Is.False);
-            Assert.That(sync.OnResult(7, (byte)SyncResult.Good, .4), Is.True);
-            Assert.That(sync.OnResult(7, (byte)SyncResult.Great, .45), Is.False, "only the first result counts");
-            Assert.That(sync.View.Result, Is.EqualTo(SyncResult.Good));
-            Assert.That(new SyncCheckTracker().OnResult(1, 2, 0), Is.False, "no check at all");
-            var odd = new SyncCheckTracker();
-            odd.OnCheck(Check(1), 0);
-            odd.OnResult(1, 9, .1);
-            Assert.That(odd.View.Result, Is.EqualTo(SyncResult.Fail), "an out-of-range result byte reads as Fail");
-        }
-
-        [Test]
-        public void ACheckWithoutAResultHidesOneSecondAfterItsSweep()
-        {
-            var sync = new SyncCheckTracker();
-            sync.OnCheck(Check(1), 0);
-            sync.Tick(2.05);
-            Assert.That(sync.State.Visible, Is.True, "Duration 1.1 + 0.95 s");
-            sync.Tick(2.11);
-            Assert.That(sync.State.Visible, Is.False, "Duration 1.1 + 1.01 s");
-            Assert.That(sync.Current, Is.False);
-            Assert.That(sync.OnResult(1, (byte)SyncResult.Fail, 2.2), Is.False, "a late result for a hidden check is ignored");
-            Assert.That(sync.TryPress(), Is.False);
-        }
-
-        [Test]
-        public void ClearAndResetHideAtOnceAndOnlyResetForgetsTheIds()
-        {
-            var sync = new SyncCheckTracker();
-            sync.OnCheck(Check(4), 0);
-            sync.Tick(.2);
-            sync.OnResult(4, (byte)SyncResult.Good, .3);
-            sync.Tick(.31);
-            sync.Clear(); // the own status left Normal
-            Assert.That(sync.State.Visible, Is.False, "even during the result word");
-            Assert.That(sync.TryPress(), Is.False);
-            sync.Tick(.32);
-            Assert.That(sync.State.Visible, Is.False);
-            Assert.That(sync.OnCheck(Check(3), .4), Is.False, "Clear keeps the stale-id memory");
-            Assert.That(sync.OnCheck(Check(5), .5), Is.True);
-            sync.Reset(); // MatchStart / GameResult / disconnect
-            Assert.That(sync.State.Visible, Is.False);
-            Assert.That(sync.OnCheck(Check(1), 1), Is.True, "a new match may start the ids again");
-        }
-
-        [Test]
-        public void TheSurvivorHudShowsTheRingAboveThePromptRow()
+        public void TheSurvivorHudShowsTheRoutePanelAboveThePromptRow()
         {
             var hud = new SurvivorHud(new VisualElement(), Resources.Load<Font>("Fonts/Inter-Regular"));
             try
             {
                 hud.Begin(SkillIds.DummyPacket);
-                Assert.That(hud.SyncRing.style.display.value, Is.EqualTo(DisplayStyle.None));
-                hud.Sync.OnCheck(Check(1), 0);
-                hud.Sync.Tick(.2);
-                hud.SetSync("Space");
-                Assert.That(hud.SyncRing.style.display.value, Is.EqualTo(DisplayStyle.Flex));
-                Rect withRing = hud.ClusterRect(new Vector2(1600, 900));
-                Assert.That(withRing.height, Is.EqualTo(SurvivorHud.Height + SyncLockBar.Height + 8), "the bar and its 8 u gap join the keep-out");
-                hud.Sync.Clear();
-                hud.SetSync("Space");
-                Assert.That(hud.SyncRing.style.display.value, Is.EqualTo(DisplayStyle.None));
+                Assert.That(hud.RoutePanel.style.display.value, Is.EqualTo(DisplayStyle.None));
+                hud.Route.OnSelf(Self(1, 0, 0), 0);
+                hud.SetRoute(true, RouteCopy.KeyboardGlyph, false, .2);
+                Assert.That(hud.RoutePanel.style.display.value, Is.EqualTo(DisplayStyle.Flex));
+                Assert.That(hud.RoutePanel.LabelText, Is.EqualTo(RouteCopy.Hint), "the first route of the match");
+                Rect withPanel = hud.ClusterRect(new Vector2(1600, 900));
+                Assert.That(withPanel.height, Is.EqualTo(SurvivorHud.Height + RoutePanel.Height + 8), "the panel and its 8 u gap join the keep-out");
+                hud.SetRoute(false, RouteCopy.KeyboardGlyph, false, .3);
+                Assert.That(hud.RoutePanel.style.display.value, Is.EqualTo(DisplayStyle.None), "E released: the panel hides at once");
+                hud.Begin(SkillIds.DummyPacket);
+                Assert.That(hud.Route.Held, Is.False, "a new match starts without a route");
             }
             finally { hud.Dispose(); }
         }
@@ -368,33 +276,42 @@ namespace PingTheKiller.Client.Tests
             DevArgs none = DevArgs.Parse(new[] { "PingTheKiller.exe" });
             Assert.That(none.DevHack, Is.EqualTo(0f));
             Assert.That(none.DevSwitch, Is.False);
-            Assert.That(none.AutoSync, Is.EqualTo(AutoSync.None));
-            DevArgs args = DevArgs.Parse(new[] { "x", "-ptk-dev-hack", "40", "-ptk-auto-sync", "GREAT", "-ptk-dev-switch" });
+            Assert.That(none.AutoRoute, Is.EqualTo(AutoRoute.None));
+            DevArgs args = DevArgs.Parse(new[] { "x", "-ptk-dev-hack", "40", "-ptk-auto-route", "FAST", "-ptk-dev-switch" });
             Assert.That(args.Errors, Is.Empty);
             Assert.That(args.Active, Is.True);
             Assert.That(args.DevHack, Is.EqualTo(40f));
-            Assert.That(args.AutoSync, Is.EqualTo(AutoSync.Great));
+            Assert.That(args.AutoRoute, Is.EqualTo(AutoRoute.Fast));
             Assert.That(args.DevSwitch, Is.True);
-            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-sync", "good" }).AutoSync, Is.EqualTo(AutoSync.Good));
-            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-sync", "miss" }).AutoSync, Is.EqualTo(AutoSync.Miss));
-            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-sync", "miss" }).Active, Is.True);
-            DevArgs bad = DevArgs.Parse(new[] { "x", "-ptk-dev-hack", "-3", "-ptk-auto-sync", "perfect", "-ptk-dev-hack" });
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-route", "slow" }).AutoRoute, Is.EqualTo(AutoRoute.Slow));
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-route", "sloppy" }).AutoRoute, Is.EqualTo(AutoRoute.Sloppy));
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-route", "sloppy" }).Active, Is.True);
+            DevArgs bad = DevArgs.Parse(new[] { "x", "-ptk-dev-hack", "-3", "-ptk-auto-route", "perfect", "-ptk-dev-hack" });
             Assert.That(bad.Errors.Count, Is.EqualTo(3));
             Assert.That(bad.DevHack, Is.EqualTo(0f));
-            Assert.That(bad.AutoSync, Is.EqualTo(AutoSync.None));
+            Assert.That(bad.AutoRoute, Is.EqualTo(AutoRoute.None));
+            Assert.That(DevArgs.Parse(new[] { "x", "-ptk-auto-sync", "great" }).Errors, Is.Not.Empty, "the sync flag is retired");
+            DevArgs walk = DevArgs.Parse(new[] { "x", "-ptk-dev-hack", "8", "-ptk-walk-after-hack", "6" });
+            Assert.That(walk.Errors, Is.Empty);
+            Assert.That(walk.WalkAfterHack, Is.EqualTo(6f));
+            Assert.That(none.WalkAfterHack, Is.EqualTo(0f));
         }
 
         [Test]
-        public void AutoSyncPressesAtTheGreatPartTheRestOfTheZoneOrNever()
+        public void AutoRoutePacesKeysAndSloppyMissesEveryFifth()
         {
-            var check = new SyncCheckView { Duration = 1.1f, ZoneStart = .6f, ZoneSize = .12f, GreatSize = .035f };
-            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .6f), Is.False, "not at the zone start");
-            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .617f), Is.False);
-            Assert.That(HackPilot.SyncDue(AutoSync.Great, check, .618f), Is.True, "the middle of the great part (0.6175)");
-            Assert.That(HackPilot.SyncDue(AutoSync.Good, check, .65f), Is.False);
-            Assert.That(HackPilot.SyncDue(AutoSync.Good, check, .678f), Is.True, "the middle of the zone after the great part (0.6775)");
-            Assert.That(HackPilot.SyncDue(AutoSync.Miss, check, .99f), Is.False);
-            Assert.That(HackPilot.SyncDue(AutoSync.None, check, .99f), Is.False);
+            Assert.That(HackPilot.RouteKeySeconds(AutoRoute.Fast), Is.EqualTo(.15f));
+            Assert.That(HackPilot.RouteKeySeconds(AutoRoute.Sloppy), Is.EqualTo(.15f));
+            Assert.That(HackPilot.RouteKeySeconds(AutoRoute.Slow), Is.EqualTo(.5f));
+            int wrong = 0;
+            for (int n = 1; n <= 100; n++)
+            {
+                RouteDirection expected = (RouteDirection)(n % 4);
+                Assert.That(HackPilot.RouteKey(AutoRoute.Fast, n, expected), Is.EqualTo(expected));
+                Assert.That(HackPilot.RouteKey(AutoRoute.Slow, n, expected), Is.EqualTo(expected));
+                if (HackPilot.RouteKey(AutoRoute.Sloppy, n, expected) != expected) wrong++;
+            }
+            Assert.That(wrong, Is.EqualTo(20), "20 % errors");
         }
 
         [Test]
@@ -576,57 +493,6 @@ namespace PingTheKiller.Client.Tests
             Assert.That(timer.Main, Is.SameAs(main), "1:36 both times: not rebuilt");
             timer.Set(V2Wire.Collapse(94.9f, -1, false));
             Assert.That(timer.Main, Is.EqualTo("Shutdown 1:35"));
-        }
-
-        // ---- IP audit (11/17): the sync lock bar replaces the ring, same timing ----------------------------------------------
-
-        [Test]
-        public void TheSyncLockBarIsAShortWideBarWithItsTrackInsideAndAGreatPartCutFromTheGoodPart()
-        {
-            Assert.That(SyncLockBar.Width, Is.GreaterThan(SyncLockBar.Height * 3), "a horizontal bar, not a disc");
-            Assert.That(SyncLockBar.Height, Is.LessThan(144), "shorter than the old ring: it covers less of the character");
-            Assert.That(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth, Is.LessThanOrEqualTo(SyncLockBar.Width), "the track fits in the bar");
-            Assert.That(SyncLockBar.TrackTop - SyncLockBar.GreatExtra, Is.GreaterThanOrEqualTo(0f), "the Great block stays inside the bar");
-            Assert.That(SyncLockBar.TrackTop + SyncLockBar.TrackHeight + SyncLockBar.GreatExtra, Is.LessThan(SyncLockBar.LabelTop), "and above the label row");
-            Assert.That(SyncLockBar.GreatGap, Is.GreaterThan(0f));
-        }
-
-        [Test]
-        public void ThePulseIsAtTheWindowCentreExactlyWhenTheOldNeedleWasInTheMiddleOfTheZone()
-        {
-            const float duration = 1.1f;
-            var view = new SyncCheckView { ZoneStart = .6f, ZoneSize = .12f, GreatSize = .035f, Duration = duration };
-            float centre = view.ZoneStart + view.ZoneSize * .5f;
-            float elapsed = centre * duration;
-            Assert.That(SyncCheckMath.NeedleFraction(elapsed, duration), Is.EqualTo(centre).Within(1e-5f), "the unchanged time-to-fraction function");
-            Assert.That(SyncLockBar.PulseX(SyncCheckMath.NeedleFraction(elapsed, duration)), Is.EqualTo(SyncLockBar.WindowCentreX(view)).Within(1e-3f));
-            Assert.That(SyncCheckMath.NeedleDegrees(elapsed, duration), Is.EqualTo(centre * 360f).Within(1e-3f), "the old ring angle is still the same fraction");
-        }
-
-        [Test]
-        public void ThePulseMapsLinearlyAndRoundTripsFromStartToEndOfTheTrack()
-        {
-            Assert.That(SyncLockBar.PulseX(0), Is.EqualTo(SyncLockBar.TrackLeft));
-            Assert.That(SyncLockBar.PulseX(1), Is.EqualTo(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth));
-            Assert.That(SyncLockBar.PulseX(-3), Is.EqualTo(SyncLockBar.TrackLeft), "clamped");
-            Assert.That(SyncLockBar.PulseX(9), Is.EqualTo(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth), "clamped");
-            for (int i = 0; i <= 20; i++)
-            {
-                float fraction = i / 20f;
-                Assert.That(SyncLockBar.FractionAtX(SyncLockBar.PulseX(fraction)), Is.EqualTo(fraction).Within(1e-5f));
-            }
-            Assert.That(SyncLockBar.PulseX(.75f) - SyncLockBar.PulseX(.25f), Is.EqualTo(SyncLockBar.TrackWidth * .5f).Within(1e-3f), "equal time steps are equal distances");
-        }
-
-        [Test]
-        public void ThePulseBumpFollowsThePulseAndTheLabelNamesTheKey()
-        {
-            float px = SyncLockBar.PulseX(.5f);
-            float atPulse = Mathf.Abs(SyncLockBar.WaveOffset(px + 1.5f, px));
-            float far = Mathf.Abs(SyncLockBar.WaveOffset(SyncLockBar.TrackLeft + 5f, px));
-            Assert.That(atPulse, Is.GreaterThan(far), "the wave is tallest at the pulse");
-            Assert.That(SyncLockBar.WaitingText("Space"), Is.EqualTo("Sync lock · Space"));
-            Assert.That(SyncLockBar.WaitingText("A"), Is.EqualTo("Sync lock · A"));
         }
     }
 }

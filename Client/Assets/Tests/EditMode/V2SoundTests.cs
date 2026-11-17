@@ -196,7 +196,7 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void TheKillerClientNeverGetsCaptureRescueExitOpenOrSyncCues()
+        public void TheKillerClientNeverGetsCaptureRescueExitOpenOrRouteCues()
         {
             var rules = Killer();
             var normal = P((Own, PlayerStatus.Normal), (2, PlayerStatus.Normal));
@@ -205,7 +205,8 @@ namespace PingTheKiller.Client.Tests
             all.AddRange(Step(rules, World(players: P((Own, PlayerStatus.Normal), (2, PlayerStatus.Lagging))), 1));
             all.AddRange(Step(rules, World(players: normal), 2));
             all.AddRange(Step(rules, World(powered: true, open0: true, collapse: 30, players: normal), 3));
-            rules.OnSync(SyncResult.Great);
+            rules.OnRoute(V2Cue.RouteDone);
+            rules.OnRoute(V2Cue.RouteError);
             all.AddRange(Take(rules));
             Assert.That(all, Is.EquivalentTo(new[] { V2Cue.ExitsPowered, V2Cue.CollapseStart }));
         }
@@ -231,7 +232,7 @@ namespace PingTheKiller.Client.Tests
         public void NothingIsQueuedOutsideAMatchAndBeginStartsAFreshBaseline()
         {
             var rules = new V2CueRules();
-            rules.OnSync(SyncResult.Good);
+            rules.OnRoute(V2Cue.RouteKey);
             Assert.That(Step(rules, World(powered: true, collapse: 3, hatch: true)), Is.Empty);
             rules.Begin(Role.Survivor, Own);
             Step(rules, World());
@@ -244,24 +245,26 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void SyncResultsMapToTheirCuesThroughTheTrackersResolvedEventOncePerCheck()
+        public void RouteKeysTickCompletionChimesAndAnErrorGlitchesThroughTheTrackersEvents()
         {
-            var tracker = new SyncCheckTracker();
+            var tracker = new RouteTracker();
             var rules = Survivor();
-            tracker.Resolved += rules.OnSync;
-            var expected = new[] { (SyncResult.Great, V2Cue.SyncGreat), (SyncResult.Good, V2Cue.SyncGood), (SyncResult.Fail, V2Cue.SyncFail) };
-            uint id = 1;
-            foreach ((SyncResult result, V2Cue cue) in expected)
-            {
-                Assert.That(tracker.OnCheck(id, 0, 1.5f, .3f, .2f, .05f, id), Is.True);
-                Assert.That(tracker.OnResult(id + 100, (byte)result, id + .5), Is.False, "another check's result");
-                Assert.That(Take(rules), Is.Empty);
-                Assert.That(tracker.OnResult(id, (byte)result, id + .6), Is.True);
-                Assert.That(Take(rules), Is.EqualTo(new[] { cue }));
-                Assert.That(tracker.OnResult(id, (byte)result, id + .7), Is.False, "a repeated result");
-                Assert.That(Take(rules), Is.Empty);
-                id++;
-            }
+            // The ClientApp wiring: a right key ticks, a completed route chimes, an error glitches (no tick for the wrong key).
+            tracker.Key += right => { if (right) rules.OnRoute(V2Cue.RouteKey); };
+            tracker.RouteDone += () => rules.OnRoute(V2Cue.RouteDone);
+            tracker.RouteFailed += () => rules.OnRoute(V2Cue.RouteError);
+            tracker.OnSelf(1, HackRoute.MaxLength, 0, 0, 0); // Up Up Up Up
+            for (int i = 0; i < 3; i++) tracker.TryPress(RouteDirection.Up, i * .2, out _);
+            Assert.That(Take(rules), Is.EqualTo(new[] { V2Cue.RouteKey, V2Cue.RouteKey, V2Cue.RouteKey }));
+            tracker.TryPress(RouteDirection.Up, .6, out _);
+            Assert.That(Take(rules), Is.EqualTo(new[] { V2Cue.RouteKey, V2Cue.RouteDone }));
+            Assert.That(tracker.TryPress(RouteDirection.Up, .7, out _), Is.False);
+            Assert.That(Take(rules), Is.Empty, "nothing for a finished route");
+            tracker.OnSelf(2, HackRoute.MaxLength, 0, 0, 3);
+            tracker.TryPress(RouteDirection.Left, 3.1, out _);
+            Assert.That(Take(rules), Is.EqualTo(new[] { V2Cue.RouteError }));
+            rules.OnRoute(V2Cue.ExitOpen);
+            Assert.That(Take(rules), Is.Empty, "OnRoute takes only the three route cues");
         }
 
         // ---- the MonoBehaviour: volume path and hold loop ---------------------------------------------------------------

@@ -40,18 +40,19 @@ namespace PingTheKiller.ServerCore
         internal int KickTerminal = -1;
         // Personal collapse clock (GDD v2 §3).
         internal double CollapseLeft;
-        // Sync checks (GDD v2 §2): seconds of hacking until the next check, and the pending check if any.
-        internal Random SyncRandom;
-        internal double SyncTimer;
-        internal bool SyncPending;
-        internal uint SyncCheckId;
-        internal int SyncTerminal = -1;
-        internal double SyncSentAt;
-        internal float SyncZoneStart;
-        // A survivor bot's planned press instant for the pending check (NaN: it misses).
-        internal double SyncBotPressAt = double.NaN;
-        internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
-        // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
+        // Packet routing (GDD v2 §2, 11/17 R2): the private direction stream, a survivor bot's key-timing stream, the own
+        // route (RouteId 0 = none), its terminal, the next index, the hacking seconds before the next route after a completed
+        // one, the route-input rate window and the per-player log throttle.
+        internal Random RouteRandom, RouteBotRandom;
+        internal byte RouteId, RouteSerial, RouteDirs, RouteIndex;
+        internal int RouteTerminal = -1;
+        internal double RouteGapLeft;
+        // The server time the current route was dealt (RouteMinCycleSeconds).
+        internal double RouteIssuedAt;
+        internal readonly System.Collections.Generic.Queue<double> RouteInputTimes = new System.Collections.Generic.Queue<double>();
+        internal double RouteLoggedAt = double.NegativeInfinity;
+        internal int RouteLogsUnlogged;
+        // Smoothed round-trip time from the server-timed probe (diagnostics); 0 until a measurement exists.
         internal double RttSeconds;
         // Connection state, deliberately preserved across match resets to keep the lobby estimate warm.
         internal uint RttProbeNonce;
@@ -128,10 +129,11 @@ namespace PingTheKiller.ServerCore
             CaptureCount = 0;
             LaggingUntil = InvulnerableUntil = RescueProgress = 0;
             Interacting = Hacking = Rescuing = false;
-            HackTerminal = SwitchExit = KickTerminal = SyncTerminal = -1;
+            HackTerminal = SwitchExit = KickTerminal = RouteTerminal = -1;
             KickHeld = HatchHeld = 0;
-            SyncPending = false;
-            SyncBotPressAt = double.NaN;
+            RouteId = RouteIndex = RouteDirs = 0;
+            RouteGapLeft = 0;
+            RouteInputTimes.Clear();
             SkillReadyAt = now;
             ExposedUntil = StealthUntil = OverclockUntil = RecoveryUntil = SlowedUntil = double.NegativeInfinity;
             Visible = false;

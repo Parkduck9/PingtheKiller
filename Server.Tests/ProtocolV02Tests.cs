@@ -31,7 +31,9 @@ public sealed class ProtocolV02Tests
         yield return new object[] { new S2C_GameResult(), 0, new byte[] { 0, 1 } }; // WinnerRole
         yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2, 3 } }; // Reason
         yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3, 4, 5, 6 } }; // ActionKind (v0.7: 4-6)
-        yield return new object[] { new S2C_SyncResult(), 4, new byte[] { 0, 1, 2 } }; // Result
+        yield return new object[] { new S2C_SelfState(), 26, new byte[] { 0, 1, 2, 3, 4 } }; // 11/17 RouteLength (<= 4)
+        yield return new object[] { new S2C_SelfState { RouteLength = 4 }, 28, new byte[] { 0, 1, 2, 3, 4 } }; // RouteIndex (<= length)
+        yield return new object[] { new C2S_HackInput(), 1, new byte[] { 0, 1, 2, 3 } }; // 11/17 RouteDirection
         yield return new object[] { new S2C_SkillRejected(), 1, Enumerable.Range(1, 8).Select(i => (byte)i).ToArray() }; // v0.6 Reason
         yield return new object[] { new S2C_LobbyState(), 1, new byte[] { 0, 1, 255 } }; // HostRoleChoice
         yield return new object[] { new S2C_MatchStart(), 0, new byte[] { 0, 1 } }; // Role
@@ -74,9 +76,12 @@ public sealed class ProtocolV02Tests
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
         int count = Enum.GetValues<PacketId>().Length;
-        Assert.Equal(22, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015); v0.6 S2C_SkillRejected (0x0016).
+        // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015); v0.6 S2C_SkillRejected (0x0016); 11/17 (R2) retires the
+        // three sync check packets (0x0011-0x0013) and adds C2S_HackInput (0x0019).
+        Assert.Equal(20, count);
         Assert.Equal(count, packets.Length);
-        Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
+        Assert.Equal(Enum.GetValues<PacketId>().Order(), packets.Select(p => p.Id).Order());
+        Assert.All(new ushort[] { 0x0011, 0x0012, 0x0013 }, id => Assert.False(Enum.IsDefined(typeof(PacketId), id)));
     }
 
     [Fact]

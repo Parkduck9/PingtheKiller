@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 }
             }
 
-            Assert.That(s2cCount, Is.EqualTo(12), "Protocol v0.6 defines exactly 12 S2C packet types (adds S2C_SkillRejected)");
+            Assert.That(s2cCount, Is.EqualTo(10), "Protocol v0.6 defines 12 S2C packet types (adds S2C_SkillRejected); 11/17 (R2) retires S2C_SyncCheck and S2C_SyncResult");
         }
     }
 }

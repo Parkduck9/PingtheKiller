@@ -199,6 +199,13 @@ namespace PingTheKiller.Client.World
         // U10: the own S2C_SelfState.ActionKind (the exit switch hold is own-only knowledge).
         public void SetOwnAction(byte kind) => ownAction = kind;
 
+        // 11/17 (R2): the own character routes packets (its holo panel pulses on real keys, not the fixed beat).
+        private bool ownRouting;
+        public void SetOwnRouting(bool routing) => ownRouting = routing;
+
+        // One real route key of the own character.
+        public void OwnKeyPulse(double now) { if (avatars.TryGetValue(localId, out Avatar avatar)) avatar.Props.KeyPulse(now); }
+
         public void Accept(S2C_WorldState state)
         {
             if (state.Terminals != null)
@@ -358,6 +365,7 @@ namespace PingTheKiller.Client.World
             }
             double clock = now + (id & 7) * .37; // beats and streams are not in lockstep across characters
             avatar.Interaction.Update(now, kind, target, clock);
+            avatar.Props.KeyDriven = own && ownRouting;
             avatar.Props.Show(avatar.Interaction.Kind, avatar.Interaction.Weight, avatar.Root.transform, source, target, clock, now);
         }
 

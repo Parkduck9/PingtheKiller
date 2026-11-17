@@ -64,7 +64,7 @@ namespace PingTheKiller.Client.UI
         public bool Active(bool focused, bool cursorReleased) => focused && !cursorReleased && !Open;
 
         // Press edges (Space, Q): a Submit on Resume (Space, Enter, gamepad A) may close the menu earlier in the same frame,
-        // and that key must not also press the sync check or the skill.
+        // and that key must not also press a route key or the skill.
         public bool Presses(bool active, int frame) => active && frame != closedFrame;
 
         // Opening: one zero MoveInput, then the Interact release if a press was sent. The match keeps running.

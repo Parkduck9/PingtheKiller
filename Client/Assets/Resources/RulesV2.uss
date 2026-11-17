@@ -20,7 +20,7 @@
 .root .v2-fill.v2-fill-ally { background-color: #3FB8AF; }
 
 /* Survivor stack (HUD_SPEC 13.1): bottom-center, its bottom on the cluster's top edge (24 + 72 u); every child keeps an
-   8 u gap below it, so the lowest visible child sits 8 u above the cluster. Top to bottom: sync ring, prompt / hold row,
+   8 u gap below it, so the lowest visible child sits 8 u above the cluster. Top to bottom: route panel, prompt / hold row,
    objective row. */
 .root .v2-survivor-stack {
     position: absolute; bottom: 96px; left: 50%; translate: -50% 0; width: 672px;
@@ -32,14 +32,14 @@
 .root .v2-killer-stack { position: absolute; left: 24px; width: 320px; flex-direction: column; }
 .root .v2-killer-stack > * { margin-bottom: 8px; flex-shrink: 0; }
 
-/* 13.2 sync lock bar (11/17, IP): 320x80 u; the label row starts at 52 u, under the Great block. */
-.root .v2-lock { width: 320px; height: 80px; }
-.root .unity-label.v2-lock-label {
+/* 13.2 route panel (11/17, R2): 320x80 u; four 56x36 u cells at y 8 (drawn), the label row starts at 52 u under them. */
+.root .v2-route { width: 320px; height: 80px; }
+.root .unity-label.v2-route-label {
     position: absolute; left: 0; top: 52px; width: 320px; height: 28px;
     font-size: 14px; color: #9A9890; -unity-text-align: middle-center;
 }
-.root.s-floor .unity-label.v2-lock-label { font-size: 15px; }
-.root .unity-label.v2-lock-label.v2-lock-result { font-size: 18px; color: #E8E6E1; -unity-font-style: bold; }
+.root.s-floor .unity-label.v2-route-label { font-size: 15px; }
+.root .unity-label.v2-route-label.v2-route-done { font-size: 18px; color: #E8E6E1; -unity-font-style: bold; }
 
 /* 13.3 hold action: Survivor prompt row 672x40 (like 4.3), Killer block 320x72. */
 .root .v2-hold {

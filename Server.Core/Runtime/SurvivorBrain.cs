@@ -19,6 +19,10 @@ namespace PingTheKiller.ServerCore
         internal const double HackBurstMin = 1.5, HackBurstMax = 2, HackPauseMin = 1.0, HackPauseMax = 2.0;
         // Hacking spot: inside TerminalRadius but beyond CaptureRadius of the terminal centre, where a patrolling killer stops.
         internal const float HackStopDistance = 1.4f;
+        // 11/17 (R2): about how long this bot needs for a terminal while it hacks (passive part plus its route solving).
+        internal const double ExpectedHackSeconds = 42;
+        // The bot's own packet-routing solver (GameServer.Bots feeds it the own route from the view).
+        internal readonly RouteSolver Route = new RouteSolver();
 
         private const double ReactionMin = 0.25, ReactionMax = 0.6;
         // A Silent look around before the first move, letting the killer commit to a direction first.
@@ -314,7 +318,7 @@ namespace PingTheKiller.ServerCore
                         (best < 0 || view.Terminals[i].Progress > view.Terminals[best].Progress)) best = i;
                 if (best < 0) break;
                 taken |= 1 << best;
-                work += (100 - view.Terminals[best].Progress) / 100.0 * GameConstants.TerminalHackTimeSeconds;
+                work += (100 - view.Terminals[best].Progress) / 100.0 * ExpectedHackSeconds;
             }
             work = work / Math.Max(1, Math.Min(NormalCount(view), needed)) + GameConstants.ExitSwitchSeconds;
             return view.Time + factor * work + margin >= GameConstants.MatchLengthSeconds;

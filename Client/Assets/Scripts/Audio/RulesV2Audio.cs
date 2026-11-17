@@ -52,7 +52,7 @@ namespace PingTheKiller.Client.Audio
             Frame(now, rules.Active);
         }
 
-        public void OnSync(SyncResult result) { rules.OnSync(result); Flush(); }
+        public void OnRoute(V2Cue cue) { rules.OnRoute(cue); Flush(); }
 
         // Every frame: the hold loop follows the own action; outside a match it is silent.
         public void Frame(double now, bool inMatch)

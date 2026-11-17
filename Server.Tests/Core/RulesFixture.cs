@@ -76,8 +76,6 @@ internal sealed class RulesMatch : IDisposable
                 ok = survivorSkills[i] < 0 || list[i].Last<S2C_MatchStart>().SkillId == survivorSkills[i];
             if (ok)
             {
-                // Rule scenarios run without sync checks (an unanswered check costs progress); RulesV2Tests turns them on.
-                f.Server.SyncChecksEnabled = false;
                 // Arrange legacy rule scenarios in the west open lane, independently of production spawn clusters.
                 f.Server.PlaceForTests(killer.Id, 5, 5);
                 var positions = new[] { (5f,26f), (10f,26f), (5f,36f), (10f,36f), (44f,50f), (76f,50f), (76f,55f) };
@@ -139,10 +137,14 @@ internal sealed class RulesMatch : IDisposable
     internal List<PlayerState> KillerPhantoms() => KillerTruth.Phantoms(F.Server, Killer.Last<S2C_WorldState>());
     internal PlayerState Truth(Peer survivor) => Entry(Survivors[0].Last<S2C_WorldState>(), survivor.Id)!.Value;
 
+    // Ticks an idle (non-routing) team of `hackers` needs for one terminal from 0 %.
+    internal static int PassiveTicks(int hackers) =>
+        (int)Math.Ceiling(GameConstants.TerminalPassiveSeconds / GameConstants.CoHackRate(hackers) * GameConstants.TickRate - 1e-6);
+
     internal static float Distance(PlayerState a, float x, float z) => MathF.Sqrt((a.X - x) * (a.X - x) + (a.Z - z) * (a.Z - z));
 
-    // Complete three real terminals with two co-hackers (GDD v2: 45 s alone, 1.8x for two, so 25 s each): both exits
-    // get power.
+    // Complete three real terminals with two co-hackers (GDD v2, 11/17 R2: 90 s passive alone, 1.8x for two, so 50 s each,
+    // nobody routing): both exits get power.
     internal void PowerExitsWithTwoSurvivors()
     {
         var a=Survivors[0]; var b=Survivors[1];
@@ -152,7 +154,7 @@ internal sealed class RulesMatch : IDisposable
             var t=F.Server.Map.TerminalPositions[id];
             WalkTo(a,t.X-.5f,t.Z,GameConstants.SurvivorSpeed);
             WalkTo(b,t.X+.5f,t.Z,GameConstants.SurvivorSpeed);
-            a.Send(new C2S_Interact {Active=1}); b.Send(new C2S_Interact {Active=1}); Tick(501);
+            a.Send(new C2S_Interact {Active=1}); b.Send(new C2S_Interact {Active=1}); Tick(PassiveTicks(2) + 1);
             Assert.Equal(100,Killer.Last<S2C_WorldState>().Terminals[id].Progress);
             a.Send(new C2S_Interact {Active=0}); b.Send(new C2S_Interact {Active=0});
             if(id!=3) Assert.False(Killer.Last<S2C_WorldState>().Powered());

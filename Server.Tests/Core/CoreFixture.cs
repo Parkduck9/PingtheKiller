@@ -31,7 +31,7 @@ internal sealed class Peer : IDisposable
 }
 
 // The server's wall clock in tests. It stands still unless a test moves it, so inputs, ticks and the checks they send
-// share one instant and sync presses are timed in simulated time only (SyncTimingTests moves it).
+// share one instant (the RTT probe tests move it).
 internal sealed class TestClock
 {
     internal double Now;

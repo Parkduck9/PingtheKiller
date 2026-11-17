@@ -35,8 +35,8 @@ public sealed class QaU6aProtocolTests
         };
 
         byte[] frame = PacketCodec.Encode(state);
-        // Header (4 bytes) + Id (2 bytes) + Payload (25 bytes) = 31 bytes
-        Assert.Equal(31, frame.Length);
+        // Header (4 bytes) + Id (2 bytes) + Payload (25 bytes, plus the 4 route bytes of 11/17 R2) = 35 bytes
+        Assert.Equal(35, frame.Length);
 
         var back = RoundTrip(state);
         Assert.Equal(state.SkillCooldown, back.SkillCooldown);
@@ -62,14 +62,12 @@ public sealed class QaU6aProtocolTests
 
     [Fact]
     [Trait("Category", "QaU6a")]
-    public void SyncResultInvalidResultIsRejected()
+    // 11/17 (R2): replaces SyncResultInvalidResultIsRejected (the sync check packets are retired).
+    public void HackInputInvalidDirectionIsRejected()
     {
-        var result = new S2C_SyncResult { CheckId = 1, Result = 3 };
-        // Orchestrator: enum ranges are validated on decode only (codec convention), so encode is not asserted.
-
-        byte[] valid = PacketCodec.Encode(new S2C_SyncResult { CheckId = 1, Result = (byte)SyncResult.Great });
-        valid[^1] = 3; // Corrupt Result to 3
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.S2C_SyncResult, valid.AsSpan(6)));
+        byte[] valid = PacketCodec.Encode(new C2S_HackInput { RouteId = 1, Direction = (byte)RouteDirection.Right });
+        valid[^1] = 4; // Corrupt Direction to 4 (0-3 are Up, Down, Left, Right)
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.C2S_HackInput, valid.AsSpan(6)));
     }
 
     [Fact]

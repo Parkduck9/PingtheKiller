@@ -60,8 +60,6 @@ internal sealed class QaRig : IDisposable
     {
         F = new QaFixture(0, false, seed, sandbox, matchSeed, csprng);
         F.Server.Log += m => { lock (Logs) Logs.Add(m); };
-        // Long hacks in these scenarios are not interrupted by sync checks (an unanswered check costs progress).
-        F.Server.SyncChecksEnabled = false;
         K = F.Join("K");
         S = new QaPeer[survivors];
         for (int i = 0; i < survivors; i++) S[i] = F.Join("S" + i);
@@ -188,7 +186,7 @@ internal sealed class QaRig : IDisposable
             Place(S[1], tx + 0.5f, tz + 0.5f);
             Interact(S[0], true);
             Interact(S[1], true);
-            Tick(504);
+            Tick(Core.RulesMatch.PassiveTicks(2) + 4); // 11/17 (R2): 90 s passive at 1.8x
         }
         Interact(S[0], false);
         Interact(S[1], false);

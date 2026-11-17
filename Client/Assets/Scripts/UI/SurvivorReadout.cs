@@ -245,7 +245,8 @@ namespace PingTheKiller.Client.UI
             if (normal && atTerminal && terminals[terminal].Progress < 100)
             {
                 TerminalState t = terminals[terminal];
-                p.Text = "Hold [E] to hack " + KillerHudCopyTerminal(t.Id) + " " + Dot + " " + Percent(t.Progress) + " " + Dash + " you will be Signal";
+                // 11/17 (R2): the keys of the route panel are named up front (61 characters at most, SLOP length).
+                p.Text = "Hold [E] + WASD to hack " + KillerHudCopyTerminal(t.Id) + " " + Dot + " " + Percent(t.Progress) + " " + Dash + " you will be Signal";
                 return p;
             }
             if (own.Status == PlayerStatus.Lagging && atTerminal) { p.Text = LaggingCannotHack; p.Muted = true; return p; }

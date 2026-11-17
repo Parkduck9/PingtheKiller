@@ -101,7 +101,7 @@ public sealed class U6gRttProbeQaTests
         // Disconnect connection.
         peer.Dispose();
         f.Tick();
-        Assert.Equal((0.0, 0, false, 0.0), f.Server.RttStateForTests(joinResult.PlayerId));
+        Assert.Equal((0.0, 0, false), f.Server.RttStateForTests(joinResult.PlayerId));
 
         // Reconnect via token at clock 1.2.
         f.Clock.Now = 1.2;
@@ -112,7 +112,7 @@ public sealed class U6gRttProbeQaTests
         var freshProbe = Probe(restored);
         Assert.NotEqual(firstProbe.Nonce, freshProbe.Nonce);
         Assert.NotEqual(secondProbe.Nonce, freshProbe.Nonce);
-        Assert.Equal((0.0, 0, true, 0.0), f.Server.RttStateForTests(restored.Id));
+        Assert.Equal((0.0, 0, true), f.Server.RttStateForTests(restored.Id));
 
         // Adversarial replay: send firstProbe and secondProbe.
         f.Clock.Now = 1.22;
@@ -206,62 +206,9 @@ public sealed class U6gRttProbeQaTests
         Assert.False(state.Outstanding);
     }
 
-    [Fact]
-    [Trait("Category", "QaU6g")]
-    public void LateTickWithNonzeroRttJudgesPressAccurately()
-    {
-        using var f = new CoreFixture(offline: false);
-        var (killer, survivor) = f.StartPair();
-
-        // Establish 60 ms RTT via probe.
-        var initialProbe = Probe(survivor);
-        f.Clock.Now = 0.060;
-        survivor.Send(new C2S_RttEcho { Nonce = initialProbe.Nonce });
-        f.Tick();
-        Assert.Equal(0.060, f.Server.RttStateForTests(survivor.Id).Seconds, 9);
-
-        // Setup terminal hack.
-        f.Server.PlaceForTests(killer.Id, 48.5f, 60);
-        var terminal = f.Server.Map.TerminalPositions[0];
-        f.Server.PlaceForTests(survivor.Id, terminal.X - 0.5f, terminal.Z);
-        f.Server.SetTerminalProgressForTests(0, 40);
-        survivor.Send(new C2S_Interact { Active = 1 });
-
-        // Trigger sync check.
-        f.Server.SetSyncTimerForTests(survivor.Id, 0.01);
-        double checkTickTime = 10.0;
-        f.Clock.Now = checkTickTime;
-        f.Tick();
-
-        var check = Assert.Single(Take<S2C_SyncCheck>(survivor));
-
-        // Calculate arrival for exact center of Great part with 60 ms symmetric RTT:
-        // Needle starts at sent + realRtt/2, press takes realRtt/2 to return -> sent + fraction * Duration + realRtt.
-        double greatFraction = check.ZoneStart + check.GreatSize * 0.5;
-        double pressArrival = checkTickTime + greatFraction * check.Duration + 0.060;
-
-        // Advance simulation ticks until right before pressArrival.
-        double tickTime = checkTickTime + Dt;
-        while (tickTime < pressArrival)
-        {
-            f.Clock.Now = tickTime;
-            f.Tick();
-            Assert.Empty(Take<S2C_SyncResult>(survivor));
-            tickTime += Dt;
-        }
-
-        // Press arrives at server receive thread.
-        f.Clock.Now = pressArrival;
-        survivor.Send(new C2S_SyncPress { CheckId = check.CheckId });
-
-        // The tick that handles the press was scheduled at tickTime, but runs late with 35 ms lag.
-        f.Clock.Now = tickTime + 0.035;
-        f.Server.Tick(Dt, lateBy: 0.035);
-
-        var resultPacket = Assert.Single(Take<S2C_SyncResult>(survivor));
-        Assert.Equal(check.CheckId, resultPacket.CheckId);
-        Assert.Equal((byte)SyncResult.Great, resultPacket.Result);
-    }
+    // Retired 11/17 (R2): LateTickWithNonzeroRttJudgesPressAccurately judged a sync-check press across a late tick with
+    // the RTT subtracted. The sync check, its judge and the tick-lag clock mapping are gone (packet routing is judged by key
+    // order); route input order and rate limits are covered in Server.Tests/Core/PacketRoutingTests.cs.
 
     [Fact]
     [Trait("Category", "QaU6g")]

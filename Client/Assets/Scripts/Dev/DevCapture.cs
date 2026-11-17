@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using PingTheKiller.Client.Killer;
+using PingTheKiller.Client.Net;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.World;
@@ -116,6 +117,33 @@ namespace PingTheKiller.Client.Dev
         // -ptk-dev-hack / -ptk-dev-switch: the autopilot walks (the scripted W) and holds Interact, Survivor only.
         private bool Piloting => pilot != null && role == Role.Survivor && match >= 1 && matchAt >= 0 && resultAt < 0 && Now - matchAt >= 2;
         private bool PilotWalk => Piloting && located && pilot.Walk;
+        // -ptk-walk-after-hack: the dev-hack budget ran out (E released, possibly mid-route): walk away for that long.
+        private double hackSpentAt = -1;
+        private Vector3 hackSpentFrom;
+        private bool walkLogged;
+        private bool WalkingAway
+        {
+            get
+            {
+                if (!Piloting || args.WalkAfterHack <= 0 || args.DevHack <= 0) return false;
+                if (hackSpentAt < 0 && pilot.Held >= args.DevHack)
+                {
+                    hackSpentAt = Now;
+                    hackSpentFrom = position;
+                    Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " dev-hack budget spent: E released, walking away for " + Stamp(args.WalkAfterHack) + " s from "
+                        + Stamp(position.x) + "," + Stamp(position.z));
+                }
+                bool walking = hackSpentAt >= 0 && Now - hackSpentAt < args.WalkAfterHack;
+                if (hackSpentAt >= 0 && !walking && !walkLogged)
+                {
+                    walkLogged = true;
+                    Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " walked away " + Stamp(Vector3.Distance(hackSpentFrom, position)) + " m to "
+                        + Stamp(position.x) + "," + Stamp(position.z) + " (route panel shown=" + screens.Survivor.RoutePanel.Shown + ")");
+                    EventShot("walked-away.png");
+                }
+                return walking;
+            }
+        }
         public bool HoldInteract => Piloting && pilot.Hold;
         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
         private const float RescueStop = 1f;
@@ -125,7 +153,7 @@ namespace PingTheKiller.Client.Dev
 
         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
         // -ptk-chase and -ptk-rescue walk through the same path.
-        public bool HoldForward => PilotWalk || RescueWalk || Chasing || Seeking || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+        public bool HoldForward => PilotWalk || WalkingAway || RescueWalk || Chasing || Seeking || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
 
         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
         public bool Steer(float currentYaw, float dt, out float yaw)
@@ -185,21 +213,38 @@ namespace PingTheKiller.Client.Dev
                 + " invulnerable=" + Stamp(state.InvulnerableLeft) + " collapse=" + Stamp(state.CollapseLeft) + " action=" + (ActionKind)state.ActionKind + ":" + Stamp(state.ActionProgress));
         }
 
-        // HUD_SPEC 13.2 evidence: every S2C_SyncCheck / S2C_SyncResult and whether the tracker took it.
-        public void OnSyncCheck(S2C_SyncCheck check, bool accepted)
-            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync check id=" + check.CheckId + " terminal=" + check.TerminalId + " zone=" + Stamp(check.ZoneStart)
-                + "+" + Stamp(check.ZoneSize) + " accepted=" + accepted);
-
-        public void OnSyncResult(S2C_SyncResult result, bool matched)
-            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync result id=" + result.CheckId + " result=" + (SyncResult)result.Result + " matched=" + matched);
-
-        // -ptk-auto-sync: true on the frame the scripted press is due (the caller presses through the same TryPress as Space).
-        public bool PressSync(SyncCheckTracker sync)
+        // HUD_SPEC 13.2 evidence (11/17, R2): every new own route from SelfState, and every key the client sent with the
+        // tracker's prediction (right / wrong, done).
+        public void OnRoute(RouteTracker route)
         {
-            if (args.AutoSync == AutoSync.None || sync == null || !sync.Current) return false;
-            SyncCheckState state = sync.State;
-            if (!state.Visible || state.Pressed || state.Result.HasValue) return false;
-            return HackPilot.SyncDue(args.AutoSync, sync.View, SyncCheckMath.NeedleFraction(sync.View.Elapsed, sync.View.Duration));
+            if (routeLogged >= 400) return;
+            routeLogged++;
+            string dirs = string.Empty;
+            for (int i = 0; i < route.Length; i++) dirs += HackRoute.DirectionAt(route.Directions, i).ToString()[0];
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " route id=" + route.RouteId + " dirs=" + (route.RouteId == 0 ? "-" : dirs) + " index=" + route.Index
+                + " completed=" + route.Completed + " errors=" + route.Errors);
+        }
+
+        public void OnRouteKey(C2S_HackInput input, RouteTracker route)
+        {
+            if (routeLogged >= 400) return;
+            routeLogged++;
+            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " route key id=" + input.RouteId + " dir=" + (RouteDirection)input.Direction + " index=" + route.Index
+                + " keys=" + route.KeysSent + " completed=" + route.Completed + " errors=" + route.Errors);
+        }
+
+        // -ptk-auto-route: the scripted key due this frame, if any (the caller presses it through the same RouteTracker.TryPress
+        // as WASD). The pace counts from the route's first answerable frame and from each key after it.
+        public bool PressRoute(RouteTracker route, double now, out RouteDirection direction)
+        {
+            direction = RouteDirection.Up;
+            if (args.AutoRoute == AutoRoute.None || route == null || !route.Present) { routeReadyAt = -1; return false; }
+            if (routeReadyAt < 0 || route.RouteId != routeReadyId) { routeReadyAt = now; routeReadyId = route.RouteId; }
+            if (now - routeReadyAt < HackPilot.RouteKeySeconds(args.AutoRoute)) return false;
+            routeReadyAt = now;
+            routeKeys++;
+            direction = HackPilot.RouteKey(args.AutoRoute, routeKeys, route.Expected);
+            return true;
         }
 
         // -ptk-orbit: once at match start + 2 s, the orbit yaw becomes the character facing plus the offset.
@@ -545,15 +590,29 @@ namespace PingTheKiller.Client.Dev
         private bool V2SurvivorShots(SurvivorHud hud)
         {
             if (args.Shots == null || capturing || pending.Count > 0 || match != 1 || resultAt >= 0 || !located) return false;
-            SyncCheckState sync = hud.Sync.State;
-            if (sync.Visible && !sync.Result.HasValue && !sync.Pressed && sync.Needle >= .25f && sync.Needle <= .42f && !taken.Contains("v2-sync-check.png"))
+            // HUD_SPEC 13.2 (11/17, R2): the route panel mid-route, the burst flash, the error line (sloppy) and the own holo
+            // panel pulse on a real route key (from the second route on, once the own hack pose has settled).
+            RouteTracker route = hud.Route;
+            double link = LinkClock.Now;
+            if (hud.RoutePanel.Shown && route.Present && route.Index == 2 && !route.ErrorShown(link) && !taken.Contains("v2-route-mid.png"))
             {
-                EventShot("v2-sync-check.png", 0); return true;
+                Debug.Log("[DEV] route panel mid-route id=" + route.RouteId + " index=" + route.Index + " label=\"" + hud.RoutePanel.LabelText + "\"");
+                EventShot("v2-route-mid.png", 0); return true;
             }
-            if (sync.Visible && sync.Result.HasValue && !taken.Contains("v2-sync-result.png"))
+            if (hud.RoutePanel.Shown && route.DoneFlash(link) && !taken.Contains("v2-route-done.png"))
             {
-                Debug.Log("[DEV] sync result shown " + sync.Result + " needle=" + Stamp(sync.Needle));
-                EventShot("v2-sync-result.png", 0); return true;
+                Debug.Log("[DEV] route done flash label=\"" + hud.RoutePanel.LabelText + "\" completed=" + route.Completed);
+                EventShot("v2-route-done.png", 0); return true;
+            }
+            if (hud.RoutePanel.Shown && route.ErrorShown(link) && route.Shake(link) > .3f && !taken.Contains("v2-route-error.png"))
+            {
+                Debug.Log("[DEV] route error label=\"" + hud.RoutePanel.LabelText + "\" shake=" + Stamp(hud.RoutePanel.ShakeOffset) + " errors=" + route.Errors);
+                EventShot("v2-route-error.png", 0); return true;
+            }
+            if (hud.RoutePanel.Shown && route.Completed >= 2 && route.Present && route.Index >= 1 && route.Pulse(link) > .5f && !route.ErrorShown(link) && !taken.Contains("holo-route-pulse.png"))
+            {
+                Debug.Log("[DEV] holo route pulse keys=" + route.KeysSent + " pulse=" + Stamp(route.Pulse(link)));
+                EventShot("holo-route-pulse.png", 0); return true;
             }
             if (hud.HoldText != null && !taken.Contains("v2-switch-hold.png") && self != null && self.ActionProgress >= .3f)
             {
@@ -611,6 +670,9 @@ namespace PingTheKiller.Client.Dev
         }
 
         private double Now => Time.realtimeSinceStartupAsDouble - origin;
+        private double routeReadyAt = -1;
+        private byte routeReadyId;
+        private int routeKeys, routeLogged;
         private static string Stamp(double value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 
         private void Update()

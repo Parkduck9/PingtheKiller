@@ -8,8 +8,9 @@ namespace PingTheKiller.Client.Dev
 {
     public enum KillerLook : byte { None, Nearest, Away, Fixed, Occluded }
 
-    // -ptk-auto-sync: where the scripted press lands on each sync check (miss never presses).
-    public enum AutoSync : byte { None, Great, Good, Miss }
+    // -ptk-auto-route (11/17, R2): how the scripted route keys come: fast 0.15 s per key, slow 0.5 s per key, sloppy every
+    // fifth key wrong (20 %) at the fast pace.
+    public enum AutoRoute : byte { None, Fast, Slow, Sloppy }
 
     // Dev capture flags (-ptk-*). Inert when none is present. Invalid or missing values disable that flag and add an error.
     public sealed class DevArgs
@@ -73,8 +74,11 @@ namespace PingTheKiller.Client.Dev
         // Survivor autopilot, after the exits are powered: hold the nearest unopened exit's switch, then walk into an open
         // exit. Sends only MoveInput and Interact, like a player.
         public bool DevSwitch { get; private set; }
-        // Presses Space's path (SyncCheckTracker.TryPress) at the great part, inside the rest of the zone, or never.
-        public AutoSync AutoSync { get; private set; }
+        // R2-hack a2 (F1 evidence): once the -ptk-dev-hack budget is spent mid-hack (E released), walk forward for this many
+        // seconds, through the same scripted-W path as -ptk-hold-w.
+        public float WalkAfterHack { get; private set; }
+        // Answers the own route through the same path as WASD (RouteTracker.TryPress), at the chosen pace and error rate.
+        public AutoRoute AutoRoute { get; private set; }
         // HUD_SPEC 14 skill feedback shots: an offline match whose own skill is not this id is left at once and a new offline
         // match is started (the server draws skills at random), at most WantSkillTries times.
         public byte? WantSkill { get; private set; }
@@ -83,7 +87,7 @@ namespace PingTheKiller.Client.Dev
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
-            || Settings || MenuLeave || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None || WantSkill.HasValue;
+            || Settings || MenuLeave || DevHack > 0 || DevSwitch || WalkAfterHack > 0 || AutoRoute != AutoRoute.None || WantSkill.HasValue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -105,7 +109,7 @@ namespace PingTheKiller.Client.Dev
                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
                     || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
-                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync" || flag == "-ptk-want-skill";
+                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-walk-after-hack" || flag == "-ptk-auto-route" || flag == "-ptk-want-skill";
                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
                 string value = i + 1 < args.Count ? args[i + 1] : null;
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
@@ -170,15 +174,18 @@ namespace PingTheKiller.Client.Dev
                     string scenario = value.ToLowerInvariant();
                     if (!UI.RulesV2.RulesV2Preview.Known(scenario)) return false;
                     PreviewV2Hud = scenario; return true;
+                case "-ptk-walk-after-hack":
+                    if (!Seconds(value, out float walk)) return false;
+                    WalkAfterHack = walk; return true;
                 case "-ptk-dev-hack":
                     if (!Seconds(value, out float hack)) return false;
                     DevHack = hack; return true;
-                case "-ptk-auto-sync":
+                case "-ptk-auto-route":
                     switch (value.ToLowerInvariant())
                     {
-                        case "great": AutoSync = AutoSync.Great; return true;
-                        case "good": AutoSync = AutoSync.Good; return true;
-                        case "miss": AutoSync = AutoSync.Miss; return true;
+                        case "fast": AutoRoute = AutoRoute.Fast; return true;
+                        case "slow": AutoRoute = AutoRoute.Slow; return true;
+                        case "sloppy": AutoRoute = AutoRoute.Sloppy; return true;
                         default: return false;
                     }
                 case "-ptk-shots":

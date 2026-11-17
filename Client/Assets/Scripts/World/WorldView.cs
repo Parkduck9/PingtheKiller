@@ -61,6 +61,10 @@ namespace PingTheKiller.Client.World
         // U10: the own hold action (S2C_SelfState.ActionKind) for the own exit switch pose.
         public void SetOwnAction(byte kind) => characters?.SetOwnAction(kind);
 
+        // 11/17 (R2) packet routing: the own holo panel pulses on real route keys while routing (HoloPropFx.KeyDriven).
+        public void SetOwnRouting(bool routing) => characters?.SetOwnRouting(routing);
+        public void OwnKeyPulse(double now) => characters?.OwnKeyPulse(now);
+
         public void Render(double now)
         {
             characters.Render(now, snapshots);

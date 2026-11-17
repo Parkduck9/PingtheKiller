@@ -1,17 +1,14 @@
 using System;
+using PingTheKiller.Shared;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.ServerCore
 {
-    // GDD v2 §2: terminal hacking with co-hack rates, the killer kick (regression) and sync checks.
+    // GDD v2 §2: terminal hacking (a passive part with co-hack rates plus packet-routing bursts, 11/17 R2) and the killer
+    // kick (regression).
     public sealed partial class GameServer
     {
-        // GDD v2 §2 / brief U6a R3: the chance that a survivor bot hits a sync check (U6d tunes it per bot).
-        internal const float DefaultBotSyncSuccessRate = 0.85f;
-        // Share of the successful bot presses that land in the great part.
-        internal const double BotSyncGreatShare = 0.2;
-
         private TerminalState[] _terminals = Array.Empty<TerminalState>();
         private byte _terminalsRequired;
         // Server-side progress in percentage points (0..100); the wire carries the byte TerminalState.Progress.
@@ -19,12 +16,8 @@ namespace PingTheKiller.ServerCore
         private bool[] _regressing = Array.Empty<bool>();
         private double[] _overloadedUntil = Array.Empty<double>();
         private int[] _hackers = Array.Empty<int>();
-        private uint _nextCheckId;
         // Float progress is summed per tick; this absorbs the rounding of float dt times the co-hack rate.
         private const double ProgressEpsilon = 0.0001;
-        // Test hook (Server.Tests only): false stops new sync checks so long hacks are not interrupted.
-        internal bool SyncChecksEnabled { get; set; } = true;
-
         private void ResetTerminals()
         {
             _progress = new double[_terminals.Length];
@@ -69,7 +62,7 @@ namespace PingTheKiller.ServerCore
                 {
                     // Any survivor hacking the terminal stops a kick regression.
                     _regressing[i] = false;
-                    _progress[i] += dt * GameConstants.CoHackRate(_hackers[i]) * 100.0 / GameConstants.TerminalHackTimeSeconds;
+                    _progress[i] += dt * GameConstants.CoHackRate(_hackers[i]) * 100.0 / GameConstants.TerminalPassiveSeconds;
                 }
                 else if (_regressing[i])
                 {
@@ -78,7 +71,7 @@ namespace PingTheKiller.ServerCore
                 }
                 SyncTerminal(i);
             }
-            UpdateSyncChecks(dt);
+            UpdateRoutes(dt);
             int completed = 0;
             for (int i = 0; i < _terminals.Length; i++) if (TerminalDone(i)) ++completed;
             if (!_powered && completed >= _terminalsRequired) PowerExits("terminals");
@@ -156,157 +149,113 @@ namespace PingTheKiller.ServerCore
             WriteLog($"kick terminal {target}");
         }
 
-        private void ResetSyncChecks()
+        private void ResetRoutes()
         {
             foreach (var player in _players)
             {
-                player.SyncPending = false;
-                player.SyncBotPressAt = double.NaN;
+                ClearRoute(player);
+                player.RouteGapLeft = 0;
+                player.RouteSerial = 0;
+                player.RouteInputTimes.Clear();
+                player.RouteRandom = player.RouteBotRandom = null;
                 if (player.Role != Role.Survivor) continue;
-                // One private stream per survivor, drawn from the match's private sync stream (never the public seed).
-                player.SyncRandom = PrivateRandom.FromSeed(_syncRandom.Next(), player.Id);
-                player.SyncTimer = NextSyncInterval(player);
+                // Private streams per survivor, drawn from the match's route stream (never the public seed). Every survivor
+                // draws both, so a human taking a bot slot (or the reverse) does not shift anyone else's routes.
+                player.RouteRandom = PrivateRandom.FromSeed(_routeRandom.Next(), player.Id);
+                player.RouteBotRandom = PrivateRandom.FromSeed(_routeRandom.Next(), player.Id + Protocol.MaxPlayers);
             }
         }
 
-        private static double NextSyncInterval(Player player) =>
-            GameConstants.SyncCheckIntervalMinSeconds +
-            player.SyncRandom.NextDouble() * (GameConstants.SyncCheckIntervalMaxSeconds - GameConstants.SyncCheckIntervalMinSeconds);
-
-        // Bots press inside the server (no latency). Online humans use the server-timed probe estimate; offline
-        // sessions have no transport delay and stay at 0. Server tests can override it through SetRttForTests.
-        // The full round trip applies: the needle starts when the check reaches the client (half a trip after it left)
-        // and the press needs the other half to come back.
-        private static double RttOf(Player player) => player.IsBot ? 0 : player.RttSeconds;
-
-        // A press is never dated earlier than this before the start of the tick that handles it.
-        internal const double MaxPressAgeSeconds = 0.25;
-
-        // Simulated time of the current clock reading inside this tick (when a packet sent now leaves the server).
-        private double SimulatedNow()
+        private static void ClearRoute(Player player)
         {
-            double offset = _clock() - (_tickWallStart - _tickLag);
-            return _tickSimStart + Math.Max(0, Math.Min(_tickLag + _tickDt, offset));
+            player.RouteId = player.RouteIndex = player.RouteDirs = 0;
+            player.RouteTerminal = -1;
         }
 
-        // Simulated time of a press that the receive thread queued at the clock reading receivedAt (called while the
-        // tick drains its inputs, so _now is still the tick's start).
-        private double SimulatedArrival(double receivedAt)
-        {
-            double age = (_tickWallStart - _tickLag) - receivedAt;
-            if (double.IsNaN(age)) age = 0;
-            return _now - Math.Max(-_tickLag, Math.Min(MaxPressAgeSeconds, age));
-        }
-
-        // GDD v2 §2 sync checks: the interval runs only while the survivor hacks; stopping cancels a pending check.
-        private void UpdateSyncChecks(float dt)
+        // GDD v2 §2 packet routing: a hacker without a route gets one at once (the first one, or after an error) or after
+        // the gap (RouteGapSeconds of hacking, at least RouteMinCycleSeconds after the last route was dealt). A route belongs
+        // to one terminal. It is kept (not re-rolled) while its owner stops hacking, but it is only sent in SelfState and only
+        // answerable while the owner hacks that terminal (attempt 2, F1); hacking another terminal deals a new one. Leaving
+        // Normal or a done terminal drops it.
+        private void UpdateRoutes(float dt)
         {
             foreach (var player in _players)
             {
-                if (player.Role != Role.Survivor || player.SyncRandom == null) continue;
-                if (player.SyncPending)
+                if (player.Role != Role.Survivor || player.RouteRandom == null) continue;
+                if (player.Status != PlayerStatus.Normal ||
+                    (player.RouteTerminal >= 0 && TerminalDone(player.RouteTerminal))) ClearRoute(player);
+                if (!player.Hacking) continue;
+                if (player.RouteId != 0)
                 {
-                    if (!player.Hacking || player.HackTerminal != player.SyncTerminal) { CancelSyncCheck(player); continue; }
-                    // A bot press is handled by the first tick that starts at or after it, like a human press arriving then;
-                    // it is judged at its own moment.
-                    if (!double.IsNaN(player.SyncBotPressAt) && _tickSimStart + _tickLag >= player.SyncBotPressAt - TimeEpsilon)
-                    {
-                        Judge(player, player.SyncBotPressAt);
-                        continue;
-                    }
-                    // A press made within Duration + tolerance arrives at most one rtt after that limit. Every press that
-                    // arrived before this tick started has been handled already, so fail only once that start is past it.
-                    double limit = player.SyncSentAt + GameConstants.SyncCheckDurationSeconds + GameConstants.SyncToleranceSeconds +
-                        RttOf(player);
-                    if (_tickSimStart + _tickLag >= limit - TimeEpsilon) Resolve(player, SyncResult.Fail);
+                    if (player.RouteTerminal != player.HackTerminal) IssueRoute(player, player.HackTerminal);
                     continue;
                 }
-                if (!player.Hacking || !SyncChecksEnabled) continue;
-                player.SyncTimer -= dt;
-                if (player.SyncTimer <= TimeEpsilon) IssueSyncCheck(player);
+                player.RouteGapLeft -= dt;
+                if (player.RouteGapLeft <= TimeEpsilon) IssueRoute(player, player.HackTerminal);
             }
         }
 
-        private void IssueSyncCheck(Player player)
+        private void IssueRoute(Player player, int terminal)
         {
-            var random = player.SyncRandom;
-            player.SyncPending = true;
-            player.SyncCheckId = ++_nextCheckId;
-            player.SyncTerminal = player.HackTerminal;
-            // The moment the check leaves (this tick's start plus the time spent in it), not the end of the tick.
-            player.SyncSentAt = SimulatedNow();
-            player.SyncZoneStart = (float)(GameConstants.SyncZoneStartMin +
-                random.NextDouble() * (GameConstants.SyncZoneStartMax - GameConstants.SyncZoneStartMin));
-            player.SyncBotPressAt = double.NaN;
-            if (player.IsBot && random.NextDouble() < player.BotSyncSuccessRate)
+            player.RouteSerial = (byte)(player.RouteSerial >= byte.MaxValue ? 1 : player.RouteSerial + 1);
+            player.RouteId = player.RouteSerial;
+            player.RouteTerminal = terminal;
+            player.RouteIndex = 0;
+            player.RouteGapLeft = 0;
+            player.RouteIssuedAt = _now;
+            byte dirs = 0;
+            for (int i = 0; i < GameConstants.RouteLength; i++)
+                dirs = HackRoute.WithDirection(dirs, i, (RouteDirection)player.RouteRandom.Next(4));
+            player.RouteDirs = dirs;
+        }
+
+        // C2S_HackInput (and the survivor bots' route solver): unknown or stale route ids, inputs while not hacking the
+        // route's terminal and inputs beyond RouteInputsPerSecond are dropped without a reply. A right direction advances;
+        // the full route adds RouteBurstPoints. A wrong one costs RouteErrorPenaltyPoints, flags the terminal Overloaded (the
+        // only trace the killer gets) and deals a new route at once.
+        private void HackInput(Player player, byte routeId, byte direction)
+        {
+            if (player.Role != Role.Survivor || routeId == 0 || routeId != player.RouteId || direction > (byte)RouteDirection.Right) return;
+            int terminal = player.RouteTerminal;
+            if (!player.Hacking || player.HackTerminal != terminal || terminal < 0 || TerminalDone(terminal)) return;
+            var times = player.RouteInputTimes;
+            while (times.Count > 0 && _now - times.Peek() >= 1 - TimeEpsilon) times.Dequeue();
+            if (times.Count >= GameConstants.RouteInputsPerSecond) return;
+            times.Enqueue(_now);
+            if ((RouteDirection)direction == HackRoute.DirectionAt(player.RouteDirs, player.RouteIndex))
             {
-                // A bot hit lands in the middle of the great part or of the rest of the zone; a miss never presses.
-                double fraction = random.NextDouble() < BotSyncGreatShare
-                    ? player.SyncZoneStart + GameConstants.SyncGreatSize / 2.0
-                    : player.SyncZoneStart + (GameConstants.SyncGreatSize + GameConstants.SyncZoneSize) / 2.0;
-                player.SyncBotPressAt = player.SyncSentAt + fraction * GameConstants.SyncCheckDurationSeconds;
+                if (++player.RouteIndex < GameConstants.RouteLength) return;
+                // Co-hack falloff on bursts too (attempt 2, F4): each of n hackers adds RouteBurstShare(n) of a burst.
+                _progress[terminal] += GameConstants.RouteBurstPoints * GameConstants.RouteBurstShare(_hackers[terminal]);
+                double age = _now - player.RouteIssuedAt;
+                ClearRoute(player);
+                player.RouteGapLeft = Math.Max(GameConstants.RouteGapSeconds, GameConstants.RouteMinCycleSeconds - age);
+                LogRoute(player, terminal, "complete");
             }
-            SendTo(player, new S2C_SyncCheck
+            else
             {
-                CheckId = player.SyncCheckId, TerminalId = _terminals[player.SyncTerminal].Id,
-                Duration = GameConstants.SyncCheckDurationSeconds, ZoneStart = player.SyncZoneStart,
-                ZoneSize = GameConstants.SyncZoneSize, GreatSize = GameConstants.SyncGreatSize
-            });
-        }
-
-        // C2S_SyncPress: unknown, expired, repeated or non-survivor presses are ignored without a reply.
-        // receivedAt: server clock when the press was queued, so the wait for the next tick does not count.
-        private void SyncPress(Player player, uint checkId, double receivedAt)
-        {
-            if (player.Role != Role.Survivor || !player.SyncPending || player.SyncCheckId != checkId || player.IsBot) return;
-            // The needle the player saw had run (arrival - sent - rtt) seconds.
-            Judge(player, SimulatedArrival(receivedAt) - RttOf(player));
-        }
-
-        // Classifies a press moment against the pending check of this survivor.
-        private void Judge(Player player, double pressAt) =>
-            Resolve(player, Classify((pressAt - player.SyncSentAt) / GameConstants.SyncCheckDurationSeconds, player.SyncZoneStart));
-
-        // Fraction of the sweep at the press. The tolerance widens both zone edges; a press inside the leading tolerance
-        // band counts as Good, only the great part itself counts as Great.
-        internal static SyncResult Classify(double fraction, float zoneStart)
-        {
-            const double edge = 0.000001;
-            double tolerance = GameConstants.SyncToleranceSeconds / GameConstants.SyncCheckDurationSeconds;
-            if (fraction >= zoneStart - edge && fraction <= zoneStart + GameConstants.SyncGreatSize + edge) return SyncResult.Great;
-            if (fraction >= zoneStart - tolerance - edge && fraction <= zoneStart + GameConstants.SyncZoneSize + tolerance + edge)
-                return SyncResult.Good;
-            return SyncResult.Fail;
-        }
-
-        private void Resolve(Player player, SyncResult result)
-        {
-            int terminal = player.SyncTerminal;
-            uint id = player.SyncCheckId;
-            player.SyncPending = false;
-            player.SyncBotPressAt = double.NaN;
-            player.SyncTimer = NextSyncInterval(player);
-            if (terminal >= 0 && terminal < _terminals.Length && !TerminalDone(terminal))
-            {
-                if (result == SyncResult.Great) _progress[terminal] += GameConstants.SyncGreatBonusPoints;
-                else if (result == SyncResult.Fail)
-                {
-                    _progress[terminal] = Math.Max(0, _progress[terminal] - GameConstants.SyncFailPenaltyPoints);
-                    _overloadedUntil[terminal] = _now + GameConstants.OverloadedSeconds;
-                }
-                SyncTerminal(terminal);
+                _progress[terminal] = Math.Max(0, _progress[terminal] - GameConstants.RouteErrorPenaltyPoints);
+                _overloadedUntil[terminal] = _now + GameConstants.OverloadedSeconds;
+                IssueRoute(player, terminal);
+                LogRoute(player, terminal, "error");
             }
-            WriteLog($"sync player={player.Id} check={id} result={result} rtt={RttOf(player) * 1000:0}");
-            SendTo(player, new S2C_SyncResult { CheckId = id, Result = (byte)result });
+            SyncTerminal(terminal);
         }
 
-        // Stopping the hack before the press: no penalty and no result.
-        private void CancelSyncCheck(Player player)
+        // One line per completed route and per error, at most RouteLogsPerSecond lines per player; skipped lines are counted
+        // into the next one.
+        private const double RouteLogsPerSecond = 2;
+        private void LogRoute(Player player, int terminal, string outcome)
         {
-            if (!player.SyncPending) return;
-            player.SyncPending = false;
-            player.SyncBotPressAt = double.NaN;
-            if (player.SyncRandom != null) player.SyncTimer = NextSyncInterval(player);
+            if (_now - player.RouteLoggedAt < 1 / RouteLogsPerSecond - TimeEpsilon)
+            {
+                if (player.RouteLogsUnlogged < int.MaxValue) ++player.RouteLogsUnlogged;
+                return;
+            }
+            string skipped = player.RouteLogsUnlogged > 0 ? $" unlogged={player.RouteLogsUnlogged}" : string.Empty;
+            player.RouteLoggedAt = _now;
+            player.RouteLogsUnlogged = 0;
+            WriteLog($"route player={player.Id} terminal={terminal} {outcome} progress={_progress[terminal]:0.0}{skipped}");
         }
 
         private void SendTo(Player player, IPacket packet)
@@ -328,20 +277,21 @@ namespace PingTheKiller.ServerCore
 
         internal double TerminalProgressForTests(int index) { lock (_tickGate) return _progress[index]; }
 
-        // Server tests only: overrides the probe's estimate of the full RTT subtracted by the sync judge.
-        internal void SetRttForTests(int playerId, double seconds)
+        // Server tests only: the own route of one player as (RouteId, packed directions, next index, terminal).
+        internal (byte Id, byte Dirs, byte Index, int Terminal) RouteForTests(int playerId)
         {
             lock (_tickGate)
                 foreach (var player in _players)
-                    if (player.Id == playerId) player.RttSeconds = seconds;
+                    if (player.Id == playerId) return (player.RouteId, player.RouteDirs, player.RouteIndex, player.RouteTerminal);
+            throw new ArgumentOutOfRangeException(nameof(playerId));
         }
 
-        // Server tests only: seconds of hacking until this survivor's next sync check.
-        internal void SetSyncTimerForTests(int playerId, double seconds)
+        // Server tests only: one route key press through the C2S_HackInput path, between ticks.
+        internal void HackInputForTests(int playerId, byte routeId, byte direction)
         {
             lock (_tickGate)
                 foreach (var player in _players)
-                    if (player.Id == playerId) player.SyncTimer = seconds;
+                    if (player.Id == playerId) HackInput(player, routeId, direction);
         }
     }
 }

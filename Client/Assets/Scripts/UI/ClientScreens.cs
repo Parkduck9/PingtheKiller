@@ -10,8 +10,8 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // State list before layout: menu = endpoint/validation/connecting, Offline; lobby = eight slots, host permissions,
-    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, terminals, the rules v2 stack (sync
-    // check, hold row, both exits + collapse), skill, cursor hint; killer: skill, hold and collapse blocks (exit states
+    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, terminals, the rules v2 stack (route
+    // panel, hold row, both exits + collapse), skill, cursor hint; killer: skill, hold and collapse blocks (exit states
     // live on the exits in the world); result = the rules v2 result (HUD_SPEC 13.7) + lobby reopened or not; dev line
     // (F3) = RTT online / offline marker.
     // Layout rule: every label is one line (nowrap, see ClientUI.uss); only .message wraps, at a fixed width.

@@ -6,7 +6,9 @@ namespace PingTheKiller.Client.World
     // U10: the holographic props of one character, built once on first use and then only moved, scaled and toggled
     // (pooled per character: nothing is instantiated per frame).
     // - Hack: a translucent `ally` keyboard panel floating in front of the hands, pulsing on each keystroke beat, fed by a
-    //   thin stream of small `ally` packet squares from the terminal top.
+    //   thin stream of small `ally` packet squares from the terminal top. 11/17 (R2): on the own character while it routes
+    //   (KeyDriven), the panel pulses on each real route key (KeyPulse) instead of the fixed beat; other Survivors keep the
+    //   beat, because their keys are never received.
     // - Restore: an `ally` link line from the rescuer's hands to the Lagging ally, with packets travelling down it.
     // - Exit switch: packets streaming from the pressed palm into the switch.
     // - Killer jam: a `danger` glitch burst of squares at the terminal top on the slam's impact.
@@ -32,6 +34,16 @@ namespace PingTheKiller.Client.World
         private readonly Vector3[] linkPoints = new Vector3[2];
 
         public HoloPropFx(Transform parent) { this.parent = parent; }
+
+        // 11/17 (R2): the own character's route keys drive the panel pulse (set every frame by CharacterViews).
+        public bool KeyDriven { get; set; }
+        public int KeyPulses { get; private set; }
+
+        // One real route key of the own character (right or wrong), at `now` on the render clock.
+        public void KeyPulse(double now) { pulseAt = now; KeyPulses++; }
+
+        // The panel's current pulse growth (0 when no pulse runs), for tests and captures.
+        public float PanelPulse(double now) => Pulse(now - pulseAt);
 
         public bool Ready => root != null;
         public bool PanelShown => panel != null && panel.activeInHierarchy;
@@ -105,7 +117,7 @@ namespace PingTheKiller.Client.World
                 case InteractionKind.Hack:
                 {
                     int beat = InteractionMotion.Beat(clock, out _);
-                    if (beat != lastBeat) { lastBeat = beat; pulseAt = now; }
+                    if (beat != lastBeat) { lastBeat = beat; if (!KeyDriven) pulseAt = now; }
                     float pulse = Pulse(now - pulseAt);
                     Vector3 centre = origin + up * InteractionTiming.PanelHeight + forward * InteractionTiming.PanelForward;
                     if (!panel.activeSelf) panel.SetActive(true);

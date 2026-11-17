@@ -186,6 +186,7 @@ namespace PingTheKiller.ServerCore
         {
             var state = new S2C_SelfState { SkillCooldown = (float)Math.Max(0, player.SkillReadyAt - _now) };
             SetActionState(player, state);
+            SetRouteState(player, state);
             // Deprecated (GDD v2 §4, 2026-11-03): no execution, so ExecutionGraceLeft stays 0 on the wire.
             if (player.Role == Role.Killer) return state;
             if (player.Status == PlayerStatus.Lagging) state.RescueProgress = RescueFraction(player);
@@ -217,6 +218,8 @@ namespace PingTheKiller.ServerCore
             var last = player.SelfSent;
             double elapsed = _now - player.SelfSentAt;
             if (last == null || elapsed >= SelfStateRefreshSeconds - TimeEpsilon || last.ActionKind != now.ActionKind) return true;
+            // 11/17 (R2): every route change (a new route, a step, the end of one) goes out at once.
+            if (last.RouteId != now.RouteId || last.RouteIndex != now.RouteIndex || last.RouteDirs != now.RouteDirs) return true;
             double rescue = last.RescueProgress > 0 ? Math.Min(1, last.RescueProgress + elapsed / GameConstants.RescueTimeSeconds) : 0;
             return Departs(now.SkillCooldown, Math.Max(0, last.SkillCooldown - elapsed)) ||
                 Departs(now.InvulnerableLeft, Math.Max(0, last.InvulnerableLeft - elapsed)) ||
@@ -277,6 +280,21 @@ namespace PingTheKiller.ServerCore
                 state.ActionKind = (byte)ActionKind.Kick;
                 state.ActionProgress = (float)Math.Min(1, player.KickHeld / GameConstants.KickHoldSeconds);
             }
+        }
+
+        // 11/17 (R2) packet routing: only the own route, so only the hacker (or that bot's view) ever learns it, and only
+        // while it hacks that route's terminal (attempt 2, F1): released E, walked away, kicked out of the hack or a gated
+        // terminal sends RouteId 0, so the client gives W A S D back to movement.
+        internal static bool RouteAdvertised(Player player) =>
+            player.Role == Role.Survivor && player.RouteId != 0 && player.Hacking && player.HackTerminal == player.RouteTerminal;
+
+        private static void SetRouteState(Player player, S2C_SelfState state)
+        {
+            if (!RouteAdvertised(player)) return;
+            state.RouteId = player.RouteId;
+            state.RouteLength = GameConstants.RouteLength;
+            state.RouteDirs = player.RouteDirs;
+            state.RouteIndex = player.RouteIndex;
         }
 
         private static bool Departs(float value, double predicted) => Math.Abs(value - predicted) > SelfStateTolerance;

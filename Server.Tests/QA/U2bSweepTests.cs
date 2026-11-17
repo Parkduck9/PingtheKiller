@@ -704,7 +704,7 @@ public sealed class U2bSweepTests
         int id = r.S[0].Id;
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
-        r.Tick(180); // GDD v2: 45 s per terminal, 9 s = 20 %
+        r.Tick(360); // GDD v2 (11/17 R2): 90 s passive per terminal, 18 s = 20 %
         int progress = r.S[1].World().Terminals[0].Progress;
         Assert.InRange(progress, 19, 21);
         r.S[0].Connection.Close();
@@ -718,7 +718,7 @@ public sealed class U2bSweepTests
         r.Tick(20);
         Assert.Equal(progress, r.S[1].World().Terminals[0].Progress); // the hold did not survive the disconnect
         back.Send(new C2S_Interact { Active = 1 });
-        r.Tick(90); // GDD v2: 4.5 s = 10 %
+        r.Tick(180); // GDD v2 (11/17 R2): 9 s = 10 % of the 90 s passive time
         Assert.InRange(r.S[1].World().Terminals[0].Progress - progress, 9, 11);
     }
     // ------------------------------------------------------------------ thread races between the loop thread and transport callbacks

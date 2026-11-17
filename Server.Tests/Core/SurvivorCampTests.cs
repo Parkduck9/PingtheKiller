@@ -70,7 +70,7 @@ public sealed class SurvivorCampTests
             View.Z = next.Z;
             if (Hacking)
             {
-                Progress = System.Math.Min(100, Progress + 100.0 * Dt / GameConstants.TerminalHackTimeSeconds);
+                Progress = System.Math.Min(100, Progress + 100.0 * Dt / SurvivorBrain.ExpectedHackSeconds);
                 View.Terminals[Terminal].Progress = (byte)Progress;
             }
             // Moving or hacking is Signal; the WorldState of the next tick carries it in this bot's own entry.

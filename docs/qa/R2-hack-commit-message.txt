@@ -1,0 +1,38 @@
+R2-hack: packet routing replaces the passive hack and the sync check
+
+Hacking becomes an active, server-authoritative minigame. While E is held
+the server deals the hacker a 4-direction route (private RNG stream) in its
+own S2C_SelfState (RouteId, RouteLength, RouteDirs, RouteIndex appended).
+A route survives a stopped hack server-side but is sent and answerable only
+while its owner is Hacking that terminal.
+The client answers with C2S_HackInput (0x0019, [RouteId][Direction]) from
+WASD, the arrows, the d-pad or a stick flick; movement sends zero meanwhile.
+
+- Server: right key advances; full route +3.4 points then a 0.7 s gap
+  (counted while hacking) and at least 1.3 s between routes; co-hackers'
+  bursts scale by (CoHackRate(n)/n)^2; wrong key -2, new route, terminal
+  Overloaded 1.5 s. Solo: fast ~29 s, slow ~44 s, sloppy ~50 s, idle 90 s.
+  Unknown/stale ids dropped, 12 inputs/s limit, route logs rate-limited per
+  player. Passive part 100 points per 90 s solo, scaled by the
+  co-hack rates. Bots solve routes at 0.15-0.35 s/key with 4.5 % errors (solo mean
+  ~41 s); 1v7 survivor win 48-50 %. Masking: only the hacker gets its route.
+- Removed the sync check end to end: S2C_SyncCheck, C2S_SyncPress,
+  S2C_SyncResult (0x11-0x13), the RTT judge's late-tick machinery,
+  SyncLockBar, SyncCheckTracker, the sync cues and -ptk-auto-sync.
+- Client: keys go to the route only while E is held, own Hacking and a
+  route is present. RoutePanel (4 drawn arrow cells, pulse, +3.4 % flash, red shake and
+  "Route dropped · the Killer was alerted", Reduced motion respected), local
+  prediction with SelfState reconciliation (server index wins 0.3 s after
+  the last key), first-route hint, prompt
+  "Hold [E] + WASD to hack ...", route tick/chord/glitch cues, own holo panel
+  pulses on real keys (others keep the 0.17 s beat), -ptk-auto-route
+  fast|slow|sloppy, -ptk-walk-after-hack and route shots.
+- Docs: GDD-v2 packet routing section (Korean), HUD_SPEC 13.2 route panel.
+- Tests: PacketRoutingTests, protocol goldens, timing tests moved to the
+  90 s passive part, client tracker/keys/copy/panel/holo/sound tests, QA
+  R2HackQaTests (server F1 test placement moved to a standable spot).
+- The RTT probe stays but no rule reads it any more.
+
+Protocol version constant not bumped (orchestrator bumps at integration).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

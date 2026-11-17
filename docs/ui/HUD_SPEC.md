@@ -295,7 +295,7 @@ Sources: `S2C_WorldState.Terminals[]{Id, X, Z, Progress}`, `TerminalsRequired`; 
 
 | State | Trigger | Prompt |
 |---|---|---|
-| Can hack | own `Status = Normal`, an incomplete terminal within 1.5 m (derived), not `Hacking` | `Hold [E] to hack Terminal 2 · 40% — you will be Signal` |
+| Can hack | own `Status = Normal`, an incomplete terminal within 1.5 m (derived), not `Hacking` | `Hold [E] + WASD to hack Terminal 2 · 40% — you will be Signal` **(11/17, R2: names the route keys, §13.2)** |
 | Hacking | own `Hacking` | `Hacking Terminal 2 · 47%` + a 656×4 u bar under the text, fill `text`, width = `Progress` |
 | Co-hacking | `Hacking` and at least one other Survivor within 1.5 m of the same terminal with `Hacking` (derived) | `Hacking Terminal 2 · 47% · 2 hacking` |
 | Lagging at a terminal | `Status = Lagging`, within 1.5 m | `Lagging Survivors cannot hack.` (`muted`) |
@@ -395,7 +395,7 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - **(11/17, U8) Capture impact:** at every capture of a drawn Survivor (any Survivor, Survivor view), a 0.6 s Killer-red burst of streaks and fragments at chest height (1 m) over its position, starting on the swipe's contact (0.27 s after the capture). The Killer client plays the same burst, at first-person sizes (capped at 0.04 m per particle), at the tracker instance of its own confirmed capture on the view kick's strike (§6.3; never at a position it does not receive). Pooled at match start. Reduced motion does not remove it (it is not camera motion).
   - No other cue is added: the motion never reveals anything the HUD does not already show.
 - **(11/17, U10) Interaction motions and holo props (Survivor client only).** Built on the U4j rules above: driven only by received fields, and an interaction plays only while the character is Normal, upright and still (measured speed < 0.3 m/s), except Restore, which also plays while the rescuer follows a crawling ally (measured speed < 1.5 m/s; the feet are then free, the lean and the link stay).
-  - **Hack** (`Flags.Hacking`, own and mates): the button-pushing loop plus a two-hand IK pose. Both hands type on a floating panel 1.4 m high and 0.5 m in front, on alternating 0.17 s beats; the head looks at the panel. The prop is a translucent `ally` key-grid panel (0.9 × 0.5 m, wide and high enough to show past the shoulders of the own character from the camera behind; tilted toward the eyes, double-sided so the camera behind sees it). It pulses +7 % on each beat, and a thin stream of six small `ally` packet squares flows from the terminal top into it. *(S1: the old one-hand press was lowered by IK to the 0.72 m terminal top, at hip height, so from the camera behind the character it read as standing idle.)*
+  - **Hack** (`Flags.Hacking`, own and mates): the button-pushing loop plus a two-hand IK pose. Both hands type on a floating panel 1.4 m high and 0.5 m in front, on alternating 0.17 s beats; the head looks at the panel. The prop is a translucent `ally` key-grid panel (0.9 × 0.5 m, wide and high enough to show past the shoulders of the own character from the camera behind; tilted toward the eyes, double-sided so the camera behind sees it). It pulses +7 % on each beat **(11/17, R2: the own Survivor's panel pulses on each of its real route keys instead, while it routes, §13.2; every other Survivor's panel keeps the 0.17 s beat)**, and a thin stream of six small `ally` packet squares flows from the terminal top into it. *(S1: the old one-hand press was lowered by IK to the 0.72 m terminal top, at hip height, so from the camera behind the character it read as standing idle.)*
   - **Restore** (`Flags.Rescuing`, the §4.4 source): the hips drop 0.36 m, the torso leans 30° over the nearest Lagging Survivor within 2.1 m, and both hands reach down to it. The prop is an `ally` link line from the hands to the ally, with packets travelling down it.
   - **Exit switch hold** (own `S2C_SelfState.ActionKind = 1` only; other Survivors' holds are not exposed per player, so mates show none): the right palm on the switch at 1.15 m, the body leaning in, and packets streaming from the palm into the switch.
   - **Killer jam** (Killer model, Survivor view): one two-hand slam (0.7 s) when a terminal within 2.0 m of the drawn model turns `Regressing` (the end of a kick, a flag Survivors receive and the HUD tags). A `danger` glitch burst of squares appears at the terminal top on the impact. Nothing plays while the model is not drawn. The kick hold itself is not exposed to Survivors, so the slam is not repeated during it.
@@ -412,7 +412,7 @@ Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it gro
 - Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → **(11/10)** `Next capture eliminates you.` (count-free: `CaptureCount` counts Lagging stages, so a first stage that runs out reaches 2 without a second capture; it read `Captured twice: the next capture eliminates you.`); otherwise no line.
 - Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
-- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync lock bar stay as they are.
+- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) stay as they are; the route panel hides, because E counts as released **(11/17, R2)**.
 
 Opening the menu sends `C2S_Interact{Active = 0}` (only after a sent press) and one zero `C2S_MoveInput`, and it releases the cursor; while it is open there is no mouse look and no W A S D, E, Q or Space. Closing it captures the cursor again (when the window has focus). The match keeps running.
 
@@ -754,38 +754,34 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 Sources are the protocol v0.4 fields from the U6a brief. The widgets live in `Client/Assets/Scripts/UI/RulesV2/` and read only plain view models (`RulesV2Views.cs`), so the wiring copies packet fields in. Style is in `Resources/RulesV2.uss`. All global rules in §0 apply: logical units, spacing scale, radius 0, S/M/L type, palette meanings, `danger` never on text.
 
-**New fixed terms** (added to the SLOP §8 vocabulary): Sync lock, Great / Good / Fail, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
+**New fixed terms** (added to the SLOP §8 vocabulary): route **(11/17, R2; Sync lock and Great / Good / Fail are retired with the sync check)**, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
 
 ### 13.1 Placement
 - **Survivor:** one bottom-center stack sits directly on the cluster (§4.0). Its bottom edge is at 96 u (the cluster top), and every child keeps an 8 u gap below it. From top to bottom:
-  1. the sync lock bar (13.2), only during a check;
+  1. the route panel (13.2), only while E is held on a route **(11/17, R2)**;
   2. the prompt row: the §4.3/§4.4 prompts or the 13.3 hold row, 672×40;
   3. the **objective row** (672×48), shown once any exit is Powered or Open, or a collapse clock runs.
-  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u)**. The bar only shows while hacking, which is in act 1, when the objective row is normally hidden; then the bar spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the bar sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
+  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u; R2: the route panel keeps the same 320×80 u)**. The panel only shows while hacking, which is in act 1, when the objective row is normally hidden; then the panel spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a route shows while the objective row shows (hacking after power), the panel sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
 - **v2 info block:** line 3 of the info block (§4.7, `Exit …`) is removed in v2. The objective row replaces it. Line 1 stays the match time and line 2 stays `Terminals 1/5`.
 - **Killer:** two blocks go into the 6.1 cluster between the prompt slot and the info block. In order: the hold block (13.3, in the 6.1p prompt slot) and the collapse block (13.5). Exits stay on world markers (13.4), never in a panel (SLOP §8).
 
-### 13.2 Sync lock bar (Survivor) **(11/17, IP)**
-Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived. The wire, the judge and the timing are unchanged; only the drawing changed from a ring with a needle to a horizontal bar, so it no longer copies another game's well-known timing-check presentation.
-- **Shape (320×80 u):**
-  - `panel` fill with a 1 u `line` edge.
-  - Track area x 16–304 u, y 8–44 u: a waveform in `line` (2 u). A pulse travels left to right as a bump in that wave (3 u `text` near the pulse), with a 4 u `text` crest bar on an 8 u `bg` keyline.
-  - Lock window from `ZoneStart` to `ZoneStart + ZoneSize`: the Good part is a `muted` block the height of the track; the Great part (the first `GreatSize` of the window, exactly as the judge reads it) is a `text` block 6 u taller on both sides. A 2 u `panel` cut separates them. No glow, no `signal` amber (amber means visible to the Killer).
-  - Pulse x = `16 + clamp01(Elapsed / Duration) × 288` u: the same `SyncCheckMath.NeedleFraction` the ring used. The pulse is at the window centre exactly when the old needle was in the middle of the zone.
-  - At 720p (scale 0.8) the default zone (0.12) is ≈ 28 px wide and 29 px tall; the Great part (0.035) is ≈ 8 px wide and 39 px tall.
-- **Label row (y 52–80 u):**
-  - While waiting: `Sync lock · Space`, or `· A` on a gamepad, S `muted`.
-  - After the result: `Great` / `Good` / `Fail`, M 600 `text`.
-- **Press:**
-  - Space or gamepad A calls `SyncCheckState.TryPress()`. This raises `Press(CheckId)` once per check, and the owner sends `C2S_SyncPress`.
-  - The pulse freezes where it was pressed.
-  - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
-- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the bar hides until a new `CheckId` arrives.
-- **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the pulse is drawn in the great part is Great (U6f).
-- **No flashing:** one change only, the label, with no colour flash and no shake.
-- **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
-- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The bar clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
+### 13.2 Route panel (Survivor) **(11/17, R2)**
+Replaces the sync lock bar (and the sync check behind it: `S2C_SyncCheck`, `S2C_SyncResult`, `C2S_SyncPress` and their ids 0x11–0x13 are retired). Hacking is now an active minigame: the server deals the hacker a route of 4 directions; each right key moves along it; a full route adds a burst of progress.
+Source: own `S2C_SelfState {RouteId, RouteLength, RouteDirs, RouteIndex}` (appended fields; `RouteId` 0 = no route; `RouteDirs` packs 2 bits per cell, the first cell in the low bits: Up 0, Down 1, Left 2, Right 3). Only the hacker receives its route; the Killer sees only the terminal's Overloaded flash (§13.6).
+- **Keys (attempt 2):** only while E is held, the own entry is `Hacking` and a route is present (the server sends a route only while its owner hacks that terminal), W A S D and the arrow keys, the gamepad d-pad or a left-stick flick (fires past 0.6 of the radius on its dominant axis, re-arms inside 0.3) send `C2S_HackInput {RouteId, Direction}` on the press edge, and movement sends zero. Releasing E gives the keys back to movement at once. The client sends at most 12 keys per second (the server's limit).
+- **Shape (320×80 u):** `panel` fill, 1 u `line` edge. Four 56×36 u cells at y 8, x 24 / 96 / 168 / 240, each with a drawn arrow (12 u, no glyph font):
+  - done cells: `muted` fill, `bg` arrow;
+  - the current cell: 2 u `text` edge, `text` arrow;
+  - later cells: 1 u `line` edge, `muted` arrow.
+- **Right key:** the cell it completed pulses (+3 u, 0.12 s), a soft tick plays, and the own holo panel pulses (§4.10).
+- **Panel:** shown while E is held and the own entry is `Hacking` (so the flash and the short gap stay on screen), hidden otherwise.
+- **Full route:** the label shows the burst, `+3.4 %` (M 600 `text`), for 0.6 s and a rising chord plays. Then `Next route` (S `muted`) with a thin `muted` bar that fills over the gap (0.7 s) until the next route arrives. During the gap W A S D move.
+- **Wrong key:** the route is dropped (the server takes 2 points and deals a new route; the terminal is Overloaded for 1.5 s, which the Killer sees). The panel shakes ±4 u for 0.3 s, its edge turns 2 u `danger` and the label reads `Route dropped · the Killer was alerted` (S `muted`; `danger` stays off text) for 1.5 s; a glitch sound plays. Nothing more is sent for the dropped route.
+- **Label row (y 52–80 u), otherwise:** `Route · WASD` (or `· D-pad` on a gamepad), S `muted`. The first route of the match shows `Press the arrows in order` instead, until it completes or drops.
+- **Prediction:** the client knows its route, so it moves the current cell, the pulse, the flash and the error at once, then reconciles with the next SelfState: for the same `RouteId` within 0.3 s of the last key the shown index never falls behind the server's; later than that the server's index wins and a predicted error or completion is undone (a dropped key, attempt 2); a new `RouteId` starts clean; `RouteId` 0 clears the cells.
+- **Reduced motion (§14.1):** no pulse growth and no shake; the colours, label and sounds stay.
+- **Wiring:** the route clears at once when the own status leaves Normal and fully resets (the first-route hint again) on MatchStart, GameResult and disconnect. No "skill check" wording anywhere.
+- **Numbers (GDD v2 §2, R2, attempt 2):** passive progress 100 points per 90 s solo; +3.4 per completed route (each of n co-hackers adds (CoHackRate(n)/n)², 0.81 for two), then a 0.7 s gap counted only while hacking, and at least 1.3 s between two routes being dealt; −2 and a new route on a wrong key. Solo: 0.15 s per key ≈ 29 s, 0.5 s ≈ 44 s, 1 s ≈ 56 s, idle 90 s; every fifth key wrong ≈ 50 s; two fast co-hackers ≈ 16 s; the bots ≈ 41 s.
 
 ### 13.3 Hold action (Survivor exit switch, Killer jam and Emergency port close)
 Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0–1, and the percentage is `floor(progress × 100)`, so the row never shows 100 % before the server finishes.
@@ -915,7 +911,7 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
   - no bar and `muted` text: a reason line (14.3).
 - **Time:** shown for **2.5 s** (reason lines 2.0 s), then removed in one frame. Numbers in the line are the skill's static duration, not a countdown. The live countdowns stay where they are: the meter (§4.1), the active arc (§4.8) and the objective row (§13.4).
 - **One line at a time, never stacked (SLOP §5).** Priority: affected (`danger` first) > caster > ally > reason. A new line replaces the shown one when its priority is equal or higher. A lower one is dropped, not queued.
-- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during a sync lock (≤ 2.5 s).
+- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during routing (≤ 2.5 s) **(11/17, R2)**.
 - Hidden while the play menu is open (§5); its timer keeps running.
 
 **Result line, Killer.** The §6.1c effect line (320×32, S, with the 4×18 u bar slot) carries the Killer's lines.
