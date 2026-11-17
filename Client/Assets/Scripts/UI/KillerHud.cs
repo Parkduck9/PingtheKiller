@@ -184,14 +184,20 @@ namespace PingTheKiller.Client.UI
 
         // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready / Passive /
         // Needs an Exit switch in progress only.
+        // M4: stunned (the own Killer entry's Chase Stunned flag, set by ChasePropsLayer.ApplyKillerHud) shows the block unavailable.
+        public bool Stunned { get; set; }
+
+        public static SkillRing.State RingState(byte skillId, bool switchInProgress, float? cooldown, bool stunned)
+            => skillId == SkillIds.PacketAfterimage ? SkillRing.State.Passive
+                : stunned || (skillId == SkillIds.FirewallBlock && !switchInProgress) ? SkillRing.State.Disabled
+                : cooldown.HasValue && cooldown.Value > 0 ? SkillRing.State.Cooldown : SkillRing.State.Ready;
+
         public void SetSkill(byte skillId, bool switchInProgress, ISelfState self, float activeFraction)
         {
             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;
-            string state = KillerHudCopy.SkillState(skillId, switchInProgress, cooldown);
+            string state = KillerHudCopy.SkillState(skillId, switchInProgress, cooldown, Stunned);
             if (skillState.text != state) skillState.text = state;
-            SkillRing.State ringState = skillId == SkillIds.PacketAfterimage ? SkillRing.State.Passive
-                : skillId == SkillIds.FirewallBlock && !switchInProgress ? SkillRing.State.Disabled
-                : cooldown.HasValue && cooldown.Value > 0 ? SkillRing.State.Cooldown : SkillRing.State.Ready;
+            SkillRing.State ringState = RingState(skillId, switchInProgress, cooldown, Stunned);
             float fraction = cooldown.HasValue ? cooldown.Value / GameConstants.KillerSkillCooldownSeconds : 0;
             ring.Set(skillId, ringState, fraction, activeFraction, false);
         }

@@ -157,6 +157,7 @@ namespace PingTheKiller.Client.World
         public void ApplyKillerHud(KillerHud hud, Vector3 position, bool menuOpen, double now)
         {
             if (hud == null) return;
+            hud.Stunned = stun.Showing(now); // M4: the skill block reads unavailable while stunned
             string line = stun.Line(now);
             if (line != null) hud.SetEffect(line, false);
             if (menuOpen) return;

@@ -28,7 +28,7 @@ namespace PingTheKiller.Client.World
             public GameObject Root;
             public CharacterInstance Art;
             public Color Tint;
-            public byte Status, Flags, CaptureCount;
+            public byte Status, Flags, CaptureCount, Chase;
             public CharacterMotion Motion;
             // This frame's sampled pose, and the eased draw-only offset that keeps it out of other bodies (VisualSeparation).
             public Vector3 Position;
@@ -220,7 +220,7 @@ namespace PingTheKiller.Client.World
                 {
                     // Status is the latest authoritative value; it is not interpolated. So are the flags and the capture
                     // count the motion reads (Survivor view: full state, U4j).
-                    known.Status = player.Status; known.Flags = player.Flags; known.CaptureCount = player.CaptureCount;
+                    known.Status = player.Status; known.Flags = player.Flags; known.CaptureCount = player.CaptureCount; known.Chase = player.Chase;
                     continue;
                 }
                 Color tint = player.Role == (byte)Role.Killer ? Killer : Survivor;
@@ -229,7 +229,7 @@ namespace PingTheKiller.Client.World
                     GameObject model = Object.Instantiate(art.SurvivorPrefab, transform);
                     model.name = "Player " + player.Id;
                     CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor); // U4j: before CharacterInstance binds it
-                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Motion = motion,
+                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Chase = player.Chase, Motion = motion,
                         Interaction = AttachInteraction(model, motion), Props = new HoloPropFx(transform) };
                     model.SetActive(false);
                     avatars.Add(player.Id, imported);
@@ -243,7 +243,7 @@ namespace PingTheKiller.Client.World
                 GameObject visor = FallbackPart("Visor", PrimitiveType.Cube, CharacterLook.VisorScale, CharacterLook.Visor);
                 visor.transform.SetParent(root.transform, false);
                 visor.transform.localPosition = CharacterLook.VisorOffset;
-                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount,
+                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Chase = player.Chase,
                     Motion = new CharacterMotion(null, MotionView.Survivor), Interaction = new InteractionMotion(null), Props = new HoloPropFx(transform) }; // capsule: tracked, not animated
                 root.SetActive(false);
                 avatars.Add(player.Id, avatar);
@@ -321,7 +321,7 @@ namespace PingTheKiller.Client.World
         // (Hacking, Rescuing), the own exit switch hold and static or received positions. HUD_SPEC 4.10 (11/17, U10).
         private void RenderInteraction(Avatar avatar, bool own, int id, double now)
         {
-            InteractionKind kind = InteractionMap.Resolve(MotionView.Survivor, avatar.Status, avatar.Flags, avatar.Motion.Tracker.Pose, avatar.Art.Speed, own, own ? ownAction : (byte)0);
+            InteractionKind kind = InteractionMap.Resolve(MotionView.Survivor, avatar.Status, avatar.Flags, avatar.Motion.Tracker.Pose, avatar.Art.Speed, own, own ? ownAction : (byte)0, avatar.Chase);
             Vector3 at = avatar.Root.transform.position, target = at + avatar.Root.transform.forward, source = target;
             switch (kind)
             {

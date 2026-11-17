@@ -47,6 +47,7 @@ namespace PingTheKiller.Client.Dev
         private int exitState = -1;
         private readonly HashSet<string> taken = new HashSet<string>();
         private readonly Queue<KeyValuePair<string, int>> pending = new Queue<KeyValuePair<string, int>>();
+        private readonly Queue<float> pendingAt = new Queue<float>(); // unscaled time each pending shot is not taken before
         // SelfState evidence and the U4d event shots (cooldown, rescue, grace, crowd).
         private ISelfState self;
         private int skillPresses, selfLogged, maxTracked;
@@ -78,9 +79,9 @@ namespace PingTheKiller.Client.Dev
         public event Action<S2C_GameResult> PreviewResult;
         public event Action<IPacket> HostSend;
 
-        public void Initialize(DevArgs value, ClientScreens ui = null, ISelfState selfState = null)
+        public void Initialize(DevArgs value, ClientScreens ui = null, ISelfState selfState = null, Func<Vector3, bool> onScreen = null)
         {
-            args = value; screens = ui; self = selfState;
+            args = value; screens = ui; self = selfState; OnScreen = onScreen;
             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
             if (args.Chase > 0 || args.Rescue || args.DevHack > 0 || args.DevSwitch) nav = new NavGrid(SharedMap.Map);
@@ -478,7 +479,9 @@ namespace PingTheKiller.Client.Dev
         }
 
         // HUD_SPEC 15 (Q5) event shots, from what this client sees: a shutter changing to Down / Broken, a stunned Killer, a vault
-        // (own or seen) and the own prompt beside a prop. Shutter shots wait ~8 frames so the 0.12 s drop has landed.
+        // (own or seen) and the own prompt beside a prop. M1: a chase shot fires only for a prop within ChaseShotReach of the own
+        // position and in front of the camera, and waits ChaseShotDelay seconds (not frames) so the 0.12 s drop has landed.
+        public const float ChaseShotReach = 12f, ChaseShotDelay = .25f;
         private byte[] chaseShutters = new byte[0];
         private void ChaseShutterShots(IReadOnlyList<byte> now)
         {
@@ -486,18 +489,32 @@ namespace PingTheKiller.Client.Dev
             for (int i = 0; i < now.Count && i < chaseShutters.Length; i++)
             {
                 if (now[i] == chaseShutters[i]) continue;
-                if (now[i] == (byte)ShutterState.Down) EventShot("chase-shutter-down.png", 8);
-                else if (now[i] == (byte)ShutterState.Broken) EventShot("chase-shutter-broken.png", 8);
+                if (i >= WorldChaseProps.Shutters.Count || !ChaseShotSeen(WorldChaseProps.Shutters[i].CenterX, WorldChaseProps.Shutters[i].CenterZ)) continue;
+                if (now[i] == (byte)ShutterState.Down) EventShot("chase-shutter-down.png", 0, ChaseShotDelay);
+                else if (now[i] == (byte)ShutterState.Broken) EventShot("chase-shutter-broken.png", 0, ChaseShotDelay);
             }
             if (chaseShutters.Length != now.Count) chaseShutters = new byte[now.Count];
             for (int i = 0; i < now.Count; i++) chaseShutters[i] = now[i];
         }
 
+        // Set by the caller (it owns the view): true when a world point is inside the drawn view.
+        public Func<Vector3, bool> OnScreen;
+
+        // True when the point is within ChaseShotReach of the own position and inside the camera's view.
+        private bool ChaseShotSeen(float x, float z)
+        {
+            if (!located) return false;
+            float dx = x - position.x, dz = z - position.z;
+            if (dx * dx + dz * dz > ChaseShotReach * ChaseShotReach) return false;
+            return OnScreen != null && OnScreen(new Vector3(x, 1f, z));
+        }
+
         // Survivor client only (called from the guarded entry loop): a stunned Killer, a vault, the own prompt beside a prop.
         private void ChasePlayerShots(PlayerState player, int localId, IReadOnlyList<byte> shutters)
         {
-            if ((player.Chase & (byte)ChaseFlags.Stunned) != 0) EventShot("chase-stun.png", 6);
-            if ((player.Chase & (byte)ChaseFlags.Vaulting) != 0) EventShot(player.Id == localId ? "chase-vault-own.png" : "chase-vault-seen.png", 6);
+            bool seen = player.Id == localId || ((player.Chase & ((byte)ChaseFlags.Stunned | (byte)ChaseFlags.Vaulting)) != 0 && ChaseShotSeen(player.X, player.Z));
+            if (seen && (player.Chase & (byte)ChaseFlags.Stunned) != 0) EventShot("chase-stun.png", 0, ChaseShotDelay);
+            if (seen && (player.Chase & (byte)ChaseFlags.Vaulting) != 0) EventShot(player.Id == localId ? "chase-vault-own.png" : "chase-vault-seen.png", 0, ChaseShotDelay);
             if (player.Id == localId && player.Status == (byte)PlayerStatus.Normal
                 && ChasePropPrompt.Survivor(player.X, player.Z, shutters) != ChasePromptKind.None) EventShot("chase-prompt.png", 2);
         }
@@ -770,16 +787,17 @@ namespace PingTheKiller.Client.Dev
         }
 
         // Each event shot is taken once, one frame after the event.
-        private void EventShot(string name, int delayFrames = 1)
+        private void EventShot(string name, int delayFrames = 1, float delaySeconds = 0)
         {
             if (args.Shots == null || !taken.Add(name)) return;
             Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " event " + name); // match time, like the other [DEV] t= lines
-            Shot(name, delayFrames);
+            Shot(name, delayFrames, delaySeconds);
         }
 
-        private void Shot(string name, int delayFrames = 0)
+        private void Shot(string name, int delayFrames = 0, float delaySeconds = 0)
         {
             pending.Enqueue(new KeyValuePair<string, int>(name, Time.frameCount + delayFrames));
+            pendingAt.Enqueue(Time.unscaledTime + delaySeconds);
             if (!capturing) StartCoroutine(Capture());
         }
 
@@ -790,7 +808,8 @@ namespace PingTheKiller.Client.Dev
             while (pending.Count > 0)
             {
                 KeyValuePair<string, int> next = pending.Dequeue();
-                while (Time.frameCount < next.Value) yield return null;
+                float notBefore = pendingAt.Count > 0 ? pendingAt.Dequeue() : 0;
+                while (Time.frameCount < next.Value || Time.unscaledTime < notBefore) yield return null;
                 yield return new WaitForEndOfFrame();
                 string path = Path.GetFullPath(Path.Combine(args.Shots, next.Key));
                 Texture2D frame = ScreenCapture.CaptureScreenshotAsTexture();

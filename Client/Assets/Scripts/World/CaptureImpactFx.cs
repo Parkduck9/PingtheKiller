@@ -106,7 +106,7 @@ namespace PingTheKiller.Client.World
         // Killer first-person sizes (the capture is about 1 m from the eye): small streaks and fragments, hard-capped on
         // screen. The Survivor third-person sizes are the MakeSystem values.
         public const float FirstPersonMaxSize = .04f, FirstPersonPull = .4f;
-        public static readonly Color Killer = new Color32(255, 74, 80, 255);
+        public static readonly Color Killer = SkillFx.Danger; // palette danger (229, 72, 77)
 
         private sealed class Shot
         {

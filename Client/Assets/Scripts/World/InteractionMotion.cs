@@ -38,12 +38,13 @@ namespace PingTheKiller.Client.World
     }
 
     // The flag -> interaction mapping, plain C#. HUD_SPEC 4.10 (11/17, U10): only fields this client receives; the Killer
-    // view never reads Hacking or Rescuing (6.3 rule 1), so every Killer-view instance shows None.
+    // view never reads Hacking or Rescuing (6.3 rule 1), so every Killer-view instance shows None. A non-zero Chase (M3) wins.
     public static class InteractionMap
     {
-        public static InteractionKind Resolve(MotionView view, byte status, byte flags, MotionPose pose, float speed, bool own, byte ownAction)
+        public static InteractionKind Resolve(MotionView view, byte status, byte flags, MotionPose pose, float speed, bool own, byte ownAction, byte chase = 0)
         {
             if (view == MotionView.Killer) return InteractionKind.None;
+            if (chase != 0) return InteractionKind.None; // M3: the Q5 chase overlay (pull, vault, break, stunned) owns the arms
             if (status != (byte)PlayerStatus.Normal) return InteractionKind.None;
             if (pose != MotionPose.Locomotion && pose != MotionPose.Injured && pose != MotionPose.Working) return InteractionKind.None;
             bool still = speed < MotionTiming.StillSpeed;

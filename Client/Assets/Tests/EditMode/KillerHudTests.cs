@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 using PingTheKiller.Client.UI.RulesV2;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
@@ -96,6 +97,19 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ExitCopy.Tag(locked), Is.EqualTo("Exit 1 " + Dot + " Locked 4 s"));
             Assert.That(ExitCopy.Tag(ExitView.FromWire(0, 1 | 4, 40)), Is.EqualTo("Exit 1 " + Dot + " Locked"), "no effect received");
             Assert.That(typeof(KillerHudCopy).GetMethod("PromptLine"), Is.Null);
+        }
+
+        [Test]
+        public void AStunnedKillerSeesTheSkillBlockUnavailable()
+        {
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 0, true), Is.EqualTo("Stunned"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, false, 0, false), Is.EqualTo("Ready"));
+            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 0, true), Is.EqualTo(SkillRing.State.Disabled));
+            Assert.That(KillerHud.RingState(SkillIds.FirewallBlock, true, null, true), Is.EqualTo(SkillRing.State.Disabled));
+            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 0, false), Is.EqualTo(SkillRing.State.Ready));
+            Assert.That(KillerHud.RingState(SkillIds.Overclock, false, 3f, false), Is.EqualTo(SkillRing.State.Cooldown));
+            Assert.That(KillerHud.RingState(SkillIds.PacketAfterimage, false, null, true), Is.EqualTo(SkillRing.State.Passive), "passive stays passive");
+            Assert.That(CaptureImpactFx.Killer, Is.EqualTo((Color)new Color32(229, 72, 77, 255)), "M5: the impact uses palette danger");
         }
 
         [Test]

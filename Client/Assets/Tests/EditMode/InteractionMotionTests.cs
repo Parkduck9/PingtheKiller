@@ -19,6 +19,20 @@ namespace PingTheKiller.Client.Tests
         // ---- flag -> interaction mapping --------------------------------------------------------------------------------
 
         [Test]
+        public void AnyChaseFlagGivesTheArmsToTheChaseOverlayAndTheInteractionResolvesToNone()
+        {
+            var S = MotionView.Survivor;
+            foreach (ChaseFlags chase in new[] { ChaseFlags.Pulling, ChaseFlags.Vaulting, ChaseFlags.Breaking, ChaseFlags.Stunned })
+            {
+                byte c = (byte)chase;
+                Assert.That(InteractionMap.Resolve(S, N, Hacking, MotionPose.Working, 0, false, 0, c), Is.EqualTo(InteractionKind.None), chase + " hack");
+                Assert.That(InteractionMap.Resolve(S, N, Rescuing, MotionPose.Locomotion, 0, false, 0, c), Is.EqualTo(InteractionKind.None), chase + " restore");
+                Assert.That(InteractionMap.Resolve(S, N, Signal, MotionPose.Locomotion, 0, true, Switch, c), Is.EqualTo(InteractionKind.None), chase + " switch");
+            }
+            Assert.That(InteractionMap.Resolve(S, N, Rescuing, MotionPose.Locomotion, 0, false, 0, 0), Is.EqualTo(InteractionKind.Restore), "no chase flag: unchanged");
+        }
+
+        [Test]
         public void FlagsMapToTheInteractionInTheSurvivorView()
         {
             var S = MotionView.Survivor;

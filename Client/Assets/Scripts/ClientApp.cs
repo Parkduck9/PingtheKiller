@@ -148,7 +148,7 @@ namespace PingTheKiller.Client
             if (devArgs.FakeKiller > 0) fakeKiller = new FakeKiller(devArgs.FakeKiller);
             if (devArgs.Active)
             {
-                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState);
+                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState, point => { Vector3 v = view.WorldToViewportPoint(point); return v.z > 0 && v.x > 0 && v.x < 1 && v.y > 0 && v.y < 1; });
                 dev.Join += value => { screens.Address = value; Join(value); };
                 dev.Offline += StartOffline;
                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
