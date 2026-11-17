@@ -22,6 +22,8 @@ namespace PingTheKiller.ServerCore
             player.DirX = x;
             player.DirZ = z;
             player.Yaw = Finite(move.Yaw) ? move.Yaw : 0;
+            // R3: while getting up the direction is dropped (yaw is kept) and the input does not make the Survivor Signal.
+            if (GettingUp(player)) { player.DirX = player.DirZ = 0; return; }
             if (x != 0 || z != 0) player.LastSignal = _now;
         }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
@@ -48,7 +50,7 @@ namespace PingTheKiller.ServerCore
                     continue;
                 }
                 // GDD v2 section 8: a pull, vault or stun ignores the move input (moving cancels a break hold instead).
-                if (player.InChaseAction || Stunned(player)) continue;
+                if (player.InChaseAction || Stunned(player) || GettingUp(player)) continue;
                 float speed = SpeedAt(player, start);
                 if (speed <= 0) continue;
                 var position = Map.Move(player.X, player.Z, player.DirX * speed * dt, player.DirZ * speed * dt);
@@ -65,9 +67,10 @@ namespace PingTheKiller.ServerCore
                     : GameConstants.SurvivorSpeed;
             float speed = GameConstants.KillerSpeed;
             if (start < player.OverclockUntil - TimeEpsilon) speed *= SkillIds.OverclockSpeedMultiplier;
-            else if (start < player.RecoveryUntil - TimeEpsilon) return 0;
+            // R1 (11/17): the Overclock tail is 0.3 s at 60 % speed (it was a 1 s freeze).
+            else if (start < player.RecoveryUntil - TimeEpsilon) speed *= SkillIds.OverclockRecoverySpeedMultiplier;
             if (start < player.SlowedUntil - TimeEpsilon) speed *= SkillIds.TrafficOverloadKillerSpeedMultiplier;
-            return speed;
+            return speed * SwingSpeedMultiplier(player, start);
         }
 
         private static float DistanceSquared(float x, float z, float tx, float tz)

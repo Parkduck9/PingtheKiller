@@ -4,45 +4,25 @@ using UnityEngine;
 
 namespace PingTheKiller.Client.UI.RulesV2
 {
-    // HUD_SPEC 13.2: the sync check ring geometry and the client-side reading of its zones. The server judges every
-    // press (U6a R3); Judge only states which drawn region a needle fraction falls in. Great is exactly the great part
-    // [ZoneStart, ZoneStart + GreatSize]; the optional tolerance (fractions) widens Good on both zone edges and never
-    // creates Great. Edges are inclusive.
-    public static class SyncCheckMath
+    // HUD_SPEC 13.2 (11/17, R2): the route panel's label row. One line, plain facts: the keys, the first-route hint, the
+    // burst, the error and its consequence (the Overloaded flash the Killer sees), the wait for the next route.
+    public static class RouteCopy
     {
-        // Seconds the result word stays on screen after S2C_SyncResult.
-        public const float ResultSeconds = .4f;
-        // U6a SyncToleranceSeconds, for converting to a fraction of one sweep.
-        public const float ToleranceSeconds = .15f;
+        public const string KeyboardGlyph = "WASD", PadGlyph = "D-pad";
+        public const string Hint = "Press the arrows in order";
+        public const string Dropped = "Route dropped · the Killer was alerted";
+        public const string Next = "Next route";
+        public static readonly string Done = "+" + GameConstants.RouteBurstPoints.ToString(CultureInfo.InvariantCulture) + " %";
 
-        public static float NeedleFraction(float elapsed, float duration)
+        public static string Waiting(string glyph) => "Route · " + glyph;
+
+        public static string Label(RouteTracker route, string glyph, double now)
         {
-            if (!(duration > 0) || float.IsNaN(elapsed)) return 0;
-            return Mathf.Clamp01(elapsed / duration);
+            if (route.ErrorShown(now)) return Dropped;
+            if (route.DoneFlash(now)) return Done;
+            if (!route.Present) return Next;
+            return route.Hint ? Hint : Waiting(glyph);
         }
-
-        // Clockwise degrees from 12 o'clock.
-        public static float NeedleDegrees(float elapsed, float duration) => NeedleFraction(elapsed, duration) * 360f;
-
-        public static float ToleranceFraction(float duration) => duration > 0 ? ToleranceSeconds / duration : 0;
-
-        public static SyncResult Judge(float fraction, float zoneStart, float zoneSize, float greatSize, float tolerance = 0)
-        {
-            if (float.IsNaN(fraction)) return SyncResult.Fail;
-            tolerance = Mathf.Max(0, tolerance);
-            float greatEnd = zoneStart + Mathf.Min(greatSize, zoneSize);
-            float zoneEnd = zoneStart + zoneSize;
-            if (fraction >= zoneStart && fraction <= greatEnd) return SyncResult.Great;
-            if (fraction >= zoneStart - tolerance && fraction <= zoneEnd + tolerance) return SyncResult.Good;
-            return SyncResult.Fail;
-        }
-
-        public static SyncResult Judge(float fraction, in SyncCheckView view, float tolerance = 0)
-            => Judge(fraction, view.ZoneStart, view.ZoneSize, view.GreatSize, tolerance);
-
-        public static string ResultWord(SyncResult result)
-            => result == SyncResult.Great ? "Great" : result == SyncResult.Good ? "Good" : "Fail";
-
     }
 
     // HUD_SPEC 13.3: hold action bar copy and fill.

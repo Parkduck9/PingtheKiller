@@ -256,6 +256,81 @@ namespace PingTheKiller.Client.Tests
             finally { props.Dispose(); Object.DestroyImmediate(character.gameObject); Object.DestroyImmediate(root); }
         }
 
+        // 11/17 (R2): the own routing Survivor's panel pulses on its real route keys (KeyDriven); everyone else keeps the
+        // fixed 0.17 s beat.
+        [Test]
+        public void TheOwnPanelPulsesOnRealRouteKeysAndOtherSurvivorsKeepTheBeat()
+        {
+            var root = new GameObject("route views");
+            var characters = new CharacterViews(new WorldMaterials(root.transform), 1, Role.Survivor, CharacterArt.Load());
+            try
+            {
+                characters.Initialize();
+                characters.SetOwnRouting(true);
+                var snapshots = new SnapshotBuffer();
+                const float terminalX = 10, terminalZ = 10;
+                double last = 0;
+                for (int tick = 1; tick <= 30; tick++)
+                {
+                    double at = tick * .05;
+                    var state = new S2C_WorldState { Tick = (uint)tick };
+                    state.Terminals.Add(new TerminalState { Id = 0, X = terminalX, Z = terminalZ, Progress = 10 });
+                    state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Survivor, X = terminalX - 1, Z = terminalZ, Flags = (byte)(Hacking | Signal) });
+                    state.Players.Add(new PlayerState { Id = 2, Role = (byte)Role.Survivor, X = terminalX + .2f, Z = terminalZ + 1.2f, Yaw = 90, Flags = (byte)(Hacking | Signal) });
+                    snapshots.Add(state, at);
+                    characters.Accept(state);
+                    for (int frame = 0; frame < 3; frame++)
+                    {
+                        last = at + frame / 60.0;
+                        characters.SetLocalLook(90, false);
+                        characters.Render(last, snapshots);
+                    }
+                }
+                HoloPropFx own = characters.PropsOf(1), ally = characters.PropsOf(2);
+                Assert.That(own.PanelShown && ally.PanelShown, Is.True);
+                Assert.That(own.KeyDriven, Is.True, "the own routing Survivor");
+                Assert.That(ally.KeyDriven, Is.False, "another Survivor keeps the beat");
+                Assert.That(own.PanelPulse(last), Is.EqualTo(0f), "no key yet: the beat does not pulse the own panel");
+                characters.OwnKeyPulse(last);
+                Assert.That(own.KeyPulses, Is.EqualTo(1));
+                Assert.That(ally.KeyPulses, Is.EqualTo(0), "a key never pulses another Survivor's panel");
+                Assert.That(own.PanelPulse(last + .01), Is.GreaterThan(0f));
+                characters.SetOwnRouting(false);
+                characters.Render(last + .02, snapshots);
+                Assert.That(own.KeyDriven, Is.False, "E released: back to the beat");
+            }
+            finally { characters.Dispose(); Object.DestroyImmediate(root); }
+        }
+
+        [Test]
+        public void TheBeatPulsesAPanelThatIsNotKeyDriven()
+        {
+            var root = new GameObject("beat");
+            var character = new GameObject("character").transform;
+            var props = new HoloPropFx(root.transform);
+            try
+            {
+                bool pulsed = false;
+                for (int frame = 0; frame < 60; frame++)
+                {
+                    double now = frame / 60.0;
+                    props.Show(InteractionKind.Hack, 1, character, Vector3.forward, Vector3.forward, now, now);
+                    if (props.PanelPulse(now) > 0) pulsed = true;
+                }
+                Assert.That(pulsed, Is.True, "the fixed beat");
+                props.KeyDriven = true;
+                for (int frame = 120; frame < 240; frame++)
+                {
+                    double now = frame / 60.0;
+                    props.Show(InteractionKind.Hack, 1, character, Vector3.forward, Vector3.forward, now, now);
+                    Assert.That(props.PanelPulse(now), Is.EqualTo(0f), "key-driven: the beat alone never pulses, frame " + frame);
+                }
+                props.KeyPulse(4.0);
+                Assert.That(props.PanelPulse(4.0), Is.GreaterThan(0f));
+            }
+            finally { props.Dispose(); Object.DestroyImmediate(character.gameObject); Object.DestroyImmediate(root); }
+        }
+
         [Test]
         public void PropColoursAreTheHudSpecAllyAndDangerTokens()
         {

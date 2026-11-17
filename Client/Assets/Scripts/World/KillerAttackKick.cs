@@ -11,6 +11,11 @@ namespace PingTheKiller.Client.World
     // - a small trauma shake (game-feel): trauma starts at Trauma and falls linearly to 0 at Seconds; the shake is
     //   trauma squared times summed sines (no per-frame noise), at most ShakeMetres sideways / up and ShakeRoll degrees.
     // Reduced motion (the -ptk-reduce-stutter option or the settings toggle): no kick and no shake at all.
+    // R1 (11/17) swing sweep (PlaySwing, a2: on the local press, before the server's verdict): no lunge, no shake; the view
+    // yaws SweepDegrees right and swings back past centre over SweepSeconds with a little roll (a first-person arm sweep
+    // without arms). A hit adds the capture kick (Play) on top; a miss adds nothing. Reduced motion: none.
+    // a2: every term is exactly 0 outside its own window and never NaN (a sweep before any Play used to evaluate the shake at
+    // an infinite time: Sin(inf) = NaN put the camera at NaN and blacked the world out).
     //
     // One deterministic path, no coroutine: every LateUpdate (after RoleCamera placed the camera in ClientApp.Update) the
     // camera is set to base + offset, a pure function of the time since Play. The base is the camera as the rig left it;
@@ -26,7 +31,9 @@ namespace PingTheKiller.Client.World
         // The process-wide reduced-motion option; read once from the command line. A settings screen may set it.
         public static bool ReducedMotion { get; set; } = Array.IndexOf(Environment.GetCommandLineArgs(), ReduceFlag) >= 0;
 
-        private double startedAt = double.NegativeInfinity;
+        public const float SweepDegrees = 4f, SweepRoll = 1.5f, SweepSeconds = .3f;
+        private double startedAt = double.NegativeInfinity, swingAt = double.NegativeInfinity;
+        public int Swings { get; private set; }
         private Camera applied;
         private float baseFov, leftFov;
         private Vector3 basePosition, leftPosition;
@@ -42,6 +49,25 @@ namespace PingTheKiller.Client.World
             startedAt = now; Played++;
             return true;
         }
+
+        // R1 (11/17) a2: the own swing press was sent (ClientApp, KillerSwingWatch.Predict). False with reduced motion on.
+        public bool PlaySwing(double now)
+        {
+            if (ReducedMotion) return false;
+            swingAt = now; Swings++;
+            return true;
+        }
+
+        // The swing sweep yaw (degrees) at `elapsed` seconds after PlaySwing: one sine period under a falling envelope.
+        public static float Sweep(double elapsed, bool reduced)
+        {
+            if (reduced || !(elapsed >= 0 && elapsed < SweepSeconds)) return 0;
+            float x = (float)(elapsed / SweepSeconds);
+            return SweepDegrees * Mathf.Sin(2 * Mathf.PI * x) * (1 - x);
+        }
+
+        // The swing's roll (degrees), following the sweep.
+        public static float SweepRollAt(double elapsed, bool reduced) => Sweep(elapsed, reduced) * (SweepRoll / SweepDegrees);
 
         // The wind-up, 0..1 (ease-in) over WindUpSeconds; 0 outside.
         public static float WindUp(double elapsed)
@@ -71,7 +97,7 @@ namespace PingTheKiller.Client.World
         // The camera offset at `elapsed` seconds after Play: the FOV change (degrees, negative = narrower) and the forward push.
         public static void Offset(double elapsed, bool reduced, out float fov, out float push)
         {
-            if (reduced) { fov = 0; push = 0; return; }
+            if (reduced || !(elapsed >= 0 && elapsed < Seconds)) { fov = 0; push = 0; return; }
             float w = WindUp(elapsed), e = Envelope(elapsed);
             fov = WindUpFov * w - FovDegrees * e; push = PushMetres * e - PullMetres * w;
         }
@@ -79,14 +105,17 @@ namespace PingTheKiller.Client.World
         // The shake at `elapsed`: sideways and up (metres, camera space) and roll (degrees).
         public static void Shake(double elapsed, bool reduced, out float right, out float up, out float roll)
         {
-            float trauma = reduced ? 0 : TraumaAt(elapsed);
+            float trauma = reduced || !(elapsed >= 0 && elapsed < Seconds) ? 0 : TraumaAt(elapsed);
+            if (trauma <= 0) { right = up = roll = 0; return; }
             float shake = trauma * trauma, t = (float)elapsed * 30;
             right = ShakeMetres * shake * Mathf.Sin(t * 1.7f);
             up = ShakeMetres * .7f * shake * Mathf.Sin(t * 2.3f + 1);
             roll = ShakeRoll * shake * Mathf.Sin(t * 1.1f + 2);
         }
 
-        public bool Active(double now) => !ReducedMotion && now - startedAt >= 0 && now - startedAt < Seconds;
+        public bool Active(double now) => !ReducedMotion && ((now - startedAt >= 0 && now - startedAt < Seconds) || (now - swingAt >= 0 && now - swingAt < SweepSeconds));
+
+        private static float Finite(float value) => float.IsNaN(value) || float.IsInfinity(value) ? 0 : value;
 
         private void LateUpdate() => Apply(Camera.main, Time.unscaledTimeAsDouble);
 
@@ -101,9 +130,12 @@ namespace PingTheKiller.Client.World
             double elapsed = now - startedAt;
             Offset(elapsed, ReducedMotion, out float fov, out float push);
             Shake(elapsed, ReducedMotion, out float right, out float up, out float roll);
-            if (!Active(now) || (fov == 0 && push == 0 && right == 0 && up == 0 && roll == 0)) { Restore(); return; }
+            float sweep = Finite(Sweep(now - swingAt, ReducedMotion));
+            roll = Finite(roll) + Finite(SweepRollAt(now - swingAt, ReducedMotion));
+            fov = Finite(fov); push = Finite(push); right = Finite(right); up = Finite(up);
+            if (!Active(now) || (fov == 0 && push == 0 && right == 0 && up == 0 && roll == 0 && sweep == 0)) { Restore(); return; }
             camera.fieldOfView = baseFov + fov;
-            eye.SetPositionAndRotation(basePosition + baseRotation * new Vector3(right, up, push), baseRotation * Quaternion.Euler(0, 0, roll));
+            eye.SetPositionAndRotation(basePosition + baseRotation * new Vector3(right, up, push), baseRotation * Quaternion.Euler(0, sweep, roll));
             applied = camera; leftFov = camera.fieldOfView; leftPosition = eye.position; leftRotation = eye.rotation;
         }
 

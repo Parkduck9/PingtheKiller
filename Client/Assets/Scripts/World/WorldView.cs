@@ -17,6 +17,8 @@ namespace PingTheKiller.Client.World
         public static readonly Vector3 KillerBodyScale = CharacterViews.KillerBodyScale;
         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
         public float KillerAlpha => characters != null ? characters.KillerAlpha : 0;
+        // R1 (11/17): Killer swings whose wind-up this Survivor client started on the drawn model.
+        public int KillerSwings => characters != null ? characters.KillerSwings : 0;
         // Alpha of the Killer's visor material after the last Render; it fades with the body (KillerAlpha).
         public float KillerVisorAlpha => characters != null ? characters.KillerVisorAlpha : 0;
 
@@ -60,6 +62,10 @@ namespace PingTheKiller.Client.World
 
         // U10: the own hold action (S2C_SelfState.ActionKind) for the own exit switch pose.
         public void SetOwnAction(byte kind) => characters?.SetOwnAction(kind);
+
+        // 11/17 (R2) packet routing: the own holo panel pulses on real route keys while routing (HoloPropFx.KeyDriven).
+        public void SetOwnRouting(bool routing) => characters?.SetOwnRouting(routing);
+        public void OwnKeyPulse(double now) => characters?.OwnKeyPulse(now);
 
         public void Render(double now)
         {

@@ -18,11 +18,14 @@ namespace PingTheKiller.Shared.Packets
         C2S_SetBots = 0x000E,
         C2S_SetRole = 0x000F,
         S2C_SelfState = 0x0010,
-        S2C_SyncCheck = 0x0011,
-        C2S_SyncPress = 0x0012,
-        S2C_SyncResult = 0x0013,
+        // 0x0011-0x0013 (the v0.4 sync check: S2C_SyncCheck, C2S_SyncPress, S2C_SyncResult) are retired (11/17, R2).
         S2C_RttProbe = 0x0014,
         C2S_RttEcho = 0x0015,
-        S2C_SkillRejected = 0x0016
+        S2C_SkillRejected = 0x0016,
+        // R1 (11/17): the Killer swing and the lobby skill choice.
+        C2S_Attack = 0x0017,
+        C2S_ChooseSkill = 0x0018,
+        // 11/17 (R2): one packet-routing key press of the hacking Survivor.
+        C2S_HackInput = 0x0019
     }
 }

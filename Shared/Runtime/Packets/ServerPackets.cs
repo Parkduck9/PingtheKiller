@@ -298,6 +298,14 @@ namespace PingTheKiller.Shared.Packets
         // v0.7 also a shutter pull, a vault or a shutter break).
         public float ActionProgress;
         public byte ActionKind;
+        // 11/17 (R2) packet routing, the own route only (the server never sends a route about another player).
+        // RouteId 0 = no route (not hacking, or waiting for the next packet); RouteLength is at most HackRoute.MaxLength;
+        // RouteDirs packs the directions 2 bits each, the first in the low bits (HackRoute.DirectionAt); RouteIndex is
+        // the next direction to press (0..RouteLength).
+        public byte RouteId;
+        public byte RouteLength;
+        public byte RouteDirs;
+        public byte RouteIndex;
         public PacketId Id => PacketId.S2C_SelfState;
 
         public void Write(PacketWriter w)
@@ -309,61 +317,27 @@ namespace PingTheKiller.Shared.Packets
             w.WriteSingle(CollapseLeft);
             w.WriteSingle(ActionProgress);
             w.WriteByte(ActionKind);
+            if (RouteLength > HackRoute.MaxLength || RouteIndex > RouteLength)
+                throw new PacketFormatException("Route length or index out of range.");
+            w.WriteByte(RouteId);
+            w.WriteByte(RouteLength);
+            w.WriteByte(RouteDirs);
+            w.WriteByte(RouteIndex);
         }
 
-        public static S2C_SelfState Read(ref PacketReader r) => new S2C_SelfState
+        public static S2C_SelfState Read(ref PacketReader r)
         {
-            SkillCooldown = r.ReadSingle(), RescueProgress = r.ReadSingle(),
-            InvulnerableLeft = r.ReadSingle(), ExecutionGraceLeft = r.ReadSingle(),
-            CollapseLeft = r.ReadSingle(), ActionProgress = r.ReadSingle(), ActionKind = GameWireValues.ReadActionKind(ref r)
-        };
-    }
-
-    // v0.4: a sync check for one hacking survivor, sent only to that survivor. The needle sweeps 0 -> 1 in Duration
-    // seconds; the zone is [ZoneStart, ZoneStart + ZoneSize] and its first GreatSize is the great part.
-    public sealed class S2C_SyncCheck : IPacket
-    {
-        public uint CheckId;
-        public byte TerminalId;
-        public float Duration;
-        public float ZoneStart;
-        public float ZoneSize;
-        public float GreatSize;
-        public PacketId Id => PacketId.S2C_SyncCheck;
-
-        public void Write(PacketWriter w)
-        {
-            w.WriteUInt32(CheckId);
-            w.WriteByte(TerminalId);
-            w.WriteSingle(Duration);
-            w.WriteSingle(ZoneStart);
-            w.WriteSingle(ZoneSize);
-            w.WriteSingle(GreatSize);
+            var state = new S2C_SelfState
+            {
+                SkillCooldown = r.ReadSingle(), RescueProgress = r.ReadSingle(),
+                InvulnerableLeft = r.ReadSingle(), ExecutionGraceLeft = r.ReadSingle(),
+                CollapseLeft = r.ReadSingle(), ActionProgress = r.ReadSingle(), ActionKind = GameWireValues.ReadActionKind(ref r),
+                RouteId = r.ReadByte()
+            };
+            state.RouteLength = r.ReadByte(HackRoute.MaxLength);
+            state.RouteDirs = r.ReadByte();
+            state.RouteIndex = r.ReadByte(state.RouteLength);
+            return state;
         }
-
-        public static S2C_SyncCheck Read(ref PacketReader r) => new S2C_SyncCheck
-        {
-            CheckId = r.ReadUInt32(), TerminalId = r.ReadByte(), Duration = r.ReadSingle(),
-            ZoneStart = r.ReadSingle(), ZoneSize = r.ReadSingle(), GreatSize = r.ReadSingle()
-        };
-    }
-
-    // v0.4: the server verdict on one sync check (SyncResult: Fail = 0, Good = 1, Great = 2).
-    public sealed class S2C_SyncResult : IPacket
-    {
-        public uint CheckId;
-        public byte Result;
-        public PacketId Id => PacketId.S2C_SyncResult;
-
-        public void Write(PacketWriter w)
-        {
-            w.WriteUInt32(CheckId);
-            w.WriteByte(Result);
-        }
-
-        public static S2C_SyncResult Read(ref PacketReader r) => new S2C_SyncResult
-        {
-            CheckId = r.ReadUInt32(), Result = GameWireValues.ReadSyncResult(ref r)
-        };
     }
 }

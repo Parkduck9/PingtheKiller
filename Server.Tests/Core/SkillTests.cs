@@ -26,7 +26,7 @@ public sealed class SkillTests
     }
 
     [Fact]
-    public void PingScannerExposesTheNearestSurvivorForOnePointFiveSecondsWithATwelveSecondCooldown()
+    public void PingScannerExposesTheNearestSurvivorForThreeSecondsWithATwelveSecondCooldown()
     {
         using var m = RulesMatch.Start(2, SkillIds.PingScanner);
         m.Tick(25);
@@ -42,13 +42,13 @@ public sealed class SkillTests
         Assert.NotNull(seen);
         Assert.Equal((byte)PlayerFlags.Signal, seen.Value.Flags);
         Assert.Null(m.KillerSees(m[1]));
-        AssertEffect(Assert.Single(m.Killer.All<S2C_SkillEffect>()), m.Killer.Id, SkillIds.PingScanner, 5, 5, 1.5f);
+        AssertEffect(Assert.Single(m.Killer.All<S2C_SkillEffect>()), m.Killer.Id, SkillIds.PingScanner, 5, 5, 3f);
         // The exposed survivor learns about it, without the killer's coordinates; nobody else does.
-        AssertEffect(Assert.Single(m[0].All<S2C_SkillEffect>()), m.Killer.Id, SkillIds.PingScanner, 0, 0, 1.5f);
+        AssertEffect(Assert.Single(m[0].All<S2C_SkillEffect>()), m.Killer.Id, SkillIds.PingScanner, 0, 0, 3f);
         Assert.Empty(m[1].All<S2C_SkillEffect>());
         Assert.Equal((byte)PlayerFlags.Signal, m.Truth(m[0]).Flags);
-        int frames = CountWhile(m, () => m.KillerSees(m[0]) != null); // frames 0..29 visible
-        Assert.Equal(30, frames);
+        int frames = CountWhile(m, () => m.KillerSees(m[0]) != null); // R1: 3 s, frames 0..59 visible
+        Assert.Equal(60, frames);
         // Cooldown: 12 s after the cast frame.
         m.Tick(238 - frames);
         Use(m.Killer, SkillIds.PingScanner);
@@ -60,7 +60,7 @@ public sealed class SkillTests
     }
 
     [Fact]
-    public void OverclockGivesOnePointFiveSpeedForThreeSecondsThenOneSecondStandstill()
+    public void OverclockGivesOnePointFiveSpeedForThreeSecondsThenAShortSlowTail()
     {
         using var m = RulesMatch.Start(1, SkillIds.Overclock);
         m.F.Server.PlaceForTests(m.Killer.Id, 3, 2); // the open south edge street: 25 m of straight run
@@ -80,41 +80,13 @@ public sealed class SkillTests
         }
         Assert.InRange(steps[0], step * 0.999f, step * 1.001f); // the cast executes after this tick's movement
         for (int i = 1; i <= 60; i++) Assert.InRange(steps[i], step * 1.499f, step * 1.501f);
-        for (int i = 61; i <= 80; i++) Assert.Equal(0f, steps[i]);
-        Assert.InRange(steps[81], step * 0.999f, step * 1.001f);
+        // R1 (11/17): 0.3 s (6 ticks) at 60 % instead of a 1 s standstill, then full speed.
+        for (int i = 61; i <= 66; i++) Assert.InRange(steps[i], step * 0.599f, step * 0.601f);
+        for (int i = 67; i <= 81; i++) Assert.InRange(steps[i], step * 0.999f, step * 1.001f);
         var effect = Assert.Single(m.Killer.All<S2C_SkillEffect>());
         Assert.Equal(SkillIds.Overclock, effect.SkillId);
         Assert.Equal(3f, effect.Duration);
         Assert.Empty(m[0].All<S2C_SkillEffect>());
-    }
-
-    [Fact]
-    public void PacketAfterimageIsPassiveAndKeepsTheLastSeenPositionForOneSecond()
-    {
-        using var m = RulesMatch.Start(2, SkillIds.PacketAfterimage);
-        Use(m.Killer, SkillIds.PacketAfterimage);
-        m.Tick(25);
-        Assert.Empty(m.Killer.All<S2C_SkillEffect>());
-        m.WalkTo(m[0], 5, 27, GameConstants.SurvivorSpeed);
-        var last = m.KillerSees(m[0])!.Value;
-        Assert.Equal((byte)PlayerFlags.Signal, last.Flags);
-        int signal = CountWhile(m, () => m.KillerSees(m[0]) != null && !m.KillerSeesAfterimage(m[0]));
-        Assert.InRange(signal, 1, 3); // the 0.15 s input hold
-        int afterimage = 0;
-        while (m.KillerSees(m[0]) is { } entry && afterimage < 100)
-        {
-            // The killer frame no longer marks afterimages: the entry looks exactly like a live Signal.
-            Assert.True(m.KillerSeesAfterimage(m[0]));
-            Assert.Equal((byte)PlayerFlags.Signal, entry.Flags);
-            Assert.Equal(0, entry.Id);
-            Assert.Equal(last.X, entry.X);
-            Assert.Equal(last.Z, entry.Z);
-            m.Tick();
-            ++afterimage;
-        }
-        Assert.Equal(20, afterimage);
-        Assert.Equal(0, m.Truth(m[0]).Flags & (byte)PlayerFlags.Afterimage); // a killer-only detail
-        Assert.Null(m.KillerSees(m[1]));
     }
 
     [Fact]
@@ -331,9 +303,14 @@ public sealed class SkillTests
         Use(a, SkillIds.DummyPacket); // Lagging cannot use skills
         m.Tick();
         Assert.Empty(a.All<S2C_SkillEffect>());
+        b.Send(new C2S_Interact { Active = 1 }); // R3: hold E to restore
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         m.Tick(60);
         Assert.Equal((byte)PlayerStatus.Normal, m.Truth(a).Status);
+        Use(a, SkillIds.DummyPacket); // R3: refused while getting up (1.5 s)
+        m.Tick();
+        Assert.Empty(a.All<S2C_SkillEffect>());
+        m.Tick(30);
         Use(a, SkillIds.DummyPacket);
         m.Tick();
         Assert.Single(a.All<S2C_SkillEffect>());

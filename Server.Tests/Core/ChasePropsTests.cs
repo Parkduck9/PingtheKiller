@@ -275,7 +275,7 @@ public sealed class ChasePropsTests
         m.Tick(Ticks(GameConstants.ChaseSignalTailSeconds) - 2);
         Assert.NotNull(m.KillerSees(s));
         m.Tick(3);
-        if (m.Killer.Last<S2C_MatchStart>().SkillId != SkillIds.PacketAfterimage) Assert.Null(m.KillerSees(s));
+        if (m.Killer.Last<S2C_MatchStart>().SkillId != SkillIds.PacketTrace) Assert.Null(m.KillerSees(s));
         Assert.All(m.Killer.Last<S2C_WorldState>().Players, p => Assert.True(p.Role == (byte)Role.Killer || p.Chase == 0));
     }
 

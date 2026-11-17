@@ -87,6 +87,7 @@ public sealed class CaptureRescueTests
         m.WalkTo(b, 6.6f, 26, GameConstants.SurvivorSpeed); // 1.6 m from the Lagging survivor: not yet in range
         m.Tick(3);
         Assert.Equal(0, m.Truth(b).Flags & (byte)PlayerFlags.Rescuing);
+        b.Send(new C2S_Interact { Active = 1 }); // R3: a rescue needs the E hold
         m.Step(b, -1, 0); // 1.4 m: contact tick 1
         m.Tick(58);
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(m[0]).Status);
@@ -114,6 +115,7 @@ public sealed class CaptureRescueTests
         var b = m[1];
         m.WalkTo(b, 6.6f, 26, GameConstants.SurvivorSpeed);
         m.Tick(3);
+        b.Send(new C2S_Interact { Active = 1 });
         m.Step(b, -1, 0);
         m.Tick(57); // 2.9 s of contact
         m.Step(b, 1, 0); // one tick out of range

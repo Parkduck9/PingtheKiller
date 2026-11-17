@@ -35,8 +35,8 @@ public sealed class QaU6aProtocolTests
         };
 
         byte[] frame = PacketCodec.Encode(state);
-        // Header (4 bytes) + Id (2 bytes) + Payload (25 bytes) = 31 bytes
-        Assert.Equal(31, frame.Length);
+        // Header (4 bytes) + Id (2 bytes) + Payload (25 bytes, plus the 4 route bytes of 11/17 R2) = 35 bytes
+        Assert.Equal(35, frame.Length);
 
         var back = RoundTrip(state);
         Assert.Equal(state.SkillCooldown, back.SkillCooldown);
@@ -52,24 +52,22 @@ public sealed class QaU6aProtocolTests
     [Trait("Category", "QaU6a")]
     public void SelfStateInvalidActionKindIsRejected()
     {
-        var state = new S2C_SelfState { ActionKind = 7 }; // v0.7: 4-6 are Pull, Vault, Break
+        var state = new S2C_SelfState { ActionKind = 8 }; // v0.7: 4-6 are Pull, Vault, Break; R3: 7 is Rescue
         // Orchestrator: enum ranges are validated on decode only (codec convention), so encode is not asserted.
 
         byte[] valid = PacketCodec.Encode(new S2C_SelfState { ActionKind = (byte)ActionKind.HatchClose });
-        valid[^1] = 7; // Corrupt ActionKind to 7 (v0.7 defines 4-6)
+        valid[^1] = 8; // Corrupt ActionKind to 8 (v0.7 defines 4-6, R3 adds 7)
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.S2C_SelfState, valid.AsSpan(6)));
     }
 
     [Fact]
     [Trait("Category", "QaU6a")]
-    public void SyncResultInvalidResultIsRejected()
+    // 11/17 (R2): replaces SyncResultInvalidResultIsRejected (the sync check packets are retired).
+    public void HackInputInvalidDirectionIsRejected()
     {
-        var result = new S2C_SyncResult { CheckId = 1, Result = 3 };
-        // Orchestrator: enum ranges are validated on decode only (codec convention), so encode is not asserted.
-
-        byte[] valid = PacketCodec.Encode(new S2C_SyncResult { CheckId = 1, Result = (byte)SyncResult.Great });
-        valid[^1] = 3; // Corrupt Result to 3
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.S2C_SyncResult, valid.AsSpan(6)));
+        byte[] valid = PacketCodec.Encode(new C2S_HackInput { RouteId = 1, Direction = (byte)RouteDirection.Right });
+        valid[^1] = 4; // Corrupt Direction to 4 (0-3 are Up, Down, Left, Right)
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.C2S_HackInput, valid.AsSpan(6)));
     }
 
     [Fact]
@@ -115,13 +113,13 @@ public sealed class QaU6aProtocolTests
 
     [Fact]
     [Trait("Category", "QaU6a")]
-    public void WorldStateTerminalFlagsAboveThreeAreRejected()
+    public void WorldStateTerminalFlagsAboveSevenAreRejected()
     {
         var world = new S2C_WorldState
         {
             Terminals = new List<TerminalState>
             {
-                new TerminalState { Id = 0, X = 10, Z = 25, Progress = 50, Flags = 4 }
+                new TerminalState { Id = 0, X = 10, Z = 25, Progress = 50, Flags = 8 }
             }
         };
         // Orchestrator: enum ranges are validated on decode only (codec convention), so encode is not asserted.
@@ -130,15 +128,15 @@ public sealed class QaU6aProtocolTests
         {
             Terminals = new List<TerminalState>
             {
-                new TerminalState { Id = 0, X = 10, Z = 25, Progress = 50, Flags = 3 }
+                new TerminalState { Id = 0, X = 10, Z = 25, Progress = 50, Flags = 7 }
             }
         });
         // Find the Flags byte (it is the last byte of TerminalState, right before players count 0)
         // TerminalState is 11 bytes: Id(1), X(4), Z(4), Progress(1), Flags(1).
-        // Flags was set to 3.
-        int flagsOffset = Array.LastIndexOf(valid, (byte)3);
+        // Flags was set to 7 (R1: Locked = 4 is defined).
+        int flagsOffset = Array.LastIndexOf(valid, (byte)7);
         Assert.True(flagsOffset > 0);
-        valid[flagsOffset] = 4;
+        valid[flagsOffset] = 8;
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)PacketId.S2C_WorldState, valid.AsSpan(6)));
     }
 

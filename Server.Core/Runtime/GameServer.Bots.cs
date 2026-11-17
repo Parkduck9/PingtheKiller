@@ -30,6 +30,7 @@ namespace PingTheKiller.ServerCore
         private readonly Dictionary<Player, BotBrain> _brains = new Dictionary<Player, BotBrain>();
         private readonly SurvivorBotView _survivorBotView = new SurvivorBotView();
         private readonly KillerBotView _killerBotView = new KillerBotView();
+        private readonly S2C_SelfState _routeScratch = new S2C_SelfState();
 
         // Test hook (U2d fair-information test, Server.Tests only; internal, so the console host and the offline client
         // cannot set it): called with (bot Id, true) right before that bot's view is filled and with (bot Id, false) right
@@ -55,6 +56,8 @@ namespace PingTheKiller.ServerCore
                         intent = brain.Update(_killerBotView, Nav, Map, _random);
                         if (brain.VaultWanted) intent.Interact = !bot.Interacting;
                         brain.Tactics.Killer(_killerBotView, Nav, ref intent);
+                        // R1 (11/17): a swing keeps its aim (the chase-prop route may turn the body, not the strike).
+                        if (brain.Striking) intent.Yaw = brain.StrikeYaw;
                     }
                     else
                     {
@@ -65,12 +68,16 @@ namespace PingTheKiller.ServerCore
                         intent = brain.Update(_survivorBotView, Nav, Map, _random);
                         if (brain.VaultWanted) intent.Interact = !bot.Interacting;
                         brain.Tactics.Survivor(_survivorBotView, Nav, ref intent);
+                        intent.HackKey = brain.Route.Update(_survivorBotView, intent.Interact, bot.RouteBotRandom,
+                            out intent.HackRouteId, out intent.HackDirection);
                     }
                 }
                 finally { BotProbeForTests?.Invoke(bot.Id, false); }
                 ApplyMove(bot, new C2S_MoveInput { DirX = intent.DirX, DirZ = intent.DirZ, Yaw = intent.Yaw, Seq = bot.Seq + 1 });
                 SetInteract(bot, (byte)(intent.Interact ? 1 : 0));
                 if (intent.UseSkill) RequestSkill(bot, bot.Skill);
+                if (intent.HackKey) HackInput(bot, intent.HackRouteId, intent.HackDirection);
+                if (intent.Attack) RequestAttack(bot);
             }
         }
 
@@ -117,6 +124,15 @@ namespace PingTheKiller.ServerCore
             view.KillerZ = view.KillerVisible ? _killer.Z : 0;
             view.KillerYaw = view.KillerVisible ? _killer.Yaw : 0;
             FillShutters(view.Shutters);
+            // The own Hacking flag (own WorldState entry) and the own route (own S2C_SelfState): nothing about anyone else.
+            view.Hacking = bot.Hacking;
+            var route = _routeScratch;
+            route.RouteId = route.RouteLength = route.RouteDirs = route.RouteIndex = 0;
+            SetRouteState(bot, route);
+            view.RouteId = route.RouteId;
+            view.RouteLength = route.RouteLength;
+            view.RouteDirs = route.RouteDirs;
+            view.RouteIndex = route.RouteIndex;
         }
 
         private void FillShutters(byte[] states)
@@ -141,7 +157,11 @@ namespace PingTheKiller.ServerCore
                     view.Blips.Add(new KillerBotView.Blip { X = entry.X, Z = entry.Z, Lagging = entry.Status == (byte)PlayerStatus.Lagging });
             if (view.Terminals.Length < _terminals.Length) view.Terminals = new KillerBotView.Terminal[_terminals.Length];
             for (int i = 0; i < _terminals.Length; i++)
-                view.Terminals[i] = new KillerBotView.Terminal { X = _terminals[i].X, Z = _terminals[i].Z, Done = _terminals[i].Progress >= 100 };
+                view.Terminals[i] = new KillerBotView.Terminal
+                {
+                    X = _terminals[i].X, Z = _terminals[i].Z, Done = _terminals[i].Progress >= 100,
+                    Locked = (TerminalFlagsFor(i, true) & (byte)TerminalFlags.Locked) != 0
+                };
             view.TerminalCount = _terminals.Length;
             view.Exits = FillExits(view.Exits, out view.ExitCount);
             view.HatchVisible = HatchVisibleTo(bot);

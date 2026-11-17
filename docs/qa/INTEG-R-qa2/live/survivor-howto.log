@@ -1,0 +1,99 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/integ-1117b/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.078 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.590100 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\menu.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\howto-survivor.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\howto-killer.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\lobby.png
+[fx] warm ms=17.5 objects=124 meshes=12 materials=21 glyphs=9
+[DEV] match 1 start role=Survivor skill=2
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.01 local status=Normal timer=0.00 hud="" pos=4.00,76.00
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] match start players=8 killer=5 matchSeed=-279858165
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\play-1s.png
+[DEV] t=1.02 local position 4.00,76.00 moved=0.00 m
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\survivor-3p.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\play-4s.png
+[DEV] t=5.00 local position 4.00,76.00 moved=0.00 m
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=5.91 event skillfx-survivor-s0-ally-720p.png
+[fx] survivor skill=0 viewer=Ally line="" visual=WireDouble sound=Dummy (positional) reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[fx] first cast WireDouble frame ms=6.1 (average before 6.1)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\skillfx-survivor-s0-ally-720p.png
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=6.36 event skillfx-survivor-s4-ally-720p.png
+[fx] survivor skill=4 viewer=Ally line="Bot 6 sent fake Signals across the map · 1.5 s" visual=Static sound=WhiteNoise (positional) reduced=False
+[net] SkillEffect skill=4 (survivor HUD)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\skillfx-survivor-s4-ally-720p.png
+[DEV] t=6.75 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=6.75 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\hacking.png
+[DEV] t=7.20 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=7 terminal=7 error progress=0.0
+[DEV] t=7.25 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=3 terminal=5 complete progress=5.0
+[DEV] t=7.30 terminals 0:0 1:0 2:0 3:0 4:0 5:5 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.20 terminals 0:0 1:0 2:0 3:0 4:0 5:6 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.90 terminals 0:0 1:0 2:0 3:0 4:0 5:7 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.70 terminals 0:0 1:0 2:0 3:0 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.60 terminals 0:0 1:0 2:0 3:1 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=5 role=Killer id=1
+[offline server] route player=6 terminal=3 complete progress=5.1
+[DEV] t=20.80 terminals 0:0 1:0 2:0 3:5 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=1 Lagging reason=capture
+[offline server] swing player=5 result=hit target=1
+[audio] v2 cue Capture
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=21.25 event r3-ally-edge.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117b\docs\qa\INTEG-R-qa2\live\survivor-howto\r3-ally-edge.png
+[DEV] t=21.55 terminals 0:0 1:0 2:0 3:6 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.70 terminals 0:0 1:0 2:0 3:7 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=6 terminal=3 error progress=5.3
+[DEV] t=24.05 terminals 0:0 1:0 2:0 3:5 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.60 terminals 0:0 1:0 2:0 3:6 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=2 Lagging reason=capture
+[offline server] swing player=5 result=hit target=2
+[audio] v2 cue Capture
+[fx] capture impact scheduled (dev log, no position)
+[DEV] quit after 30 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

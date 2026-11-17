@@ -3,7 +3,6 @@ using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.World;
 using PingTheKiller.Shared.Game;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace PingTheKiller.Client.UI.RulesV2
@@ -13,7 +12,7 @@ namespace PingTheKiller.Client.UI.RulesV2
     // HUD_SPEC 13 gives for the wired HUD; terminal and exit markers are projected from the static map with the live camera.
     public sealed class RulesV2Preview : MonoBehaviour
     {
-        public static readonly string[] Scenarios = { "sync-check", "exit-switch-hold", "kick-terminal", "collapse-urgent", "result-v2", "result-v2-killer" };
+        public static readonly string[] Scenarios = { "route-panel", "exit-switch-hold", "kick-terminal", "collapse-urgent", "result-v2", "result-v2-killer" };
         // HUD_SPEC 6.1: the Killer cluster in normal play (info + skill) ends 176 u above the bottom edge.
         private const float KillerClusterTop = 24 + 72 + 8 + 72;
         private string scenario;
@@ -22,8 +21,8 @@ namespace PingTheKiller.Client.UI.RulesV2
         private PanelSettings panel;
         private VisualElement root;
         private Font font;
-        private SyncLockBar ring;
-        private readonly SyncCheckState sync = new SyncCheckState();
+        private RoutePanel ring;
+        private readonly RouteTracker route = new RouteTracker();
         private HoldActionBar hold;
         private ObjectiveRow objective;
         private VisualElement killerStack;
@@ -32,10 +31,8 @@ namespace PingTheKiller.Client.UI.RulesV2
         private ResultV2Panel result;
         private float started = -1;
         private int step;
-        private double resultDueAt = -1;
-        private uint checkId;
-        private SyncCheckView check;
-        private bool checkPresent;
+        private int routeStage = -1;
+        private float keyAt;
         public bool Done { get; private set; }
 
         public static bool Known(string value) => Array.IndexOf(Scenarios, value) >= 0;
@@ -62,7 +59,6 @@ namespace PingTheKiller.Client.UI.RulesV2
             font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
             Build();
-            sync.Press += id => { Debug.Log("[DEV] preview sync press check " + id + " at " + sync.PressFraction.ToString("0.000")); resultDueAt = Time.realtimeSinceStartupAsDouble + .06; };
             started = Time.realtimeSinceStartup;
             Debug.Log("[DEV] preview v2 hud " + scenario + " (" + role + ")");
         }
@@ -85,7 +81,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             if (role == Role.Survivor)
             {
                 VisualElement stack = V2Ui.Box(overlay, "v2-survivor-stack");
-                ring = new SyncLockBar(sync, font);
+                ring = new RoutePanel(route, font);
                 stack.Add(ring);
                 hold = new HoldActionBar(Role.Survivor, font);
                 stack.Add(hold);
@@ -114,7 +110,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             markers.Begin();
             switch (scenario)
             {
-                case "sync-check": SyncCheck(t); break;
+                case "route-panel": Route(t); break;
                 case "exit-switch-hold": ExitSwitch(t); break;
                 case "kick-terminal": Kick(t, scale); break;
                 case "collapse-urgent": Collapse(t, scale); break;
@@ -129,37 +125,35 @@ namespace PingTheKiller.Client.UI.RulesV2
             shot?.Invoke(name);
         }
 
-        // Two checks: the first is shot mid-sweep (zone and great part ahead of the needle); the second is pressed
-        // inside the great part and the stand-in server answers 60 ms later with the Judge of the press. Space / A presses too.
-        private void SyncCheck(float t)
+        // HUD_SPEC 13.2 (11/17, R2), stand-in server: route 1 (Up Right Right Down) is answered right at 0.3 s per key and
+        // shot after two keys, then on its +8 % flash; route 2 (Left Up Down Right) takes a wrong second key and is shot on the
+        // error line. Nothing is sent anywhere.
+        private void Route(float t)
         {
+            double now = Time.realtimeSinceStartupAsDouble;
             hold.Set("Hacking Terminal 2 · 47%", .47f);
-            float second = t < 2.5f ? .5f : 3f;
-            uint id = t < 2.5f ? 1u : 2u;
-            float elapsed = t - second;
-            if (elapsed >= 0 && id != checkId)
+            byte first = Pack(RouteDirection.Up, RouteDirection.Right, RouteDirection.Right, RouteDirection.Down);
+            byte second = Pack(RouteDirection.Left, RouteDirection.Up, RouteDirection.Down, RouteDirection.Right);
+            if (routeStage < 0 && t >= .3f) { route.OnSelf(1, 4, first, 0, now); routeStage = 0; keyAt = t; }
+            if (routeStage == 3 && t >= keyAt + .9f) { route.OnSelf(0, 0, 0, 0, now); route.OnSelf(2, 4, second, 0, now); routeStage = 4; keyAt = t; }
+            if (routeStage >= 0 && route.Present && t >= keyAt + .3f)
             {
-                checkId = id; checkPresent = true;
-                check = new SyncCheckView { CheckId = id, Duration = 1.1f, ZoneStart = .62f, ZoneSize = .12f, GreatSize = .035f };
+                keyAt = t;
+                RouteDirection key = route.RouteId == 2 && route.Index == 1 ? RouteDirection.Right : route.Expected;
+                route.TryPress(key, now, out _);
             }
-            if (checkPresent)
-            {
-                check.Elapsed = Mathf.Max(0, elapsed);
-                bool expired = check.Elapsed > check.Duration + SyncCheckMath.ToleranceSeconds;
-                if (resultDueAt >= 0 && Time.realtimeSinceStartupAsDouble >= resultDueAt && !check.Result.HasValue)
-                    check.Result = SyncCheckMath.Judge(sync.PressFraction, check, SyncCheckMath.ToleranceFraction(check.Duration));
-                else if (expired && !sync.Pressed && !check.Result.HasValue) check.Result = SyncResult.Fail;
-            }
-            sync.Update(check, checkPresent, Time.realtimeSinceStartupAsDouble);
-            var pad = Gamepad.current; var keys = Keyboard.current;
-            ring.SetGlyph(pad != null && keys == null ? "A" : "Space");
-            if ((keys != null && keys.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame)) sync.TryPress();
-            if (id == 2 && !sync.Pressed && sync.Visible && sync.Needle >= .625f) sync.TryPress();
-            ring.Refresh();
-            if (step == 0 && id == 1 && sync.Needle >= .5f) Shoot("v2-sync-check.png");
-            else if (step == 1 && id == 2 && sync.Result.HasValue && sync.Visible) { Shoot("v2-sync-check-result.png"); Debug.Log("[DEV] preview sync result " + sync.Result); }
-            else if (step == 2 && t > 5) Done = true;
-            if (resultDueAt >= 0 && check.Result.HasValue) resultDueAt = -1;
+            ring.Refresh(true, RouteCopy.KeyboardGlyph, now);
+            if (step == 0 && route.RouteId == 1 && route.Index == 2) { Shoot("v2-route-panel-mid.png"); routeStage = 1; }
+            else if (step == 1 && route.DoneFlash(now)) { Shoot("v2-route-panel-done.png"); routeStage = 3; keyAt = t; }
+            else if (step == 2 && route.ErrorShown(now) && route.Shake(now) > .3f) { Shoot("v2-route-panel-error.png"); Debug.Log("[DEV] preview route error \"" + ring.LabelText + "\""); }
+            else if (step == 3 && t > keyAt + 2) Done = true;
+        }
+
+        private static byte Pack(params RouteDirection[] dirs)
+        {
+            byte packed = 0;
+            for (int i = 0; i < dirs.Length; i++) packed = HackRoute.WithDirection(packed, i, dirs[i]);
+            return packed;
         }
 
         private void ExitSwitch(float t)
@@ -172,7 +166,7 @@ namespace PingTheKiller.Client.UI.RulesV2
                 new ExitView { Id = 1, Powered = true, LockedLeft = -1 }
             };
             objective.Set(exits, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
-            ring.Refresh();
+            ring.Refresh(false, RouteCopy.KeyboardGlyph, Time.realtimeSinceStartupAsDouble);
             if (step == 0 && t >= 1.8f) Shoot("v2-exit-switch-hold.png");
             else if (step == 1 && t > 3) Done = true;
         }
@@ -200,7 +194,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             {
                 hold.Hide();
                 objective.Set(exits, collapse);
-                ring.Refresh();
+                ring.Refresh(false, RouteCopy.KeyboardGlyph, Time.realtimeSinceStartupAsDouble);
             }
             else
             {

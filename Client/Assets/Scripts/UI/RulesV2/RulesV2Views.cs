@@ -6,24 +6,11 @@ namespace PingTheKiller.Client.UI.RulesV2
     // View models for the rules v2 HUD (HUD_SPEC 13). They mirror protocol v0.4 (U6a) field for field, so the widgets
     // do not depend on packet classes; the wiring copies the packet values in. Numeric enum values equal the wire values.
 
-    // S2C_SyncResult.Result uses PingTheKiller.Shared.Game.SyncResult directly (one shared definition, AGENTS.md 1).
-
     // S2C_SelfState.ActionKind.
     public enum HoldKind : byte { None = 0, ExitSwitch = 1, KickTerminal = 2, CloseHatch = 3 }
 
     // S2C_GameResult.Reason in protocol v0.4.
     public enum ResultReasonV2 : byte { AllResolved = 0, AllSurvivorsDown = 1, TimeUp = 2, Collapse = 3 }
-
-    // S2C_SyncCheck {Duration, ZoneStart, ZoneSize, GreatSize} + the local time since it arrived + S2C_SyncResult.
-    // Fractions are of one needle sweep (0 = 12 o'clock, 1 = a full clockwise turn). The great part is the first
-    // GreatSize of the zone.
-    public struct SyncCheckView
-    {
-        public uint CheckId;
-        public float Duration, ZoneStart, ZoneSize, GreatSize;
-        public float Elapsed;
-        public SyncResult? Result;
-    }
 
     // S2C_WorldState ExitState {Flags: Powered=1, Open=2, Locked=4; SwitchProgress 0..100 / 100}. Number = Id + 1.
     public struct ExitView
@@ -62,12 +49,12 @@ namespace PingTheKiller.Client.UI.RulesV2
     public struct TerminalFlagsView
     {
         public byte Id;
-        public bool Regressing, Overloaded;
+        public bool Regressing, Overloaded, Locked; // R1 (11/17): Locked = TerminalFlags.Locked (Firewall block)
         // TerminalState.Progress / 100 (the Killer view receives 0 or 1 only).
         public float Progress01;
 
         public static TerminalFlagsView FromWire(byte id, byte progress, byte flags)
-            => new TerminalFlagsView { Id = id, Progress01 = progress / 100f, Regressing = (flags & 1) != 0, Overloaded = (flags & 2) != 0 };
+            => new TerminalFlagsView { Id = id, Progress01 = progress / 100f, Regressing = (flags & 1) != 0, Overloaded = (flags & 2) != 0, Locked = (flags & 4) != 0 };
     }
 
     public struct ResultRow

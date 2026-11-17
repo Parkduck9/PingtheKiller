@@ -98,7 +98,9 @@ public sealed class U2bSweepTests
                 {
                     bool zero = e.X == 0 && e.Z == 0;
                     bool exit = Map.Exits.Any(x => e.X == x.X && e.Z == x.Z); // v0.4: either exit
-                    if (!zero && !exit) St.Violation($"survivor-bound killer effect {e.SkillId} carries ({e.X},{e.Z})" + ctx);
+                    // R1 (11/17): a Firewall block on a terminal carries that terminal's public position.
+                    bool terminal = e.SkillId == SkillIds.FirewallBlock && Map.TerminalPositions.Any(t => e.X == t.X && e.Z == t.Z);
+                    if (!zero && !exit && !terminal) St.Violation($"survivor-bound killer effect {e.SkillId} carries ({e.X},{e.Z})" + ctx);
                 }
                 else if (e.SkillId == SkillIds.DummyPacket) { _dummies[e.CasterId] = (e.X, e.Z, tick + 85); /* 3 s dummy + 1 s afterimage tail + slack */ St.SurvivorSkillsCast.Add(e.SkillId); }
                 else St.SurvivorSkillsCast.Add(e.SkillId);
@@ -197,15 +199,13 @@ public sealed class U2bSweepTests
                     var e = kw.Players[i];
                     var s = src[i];
                     if (e.Role == (byte)Role.Killer) { if (s.Phantom || s.Label != kId) St.Violation("killer entry mislabelled" + ctx); continue; }
-                    if (s.Afterimage && KillerSkill != SkillIds.PacketAfterimage) St.Violation("afterimage entry although the killer has no Packet Afterimage" + ctx);
                     if (s.Phantom)
                     {
                         St.DecoyEntries++;
-                        if (s.Afterimage) St.AfterimageEntries++;
                         if (e.Status != (byte)PlayerStatus.Normal) St.Violation("phantom with Status " + e.Status + ctx);
                         if (!Map.CanStand(e.X, e.Z)) St.Violation($"phantom inside a wall at ({e.X},{e.Z})" + ctx);
                     }
-                    else if (!shownReal.TryAdd(s.Label, (e, s.Afterimage))) St.Violation("real survivor " + s.Label + " shown twice" + ctx);
+                    else if (!shownReal.TryAdd(s.Label, (e, false))) St.Violation("real survivor " + s.Label + " shown twice" + ctx);
                 }
             }
             foreach (var t in sw.Players)
@@ -248,7 +248,7 @@ public sealed class U2bSweepTests
                 bool afterExempt = isAfter && sh.E.X == t.X && sh.E.Z == t.Z;                                  // stationary since the last Signal
                 // U2d re-target: the match-end frame is unaligned (labels already cleared), so an afterimage cannot be told apart
                 // there; exempt the same case the aligned rule allows (Afterimage killer, last seen position, at most 1 s ago).
-                if (!aligned && (resultK || resultS) && KillerSkill == SkillIds.PacketAfterimage &&
+                if (!aligned && (resultK || resultS) && KillerSkill == SkillIds.PacketTrace &&
                     _lastReal.TryGetValue(t.Id, out var endSeen) && endSeen.X == t.X && endSeen.Z == t.Z && tick - endSeen.Tick <= 22)
                     afterExempt = true;
                 if (dummyExempt || afterExempt) continue;
@@ -260,7 +260,7 @@ public sealed class U2bSweepTests
                         var carriers = new List<string>();
                         for (int q = 0; q < kw.Players.Count; q++)
                             if (kw.Players[q].X == t.X && kw.Players[q].Z == t.Z)
-                                carriers.Add(aligned ? $"label={src[q].Label} phantom={src[q].Phantom} afterimage={src[q].Afterimage} role={kw.Players[q].Role}" : "unaligned");
+                                carriers.Add(aligned ? $"label={src[q].Label} phantom={src[q].Phantom} role={kw.Players[q].Role}" : "unaligned");
                         St.Violation($"true (X,Z) of silent survivor {t.Id} in a killer-bound frame; carriers: {string.Join(";", carriers)}; dummy={(_dummies.TryGetValue(t.Id, out var dq) ? dq.X + "," + dq.Z + " until " + dq.Until : "none")}" + ctx);
                     }
                     foreach (float f in new[] { t.X, t.Z })
@@ -411,7 +411,8 @@ public sealed class U2bSweepTests
         _out.WriteLine($"survivor frames with line of sight={sweep.SightFrames} blocked={sweep.BlockedFrames}");
         Assert.True(sweep.BlockedFrames > 5000 && sweep.SightFrames > 1000, $"blocked {sweep.BlockedFrames} / sight {sweep.SightFrames}");
         Assert.True(st.DecoyEntries > 150, "decoy entries " + st.DecoyEntries);
-        Assert.True(st.AfterimageEntries > 20, "afterimage entries " + st.AfterimageEntries);
+        // R1 (11/17): no skill keeps an entry after its Signal any more (Packet afterimage became Packet trace).
+        Assert.Equal(0, st.AfterimageEntries);
         Assert.Equal(new byte[] { 0, 1, 2, 3 }, st.KillerSkills.OrderBy(x => x));
         Assert.Superset(new HashSet<byte> { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise }, st.SurvivorSkillsCast.ToHashSet());
     }
@@ -704,7 +705,7 @@ public sealed class U2bSweepTests
         int id = r.S[0].Id;
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
-        r.Tick(180); // GDD v2: 45 s per terminal, 9 s = 20 %
+        r.Tick(360); // GDD v2 (11/17 R2): 90 s passive per terminal, 18 s = 20 %
         int progress = r.S[1].World().Terminals[0].Progress;
         Assert.InRange(progress, 19, 21);
         r.S[0].Connection.Close();
@@ -718,7 +719,7 @@ public sealed class U2bSweepTests
         r.Tick(20);
         Assert.Equal(progress, r.S[1].World().Terminals[0].Progress); // the hold did not survive the disconnect
         back.Send(new C2S_Interact { Active = 1 });
-        r.Tick(90); // GDD v2: 4.5 s = 10 %
+        r.Tick(180); // GDD v2 (11/17 R2): 9 s = 10 % of the 90 s passive time
         Assert.InRange(r.S[1].World().Terminals[0].Progress - progress, 9, 11);
     }
     // ------------------------------------------------------------------ thread races between the loop thread and transport callbacks

@@ -14,9 +14,10 @@ public sealed class ProtocolV03Tests
         Assert.Equal((ushort)0x0010, (ushort)PacketId.S2C_SelfState);
         var packet = new S2C_SelfState { SkillCooldown = 7.25f, RescueProgress = 0.5f, InvulnerableLeft = 1.95f, ExecutionGraceLeft = float.Epsilon };
         byte[] frame = PacketCodec.Encode(packet);
-        // v0.4 appends CollapseLeft, ActionProgress (floats) and ActionKind (byte): 25 bytes.
-        Assert.Equal(4 + 2 + 25, frame.Length);
-        Assert.Equal(new byte[] { 27, 0, 0, 0, 0x10, 0 }, frame.Take(6));
+        // v0.4 appends CollapseLeft, ActionProgress (floats) and ActionKind (byte): 25 bytes; 11/17 (R2) appends the own
+        // route (RouteId, RouteLength, RouteDirs, RouteIndex): 29 bytes.
+        Assert.Equal(4 + 2 + 29, frame.Length);
+        Assert.Equal(new byte[] { 31, 0, 0, 0, 0x10, 0 }, frame.Take(6));
         Assert.Equal(BitConverter.GetBytes(7.25f), frame.Skip(6).Take(4));
         Assert.Equal(BitConverter.GetBytes(float.Epsilon), frame.Skip(18).Take(4));
         var decoded = Assert.IsType<S2C_SelfState>(PacketCodec.Decode(0x0010, frame.AsSpan(6)));
@@ -25,8 +26,8 @@ public sealed class ProtocolV03Tests
         Assert.Equal(1.95f, decoded.InvulnerableLeft);
         Assert.Equal(float.Epsilon, decoded.ExecutionGraceLeft);
         Assert.Equal(-1f, decoded.CollapseLeft);
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, frame.AsSpan(6, 24)));
-        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, new byte[26]));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, frame.AsSpan(6, 28)));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0010, new byte[30]));
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(0x0014, Array.Empty<byte>()));
     }
 
@@ -172,6 +173,7 @@ public sealed class ProtocolV03Tests
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(a).Status);
         m.WalkTo(m.Killer, 5, 20, GameConstants.KillerSpeed);
         Assert.Equal(0f, Now(a).RescueProgress);
+        b.Send(new C2S_Interact { Active = 1 }); // R3: the rescue counts only while E is held
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         // b arrived this tick: the rescue has counted one tick (0.05 s of 3 s) for both.
         Assert.Equal(0.05f / 3f, Now(a).RescueProgress, 4);
@@ -216,13 +218,13 @@ public sealed class ProtocolV03Tests
         var a = m[0];
         m.WalkTo(a, 9.5f, 25.5f, GameConstants.SurvivorSpeed);
         a.Send(new C2S_Interact { Active = 1 });
-        for (int tick = 0; tick < 901; tick++)
+        for (int tick = 0; tick < 1801; tick++) // 11/17 (R2): 90 s passive
         {
             m.Tick();
             byte exact = a.Last<S2C_WorldState>().Terminals[0].Progress;
             byte killer = m.Killer.Last<S2C_WorldState>().Terminals[0].Progress;
             Assert.Equal(exact >= 100 ? 100 : 0, killer);
-            if (tick == 450) Assert.InRange(exact, 50, 51);
+            if (tick == 900) Assert.InRange(exact, 50, 51);
         }
         Assert.Equal(100, m.Killer.Last<S2C_WorldState>().Terminals[0].Progress);
         Assert.All(m.Killer.All<S2C_WorldState>().SelectMany(w => w.Terminals), t => Assert.True(t.Progress == 0 || t.Progress == 100));

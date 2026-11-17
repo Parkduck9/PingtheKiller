@@ -99,7 +99,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             // Row 3: Lagging survivor being rescued
             MeterState mRescue = SurvivorReadout.Meter(own, self, 0, 0);
             Assert.That(mRescue.Word, Is.EqualTo("Lagging"));
-            Assert.That(mRescue.Reason, Does.Contain("Rescue in progress"));
+            Assert.That(mRescue.Reason, Does.Contain("Being rescued"));
             Assert.That(mRescue.Fill, Is.EqualTo(BarFill.Ally));
             Assert.That(mRescue.Width, Is.EqualTo(0.65f).Within(1e-3f));
 
@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
                 }
             }
 
-            Assert.That(s2cCount, Is.EqualTo(12), "Protocol v0.6 defines exactly 12 S2C packet types (adds S2C_SkillRejected)");
+            Assert.That(s2cCount, Is.EqualTo(10), "Protocol v0.6 defines 12 S2C packet types (adds S2C_SkillRejected); 11/17 (R2) retires S2C_SyncCheck and S2C_SyncResult");
         }
     }
 }

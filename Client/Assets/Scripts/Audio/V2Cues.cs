@@ -6,7 +6,8 @@ using PingTheKiller.Shared.Packets;
 namespace PingTheKiller.Client.Audio
 {
     // Rules v2 event cues (2D one-shots). The hold loop (exit switch, kick, hatch close) is separate: V2CueSynth.BuildHold.
-    public enum V2Cue : byte { SyncGreat, SyncGood, SyncFail, ExitsPowered, ExitOpen, CollapseStart, HatchOpen, HatchClose, Capture, Rescue, TerminalKick }
+    // R1 (11/17): SwingWhoosh is the Killer's own swing (a2: played on the local press), played directly, never by V2CueRules.
+    public enum V2Cue : byte { RouteKey, RouteDone, RouteError, ExitsPowered, ExitOpen, CollapseStart, HatchOpen, HatchClose, Capture, Rescue, TerminalKick, SwingWhoosh }
 
     // Pure trigger rules: snapshots in, edges out. The caller plays whatever lands in Pending and clears it. The first
     // WorldState after Begin only sets the baseline; every cue fires on an edge, at most once per kind and snapshot.
@@ -57,11 +58,12 @@ namespace PingTheKiller.Client.Audio
             HoldKind = ActionKind.None; holdProgress = 0; holdAt = 0;
         }
 
-        // SyncCheckTracker.Resolved: the first result of the current check (Survivor only).
-        public void OnSync(SyncResult result)
+        // 11/17 (R2) packet routing, the own keys (Survivor only): RouteTracker.Key (a right key ticks; a wrong one is the
+        // error cue alone), RouteDone and RouteFailed.
+        public void OnRoute(V2Cue cue)
         {
-            if (!active || killer) return;
-            Pending.Add(result == SyncResult.Great ? V2Cue.SyncGreat : result == SyncResult.Good ? V2Cue.SyncGood : V2Cue.SyncFail);
+            if (!active || killer || (cue != V2Cue.RouteKey && cue != V2Cue.RouteDone && cue != V2Cue.RouteError)) return;
+            Pending.Add(cue);
         }
 
         public void OnWorld(S2C_WorldState state, double now)
@@ -189,9 +191,9 @@ namespace PingTheKiller.Client.Audio
         {
             switch (cue)
             {
-                case V2Cue.SyncGreat: return .22f;
-                case V2Cue.SyncGood: return .12f;
-                case V2Cue.SyncFail: return .28f;
+                case V2Cue.RouteKey: return .08f;
+                case V2Cue.RouteDone: return .4f;
+                case V2Cue.RouteError: return .3f;
                 case V2Cue.ExitsPowered: return 1f;
                 case V2Cue.ExitOpen: return .7f;
                 case V2Cue.CollapseStart: return 1.2f;
@@ -199,6 +201,7 @@ namespace PingTheKiller.Client.Audio
                 case V2Cue.HatchClose: return .35f;
                 case V2Cue.Capture: return .3f;
                 case V2Cue.Rescue: return .5f;
+                case V2Cue.SwingWhoosh: return .26f;
                 default: return .18f; // TerminalKick
             }
         }
@@ -217,16 +220,17 @@ namespace PingTheKiller.Client.Audio
                 float t = (float)i / (n - 1), time = (float)i / rate, v;
                 switch (cue)
                 {
-                    case V2Cue.SyncGreat: // bright two notes up: B5 then E6
-                        v = .9f * (Note(time, 0, 987.77f, 24) + Note(time, .08f, 1318.51f, 12));
+                    case V2Cue.RouteKey: // soft tick: a short A6 click, quiet so a fast route stays calm
+                        v = .5f * Ramp(time, .002f) * (float)Math.Exp(-time * 70) * Sin(1760f * time);
                         break;
-                    case V2Cue.SyncGood: // one clean D6
-                        v = .9f * Ramp(time, .004f) * (float)Math.Exp(-time * 18) * Sin(1174.66f * time);
+                    case V2Cue.RouteDone: // rising chord C5 E5 G5 C6, strummed 35 ms apart
+                        v = .42f * (Note(time, 0, 523.25f, 7) + Note(time, .035f, 659.25f, 7) + Note(time, .07f, 783.99f, 7) + Note(time, .105f, 1046.5f, 7));
                         break;
-                    case V2Cue.SyncFail: // low dull buzz falling 160 -> 90 Hz
-                        p1 += 2 * Math.PI * (160 - 70 * t) / rate;
-                        low += .15f * ((float)Math.Tanh(2.5 * Math.Sin(p1)) - low);
-                        v = 1.1f * low * (1 - .5f * t);
+                    case V2Cue.RouteError: // glitch: sample-held noise steps over a buzz falling 240 -> 110 Hz
+                        if (i % Math.Max(1, rate / 80) == 0) held = (float)(noise.NextDouble() * 2 - 1);
+                        p1 += 2 * Math.PI * (240 - 130 * t) / rate;
+                        low += .2f * ((float)Math.Tanh(3 * Math.Sin(p1)) - low);
+                        v = (.5f * held + .7f * low) * (1 - .6f * t);
                         break;
                     case V2Cue.ExitsPowered: // rising hum swell 70 -> 140 Hz, peak at 80 %
                         p1 += 2 * Math.PI * (70 + 70 * t) / rate;
@@ -257,6 +261,13 @@ namespace PingTheKiller.Client.Audio
                         break;
                     case V2Cue.Rescue: // warm rising arpeggio E4 G#4 B4 E5
                         v = .42f * (Note(time, 0, 329.63f, 5) + Note(time, .08f, 415.3f, 5) + Note(time, .16f, 493.88f, 5) + Note(time, .24f, 659.25f, 5));
+                        break;
+                    case V2Cue.SwingWhoosh: // whoosh: noise through a low-pass whose cutoff sweeps up and back, sine-swelled
+                        float sweep = (float)Math.Sin(Math.PI * t);
+                        float cutoff = .04f + .3f * sweep;
+                        low += cutoff * ((float)(noise.NextDouble() * 2 - 1) - low);
+                        held += .5f * cutoff * (low - held);
+                        v = 2.6f * sweep * sweep * (low - .6f * held);
                         break;
                     default: // TerminalKick: digital crunch over a short thump
                         if (i % 14 == 0) held = (float)Math.Round((noise.NextDouble() * 2 - 1) * 2) / 2;

@@ -64,7 +64,7 @@ namespace PingTheKiller.Client.QA.Tests
             OwnEntry own = Own(PlayerStatus.Lagging); own.StatusTimer = 41.2f; own.Signal = true;
             MeterState m = SurvivorReadout.Meter(own, new Self { RescueProgress = .6f }, 0, 0);
             Assert.That(m.Word, Is.EqualTo("Lagging"));
-            Assert.That(m.Reason, Is.EqualTo("Rescue in progress " + Dash + " stay close"));
+            Assert.That(m.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(m.Fill, Is.EqualTo(BarFill.Ally));
             Assert.That(m.Width, Is.EqualTo(.6f).Within(1e-4f));
             m = SurvivorReadout.Meter(own, new Self { RescueProgress = 0f }, 0, 0);
@@ -168,7 +168,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(hud.Tag, Is.Null, "the tag label is hidden again");
             OwnEntry lagging = Own(PlayerStatus.Lagging);
             hud.SetMeter(SurvivorReadout.Meter(lagging, new Self { RescueProgress = .25f }, 0, 0));
-            Assert.That(hud.Reason, Is.EqualTo("Rescue in progress " + Dash + " stay close"));
+            Assert.That(hud.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(hud.MeterFillHas("fill-ally"), Is.True);
             Assert.That(hud.MeterFillPercent, Is.EqualTo(25f).Within(.01f));
         }
@@ -190,18 +190,16 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheKillerStateLineIsCooldownCeilOrReadyAndPassiveAndFirewallOverrideIt()
         {
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, true, 7f), Is.EqualTo("Cooldown 7 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, true, 6.01f), Is.EqualTo("Cooldown 7 s"), "ceil");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, true, .01f), Is.EqualTo("Cooldown 1 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, true, 0f), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, true, null), Is.EqualTo("Ready"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, true, 11.99f), Is.EqualTo("Cooldown 12 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, true, 5f), Is.EqualTo("Passive " + Dash + " always on"), "the passive skill has no cooldown");
-            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketAfterimage, false, null), Is.EqualTo("Passive " + Dash + " always on"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, 4f), Is.EqualTo("Needs an Exit switch in progress"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, false, null), Is.EqualTo("Needs an Exit switch in progress"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 4f), Is.EqualTo("Cooldown 4 s"));
-            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, true, 0f), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, 7f), Is.EqualTo("Cooldown 7 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, 6.01f), Is.EqualTo("Cooldown 7 s"), "ceil");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, .01f), Is.EqualTo("Cooldown 1 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, 0f), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PingScanner, null), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.Overclock, 11.99f), Is.EqualTo("Cooldown 12 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketTrace, 5f), Is.EqualTo("Cooldown 5 s"), "R1: Packet trace has a cooldown");
+            Assert.That(KillerHudCopy.SkillState(SkillIds.PacketTrace, null), Is.EqualTo("Ready"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, 4f), Is.EqualTo("Cooldown 4 s"));
+            Assert.That(KillerHudCopy.SkillState(SkillIds.FirewallBlock, 0f), Is.EqualTo("Ready"));
         }
 
         [Test]
@@ -214,16 +212,14 @@ namespace PingTheKiller.Client.QA.Tests
             var field = typeof(SkillRing).GetField("state", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null);
             var self = new Self { SkillCooldown = 5f };
-            hud.Begin(SkillIds.PacketAfterimage);
-            hud.SetSkill(SkillIds.PacketAfterimage, true, self, -1);
-            Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Passive"), "no ring for the passive skill, even with a cooldown on the wire");
+            hud.Begin(SkillIds.PacketTrace);
+            hud.SetSkill(SkillIds.PacketTrace, self, -1);
+            Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Cooldown"), "R1: Packet trace is active, its ring shows the cooldown");
             hud.Begin(SkillIds.FirewallBlock);
-            hud.SetSkill(SkillIds.FirewallBlock, false, self, -1);
-            Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Disabled"), "FirewallBlock before the Exit opens");
-            hud.SetSkill(SkillIds.FirewallBlock, true, self, -1);
+            hud.SetSkill(SkillIds.FirewallBlock, self, -1);
             Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Cooldown"));
             self.SkillCooldown = 0;
-            hud.SetSkill(SkillIds.FirewallBlock, true, self, -1);
+            hud.SetSkill(SkillIds.FirewallBlock, self, -1);
             Assert.That(field.GetValue(ring).ToString(), Is.EqualTo("Ready"));
         }
 

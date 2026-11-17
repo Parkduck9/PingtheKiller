@@ -23,7 +23,8 @@ namespace PingTheKiller.ServerCore
         private const int SmallLobbyTerminals = 5, MidLobbyTerminals = 7;
         private const float SmallLobbyNoticeRange = 7f, MidLobbyNoticeRange = 10f;
         // U6d-a3: mid lobby 0.65 -> 0.6 keeps 1v3 inside its win band once survivors commit (seeds 1001-1040 hit 78 %).
-        private const double SmallLobbyMissChance = 0.75, MidLobbyMissChance = 0.6;
+        // INTEG-R balance: mid lobby 0.6 -> 0.5 (1v3 was the weakest Killer setup after the merge).
+        private const double SmallLobbyMissChance = 0.75, MidLobbyMissChance = 0.5;
         // U6d-a3: from LateAttentionStart of the public match clock the small and mid lobby attention approaches the
         // large lobby values (NoticeRange, MissChance) by the time limit.
         internal const double LateAttentionStart = 600;
@@ -37,6 +38,20 @@ namespace PingTheKiller.ServerCore
         private const double ScannerDelaySeconds = 1;
         private const float OverclockMinDistance = 3f, OverclockMaxDistance = 10f;
         private const float FirewallExitDistance = 12f;
+        // R1 (11/17): it swings at a Normal blip within SwingTrigger metres and SwingFrontDegrees of its facing (a decoy
+        // can bait it), aiming the look yaw at that blip; Packet trace when a blip was near recently but none is now.
+        // INTEG-R balance: SwingTrigger 2.2 -> 2.75 m (the swing range).
+        internal const float SwingTrigger = 2.75f, SwingFrontDegrees = 45f;
+        private const float TraceRecentDistance = 10f;
+        private const double StrikeHoldSeconds = GameConstants.SwingWindUpSeconds + 0.1, TrailStrikeSeconds = 1.0;
+        private const float StrikeTrackDistance = 3.5f;
+        private const double TraceRecentSeconds = 4;
+        // Firewall on a terminal (no switch in progress): a Normal blip within this of an unfinished terminal.
+        private const float FirewallTerminalDistance = 6f;
+        // ... and only when the bot itself is at least this far from that terminal (it cannot get there in time).
+        private const float FirewallTerminalKillerDistance = 20f;
+        // ... and not once FirewallTerminalMaxDone terminals are finished (an all-bot endgame lock loop runs the clock out).
+        private const int FirewallTerminalMaxDone = 2;
         // U6d-a3 search mode: no Normal blip noticed for SearchSeconds (phantom tracks keep blips on the view, so the
         // view alone never runs dry) means it stops circling one place and sweeps the map,
         // cell by cell (SearchCell metres), the least recently visited cell first with a pull toward nearer ones.
@@ -59,6 +74,11 @@ namespace PingTheKiller.ServerCore
         private float[] _cellX = Array.Empty<float>(), _cellZ = Array.Empty<float>();
         private double[] _cellAt = Array.Empty<double>();
         private int _openExitTurn;
+        private double _nearBlipAt = double.NegativeInfinity, _strikeUntil = double.NegativeInfinity, _struckObservation = double.NegativeInfinity;
+        private float _strikeX, _strikeZ;
+        // Set by Strike: the look yaw the swing needs this tick (the chase-prop layer must not turn it away).
+        internal bool Striking;
+        internal float StrikeYaw;
 
         internal BotIntent Update(KillerBotView view, NavGrid nav, FixedMap map, Random random)
         {
@@ -121,8 +141,69 @@ namespace PingTheKiller.ServerCore
                     Face(ref intent, Facing + LookTurnDegreesPerSecond / GameConstants.TickRate);
             }
             else Patrol(ref intent, view, nav, map, random);
+            Strike(ref intent, view);
             UseSkills(ref intent, view);
             return intent;
+        }
+
+        // A Normal blip close and roughly in front: face it exactly and swing (the server drops presses mid-swing).
+        // Its own swing: while the wind-up runs (StrikeHoldSeconds after the press) it keeps the look on the nearest
+        // Normal blip within StrikeTrackDistance, else on the point it swung at. A Survivor that went Silent right in
+        // front of it is swung at once, at the predicted spot of the trail it follows (its own memory, like a human).
+        private void Strike(ref BotIntent intent, KillerBotView view)
+        {
+            double t = view.Time;
+            Striking = false;
+            float best = float.MaxValue, nearest = float.MaxValue;
+            bool found = false, near = false;
+            float yaw = 0, nx = 0, nz = 0;
+            foreach (var blip in view.Blips)
+            {
+                if (blip.Lagging) continue;
+                float d = Distance(view.X, view.Z, blip.X, blip.Z);
+                if (d <= TraceRecentDistance) _nearBlipAt = t;
+                float px = blip.X, pz = blip.Z;
+                if (d < nearest && d <= StrikeTrackDistance) { nearest = d; nx = px; nz = pz; near = true; }
+                if (d > SwingTrigger || d >= best) continue;
+                float toward = YawOf(px - view.X, pz - view.Z);
+                float delta = Math.Abs(toward - Facing) % 360f;
+                if (delta > 180f) delta = 360f - delta;
+                if (d > 0.3f && delta > SwingFrontDegrees) continue;
+                best = d;
+                yaw = toward;
+                found = true;
+            }
+            if (t < _strikeUntil)
+            {
+                if (near) { _strikeX = nx; _strikeZ = nz; }
+                Aim(ref intent, view, _strikeX, _strikeZ);
+                return;
+            }
+            if (!found && _hasTarget && _observedAt > _struckObservation && t - _observedAt <= TrailStrikeSeconds &&
+                Distance(view.X, view.Z, _targetX, _targetZ) <= SwingTrigger)
+            {
+                _struckObservation = _observedAt;
+                _strikeX = _targetX;
+                _strikeZ = _targetZ;
+                yaw = YawOf(_targetX - view.X, _targetZ - view.Z);
+                found = true;
+            }
+            else if (found)
+            {
+                _strikeX = view.X + (float)Math.Sin(yaw * Math.PI / 180) * best;
+                _strikeZ = view.Z + (float)Math.Cos(yaw * Math.PI / 180) * best;
+            }
+            if (!found) return;
+            _strikeUntil = t + StrikeHoldSeconds;
+            Aim(ref intent, view, _strikeX, _strikeZ);
+            intent.Attack = true;
+        }
+
+        private void Aim(ref BotIntent intent, KillerBotView view, float x, float z)
+        {
+            if (Distance(view.X, view.Z, x, z) > 0.05f) Face(ref intent, YawOf(x - view.X, z - view.Z));
+            Striking = true;
+            StrikeYaw = intent.Yaw;
         }
 
         private bool Noticed(KillerBotView view, float x, float z, Random random)
@@ -439,14 +520,41 @@ namespace PingTheKiller.ServerCore
                     }
                     break;
                 case SkillIds.FirewallBlock:
+                {
+                    bool switchInProgress = false;
                     for (int i = 0; i < view.ExitCount; i++)
                     {
                         var exit = view.Exits[i];
                         if (exit.Open || exit.Progress == 0) continue;
+                        switchInProgress = true;
                         foreach (var blip in view.Blips)
                             if (!blip.Lagging && Distance(blip.X, blip.Z, exit.SwitchX, exit.SwitchZ) <= FirewallExitDistance) intent.UseSkill = true;
                     }
+                    // R1 (11/17): otherwise the server locks the terminal with the most progress, which it cannot see; a
+                    // Signal beside an unfinished terminal is its cue that someone hacks.
+                    if (switchInProgress) break;
+                    int done = 0;
+                    for (int i = 0; i < view.TerminalCount; i++) if (view.Terminals[i].Done) done++;
+                    if (done >= FirewallTerminalMaxDone) break;
+                    for (int i = 0; i < view.TerminalCount && !intent.UseSkill; i++)
+                    {
+                        var terminal = view.Terminals[i];
+                        if (terminal.Done || terminal.Locked ||
+                            Distance(view.X, view.Z, terminal.X, terminal.Z) < FirewallTerminalKillerDistance) continue;
+                        foreach (var blip in view.Blips)
+                            if (!blip.Lagging && Distance(blip.X, blip.Z, terminal.X, terminal.Z) <= FirewallTerminalDistance) intent.UseSkill = true;
+                    }
                     break;
+                }
+                case SkillIds.PacketTrace:
+                {
+                    // A blip was near a moment ago but none shows now: someone close went Silent.
+                    bool anyNear = false;
+                    foreach (var blip in view.Blips)
+                        if (!blip.Lagging && Distance(view.X, view.Z, blip.X, blip.Z) <= TraceRecentDistance) anyNear = true;
+                    intent.UseSkill = !anyNear && view.Time - _nearBlipAt <= TraceRecentSeconds;
+                    break;
+                }
             }
         }
 

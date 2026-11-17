@@ -93,8 +93,14 @@ namespace PingTheKiller.Client.UI
         public const float OverclockFovDegrees = 4, OverclockFovEase = .15f;
         public const float CueReference = .4f; // the 0 dB cue amplitude (capture_confirm)
 
-        public const string PassiveReason = "Packet afterimage is passive.";
-        public const string NoSwitchReason = "No Exit switch in progress";
+        // R1 (11/17): Firewall block fails only when no Exit switch and no terminal has progress.
+        public const string NoSwitchReason = "Not used " + Dot + " nothing to lock";
+        // R1 (11/17): the own swing ended without a capture (KillerSwingWatch). a2: its own brief line in the text tone (not
+        // the muted reason), above the own skill line, for MissedSeconds.
+        public const string Missed = "Missed";
+        public const float MissedSeconds = 1f;
+        // R1 (11/17): Packet trace's world ring grows to its 12 m radius in this time.
+        public const float TraceGrowSeconds = .35f, TraceSeconds = .6f;
         public const string KillerRefused = "Not used " + Dot + " server did not accept";
         public const string SurvivorRefused = "Skill not used — the server did not accept it.";
         // Q3 server reasons (14.3): the server cooldown had not ended though the client derived Ready.
@@ -163,6 +169,20 @@ namespace PingTheKiller.Client.UI
 
         public static string ExitSwitch(int exit) => exit >= 0 ? "Exit " + (exit + 1).ToString(CultureInfo.InvariantCulture) + " switch" : "An Exit switch";
 
+        // R1 (11/17): the map terminal (static FixedMap index = TerminalState.Id) within 1 m of a Firewall block point, or -1.
+        public static int TerminalAt(float x, float z)
+        {
+            IReadOnlyList<MapPoint> terminals = SharedMapPoints.Terminals;
+            for (int i = 0; i < terminals.Count; i++)
+            {
+                float dx = terminals[i].X - x, dz = terminals[i].Z - z;
+                if (dx * dx + dz * dz <= ExitPickRange * ExitPickRange) return i;
+            }
+            return -1;
+        }
+
+        public static string TerminalName(int terminal) => terminal >= 0 ? "Terminal " + (terminal + 1).ToString(CultureInfo.InvariantCulture) : "A terminal";
+
         // ---- Killer client (14.0 Killer rule) ----
 
         // The Killer acts on its own effects and on the Killer-bound Traffic overload (CasterId 0) only; anything else,
@@ -199,10 +219,17 @@ namespace PingTheKiller.Client.UI
                         MapPoint at = SharedMapPoints.Switches[exit];
                         r.Visual = Hovl(FxPrefab.Zone, FxTint.Text, FxAnchor.Switch, at.X, at.Z, SwitchDiameter, 1f);
                     }
+                    else if (TerminalAt(x, z) >= 0) // R1: the locked terminal (a static map point)
+                        r.Visual = Hovl(FxPrefab.Zone, FxTint.Text, FxAnchor.Effect, x, z, SwitchDiameter, 1f);
                     r.Sound = Cue(FxClip.FirewallKiller, -9, 0, FxTier.Skill);
                     break;
+                case SkillIds.PacketTrace:
+                    // R1: a short ground ring bursting out to the 12 m trace radius around the own point.
+                    r.Visual = new FxVisual { Kind = FxKind.Ring, Tint = FxTint.Text, Anchor = FxAnchor.Own, StartDiameter = 2, Diameter = 2 * SkillIds.PacketTraceRadius, GrowSeconds = TraceGrowSeconds, Seconds = TraceSeconds };
+                    r.Sound = Cue(FxClip.ScanKiller, -9, 0, FxTier.Skill);
+                    break;
                 default:
-                    return default; // Packet afterimage is passive: no effect exists
+                    return default;
             }
             return r;
         }
@@ -237,6 +264,25 @@ namespace PingTheKiller.Client.UI
                         r.Visual = Hovl(FxPrefab.Circle, FxTint.Signal, FxAnchor.Own, 0, 0, 2, .6f);
                         r.Sound = Cue(FxClip.ScanTarget, -6, 0, FxTier.High);
                         return r;
+                    case SkillIds.PacketTrace:
+                        // R1: sent to each traced Survivor only, with X = Z = 0 (never the Killer position).
+                        r.Viewer = FxViewer.Affected;
+                        r.Line = Line("Traced: the Killer sees you " + Dot + " " + dur, LineTone.Danger, AffectedDanger);
+                        r.Visual = new FxVisual { Kind = FxKind.Ring, Tint = FxTint.Signal, Anchor = FxAnchor.Own, StartDiameter = 4, Diameter = 2, GrowSeconds = TraceGrowSeconds, Seconds = TraceSeconds };
+                        r.Sound = Cue(FxClip.ScanTarget, -6, 0, FxTier.High);
+                        return r;
+                    case SkillIds.FirewallBlock when ExitAt(x, z) < 0 && TerminalAt(x, z) >= 0:
+                    {
+                        // R1: a terminal lock (no Exit switch was in progress). Every Survivor is told; a hacker on it most.
+                        // A point that is neither an exit nor a terminal keeps the old unplaced Exit-switch reading below.
+                        int terminal = TerminalAt(x, z);
+                        bool affected = f.Own.Hacking && Within(f.Own.X, f.Own.Z, x, z, GameConstants.TerminalRadius + .5f);
+                        r.Viewer = affected ? FxViewer.Affected : FxViewer.Ally;
+                        r.Visual = Hovl(FxPrefab.DangerZone, FxTint.Danger, FxAnchor.Effect, x, z, SwitchDiameter, 1f);
+                        r.Line = Line(TerminalLocked(terminal, d), LineTone.Danger, affected ? AffectedDanger : AllyPriority);
+                        r.Sound = affected ? Cue(FxClip.FirewallSurvivor, -6, 0, FxTier.High) : Positional(FxClip.FirewallSurvivor, -12, 30, 0, x, z);
+                        return r;
+                    }
                     case SkillIds.FirewallBlock:
                     {
                         int exit = ExitAt(x, z);
@@ -281,14 +327,14 @@ namespace PingTheKiller.Client.UI
                     r.Visual = Hovl(FxPrefab.Pillar, FxTint.Ally, FxAnchor.Effect, x, z, 1.5f, 1f);
                     bool self = !own && f.Own.Status == PlayerStatus.Lagging && Within(f.Own.X, f.Own.Z, x, z, RestoreMatchRange);
                     string target = Name(f.Names, RestoreTarget(f.Mates, casterId, x, z));
-                    if (own) { r.Line = Line("Restored " + target + " " + Dot + " no longer Lagging", LineTone.Ally, CasterPriority); r.Sound = Cue(FxClip.Restore, -9, 1f, FxTier.Skill); }
+                    if (own) { r.Line = Line("Rescued " + target + " " + Dot + " no longer Lagging", LineTone.Ally, CasterPriority); r.Sound = Cue(FxClip.Restore, -9, 1f, FxTier.Skill); }
                     else if (self)
                     {
                         r.Viewer = FxViewer.Affected;
-                        r.Line = Line(Capital(caster) + " restored you " + Dot + " no longer Lagging", LineTone.Ally, AffectedPriority);
+                        r.Line = Line(Capital(caster) + " rescued you " + Dot + " no longer Lagging", LineTone.Ally, AffectedPriority);
                         r.Sound = Cue(FxClip.Restore, -6, 1f, FxTier.Skill);
                     }
-                    else { r.Line = Line(Capital(caster) + " restored " + target, LineTone.Ally, AllyPriority); r.Sound = Positional(FxClip.Restore, -15, 20, 0, x, z); }
+                    else { r.Line = Line(Capital(caster) + " rescued " + target, LineTone.Ally, AllyPriority); r.Sound = Positional(FxClip.Restore, -15, 20, 0, x, z); }
                     return r;
                 }
                 case SkillIds.WhiteNoise:
@@ -405,20 +451,18 @@ namespace PingTheKiller.Client.UI
         public static string PressReason(Role role, byte skillId, PlayerStatus status, float? cooldown, bool precondition, out bool watch)
         {
             watch = false;
-            if (HudCopy.IsPassive(role, skillId)) return PassiveReason;
             if (status == PlayerStatus.Lagging) return SurvivorReadout.SkillsOffLagging;
             if (status != PlayerStatus.Normal) return null;
             if (!cooldown.HasValue || cooldown.Value > 0) return null;
             if (!precondition)
             {
                 if (role == Role.Survivor && skillId == SkillIds.EmergencyRestore) return SurvivorReadout.RestoreNeedsTarget;
-                if (role == Role.Killer && skillId == SkillIds.FirewallBlock) return NoSwitchReason;
             }
             watch = true;
             return null;
         }
 
-        // 14.2.2: the Recovering-start cue (Overclock has ended; 1 s unable to move).
+        // 14.2.2: the Recovering-start cue (Overclock has ended; R1: 0.3 s at 60 % speed).
         public static FxRecord RecoverCue() => new FxRecord
         {
             Viewer = FxViewer.Caster, SkillId = SkillIds.Overclock, KillerSkill = true,
@@ -441,9 +485,6 @@ namespace PingTheKiller.Client.UI
                 case SkillRejectReason.NoSwitchInProgress:
                     if (!survivor) return NoSwitchReason;
                     break;
-                case SkillRejectReason.Passive:
-                    if (!survivor) return PassiveReason;
-                    break;
                 case SkillRejectReason.NotNormal:
                     // Eliminated and Escaped have their own banners; the Killer is never refused for this.
                     if (survivor) return status == PlayerStatus.Lagging ? SurvivorReadout.SkillsOffLagging : null;
@@ -456,6 +497,9 @@ namespace PingTheKiller.Client.UI
         public static FxLine Reason(string text) => new FxLine { Text = text, Tone = LineTone.Reason, Priority = ReasonPriority, Seconds = ReasonSeconds };
 
         // ---- helpers ----
+
+        // R1 (11/17), Survivor view: "Terminal 3 · Locked · 8 s".
+        public static string TerminalLocked(int terminal, float seconds) => TerminalName(terminal) + " " + Dot + " Locked " + Dot + " " + Num(seconds) + " s";
 
         private static FxLine Line(string text, LineTone tone, byte priority) => new FxLine { Text = text, Tone = tone, Priority = priority, Seconds = LineSeconds };
 
@@ -480,6 +524,7 @@ namespace PingTheKiller.Client.UI
         private static readonly FixedMap Map = new FixedMap();
         public static IReadOnlyList<MapPoint> Exits => Map.Exits;
         public static IReadOnlyList<MapPoint> Switches => Map.ExitSwitches;
+        public static IReadOnlyList<MapPoint> Terminals => Map.TerminalPositions;
     }
 
     // HUD_SPEC 14.1a: one result line at a time, never stacked. A new line replaces the shown one when its priority is
@@ -588,16 +633,17 @@ namespace PingTheKiller.Client.UI
     {
         private double scanEnd = double.NegativeInfinity, overclockStart = double.NegativeInfinity, overclockEnd = double.NegativeInfinity;
         private double lockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, reasonEnd = double.NegativeInfinity;
+        private double traceEnd = double.NegativeInfinity, missedEnd = double.NegativeInfinity;
         private byte ownSkill;
-        private int lockExit = -1;
+        private int lockExit = -1, lockTerminal = -1;
         private string reason;
         private bool recoverPending;
         public PressWatch Press { get; } = new PressWatch();
 
         public void Reset()
         {
-            scanEnd = overclockStart = overclockEnd = lockEnd = slowedEnd = reasonEnd = double.NegativeInfinity;
-            lockExit = -1; reason = null; recoverPending = false; Press.Reset();
+            scanEnd = overclockStart = overclockEnd = lockEnd = slowedEnd = reasonEnd = traceEnd = missedEnd = double.NegativeInfinity;
+            lockExit = lockTerminal = -1; reason = null; recoverPending = false; Press.Reset();
         }
 
         public FxRecord OnEffect(int ownId, int casterId, byte skillId, float x, float z, float duration, double now)
@@ -611,7 +657,12 @@ namespace PingTheKiller.Client.UI
             ownSkill = skillId;
             if (skillId == SkillIds.PingScanner) scanEnd = now + d;
             else if (skillId == SkillIds.Overclock) { overclockStart = now; overclockEnd = now + d; recoverPending = true; }
-            else if (skillId == SkillIds.FirewallBlock) { lockEnd = now + d; lockExit = SkillFeedback.ExitAt(x, z); }
+            else if (skillId == SkillIds.FirewallBlock)
+            {
+                lockEnd = now + d; lockExit = SkillFeedback.ExitAt(x, z);
+                lockTerminal = lockExit >= 0 ? -1 : SkillFeedback.TerminalAt(x, z);
+            }
+            else if (skillId == SkillIds.PacketTrace) traceEnd = now + d;
             return r;
         }
 
@@ -620,6 +671,9 @@ namespace PingTheKiller.Client.UI
             if (string.IsNullOrEmpty(text)) return;
             reason = text; reasonEnd = now + SkillFeedback.ReasonSeconds;
         }
+
+        // R1 (11/17) a2: the own swing missed (KillerSwingWatch).
+        public void OnMissed(double now) => missedEnd = now + SkillFeedback.MissedSeconds;
 
         // Q3: an S2C_SkillRejected. Only the own pending press shows its reason, at once, on the 6.1c line (`muted`).
         // Returns the text shown, or null.
@@ -643,13 +697,17 @@ namespace PingTheKiller.Client.UI
         public FxLine Line(double now)
         {
             if (now < slowedEnd) return new FxLine { Text = KillerHudCopy.Slowed((float)(slowedEnd - now)), Tone = LineTone.Danger };
+            if (now >= missedEnd - SkillFeedback.MissedSeconds && now < missedEnd) return new FxLine { Text = SkillFeedback.Missed, Tone = LineTone.Plain };
             string own = OwnLine(now);
             if (own != null) return new FxLine { Text = own, Tone = LineTone.Plain };
             if (now < reasonEnd) return new FxLine { Text = reason, Tone = LineTone.Reason };
             return default;
         }
 
-        private static readonly byte[] Order = { SkillIds.Overclock, SkillIds.PingScanner, SkillIds.FirewallBlock };
+        private static readonly byte[] Order = { SkillIds.Overclock, SkillIds.PingScanner, SkillIds.FirewallBlock, SkillIds.PacketTrace };
+
+        // R1 (11/17): the terminal (static map index) the own Firewall block holds locked now, or -1 (the terminal marker tag).
+        public int LockedTerminal(double now) => now < lockEnd ? lockTerminal : -1;
 
         // The latest own skill's line while it runs; otherwise any other own line still running.
         private string OwnLine(double now)
@@ -669,7 +727,11 @@ namespace PingTheKiller.Client.UI
                     double recovered = overclockEnd + SkillIds.OverclockRecoverySeconds;
                     return now < recovered ? KillerHudCopy.Recovering((float)(recovered - now)) : null;
                 case SkillIds.PingScanner: return now < scanEnd ? KillerHudCopy.Scanned((float)(scanEnd - now)) : null;
-                case SkillIds.FirewallBlock: return now < lockEnd ? KillerHudCopy.Locked(lockExit, (float)(lockEnd - now)) : null;
+                case SkillIds.FirewallBlock:
+                    if (now >= lockEnd) return null;
+                    return lockExit < 0 && lockTerminal >= 0 ? KillerHudCopy.TerminalLocked(lockTerminal, (float)(lockEnd - now))
+                        : KillerHudCopy.Locked(lockExit, (float)(lockEnd - now));
+                case SkillIds.PacketTrace: return now < traceEnd ? KillerHudCopy.Traced((float)(traceEnd - now)) : null;
                 default: return null;
             }
         }

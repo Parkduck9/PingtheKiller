@@ -67,7 +67,8 @@ namespace PingTheKiller.Client.Tests
                     int differ = (a.Shape != b.Shape ? 1 : 0) + (a.Motion != b.Motion ? 1 : 0) + (a.Tint != b.Tint ? 1 : 0);
                     Assert.That(differ, Is.GreaterThanOrEqualTo(2), all[i] + " vs " + all[j]);
                 }
-            Assert.That(SkillSignature.For(true, SkillIds.PacketAfterimage).Played, Is.False, "the passive skill has no effect to play");
+            Assert.That(SkillSignature.For(true, SkillIds.PacketTrace).Played, Is.True, "R1: Packet trace plays its ring burst");
+            Assert.That(SkillSignature.For(true, SkillIds.PacketTrace).Shape, Is.EqualTo(FxShape.TraceRing));
             Assert.That(SkillSignature.For(true, 9).Shape, Is.EqualTo(FxShape.None), "unknown id");
             Assert.That(SkillSignature.For(false, SkillIds.WhiteNoise).Tint, Is.EqualTo(FxTint.Text), "White noise: nothing transmits at the caster");
         }

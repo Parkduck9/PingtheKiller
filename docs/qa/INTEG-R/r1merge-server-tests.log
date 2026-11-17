@@ -1,0 +1,11 @@
+C:\Unity\MultiPlayGame\PtK-work\integ-1117b\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:02.75]     PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [FAIL]
+  실패 PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [2 s]
+  오류 메시지:
+   loopback RTT 0.1104241140625 s
+  스택 추적:
+     at PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt() in C:\Unity\MultiPlayGame\PtK-work\integ-1117b\Server.Tests\Core\RttProbeTests.cs:line 320
+--- End of stack trace from previous location ---
+
+실패!  - 실패:     1, 통과:  1135, 건너뜀:     0, 전체:  1136, 기간: 1 m 7 s - Server.Tests.dll (net10.0)

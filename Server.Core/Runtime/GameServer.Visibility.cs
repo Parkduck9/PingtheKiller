@@ -11,12 +11,10 @@ namespace PingTheKiller.ServerCore
         // Ground truth of one killer-view entry, index-aligned with the killer-bound WorldState. Server tests only.
         internal readonly struct KillerViewSource
         {
-            internal KillerViewSource(int label, bool phantom, bool afterimage)
-            { Label = label; Phantom = phantom; Afterimage = afterimage; }
+            internal KillerViewSource(int label, bool phantom) { Label = label; Phantom = phantom; }
             // Real entries: the player Id. Phantoms: the phantom serial.
             internal readonly int Label;
             internal readonly bool Phantom;
-            internal readonly bool Afterimage;
         }
 
         // The killer's masked view of the latest tick; the killer bot reads only this.
@@ -24,8 +22,6 @@ namespace PingTheKiller.ServerCore
         private readonly List<KillerViewSource> _killerViewSources = new List<KillerViewSource>();
         private readonly List<PlayerState> _survivorView = new List<PlayerState>();
         internal IReadOnlyList<KillerViewSource> KillerViewSources => _killerViewSources;
-
-        private bool KillerHasAfterimage => !_sandbox && _killer != null && _killer.Skill == SkillIds.PacketAfterimage;
 
         // Effective Signal: Lagging and forced exposure always show; Stealth hides moving, hacking and rescuing.
         private bool IsVisibleToKiller(Player survivor)
@@ -51,11 +47,6 @@ namespace PingTheKiller.ServerCore
             }
             UpdatePhantomVisibility();
         }
-
-        // One afterimage rule for real survivors and phantoms: the entry stays frozen at the last position the killer
-        // saw for AfterimageSeconds, so movement while hidden is never revealed.
-        private bool AfterimageWindow(bool visible, double lastVisibleAt) =>
-            KillerHasAfterimage && !visible && _now - lastVisibleAt <= SkillIds.AfterimageSeconds + TimeEpsilon;
 
         // Every survivor-shaped entry the killer receives is anonymous: no Id, facing, timers, capture count or detail
         // flags. Only Status (Lagging is always visible, GDD §3.3) and the position remain.
@@ -86,13 +77,12 @@ namespace PingTheKiller.ServerCore
                         Flags = player.InputHeld(_now) ? (byte)PlayerFlags.Signal : (byte)PlayerFlags.None,
                         Chase = ChaseFlagsOf(player)
                     });
-                    _killerViewSources.Add(new KillerViewSource(player.Id, false, false));
+                    _killerViewSources.Add(new KillerViewSource(player.Id, false));
                     continue;
                 }
-                bool afterimage = player.Status == PlayerStatus.Normal && AfterimageWindow(player.Visible, player.LastVisibleAt);
-                if (player.Visible || afterimage)
-                    AddKillerEntry(player.Visible ? player.Status : PlayerStatus.Normal, player.VisibleX, player.VisibleZ,
-                        new KillerViewSource(player.Id, false, afterimage));
+                // R1 (11/17): the passive Packet afterimage became the active Packet trace, so no entry outlives its Signal.
+                if (player.Visible)
+                    AddKillerEntry(player.Status, player.VisibleX, player.VisibleZ, new KillerViewSource(player.Id, false));
                 else
                     ++hiddenReal;
             }
@@ -104,11 +94,9 @@ namespace PingTheKiller.ServerCore
                 foreach (var phantom in _decoys)
                 {
                     if (phantom.InView != (pass == 0)) continue;
-                    bool afterimage = AfterimageWindow(phantom.Visible, phantom.LastVisibleAt);
-                    phantom.InView = (phantom.Visible || afterimage) && _killerView.Count < phantomLimit;
+                    phantom.InView = phantom.Visible && _killerView.Count < phantomLimit;
                     if (phantom.InView)
-                        AddKillerEntry(PlayerStatus.Normal, phantom.VisibleX, phantom.VisibleZ,
-                            new KillerViewSource(phantom.Serial, true, afterimage));
+                        AddKillerEntry(PlayerStatus.Normal, phantom.VisibleX, phantom.VisibleZ, new KillerViewSource(phantom.Serial, true));
                 }
             Shuffle();
         }
@@ -139,6 +127,7 @@ namespace PingTheKiller.ServerCore
                 if (player.Status == PlayerStatus.Normal && Active(player.StealthUntil)) flags |= PlayerFlags.Stealthed;
                 if (player.Hacking) flags |= PlayerFlags.Hacking;
                 if (player.Rescuing) flags |= PlayerFlags.Rescuing;
+                if (GettingUp(player)) flags |= PlayerFlags.GettingUp;
                 _survivorView.Add(new PlayerState
                 {
                     Id = player.Id, Role = (byte)Role.Survivor, Status = (byte)player.Status,
@@ -186,20 +175,13 @@ namespace PingTheKiller.ServerCore
         {
             var state = new S2C_SelfState { SkillCooldown = (float)Math.Max(0, player.SkillReadyAt - _now) };
             SetActionState(player, state);
+            SetRouteState(player, state);
             // Deprecated (GDD v2 §4, 2026-11-03): no execution, so ExecutionGraceLeft stays 0 on the wire.
             if (player.Role == Role.Killer) return state;
             if (player.Status == PlayerStatus.Lagging) state.RescueProgress = RescueFraction(player);
             else if (player.Rescuing)
             {
-                Player target = null;
-                float best = float.MaxValue;
-                foreach (var ally in _players)
-                {
-                    if (ally == player || ally.Role != Role.Survivor || ally.Status != PlayerStatus.Lagging ||
-                        !Within(player, ally.X, ally.Z, GameConstants.RescueRadius)) continue;
-                    float distance = DistanceSquared(player.X, player.Z, ally.X, ally.Z);
-                    if (distance < best) { best = distance; target = ally; }
-                }
+                Player target = NearestLaggingAlly(player);
                 if (target != null) state.RescueProgress = RescueFraction(target);
             }
             if (player.Status == PlayerStatus.Normal) state.InvulnerableLeft = (float)Math.Max(0, player.InvulnerableUntil - _now);
@@ -217,6 +199,8 @@ namespace PingTheKiller.ServerCore
             var last = player.SelfSent;
             double elapsed = _now - player.SelfSentAt;
             if (last == null || elapsed >= SelfStateRefreshSeconds - TimeEpsilon || last.ActionKind != now.ActionKind) return true;
+            // 11/17 (R2): every route change (a new route, a step, the end of one) goes out at once.
+            if (last.RouteId != now.RouteId || last.RouteIndex != now.RouteIndex || last.RouteDirs != now.RouteDirs) return true;
             double rescue = last.RescueProgress > 0 ? Math.Min(1, last.RescueProgress + elapsed / GameConstants.RescueTimeSeconds) : 0;
             return Departs(now.SkillCooldown, Math.Max(0, last.SkillCooldown - elapsed)) ||
                 Departs(now.InvulnerableLeft, Math.Max(0, last.InvulnerableLeft - elapsed)) ||
@@ -238,6 +222,7 @@ namespace PingTheKiller.ServerCore
             : kind == (byte)ActionKind.Kick ? 1 / GameConstants.KickHoldSeconds
             : kind == (byte)ActionKind.HatchClose ? 1 / GameConstants.HatchCloseSeconds
             : kind == (byte)ActionKind.Pull ? 1 / GameConstants.ShutterPullSeconds
+            : kind == (byte)ActionKind.Rescue ? 1 / GameConstants.RescueTimeSeconds
             : kind == (byte)ActionKind.Break ? 1 / GameConstants.ShutterBreakSeconds : 0;
 
         // v0.4 SelfState: the own collapse clock and the own hold action (exit switch, kick or hatch close).
@@ -263,6 +248,14 @@ namespace PingTheKiller.ServerCore
             }
             if (player.Role == Role.Survivor)
             {
+                if (player.Rescuing)
+                {
+                    // R3: the rescuer's own hold action; the progress is the ally's restore fraction.
+                    var ally = NearestLaggingAlly(player);
+                    state.ActionKind = (byte)ActionKind.Rescue;
+                    state.ActionProgress = ally == null ? 0 : RescueFraction(ally);
+                    return;
+                }
                 if (player.SwitchExit < 0) return;
                 state.ActionKind = (byte)ActionKind.Switch;
                 state.ActionProgress = (float)Math.Min(1, _switchSeconds[player.SwitchExit] / GameConstants.ExitSwitchSeconds);
@@ -277,6 +270,21 @@ namespace PingTheKiller.ServerCore
                 state.ActionKind = (byte)ActionKind.Kick;
                 state.ActionProgress = (float)Math.Min(1, player.KickHeld / GameConstants.KickHoldSeconds);
             }
+        }
+
+        // 11/17 (R2) packet routing: only the own route, so only the hacker (or that bot's view) ever learns it, and only
+        // while it hacks that route's terminal (attempt 2, F1): released E, walked away, kicked out of the hack or a gated
+        // terminal sends RouteId 0, so the client gives W A S D back to movement.
+        internal static bool RouteAdvertised(Player player) =>
+            player.Role == Role.Survivor && player.RouteId != 0 && player.Hacking && player.HackTerminal == player.RouteTerminal;
+
+        private static void SetRouteState(Player player, S2C_SelfState state)
+        {
+            if (!RouteAdvertised(player)) return;
+            state.RouteId = player.RouteId;
+            state.RouteLength = GameConstants.RouteLength;
+            state.RouteDirs = player.RouteDirs;
+            state.RouteIndex = player.RouteIndex;
         }
 
         private static bool Departs(float value, double predicted) => Math.Abs(value - predicted) > SelfStateTolerance;

@@ -52,7 +52,7 @@ namespace PingTheKiller.Client.Audio
             Frame(now, rules.Active);
         }
 
-        public void OnSync(SyncResult result) { rules.OnSync(result); Flush(); }
+        public void OnRoute(V2Cue cue) { rules.OnRoute(cue); Flush(); }
 
         // Every frame: the hold loop follows the own action; outside a match it is silent.
         public void Frame(double now, bool inMatch)
@@ -70,6 +70,13 @@ namespace PingTheKiller.Client.Audio
                 }
             }
             if (playing != ActionKind.None) hold.pitch = V2CueSynth.HoldPitch(playing, rules.HoldProgress(now));
+        }
+
+        // R1 (11/17): a cue the rules never raise (the own missed swing), played at once.
+        public void Play(V2Cue cue)
+        {
+            if (cues != null && clips.TryGetValue(cue, out AudioClip clip)) cues.PlayOneShot(clip);
+            Debug.Log("[audio] v2 cue " + cue);
         }
 
         public void End()

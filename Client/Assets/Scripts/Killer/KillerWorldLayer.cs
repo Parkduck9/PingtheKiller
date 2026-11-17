@@ -53,6 +53,8 @@ namespace PingTheKiller.Client.Killer
         private double lockedEnd = double.NegativeInfinity;
         private bool lockKnown;
         private KillerAttackKick kick; // U4j: first-person attack feedback on the own capture
+        // R1 (11/17): the same component plays the swing sweep on the local press (ClientApp, from KillerSwingWatch).
+        public KillerAttackKick Kick => kick;
         public int InView { get; private set; }
         public int Occluded { get; private set; }
         public int Edges { get; private set; }
@@ -89,9 +91,19 @@ namespace PingTheKiller.Client.Killer
             last = state;
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
             foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) { kick.Play(); Captures++; captureHandle = item.Handle; }
+            VanishedNear = scene.NormalVanishedNear;
+            if (VanishedNear) VanishedPoint = scene.VanishedPoint;
             cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
             cueRules.OnSignalCount(scene.Blips.Count, now);
         }
+
+        // R1 (11/17) a2: the last snapshot dropped a Normal blip near the Killer (KillerSwingWatch.OnVanish), and where.
+        public bool VanishedNear { get; private set; }
+        public Vector3 VanishedPoint { get; private set; }
+
+        // R1 (11/17) a2: the server's verdict says the own swing hit, but no CaptureConfirm came (an eliminating hit removed
+        // the entry): the same first-person kick as a capture.
+        public void PlayUnseenHit() => kick?.Play();
 
         // Captures confirmed by the tracker this match (dev staging of the knocked-down shot).
         public int Captures { get; private set; }
@@ -133,6 +145,37 @@ namespace PingTheKiller.Client.Killer
                 activeStart = now; activeEnd = now + duration;
                 if (effect.SkillId == SkillIds.FirewallBlock) { lockedEnd = now + duration; lockKnown = true; }
             }
+        }
+
+        // R1 (11/17): gamepad-only players read "RT  Attack" (ClientApp sets it from the connected devices).
+        public bool PadPrompt { get; set; }
+
+        // R1 (11/17): the horizontal distance to the nearest Normal tracker instance (any received blip), or +inf.
+        public float NearestNormalBlip(Vector3 eye)
+        {
+            float best = float.PositiveInfinity;
+            if (scene == null) return best;
+            foreach (BlipView view in scene.Views)
+            {
+                if (view.Status != BlipStatus.Normal) continue;
+                float d = new Vector2(view.Position.x - eye.x, view.Position.z - eye.z).magnitude;
+                if (d < best) best = d;
+            }
+            return best;
+        }
+
+        // INTEG-R minors: as NearestNormalBlip, but a blip behind a wall or a Down Shutter does not count (the swing would miss).
+        public float NearestSwingableBlip(Vector3 eye)
+        {
+            float best = float.PositiveInfinity;
+            if (scene == null) return best;
+            foreach (BlipView view in scene.Views)
+            {
+                if (view.Status != BlipStatus.Normal) continue;
+                float d = new Vector2(view.Position.x - eye.x, view.Position.z - eye.z).magnitude;
+                if (d < best && KillerHudCopy.SwingClear(SharedMap.Map, last, eye.x, eye.z, view.Position.x, view.Position.z)) best = d;
+            }
+            return best;
         }
 
         // The nearest rendered instance, or the nearest one behind a wall (dev killer-look only).
@@ -207,15 +250,18 @@ namespace PingTheKiller.Client.Killer
 
         private void UpdateHud(double now, bool menuOpen, Vector3 eye)
         {
-            hud.SetIntro(now - startedAt < IntroSeconds && !menuOpen);
+            // R3 (11/17): the 7 s intro card (UI/Help/IntroCard, HUD_SPEC 3) replaces this 3 s block; the block stays in KillerHud for tests.
+            hud.SetIntro(false);
             if (last != null) hud.SetInfo(last.TimeLeft, HudDone(last), last.TerminalsRequired);
             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
             exitCache.For(last);
-            hud.SetSkill(skillId, exitCache.SwitchInProgress, self, active);
+            hud.SetSkill(skillId, self, active);
             FxLine line = Fx.Line(now);
             hud.SetEffect(line.Text, line.Tone == LineTone.Danger, line.Tone == LineTone.Reason);
             InteractPrompt interact = last == null ? default
                 : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
+            // R1 (11/17) 6.1b: with nothing to hold in reach, a visible blip within 3 m shows the attack prompt.
+            if (string.IsNullOrEmpty(interact.Text)) interact.Text = KillerHudCopy.Attack(NearestSwingableBlip(eye), PadPrompt);
             hud.SetPrompt(interact, V2Wire.Hold(self));
             hud.SetCollapse(V2Wire.KillerCollapse(last != null ? last.CollapseLeft : -1, self.Available ? self.CollapseLeft : -1));
         }
@@ -269,7 +315,8 @@ namespace PingTheKiller.Client.Killer
                 bool tagOnly = !blocked && distance <= TerminalTagOnlyWithin;
                 if (!tagOnly) markers.Square(MarkerLayer.Static, p);
                 if (flags.Regressing) { v2.Regressing(tagOnly ? p + new Vector2(0, TagGap) : p, flags, Role.Killer); continue; }
-                markers.Tag(MarkerLayer.Static, tagOnly ? p : p + new Vector2(0, TagGap), KillerHudCopy.Terminal(terminal.Id), TagStyle.Muted, tagOnly ? TagPivot.Center : TagPivot.Below, LayoutPriority.Terminal, !tagOnly);
+                // R1 (11/17): a terminal under the own Firewall block reads "Terminal N · Locked" in `text`.
+                markers.Tag(MarkerLayer.Static, tagOnly ? p : p + new Vector2(0, TagGap), flags.Locked ? KillerHudCopy.TerminalTag(terminal.Id, true) : KillerHudCopy.Terminal(terminal.Id), flags.Locked ? TagStyle.Text : TagStyle.Muted, tagOnly ? TagPivot.Center : TagPivot.Below, LayoutPriority.Terminal, !tagOnly);
             }
             float lockedLeft = lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : -1;
             ExitView[] exits = exitCache.For(last, lockedLeft);

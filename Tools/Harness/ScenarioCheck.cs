@@ -6,12 +6,13 @@ using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Harness;
 
-// H6 (GDD v2): sight -> hack (answering sync checks) -> exits powered -> switch held 15 s -> exit open -> capture -> retreat
+// H6 (GDD v2): sight -> hack (solving packet routes, 11/17 R2) -> exits powered -> switch held 15 s -> exit open -> capture -> retreat
 // -> rescue -> both survivors escape -> GameResult, played by three real TCP clients on a dedicated fresh lobby server
 // (--bots 0, no --autostart), with a killer-coordinate leak scan.
 public static class ScenarioCheck
 {
-    // Three 45 s terminals co-hacked at 1.8x (25 s each), a 15 s switch and the walks between them.
+    // Three terminals co-hacked (the 90 s passive part at 1.8x plus both actors' route bursts, about 20 s each), a 15 s
+    // switch and the walks between them.
     public static readonly TimeSpan Budget = TimeSpan.FromSeconds(300);
     public const string NeedsOwnServer = "H6 needs its own fresh server: pass --h6-port";
 
@@ -35,8 +36,11 @@ public sealed class Actor : IAsyncDisposable
     private long worlds, results;
     private Exception? failure;
     private Task pump = Task.CompletedTask;
-    private int sequence;
-    private int syncChecks, syncPresses, syncGreat, syncGood, syncFail;
+    private int sequence, attackSequence;
+    private int routesSeen, routeKeys, routeSteps;
+    // The (route id, index) answered last and when, so the 1 Hz SelfState refresh does not answer twice.
+    private int answeredKey = -1;
+    private long answeredAt;
 
     private Actor(string name, WireClient wire, S2C_JoinResult identity, TimeSpan timeout)
     {
@@ -73,8 +77,7 @@ public sealed class Actor : IAsyncDisposable
             {
                 var frame = await Wire.ReadAsync(stop.Token);
                 inspect(this, frame);
-                if (frame.Packet is S2C_SyncCheck check) AnswerLater(check);
-                if (frame.Packet is S2C_SyncResult syncResult) CountResult(syncResult);
+                if (frame.Packet is S2C_SelfState self) AnswerRoute(self);
                 TaskCompletionSource signal;
                 lock (sync)
                 {
@@ -104,35 +107,41 @@ public sealed class Actor : IAsyncDisposable
         if (error != null) onFailure(error);
     }
 
-    // GDD v2 sync check: press when the needle (started on receipt) is in the middle of the zone after the great part.
-    // A check the server cancelled (the hack stopped) ignores the press.
-    private void AnswerLater(S2C_SyncCheck check)
+    // GDD v2 packet routing (11/17, R2): answer the own route one right key at a time, RouteKeyDelay after each
+    // S2C_SelfState that shows a new step. A step answered within the last second is not answered again (the 1 Hz
+    // refresh repeats the state); a key the server dropped is retried after that second.
+    public static readonly TimeSpan RouteKeyDelay = TimeSpan.FromSeconds(0.15);
+
+    private void AnswerRoute(S2C_SelfState self)
     {
-        Interlocked.Increment(ref syncChecks);
-        double fraction = check.ZoneStart + (check.GreatSize + check.ZoneSize) / 2;
-        var delay = TimeSpan.FromSeconds(Math.Clamp(fraction * check.Duration, 0, 5));
+        if (self.RouteId == 0 || self.RouteIndex >= self.RouteLength) return;
+        int key = (self.RouteId << 8) | self.RouteIndex;
+        long now = Stopwatch.GetTimestamp();
+        lock (sync)
+        {
+            if (key == answeredKey && Stopwatch.GetElapsedTime(answeredAt, now) < TimeSpan.FromSeconds(1)) return;
+            if (self.RouteIndex == 0 && (answeredKey >> 8) != self.RouteId) routesSeen++;
+            answeredKey = key;
+            answeredAt = now;
+        }
+        var input = new C2S_HackInput { RouteId = self.RouteId, Direction = (byte)HackRoute.DirectionAt(self.RouteDirs, self.RouteIndex) };
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(delay, stop.Token);
-                await Wire.SendAsync(new C2S_SyncPress { CheckId = check.CheckId }, stop.Token);
-                Interlocked.Increment(ref syncPresses);
+                await Task.Delay(RouteKeyDelay, stop.Token);
+                await Wire.SendAsync(input, stop.Token);
+                Interlocked.Increment(ref routeKeys);
             }
             catch (Exception) { }
         });
+        if (self.RouteIndex > 0) Interlocked.Increment(ref routeSteps);
     }
 
-    private void CountResult(S2C_SyncResult result)
+    public string RouteSummary
     {
-        if (result.Result == (byte)SyncResult.Great) Interlocked.Increment(ref syncGreat);
-        else if (result.Result == (byte)SyncResult.Good) Interlocked.Increment(ref syncGood);
-        else Interlocked.Increment(ref syncFail);
+        get { lock (sync) return $"{Name} routes {routesSeen}, keys sent {Volatile.Read(ref routeKeys)}, steps confirmed {Volatile.Read(ref routeSteps)}"; }
     }
-
-    public string SyncSummary =>
-        $"{Name} sync checks {Volatile.Read(ref syncChecks)}, presses {Volatile.Read(ref syncPresses)}, " +
-        $"great/good/fail {Volatile.Read(ref syncGreat)}/{Volatile.Read(ref syncGood)}/{Volatile.Read(ref syncFail)}";
 
     // The killer's own entry is its real Id with Role Killer (U2c: survivor entries in its view carry no real Id).
     public byte? OwnRole { get; set; }
@@ -192,10 +201,13 @@ public sealed class Actor : IAsyncDisposable
         }
     }
 
-    public Task MoveAsync(Vector2 direction, CancellationToken ct) => Wire.SendAsync(new C2S_MoveInput
+    public Task MoveAsync(Vector2 direction, CancellationToken ct, float yaw = 0) => Wire.SendAsync(new C2S_MoveInput
     {
-        DirX = direction.X, DirZ = direction.Y, Seq = (uint)Interlocked.Increment(ref sequence)
+        DirX = direction.X, DirZ = direction.Y, Yaw = yaw, Seq = (uint)Interlocked.Increment(ref sequence)
     }, ct);
+
+    // R1 (11/17): a Killer swing; the server aims with the latest MoveInput.Yaw.
+    public Task AttackAsync(CancellationToken ct) => Wire.SendAsync(new C2S_Attack { Seq = (uint)Interlocked.Increment(ref attackSequence) }, ct);
 
     public Task InteractAsync(bool active, CancellationToken ct) => Wire.SendAsync(new C2S_Interact { Active = (byte)(active ? 1 : 0) }, ct);
 
@@ -518,7 +530,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
                 byte progress = world.Terminals[index].Progress;
                 if (samples.Count == 0 || samples[^1] != progress) samples.Add(progress);
                 return progress >= 100;
-            }, TimeSpan.FromSeconds(GameConstants.TerminalHackTimeSeconds * 1.5 + 3), $"terminal {t.Id} Progress == 100 while A and B hold Interact", ct);
+            }, TimeSpan.FromSeconds(GameConstants.TerminalPassiveSeconds / GameConstants.TwoHackerRate * 1.5 + 3), $"terminal {t.Id} Progress == 100 while A and B hold Interact", ct);
             await Task.WhenAll(A.InteractAsync(false, ct), B.InteractAsync(false, ct));
             string shown = samples.Count <= 8 ? string.Join(",", samples)
                 : $"{string.Join(",", samples.Take(4))},..,{string.Join(",", samples.TakeLast(3))}";
@@ -528,7 +540,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         foreach (var actor in All)
             await UntilAsync(actor, Powered, options.Timeout, "both exits Powered after the required terminals", ct);
         Check.Require(!All.Any(x => x.Latest.Exits.Exists(e => Has(e, ExitFlags.Open))), $"An exit opened without its switch: {Describe(A.Latest)}.");
-        evidence.Add($"exits Powered (not open) seen by killer, A and B; {A.SyncSummary}; {B.SyncSummary}");
+        evidence.Add($"exits Powered (not open) seen by killer, A and B; {A.RouteSummary}; {B.RouteSummary}");
     }
 
     // GDD v2 §3: one survivor holds the switch of the exit farthest from the killer for 15 s; the exit opens and the
@@ -604,8 +616,25 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         await WalkAsync(Killer, "killer to A", path!, 0.3f, ct, () => Captured(A.Latest));
         // U2b: the capturing contact never executes (leave-and-re-enter). Stop and stay in contact.
         await Killer.MoveAsync(Vector2.Zero, ct);
+        // R1 (11/17): proximity no longer captures; the killer faces A (A's own stream gives A's position) and swings, at
+        // most once per recovery, until A leaves Normal.
+        int swings = 0;
+        var swinging = Stopwatch.StartNew();
+        while (!Captured(A.Latest))
+        {
+            Check.Require(swinging.Elapsed < TimeSpan.FromSeconds(10), $"A captured not observed after {swings} swings in 10 s; killer at {Position(Killer.LatestSelf)}, A at {Position(A.LatestSelf)}.");
+            var toA = Position(A.LatestSelf) - Position(Killer.LatestSelf);
+            float yaw = toA.LengthSquared() < 1e-8f ? 0 : MathF.Atan2(toA.X, toA.Y) * 180 / MathF.PI;
+            await Killer.MoveAsync(Vector2.Zero, ct, yaw);
+            await Killer.AttackAsync(ct);
+            swings++;
+            var wait = Stopwatch.StartNew();
+            long seenSwing = 0;
+            while (!Captured(A.Latest) && wait.Elapsed < TimeSpan.FromSeconds(GameConstants.SwingWindUpSeconds + GameConstants.SwingMissRecoverySeconds + 0.3))
+                (_, seenSwing) = await A.NextWorldAsync(seenSwing, ct);
+        }
         if (!Captured(A.Latest))
-            await UntilAsync(A, Captured, options.Timeout, "A captured after the killer reached it (stand-still contact)", ct);
+            await UntilAsync(A, Captured, options.Timeout, "A captured after the killer swung", ct);
         double reached = clock.Elapsed.TotalSeconds;
         var lagging = A.Self(await UntilAsync(A, world => Entry(world, A.Id)?.Status == (byte)PlayerStatus.Lagging, options.Timeout,
             "A Lagging in survivor view", ct, world => Executed(world, A.Id)));
@@ -666,7 +695,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             ?? throw new CheckFailure($"B is missing from A's WorldState: {Describe(A.Latest)}.");
         Check.Require(bState.Status == (byte)PlayerStatus.Normal && bState.CaptureCount == 0,
             $"B was touched: status={bState.Status}, CaptureCount={bState.CaptureCount}.");
-        evidence.Add($"capture: B {separation:F1} m away and still; killer reached A in {reached:F1} s; survivor view A Lagging, CaptureCount=1, " +
+        evidence.Add($"capture: B {separation:F1} m away and still; killer reached A and swung {swings}x in {reached:F1} s; survivor view A Lagging, CaptureCount=1, " +
             $"StatusTimer={lagging.StatusTimer:F1} s; killer held contact {HoldContact.TotalSeconds:F0} s ({held} A frames, {nearest:F2}..{farthest:F2} m) with A still Lagging (no execution); B Normal/0; killer then left and stands still at ({killerPos.X:F1},{killerPos.Y:F1}), " +
             $"{Vector2.Distance(killerPos, aPos):F1} m from A");
     }
@@ -678,10 +707,13 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         var path = planner.PathTo(bPos, aPos, new[] { new Circle(killerPos, KillerKeepOut) });
         Check.Require(path != null, $"No path for B from {bPos} to A at {aPos} avoiding the killer.");
         await WalkAsync(B, "B to A", path!, Reach, ct);
+        // R3: the rescue is an explicit E-hold (3 s) within 1.5 m; standing next to A does nothing.
+        await B.InteractAsync(true, ct);
         var clock = Stopwatch.StartNew();
         await UntilAsync(A, world => Entry(world, A.Id) is { Status: (byte)PlayerStatus.Normal, CaptureCount: 1 },
-            TimeSpan.FromSeconds(GameConstants.RescueTimeSeconds + 5), "A rescued (Normal, CaptureCount 1) while B stays within 1.0 m", ct,
+            TimeSpan.FromSeconds(GameConstants.RescueTimeSeconds + 5), "A rescued (Normal, CaptureCount 1) while B holds E within 1.0 m", ct,
             world => Executed(world, A.Id));
+        await B.InteractAsync(false, ct);
         double contact = clock.Elapsed.TotalSeconds;
         var bState = Entry(A.Latest, B.Id);
         Check.Require(bState is { Status: (byte)PlayerStatus.Normal, CaptureCount: 0 }, $"B changed during rescue: {Describe(A.Latest)}.");

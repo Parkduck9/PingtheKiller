@@ -19,6 +19,10 @@ namespace PingTheKiller.ServerCore
         internal const double HackBurstMin = 1.5, HackBurstMax = 2, HackPauseMin = 1.0, HackPauseMax = 2.0;
         // Hacking spot: inside TerminalRadius but beyond CaptureRadius of the terminal centre, where a patrolling killer stops.
         internal const float HackStopDistance = 1.4f;
+        // 11/17 (R2): about how long this bot needs for a terminal while it hacks (passive part plus its route solving).
+        internal const double ExpectedHackSeconds = 42;
+        // The bot's own packet-routing solver (GameServer.Bots feeds it the own route from the view).
+        internal readonly RouteSolver Route = new RouteSolver();
 
         private const double ReactionMin = 0.25, ReactionMax = 0.6;
         // A Silent look around before the first move, letting the killer commit to a direction first.
@@ -51,7 +55,8 @@ namespace PingTheKiller.ServerCore
         private const double BigTeamAvoidSeconds = 45;
         private const double SwitchStallSeconds = 30;
         // Quiet rescues are preferred; the timer can override these gates when arrival and the hold still fit.
-        private const double RescueQuietSeconds = 5;
+        // INTEG-R balance: 5 -> 7 s (bots wait longer after seeing the Killer before a non-urgent rescue).
+        private const double RescueQuietSeconds = 7;
         // Every available Normal survivor works. Lower Id wins a contested slot, using public teammate positions only.
         private const int TerminalCap = 2;
         private const float OccupiedRadius = 3f;
@@ -162,6 +167,9 @@ namespace PingTheKiller.ServerCore
                 Stop(ref intent, view.X, view.Z);
                 intent.Interact = _mode == ModeHack;
             }
+            // R3: a rescue needs the E hold. The old automatic rescue worked for any Normal survivor standing within reach, so a
+            // bot holds Interact whenever a Lagging ally is within reach (a planned rescue or just passing close), as it did by standing near.
+            if (LaggingAllyInReach(view)) intent.Interact = true;
             UseSkills(ref intent, view);
             if (intent.Interact && _terminal >= 0 && Occupants(view, _terminal) >= TerminalCap)
             {
@@ -314,7 +322,7 @@ namespace PingTheKiller.ServerCore
                         (best < 0 || view.Terminals[i].Progress > view.Terminals[best].Progress)) best = i;
                 if (best < 0) break;
                 taken |= 1 << best;
-                work += (100 - view.Terminals[best].Progress) / 100.0 * GameConstants.TerminalHackTimeSeconds;
+                work += (100 - view.Terminals[best].Progress) / 100.0 * ExpectedHackSeconds;
             }
             work = work / Math.Max(1, Math.Min(NormalCount(view), needed)) + GameConstants.ExitSwitchSeconds;
             return view.Time + factor * work + margin >= GameConstants.MatchLengthSeconds;
@@ -981,6 +989,14 @@ namespace PingTheKiller.ServerCore
             _terminal = -1;
             if (Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.5f) _mode = ModePause;
             else Plan(ally.X, ally.Z, GameConstants.RescueRadius - 0.7f, false);
+        }
+
+        private static bool LaggingAllyInReach(SurvivorBotView view)
+        {
+            foreach (var ally in view.Team)
+                if (ally.Id != view.SelfId && ally.Status == (byte)PlayerStatus.Lagging &&
+                    Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.1f) return true;
+            return false;
         }
 
         private static bool RescueUrgent(SurvivorBotView view, int target)

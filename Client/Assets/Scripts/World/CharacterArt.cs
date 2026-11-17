@@ -118,7 +118,7 @@ namespace PingTheKiller.Client.World
             appearance = mode;
         }
 
-        public void Animate(Vector3 position, double now, bool lagging, bool stepped, bool walking = true)
+        public void Animate(Vector3 position, double now, bool lagging, bool stepped, bool walking = true, float rate = 1)
         {
             float dt = double.IsNaN(previousTime) ? 0 : (float)Math.Max(0, Math.Min(.2, now - previousTime));
             float measured = dt > .00001f ? Vector3.Distance(position, previous) / dt : 0;
@@ -141,7 +141,7 @@ namespace PingTheKiller.Client.World
             {
                 steppedAt = double.NaN;
                 Animator.speed = 1;
-                Animator.Update(dt * (lagging ? .55f : 1));
+                Animator.Update(dt * (lagging ? .55f : rate));
                 Animator.speed = 0;
             }
         }

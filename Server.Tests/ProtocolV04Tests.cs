@@ -6,7 +6,8 @@ using Xunit;
 
 namespace PingTheKiller.Tests;
 
-// Protocol v0.4 (GDD v2): sync check packets, exits, hatch and the eliminated list of the result.
+// Protocol v0.4 (GDD v2): exits, hatch and the eliminated list of the result; 11/17 (R2) packet routing replaced the
+// v0.4 sync check packets (0x0011-0x0013 are retired and now unknown ids).
 public sealed class ProtocolV04Tests
 {
     private static T RoundTrip<T>(T packet) where T : IPacket
@@ -18,34 +19,41 @@ public sealed class ProtocolV04Tests
     }
 
     [Fact]
-    public void SyncPacketsRoundTripWithTheirIdsAndExactBytes()
+    public void HackInputAndTheSelfStateRouteRoundTripWithTheirIdsAndExactBytes()
     {
-        var check = RoundTrip(new S2C_SyncCheck
-        {
-            CheckId = 0x01020304, TerminalId = 6, Duration = 1.1f, ZoneStart = 0.5f, ZoneSize = 0.12f, GreatSize = 0.035f
-        });
-        Assert.Equal((0x01020304u, (byte)6, 1.1f, 0.5f, 0.12f, 0.035f),
-            (check.CheckId, check.TerminalId, check.Duration, check.ZoneStart, check.ZoneSize, check.GreatSize));
-        Assert.Equal("17000000110004030201" + "06CDCC8C3F0000003F8FC2F53D295C0F3D",
-            Convert.ToHexString(PacketCodec.Encode(check)));
+        Assert.Equal((ushort)0x0019, (ushort)PacketId.C2S_HackInput);
+        var input = RoundTrip(new C2S_HackInput { RouteId = 7, Direction = (byte)RouteDirection.Left });
+        Assert.Equal(((byte)7, (byte)2), (input.RouteId, input.Direction));
+        Assert.Equal("0400000019000702", Convert.ToHexString(PacketCodec.Encode(input)));
 
-        Assert.Equal(77u, RoundTrip(new C2S_SyncPress { CheckId = 77 }).CheckId);
-        Assert.Equal("0600000012004D000000", Convert.ToHexString(PacketCodec.Encode(new C2S_SyncPress { CheckId = 77 })));
-
-        var result = RoundTrip(new S2C_SyncResult { CheckId = 9, Result = (byte)SyncResult.Great });
-        Assert.Equal((9u, (byte)2), (result.CheckId, result.Result));
-        Assert.Equal("0700000013000900000002", Convert.ToHexString(PacketCodec.Encode(result)));
+        byte dirs = 0;
+        dirs = HackRoute.WithDirection(dirs, 0, RouteDirection.Right);
+        dirs = HackRoute.WithDirection(dirs, 1, RouteDirection.Up);
+        dirs = HackRoute.WithDirection(dirs, 2, RouteDirection.Down);
+        dirs = HackRoute.WithDirection(dirs, 3, RouteDirection.Left);
+        Assert.Equal(0b10_01_00_11, dirs);
+        Assert.Equal(new[] { RouteDirection.Right, RouteDirection.Up, RouteDirection.Down, RouteDirection.Left },
+            Enumerable.Range(0, 4).Select(i => HackRoute.DirectionAt(dirs, i)));
+        var self = RoundTrip(new S2C_SelfState { RouteId = 200, RouteLength = 4, RouteDirs = dirs, RouteIndex = 2 });
+        Assert.Equal(((byte)200, (byte)4, dirs, (byte)2), (self.RouteId, self.RouteLength, self.RouteDirs, self.RouteIndex));
+        Assert.Equal("1F000000" + "1000" + "00000000" + "00000000" + "00000000" + "00000000" + "000080BF" + "00000000" + "00" +
+            "C8" + "04" + "93" + "02", Convert.ToHexString(PacketCodec.Encode(self)));
+        // An index past the length, or a length past HackRoute.MaxLength, never goes on the wire.
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_SelfState { RouteLength = 2, RouteIndex = 3 }));
+        Assert.Throws<PacketFormatException>(() => PacketCodec.Encode(new S2C_SelfState { RouteLength = 5 }));
     }
 
     [Fact]
-    public void TruncatedOrOverlongSyncPacketsAreRejected()
+    public void TruncatedOrOverlongRoutePacketsAndTheRetiredSyncIdsAreRejected()
     {
-        foreach (IPacket packet in new IPacket[] { new S2C_SyncCheck(), new C2S_SyncPress(), new S2C_SyncResult() })
+        foreach (IPacket packet in new IPacket[] { new C2S_HackInput(), new S2C_SelfState() })
         {
             byte[] payload = PacketCodec.Encode(packet)[6..];
             Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)packet.Id, payload.AsSpan(0, payload.Length - 1)));
             Assert.Throws<PacketFormatException>(() => PacketCodec.Decode((ushort)packet.Id, payload.Concat(new byte[1]).ToArray()));
         }
+        foreach (ushort retired in new ushort[] { 0x0011, 0x0012, 0x0013 })
+            Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(retired, new byte[5]));
     }
 
     [Fact]

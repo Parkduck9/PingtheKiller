@@ -266,7 +266,8 @@ namespace PingTheKiller.Client.Tests
             hud.Begin(PingTheKiller.Shared.Game.SkillIds.PingScanner);
             hud.SetIntro(false);
             Rect keepOut720 = EdgePlacement.KeepOut(hud.ClusterRect(Screen720.y)), keepOut1080 = EdgePlacement.KeepOut(hud.ClusterRect(Screen1080.y));
-            Assert.That(keepOut720, Is.EqualTo(KillerKeepOut(Screen720)));
+            // R1 (11/17): the skill block grew to 88 u, so the normal-play cluster is 168 u tall.
+            Assert.That(keepOut720, Is.EqualTo(EdgePlacement.KeepOut(new Rect(24, Screen720.y - 24 - 168, 320, 168))));
 #else
             Rect keepOut720 = KillerKeepOut(Screen720), keepOut1080 = KillerKeepOut(Screen1080);
 #endif

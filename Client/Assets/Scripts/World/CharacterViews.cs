@@ -69,6 +69,10 @@ namespace PingTheKiller.Client.World
         private bool[] terminalRegressing = new bool[8];
         private int terminalCount;
         private bool terminalsFresh;
+        // R1 (11/17): the Killer entry's ChaseFlags.Swinging at the last WorldState, and a rise not yet played.
+        private bool killerSwinging, killerSwingEdge;
+        // Swings whose wind-up the Survivor client started on the drawn Killer model (dev shots and tests).
+        public int KillerSwings { get; private set; }
         private byte ownAction;
 
         // U8: a capture (Normal -> Lagging / Eliminated) of a Survivor that is drawn this frame, at its ground position.
@@ -137,6 +141,8 @@ namespace PingTheKiller.Client.World
         // own Survivor is spectating.
         // U4j: a capture seen this frame (any Survivor's Normal -> Lagging / Normal -> Eliminated) plays the swipe (1.2 s,
         // upper body) on the Killer model, only if the model is drawn now (HUD_SPEC 4.10: line of sight).
+        // R1 (11/17): the swipe starts on the Killer entry's Swinging rise (the server wind-up, 0.2 s before the hit check),
+        // so Survivors see it wind up; a capture then plays nothing new while that swipe runs (no double swing).
         private void RenderKiller(double now, SnapshotBuffer snapshots, bool captured)
         {
             KillerAlpha = 0; KillerVisorAlpha = 0; killerShown = false;
@@ -145,7 +151,12 @@ namespace PingTheKiller.Client.World
                 && KillerDrawable(avatars.TryGetValue(localId, out Avatar self) ? self.Status : (byte)PlayerStatus.Normal);
             if (killerModel.Root.activeSelf != seen) killerModel.Root.SetActive(seen);
             AttackTracker attack = killerModel.Motion.Attack;
-            if (captured) attack.Trigger(now, seen);
+            if (killerSwingEdge)
+            {
+                killerSwingEdge = false;
+                if (attack.Trigger(now, seen)) KillerSwings++;
+            }
+            else if (captured && !attack.Active(now)) attack.Trigger(now, seen);
             if (MotionPreview.Active == MotionPreviewClip.Swipe)
             {
                 // Dev preview: one attack per showing of the (injected) Killer model, from StartSeconds on.
@@ -199,6 +210,13 @@ namespace PingTheKiller.Client.World
         // U10: the own S2C_SelfState.ActionKind (the exit switch hold is own-only knowledge).
         public void SetOwnAction(byte kind) => ownAction = kind;
 
+        // 11/17 (R2): the own character routes packets (its holo panel pulses on real keys, not the fixed beat).
+        private bool ownRouting;
+        public void SetOwnRouting(bool routing) => ownRouting = routing;
+
+        // One real route key of the own character.
+        public void OwnKeyPulse(double now) { if (avatars.TryGetValue(localId, out Avatar avatar)) avatar.Props.KeyPulse(now); }
+
         public void Accept(S2C_WorldState state)
         {
             if (state.Terminals != null)
@@ -212,6 +230,11 @@ namespace PingTheKiller.Client.World
                 }
                 terminalsFresh = true;
             }
+            bool swinging = false;
+            foreach (PlayerState player in state.Players)
+                if (player.Role == (byte)Role.Killer) swinging = (player.Chase & (byte)ChaseFlags.Swinging) != 0;
+            if (role == Role.Survivor && swinging && !killerSwinging) killerSwingEdge = true;
+            killerSwinging = swinging; // an absent Killer entry (out of sight) counts as not swinging
             foreach (PlayerState player in state.Players)
             {
                 if (role == Role.Survivor && player.Role == (byte)Role.Killer) continue;
@@ -308,7 +331,7 @@ namespace PingTheKiller.Client.World
                 bool lagging = avatar.Lagging;
                 avatar.Motion.Drive(now);
                 RenderInteraction(avatar, own, bodies[i].Id, now);
-                avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false);
+                avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false, true, avatar.Motion.PoseRate);
                 avatar.Motion.Ground();
                 // The knock-down / crawl clips replace the old Lagging lean; the capsule fallback keeps it.
                 avatar.Root.transform.rotation *= Quaternion.Euler(lagging && !avatar.Motion.Drives ? 12 : 0, 0, 0);
@@ -358,6 +381,7 @@ namespace PingTheKiller.Client.World
             }
             double clock = now + (id & 7) * .37; // beats and streams are not in lockstep across characters
             avatar.Interaction.Update(now, kind, target, clock);
+            avatar.Props.KeyDriven = own && ownRouting;
             avatar.Props.Show(avatar.Interaction.Kind, avatar.Interaction.Weight, avatar.Root.transform, source, target, clock, now);
         }
 

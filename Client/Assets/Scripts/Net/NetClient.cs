@@ -98,7 +98,7 @@ namespace PingTheKiller.Client.Net
                         if (!IsServerPacket(packet.Id)) throw new PacketFormatException("Unexpected client packet from server.");
                         if (packet is S2C_RttProbe probe)
                         {
-                            // Same receive-thread -> outgoing queue -> send-thread path as the sync needle and press.
+                            // Same receive-thread -> outgoing queue -> send-thread path as every other outgoing packet.
                             Send(new C2S_RttEcho { Nonce = probe.Nonce });
                             continue;
                         }
@@ -140,7 +140,7 @@ namespace PingTheKiller.Client.Net
         // Every S2C_ packet the client accepts from the socket (protocol v0.3 adds S2C_SelfState); a C2S_ id disconnects.
         public static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
             or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart or PacketId.S2C_SelfState
-            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult or PacketId.S2C_RttProbe // v0.5 server-timed RTT
+            or PacketId.S2C_RttProbe // v0.5 server-timed RTT (the sync check ids 0x12/0x13 are retired, 11/17 R2)
             or PacketId.S2C_SkillRejected; // v0.6 skill rejection reasons (Q3)
 
         private static void Write(NetworkStream stream, IPacket packet)

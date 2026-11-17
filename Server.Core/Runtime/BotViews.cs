@@ -36,6 +36,9 @@ namespace PingTheKiller.ServerCore
         internal float KillerX, KillerZ, KillerYaw;
         // GDD v2 section 8: the WorldState shutter states (public to every role).
         internal byte[] Shutters = new byte[WorldChaseProps.ShutterCount];
+        // 11/17 (R2): the own Hacking flag and the own route, as the own WorldState entry and S2C_SelfState carry them.
+        internal bool Hacking;
+        internal byte RouteId, RouteLength, RouteDirs, RouteIndex;
     }
 
     // What the killer client knows: its own state and the anonymous killer view (Signal survivors, phantoms, afterimages
@@ -52,6 +55,8 @@ namespace PingTheKiller.ServerCore
         {
             internal float X, Z;
             internal bool Done;
+            // R1 (11/17): TerminalFlags.Locked, which the Killer's WorldState carries.
+            internal bool Locked;
         }
 
         internal double Time;
@@ -82,5 +87,10 @@ namespace PingTheKiller.ServerCore
     {
         internal float DirX, DirZ, Yaw;
         internal bool Interact, UseSkill;
+        // 11/17 (R2): one route key (C2S_HackInput) when HackKey is set.
+        internal bool HackKey;
+        internal byte HackRouteId, HackDirection;
+        // R1 (11/17): a Killer swing press, applied like C2S_Attack.
+        internal bool Attack;
     }
 }

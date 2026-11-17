@@ -88,15 +88,25 @@ namespace PingTheKiller.Client.Dev
 
         private static float Distance(float x, float z, Vector3 goal) => new Vector2(goal.x - x, goal.z - z).magnitude;
 
-        // -ptk-auto-sync, pure: true on the frame the scripted press is due. The server times a press by its arrival minus
-        // the RTT against the moment the check left, so the drawn needle is what counts: Great aims at the middle of the
-        // great part (a frame of lateness stays inside it), Good at the middle of the rest of the zone. Miss never presses.
-        public static bool SyncDue(AutoSync aim, in SyncCheckView check, float needle)
+        // -ptk-auto-route (11/17, R2), pure: seconds between scripted route keys (fast and sloppy 0.15 s, slow 0.5 s).
+        public const float FastKeySeconds = .15f, SlowKeySeconds = .5f;
+        // Sloppy: every SloppyEvery-th scripted key is wrong (20 %).
+        public const int SloppyEvery = 5;
+
+        public static float RouteKeySeconds(AutoRoute pace) => pace == AutoRoute.Slow ? SlowKeySeconds : FastKeySeconds;
+
+        // The key the autopilot presses as its n-th key (1-based): the expected direction, or for Sloppy every fifth key the
+        // opposite one (always wrong).
+        public static RouteDirection RouteKey(AutoRoute pace, int n, RouteDirection expected)
         {
-            if (aim != AutoSync.Great && aim != AutoSync.Good) return false;
-            float target = aim == AutoSync.Great ? check.ZoneStart + check.GreatSize * .5f
-                : check.ZoneStart + check.GreatSize + (check.ZoneSize - check.GreatSize) * .5f;
-            return needle >= target;
+            if (pace != AutoRoute.Sloppy || n % SloppyEvery != 0) return expected;
+            switch (expected)
+            {
+                case RouteDirection.Up: return RouteDirection.Down;
+                case RouteDirection.Down: return RouteDirection.Up;
+                case RouteDirection.Left: return RouteDirection.Right;
+                default: return RouteDirection.Left;
+            }
         }
     }
 }

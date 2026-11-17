@@ -8,8 +8,8 @@ namespace PingTheKiller.Client.UI
 {
     // HUD_SPEC 4.0 Survivor cluster: bottom-center, 24 u above the bottom edge, 672x72 u, `panel` fill, 1 u `line` border,
     // three blocks [8] skill 168 [8] transmit meter 304 [8] info 168 [8]. Above it the HUD_SPEC 13.1 stack, bottom-up with
-    // 8 u gaps: the objective row (exits + collapse, 672x48), the prompt row or the hold row (672x40), the sync check ring
-    // (144x144); each only while it applies. Every value comes from SurvivorReadout / V2Wire; this class only displays it.
+    // 8 u gaps: the objective row (exits + collapse, 672x48), the prompt row or the hold row (672x40), the route panel
+    // (320x80, 11/17 R2); each only while it applies. Every value comes from SurvivorReadout / V2Wire; this class only displays it.
     public sealed class SurvivorHud
     {
         public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
@@ -27,8 +27,8 @@ namespace PingTheKiller.Client.UI
         private Vector2 shownCanvas;
         private float scale = 1;
 
-        public SyncCheckTracker Sync { get; } = new SyncCheckTracker();
-        public SyncLockBar SyncRing { get; }
+        public RouteTracker Route { get; } = new RouteTracker();
+        public RoutePanel RoutePanel { get; }
         public HoldActionBar Hold { get; }
         public ObjectiveRow Objective { get; }
         // HUD_SPEC 5: the shared play menu in its Row layout, in the prompt row's slot of the 13.1 stack (it grows upward).
@@ -41,9 +41,11 @@ namespace PingTheKiller.Client.UI
             for (int i = 0; i < bands.Length; i++) { bands[i] = Box(root, "sband"); Show(bands[i], false); }
             V2Markers = new V2MarkerLayer(font);
             root.Add(V2Markers);
+            AllyLayer = new MarkerLayer(font); // R3 (HUD_SPEC 4.6): the Lagging-ally tags and edge arrows, under the stack and cluster
+            root.Add(AllyLayer);
             stack = Box(root, "v2-survivor-stack");
-            SyncRing = new SyncLockBar(Sync.State, font);
-            stack.Add(SyncRing);
+            RoutePanel = new RoutePanel(Route, font);
+            stack.Add(RoutePanel);
             // HUD_SPEC 14.1a: the skill result line, directly above the prompt row.
             result = Box(stack, "sresult");
             VisualElement resultLine = Box(result, "krow");
@@ -95,7 +97,6 @@ namespace PingTheKiller.Client.UI
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
             Show(prompt, false);
             Show(result, false);
-            SyncRing.Refresh();
         }
 
         public VisualElement Root => root;
@@ -143,6 +144,35 @@ namespace PingTheKiller.Client.UI
         public V2MarkerLayer V2Markers { get; }
         public int RegressingShown { get; private set; }
 
+        // R3 (11/17, HUD_SPEC 4.6): a tag or edge arrow for every Lagging ally. The layer is a MarkerLayer (the Killer HUD's
+        // marker infrastructure); AllyMarkers does the placement.
+        public MarkerLayer AllyLayer { get; }
+        public AllyMarkers Allies { get; } = new AllyMarkers();
+        // The intro card's height while it shows above the cluster (0 = hidden): it takes the prompt row's slot and the keep-out.
+        public float IntroHeight { get; set; }
+
+        public void DrawAllyMarkers(float ownX, float ownZ, System.Collections.Generic.IReadOnlyList<Mate> mates, System.Func<int, string> names, World.ViewPose pose)
+        {
+            Vector2 screen = new Vector2(AllyLayer.layout.width, AllyLayer.layout.height);
+            if (float.IsNaN(screen.x) || screen.x <= 0 || float.IsNaN(screen.y) || screen.y <= 0)
+                screen = new Vector2(Screen.width, Screen.height) / Mathf.Max(.01f, scale);
+            DrawAllyMarkers(ownX, ownZ, mates, names, pose, screen);
+        }
+
+        public void DrawAllyMarkers(float ownX, float ownZ, System.Collections.Generic.IReadOnlyList<Mate> mates, System.Func<int, string> names, World.ViewPose pose, Vector2 screen)
+        {
+            Rect cluster = ClusterRect(screen);
+            Allies.Build(ownX, ownZ, mates, names, pose, screen, cluster);
+            Allies.Draw(AllyLayer, EdgePlacement.SafeRect(screen, false), EdgePlacement.KeepOut(cluster));
+        }
+
+        public void ClearAllyMarkers()
+        {
+            Allies.Build(0, 0, null, null, default, new Vector2(1920, 1080), default);
+            AllyLayer.Clear(MarkerLayer.Static); AllyLayer.Clear(MarkerLayer.Signals);
+            AllyLayer.Commit(MarkerLayer.Static); AllyLayer.Commit(MarkerLayer.Signals);
+        }
+
         public const float TerminalPointHeight = 1.5f;
 
         // Every frame: a Regressing tag above each Regressing terminal whose 1.5 m point is on screen, kept out of the cluster
@@ -178,7 +208,7 @@ namespace PingTheKiller.Client.UI
 
         public void Begin(byte skillId)
         {
-            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
+            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0; IntroHeight = 0; ClearAllyMarkers();
             menuSkill = skillId; Menu.SetOpen(false); Menu.SetNote(null);
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
@@ -186,8 +216,8 @@ namespace PingTheKiller.Client.UI
             CastFlash.Hide();
             Hold.Hide();
             Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
-            Sync.Reset();
-            SyncRing.Refresh();
+            Route.Reset();
+            RoutePanel.Refresh(false, null, 0);
         }
 
         public void SetMeter(MeterState m)
@@ -307,11 +337,12 @@ namespace PingTheKiller.Client.UI
         // HUD_SPEC 13.1 / 13.4 / 13.5: both exits and the collapse clock, shown once an exit is Powered or Open or a clock runs.
         public void SetObjective(ExitView[] exits, in CollapseView collapse) => Objective.Set(exits, collapse);
 
-        // HUD_SPEC 13.2: the ring follows the tracker (call after Sync.Tick). glyph: "Space" or "A".
-        public void SetSync(string glyph)
+        // HUD_SPEC 13.2 (11/17, R2): the route panel follows the tracker every frame. visible: keys captured and Normal;
+        // glyph: RouteCopy.KeyboardGlyph or PadGlyph; reduced: Reduced motion (no pulse growth, no shake).
+        public void SetRoute(bool visible, string glyph, bool reduced, double now)
         {
-            SyncRing.SetGlyph(glyph);
-            SyncRing.Refresh();
+            RoutePanel.Reduced = reduced;
+            RoutePanel.Refresh(visible, glyph, now);
         }
 
         // 4.8: cooldown = SelfState.SkillCooldown when available (null: no cooldown ring). activeFraction < 0 = none.
@@ -324,7 +355,7 @@ namespace PingTheKiller.Client.UI
         }
 
         // HUD_SPEC 5: the menu takes the prompt row's place; the prompt and hold rows stay hidden while it is open (the
-        // per-frame SetPrompt cannot bring them back). The meter cluster, objective row, result line and sync ring stay.
+        // per-frame SetPrompt cannot bring them back). The meter cluster, objective row, result line and route panel stay.
         public bool MenuOpen => Menu.Open;
         public void SetMenu(bool open)
         {
@@ -398,10 +429,11 @@ namespace PingTheKiller.Client.UI
         {
             float height = Height;
             if (MenuOpen) height += PlayMenu.RowHeight + Gap;
+            else if (IntroHeight > 0) height += IntroHeight + Gap;
             else if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
-            if (SyncRing.style.display != DisplayStyle.None) height += SyncLockBar.Height + Gap;
+            if (RoutePanel.style.display != DisplayStyle.None) height += RoutePanel.Height + Gap;
             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);
         }
 
@@ -420,7 +452,8 @@ namespace PingTheKiller.Client.UI
             ring.Scale = scale; ring.MarkDirtyRepaint();
             CastFlash.SetScale(scale);
             V2Markers.Scale = scale;
-            SyncRing.Scale = scale;
+            AllyLayer.Scale = scale;
+            RoutePanel.Scale = scale;
         }
     }
 }

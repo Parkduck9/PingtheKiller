@@ -186,77 +186,71 @@ public sealed class QaU6aRulesTests
         Assert.InRange(World(a).CollapseLeft, GameConstants.CollapseSeconds - 0.2f, GameConstants.CollapseSeconds);
     }
 
+    // 11/17 (R2): the sync check was replaced by packet routing; these keep the intent of the two U6a sync-check cases
+    // (stopping the hack makes presses harmless; the killer and unknown ids are ignored without a reply).
     [Fact]
     [Trait("Category", "QaU6a")]
-    public void SyncCheckCancelledSilentlyWhenSurvivorStopsHackingBeforePress()
+    public void RouteKeysAfterReleasingInteractAreIgnoredWithoutPenaltyAndTheRouteWaits()
     {
         using var m = RulesMatch.Start(1);
         var srv = m.F.Server;
         var s = m[0];
         var t = srv.Map.TerminalPositions[0];
-        srv.SyncChecksEnabled = true;
 
         srv.PlaceForTests(s.Id, t.X - 0.5f, t.Z);
         srv.PlaceForTests(m.Killer.Id, 48.5f, 60f);
         srv.SetTerminalProgressForTests(0, 50);
         Hold(s, true);
-        m.Tick();
-        srv.SetSyncTimerForTests(s.Id, 0.01);
-        m.Tick();
-
-        var check = Assert.Single(Fresh<S2C_SyncCheck>(s));
+        m.Tick(2);
+        var route = s.Last<S2C_SelfState>();
+        Assert.NotEqual(0, route.RouteId);
 
         // Release interact (stop hacking)
         Hold(s, false);
         m.Tick();
-        double progressAtCancel = srv.TerminalProgressForTests(0);
+        double progressAtRelease = srv.TerminalProgressForTests(0);
 
-        // Wait past check duration + tolerance
-        m.Tick(40);
-
-        // No result packet sent, no penalty applied, not overloaded
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
-        Assert.Equal(progressAtCancel, srv.TerminalProgressForTests(0), 4);
+        // Right and wrong keys for the held route: no progress, no penalty, not overloaded, the route is kept
+        s.Send(new C2S_HackInput { RouteId = route.RouteId, Direction = (byte)HackRoute.DirectionAt(route.RouteDirs, 0) });
+        s.Send(new C2S_HackInput { RouteId = route.RouteId, Direction = (byte)(((int)HackRoute.DirectionAt(route.RouteDirs, 0) + 1) % 4) });
+        m.Tick(2);
+        Assert.Equal(progressAtRelease, srv.TerminalProgressForTests(0), 4);
         Assert.False(Has(World(s).Terminals[0], TerminalFlags.Overloaded));
         Assert.False(Has(World(m.Killer).Terminals[0], TerminalFlags.Overloaded));
-
-        // Stale press after cancellation is ignored
-        s.Send(new C2S_SyncPress { CheckId = check.CheckId });
-        m.Tick();
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
-        Assert.Equal(progressAtCancel, srv.TerminalProgressForTests(0), 4);
+        Assert.Equal((route.RouteId, route.RouteDirs, (byte)0), (srv.RouteForTests(s.Id).Id, srv.RouteForTests(s.Id).Dirs, srv.RouteForTests(s.Id).Index));
     }
 
     [Fact]
     [Trait("Category", "QaU6a")]
-    public void SyncPressFromKillerOrUnknownCheckIdIsIgnoredWithoutReply()
+    public void HackInputFromKillerOrUnknownRouteIdIsIgnoredWithoutReply()
     {
         using var m = RulesMatch.Start(1);
         var srv = m.F.Server;
         var s = m[0];
         var t = srv.Map.TerminalPositions[0];
-        srv.SyncChecksEnabled = true;
 
         srv.PlaceForTests(s.Id, t.X - 0.5f, t.Z);
         srv.PlaceForTests(m.Killer.Id, 48.5f, 60f);
         srv.SetTerminalProgressForTests(0, 50);
         Hold(s, true);
-        m.Tick();
-        srv.SetSyncTimerForTests(s.Id, 0.01);
-        m.Tick();
+        m.Tick(2);
+        var route = s.Last<S2C_SelfState>();
+        Assert.NotEqual(0, route.RouteId);
+        var right = (byte)HackRoute.DirectionAt(route.RouteDirs, 0);
 
-        var check = Assert.Single(Fresh<S2C_SyncCheck>(s));
-
-        // Killer tries to send SyncPress
-        m.Killer.Send(new C2S_SyncPress { CheckId = check.CheckId });
+        // Killer tries to answer the survivor's route
+        Fresh<S2C_SelfState>(m.Killer);
+        m.Killer.Send(new C2S_HackInput { RouteId = route.RouteId, Direction = right });
         m.Tick();
-        Assert.Empty(Fresh<S2C_SyncResult>(m.Killer));
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
+        Assert.Equal(0, srv.RouteForTests(s.Id).Index);
+        Assert.All(Fresh<S2C_SelfState>(m.Killer), k => Assert.Equal(0, k.RouteId));
 
-        // Survivor sends an unknown CheckId
-        s.Send(new C2S_SyncPress { CheckId = check.CheckId + 999 });
+        // Survivor sends an unknown route id and the "no route" id 0
+        s.Send(new C2S_HackInput { RouteId = (byte)(route.RouteId + 1), Direction = right });
+        s.Send(new C2S_HackInput { RouteId = 0, Direction = right });
         m.Tick();
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
+        Assert.Equal((route.RouteId, (byte)0), (srv.RouteForTests(s.Id).Id, srv.RouteForTests(s.Id).Index));
+        Assert.False(Has(World(m.Killer).Terminals[0], TerminalFlags.Overloaded));
     }
 
     [Fact]

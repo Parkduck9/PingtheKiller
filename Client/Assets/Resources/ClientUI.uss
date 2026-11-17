@@ -82,6 +82,19 @@
 .root .slot-number { width: 32px; }
 .root .slot.empty .unity-label { color: #9A9890; }
 .root .controls { width: 400px; align-items: flex-start; }
+/* R1 (11/17) HUD_SPEC 12.4: the lobby skill picker, a third column (the lobby screen is 1536 u wide). a2: names and
+   effect lines at the 18 u body size in the text colour; effect lines are broken by LobbyCopy.PickerEffect (no wrap). */
+.root .lobby-wide { width: 1536px; }
+.root .controls.with-skills { margin-right: 32px; }
+.root .skills { width: 512px; align-items: flex-start; }
+.root .pick-chosen { margin-bottom: 12px; white-space: normal; width: 512px; }
+.root .pick-group { margin-bottom: 4px; }
+.root .unity-label.pick-title { font-size: 14px; color: #9A9890; margin-bottom: 6px; }
+.root.s-floor .unity-label.pick-title { font-size: 15px; }
+.root .pick-row { flex-direction: row; align-items: center; margin-bottom: 8px; }
+.root .unity-button.pick { min-width: 192px; width: 192px; height: 36px; margin-right: 12px; margin-bottom: 0; font-size: 18px; }
+.root .skills > .unity-button.pick { margin-top: 6px; }
+.root .unity-label.pick-effect { font-size: 18px; color: #E8E6E1; white-space: nowrap; width: 308px; margin-bottom: 0; }
 .root .section { -unity-font-style: bold; margin-bottom: 16px; }
 .root .row { flex-direction: row; align-items: center; margin-bottom: 12px; }
 .root .row .unity-label { margin-bottom: 0; margin-right: 16px; }
@@ -173,7 +186,7 @@
 .root .kprompt { height: 56px; padding: 8px; }
 .root .kinfo { height: 72px; padding: 0; padding-left: 8px; padding-right: 8px; }
 .root .keffect { height: 32px; padding: 4px; flex-direction: row; align-items: center; }
-.root .kskill { height: 72px; padding: 3px; padding-left: 8px; padding-right: 8px; flex-direction: row; align-items: center; }
+.root .kskill { height: 88px; padding: 3px; padding-left: 8px; padding-right: 8px; flex-direction: row; align-items: center; }
 .root .kskill-text { margin-left: 8px; width: 232px; }
 .root .krow { flex-direction: row; align-items: center; height: 23px; }
 .root .unity-label.kl { font-size: 28px; height: 34px; margin: 0; margin-bottom: 4px; -unity-text-align: middle-left; }
@@ -184,6 +197,7 @@
 .root .unity-label.kgap { margin-bottom: 4px; }
 .root .unity-label.kbold { -unity-font-style: bold; }
 .root .unity-label.kmuted { color: #9A9890; }
+.root .unity-label.kclip { overflow: hidden; text-overflow: ellipsis; }
 .root .unity-label.kwrap { white-space: normal; width: 296px; flex-shrink: 0; }
 .root .unity-label.kmenu-effect { margin-bottom: 12px; }
 .root .kbar { width: 4px; height: 18px; background-color: #E8E6E1; margin-right: 4px; flex-shrink: 0; }

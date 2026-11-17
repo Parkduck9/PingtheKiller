@@ -25,7 +25,7 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players) if (player.Role == Role.Survivor) ++_startingSurvivors;
             ResetTerminals();
             ResetExits();
-            ResetSyncChecks();
+            ResetRoutes();
             ResetChaseProps();
             _skillRequests.Clear();
             _decoys.Clear();
@@ -33,7 +33,7 @@ namespace PingTheKiller.ServerCore
             _killerViewSources.Clear();
         }
 
-        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> capture -> rescue -> hacking (regression, sync checks)
+        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> swing (R1 capture) -> rescue -> hacking (regression, packet routes)
         // -> killer holds (kick, hatch close) -> exit switches -> escape -> hatch spawn -> time limit -> end check.
         private void RunRules(float dt)
         {
@@ -50,7 +50,7 @@ namespace PingTheKiller.ServerCore
             UpdateStatuses();
             RunCollapse(dt);
             ChaseProps(dt);
-            Capture();
+            Swing();
             Rescue(dt);
             Hack(dt);
             KillerHolds(dt);
@@ -96,33 +96,21 @@ namespace PingTheKiller.ServerCore
             {
                 player.LaggingUntil = 0;
                 player.InvulnerableUntil = _now + GameConstants.PostRescueInvulnerabilitySeconds;
+                player.GetUpUntil = _now + GameConstants.GetUpSeconds;
+                player.DirX = player.DirZ = 0;
             }
             else
             {
                 player.DirX = player.DirZ = 0;
                 player.LastSignal = double.NegativeInfinity;
             }
-            if (status != PlayerStatus.Normal) CancelSyncCheck(player);
+            if (status != PlayerStatus.Normal) ClearRoute(player);
             WriteLog($"status player={player.Id} {status} reason={reason}");
         }
 
-        // GDD v2 §4 capture stages: catching a Normal survivor counts one more capture (1 -> Lagging 60 s, 2 -> Lagging
-        // 30 s, 3 -> Eliminated). The killer cannot touch a Lagging survivor into the next stage: only its timer advances it.
-        private void Capture()
-        {
-            // GDD v2 section 8: a stunned killer cannot capture.
-            if (_killer == null || Active(_killer.StunnedUntil)) return;
-            foreach (var survivor in _players)
-            {
-                if (survivor.Role != Role.Survivor || survivor.Status != PlayerStatus.Normal) continue;
-                if (!Within(survivor, _killer.X, _killer.Z, GameConstants.CaptureRadius) || Active(survivor.InvulnerableUntil)) continue;
-                if (survivor.CaptureCount < byte.MaxValue) survivor.CaptureCount++;
-                if (survivor.CaptureCount >= GameConstants.EliminatingCaptureCount)
-                    SetStatus(survivor, PlayerStatus.Eliminated, "third capture");
-                else SetStatus(survivor, PlayerStatus.Lagging, "capture");
-            }
-        }
-
+        // R3 (11/17): a rescue needs the rescuer to HOLD Interact within RescueRadius of a Lagging ally; each rescuer works on
+        // the nearest one. Releasing E, leaving the radius, a vault or a status change restarts the count.
+        // E priority (one hold at a time): rescue a Lagging ally > shutter/rail (ChaseProps, a fresh press) > exit switch > terminal.
         private void Rescue(float dt)
         {
             foreach (var player in _players) player.Rescuing = false;
@@ -132,17 +120,34 @@ namespace PingTheKiller.ServerCore
                 bool contact = false;
                 foreach (var rescuer in _players)
                 {
-                    if (rescuer == target || rescuer.Role != Role.Survivor || rescuer.Status != PlayerStatus.Normal) continue;
-                    if (!Within(rescuer, target.X, target.Z, GameConstants.RescueRadius)) continue;
+                    if (!CanHoldRescue(rescuer) || NearestLaggingAlly(rescuer) != target) continue;
                     rescuer.Rescuing = true;
                     contact = true;
                 }
-                // Contact must be continuous: one tick without a rescuer in range restarts the count.
+                // Contact must be continuous: one tick without a holding rescuer in range restarts the count.
                 if (!contact) { target.RescueProgress = 0; continue; }
                 target.RescueProgress += dt;
                 if (target.RescueProgress >= GameConstants.RescueTimeSeconds - TimeEpsilon)
                     SetStatus(target, PlayerStatus.Normal, "rescue");
             }
+        }
+
+        private static bool CanHoldRescue(Player rescuer) =>
+            rescuer.Role == Role.Survivor && rescuer.Status == PlayerStatus.Normal && rescuer.Interacting && !rescuer.InChaseAction;
+
+        // The nearest Lagging ally within RescueRadius, or null.
+        private Player NearestLaggingAlly(Player player)
+        {
+            Player target = null;
+            float best = float.MaxValue;
+            foreach (var ally in _players)
+            {
+                if (ally == player || ally.Role != Role.Survivor || ally.Status != PlayerStatus.Lagging ||
+                    !Within(player, ally.X, ally.Z, GameConstants.RescueRadius)) continue;
+                float distance = DistanceSquared(player.X, player.Z, ally.X, ally.Z);
+                if (distance < best) { best = distance; target = ally; }
+            }
+            return target;
         }
 
         // GDD v2 §1: the match ends when no survivor is Normal or Lagging (or at the time limit, see TimeUp).
@@ -197,7 +202,8 @@ namespace PingTheKiller.ServerCore
                 player.Interacting = player.Hacking = player.Rescuing = false;
                 player.DirX = player.DirZ = 0;
                 player.LastSignal = double.NegativeInfinity;
-                player.SyncPending = false;
+                player.RouteId = 0;
+                player.RouteTerminal = -1;
             }
             _killer = null;
             _skillRequests.Clear();
@@ -210,11 +216,14 @@ namespace PingTheKiller.ServerCore
 
         // Survivors hold Interact to hack, hold an exit switch or open the hatch; the killer holds it to kick a terminal
         // or close the hatch (GDD v2 §2-§3).
+        // R3: for GetUpSeconds after a rescue the Survivor cannot move, interact or use a skill; the look yaw is still read.
+        private bool GettingUp(Player player) => player.Role == Role.Survivor && player.Status == PlayerStatus.Normal && _now < player.GetUpUntil - TimeEpsilon;
+
         private void SetInteract(Player player, byte active)
         {
             if (active > 1 || _sandbox) return;
             if (active == 0) { player.Interacting = false; return; }
-            if (player.Role == Role.Survivor && player.Status != PlayerStatus.Normal) return;
+            if (player.Role == Role.Survivor && (player.Status != PlayerStatus.Normal || GettingUp(player))) return;
             // GDD v2 section 8: a pull or vault starts on a fresh press (released before), never on a held Interact.
             if (!player.Interacting) player.InteractPressed = true;
             player.Interacting = true;

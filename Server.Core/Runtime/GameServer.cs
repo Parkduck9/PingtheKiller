@@ -34,7 +34,7 @@ namespace PingTheKiller.ServerCore
             internal readonly Binding Binding;
             internal readonly IPacket Packet;
             internal readonly byte Kind; // 0 = packet, 1 = add, 2 = close
-            // Server clock seconds when the receive thread queued it (sync presses and RTT echoes).
+            // Server clock seconds when the receive thread queued it (RTT echoes).
             internal readonly double ReceivedAt;
         }
 
@@ -51,8 +51,9 @@ namespace PingTheKiller.ServerCore
         // _random: killer/skill assignment and bots; _decoyRandom: phantom placement and motion; _shuffleRandom:
         // killer-view entry order. Separate streams keep each one deterministic regardless of the others' draw counts.
         private Random _random, _decoyRandom, _shuffleRandom;
-        // _syncRandom: seeds of the per-survivor sync-check streams (GameServer.Terminals).
-        private Random _syncRandom;
+        // _routeRandom: seeds of the per-survivor packet-routing streams and survivor bots' route-solving streams
+        // (GameServer.Terminals).
+        private Random _routeRandom;
         private int _matchSeed;
         private Thread _thread;
         private int _running, _nextId = 1;
@@ -63,13 +64,6 @@ namespace PingTheKiller.ServerCore
         private readonly Dictionary<string, double> _faultLogs = new Dictionary<string, double>();
         // One monotonic wall clock in seconds (a Stopwatch unless a test injects one), read on any thread.
         private readonly Func<double> _clock;
-        // The current tick: its simulated start (_now before the increment), its length, the clock when it started, and
-        // how late Run started it after its schedule (0 for a manual Tick). Simulated time t inside the tick maps to the
-        // clock as _tickWallStart - _tickLag + (t - _tickSimStart), so a check and a press in different ticks are timed
-        // on the same scale even when the loop wakes up late.
-        private double _tickSimStart, _tickDt, _tickWallStart, _tickLag;
-        // Run drops its backlog after 1 s, so a real tick is never later than this.
-        private const double MaxTickLagSeconds = 2;
 
         public GameServer(ServerOptions options = null)
         {
@@ -97,7 +91,7 @@ namespace PingTheKiller.ServerCore
                 _random = PrivateRandom.FromSeed(seed, 0);
                 _decoyRandom = PrivateRandom.FromSeed(seed, 1);
                 _shuffleRandom = PrivateRandom.FromSeed(seed, 2);
-                _syncRandom = PrivateRandom.FromSeed(seed, 3);
+                _routeRandom = PrivateRandom.FromSeed(seed, 3);
                 _rttRandom = PrivateRandom.FromSeed(seed, 4);
             }
             else
@@ -105,7 +99,7 @@ namespace PingTheKiller.ServerCore
                 _random = PrivateRandom.FromCsprng();
                 _decoyRandom = PrivateRandom.FromCsprng();
                 _shuffleRandom = PrivateRandom.FromCsprng();
-                _syncRandom = PrivateRandom.FromCsprng();
+                _routeRandom = PrivateRandom.FromCsprng();
                 _rttRandom = PrivateRandom.FromCsprng();
             }
         }
@@ -209,8 +203,7 @@ namespace PingTheKiller.ServerCore
                         _stop.Wait(TimeSpan.FromSeconds(wait));
                         continue;
                     }
-                    // -wait: how far behind its schedule this tick starts (the sync judge maps the clock through it).
-                    try { Tick(1f / GameConstants.TickRate, -wait); }
+                    try { Tick(1f / GameConstants.TickRate); }
                     catch (Exception ex)
                     {
                         string message = ex.GetType().Name + ": " + ex.Message;
@@ -234,10 +227,7 @@ namespace PingTheKiller.ServerCore
             finally { Volatile.Write(ref _running, 0); }
         }
 
-        public void Tick(float dt) => Tick(dt, 0);
-
-        // lateBy: seconds between the tick's scheduled start and now (Run, and the sync timing tests).
-        internal void Tick(float dt, double lateBy)
+        public void Tick(float dt)
         {
             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt <= 0 || dt > 60)
                 throw new ArgumentOutOfRangeException(nameof(dt));
@@ -245,10 +235,6 @@ namespace PingTheKiller.ServerCore
             {
                 if (Volatile.Read(ref _running) != 0 && Thread.CurrentThread != _thread)
                     throw new InvalidOperationException("Manual Tick cannot run alongside Start().");
-                _tickWallStart = _clock();
-                _tickLag = double.IsNaN(lateBy) || lateBy < 0 ? 0 : Math.Min(lateBy, MaxTickLagSeconds);
-                _tickSimStart = _now;
-                _tickDt = dt;
                 if (!_initialized)
                 {
                     _initialized = true;
@@ -355,7 +341,7 @@ namespace PingTheKiller.ServerCore
             foreach (var player in _players) if (player.ConnectionId == id) return player;
             return null;
         }
-        // receivedAt: server clock when the packet was queued; sync presses and RTT echoes read it.
+        // receivedAt: server clock when the packet was queued; RTT echoes read it.
         private void Handle(IConnection connection, IPacket packet, double receivedAt)
         {
             if (connection.IsClosed) return;
@@ -372,7 +358,9 @@ namespace PingTheKiller.ServerCore
                 else RejectSkill(player, skill.SkillId, SkillRejectReason.NotInMatch);
                 return;
             }
-            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId, receivedAt); return; }
+            if (packet is C2S_HackInput hack) { if (_matchStarted) HackInput(player, hack.RouteId, hack.Direction); return; }
+            if (packet is C2S_Attack attack) { if (_matchStarted) ApplyAttack(player, attack.Seq); return; }
+            if (packet is C2S_ChooseSkill choose) { if (!_matchStarted) ChooseSkill(player, choose.SkillId); return; }
             if (!_matchStarted && player.IsHost)
             {
                 if (packet is C2S_SetBots bots)

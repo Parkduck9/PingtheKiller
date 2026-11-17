@@ -44,12 +44,12 @@ namespace PingTheKiller.Shared.Net
                 case PacketId.C2S_SetBots: packet = C2S_SetBots.Read(ref reader); break;
                 case PacketId.C2S_SetRole: packet = C2S_SetRole.Read(ref reader); break;
                 case PacketId.S2C_SelfState: packet = S2C_SelfState.Read(ref reader); break;
-                case PacketId.S2C_SyncCheck: packet = S2C_SyncCheck.Read(ref reader); break;
-                case PacketId.C2S_SyncPress: packet = C2S_SyncPress.Read(ref reader); break;
-                case PacketId.S2C_SyncResult: packet = S2C_SyncResult.Read(ref reader); break;
                 case PacketId.S2C_RttProbe: packet = S2C_RttProbe.Read(ref reader); break;
                 case PacketId.C2S_RttEcho: packet = C2S_RttEcho.Read(ref reader); break;
                 case PacketId.S2C_SkillRejected: packet = S2C_SkillRejected.Read(ref reader); break;
+                case PacketId.C2S_Attack: packet = C2S_Attack.Read(ref reader); break;
+                case PacketId.C2S_ChooseSkill: packet = C2S_ChooseSkill.Read(ref reader); break;
+                case PacketId.C2S_HackInput: packet = C2S_HackInput.Read(ref reader); break;
                 default: throw new PacketFormatException("Unknown packet ID.");
             }
             reader.EnsureEnd();

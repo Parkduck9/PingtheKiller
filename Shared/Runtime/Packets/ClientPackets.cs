@@ -98,12 +98,43 @@ namespace PingTheKiller.Shared.Packets
         public static C2S_SetRole Read(ref PacketReader r) => new C2S_SetRole { RoleChoice = GameWireValues.ReadRoleChoice(ref r) };
     }
 
-    // v0.4: the answer to one S2C_SyncCheck, sent at most once per check at the moment the player pressed.
-    public sealed class C2S_SyncPress : IPacket
+    // 11/17 (R2): one packet-routing key press while hacking. RouteId is the S2C_SelfState.RouteId the press answers
+    // (a stale or unknown id is dropped by the server); Direction is a RouteDirection (Up 0, Down 1, Left 2, Right 3).
+    public sealed class C2S_HackInput : IPacket
     {
-        public uint CheckId;
-        public PacketId Id => PacketId.C2S_SyncPress;
-        public void Write(PacketWriter w) => w.WriteUInt32(CheckId);
-        public static C2S_SyncPress Read(ref PacketReader r) => new C2S_SyncPress { CheckId = r.ReadUInt32() };
+        public byte RouteId;
+        public byte Direction;
+        public PacketId Id => PacketId.C2S_HackInput;
+
+        public void Write(PacketWriter w)
+        {
+            w.WriteByte(RouteId);
+            w.WriteByte(Direction);
+        }
+
+        public static C2S_HackInput Read(ref PacketReader r) => new C2S_HackInput
+        {
+            RouteId = r.ReadByte(), Direction = GameWireValues.ReadRouteDirection(ref r)
+        };
+    }
+
+    // R1 (11/17): starts a Killer swing. Seq is this connection's attack sequence (separate from MoveInput.Seq); the
+    // server aims with the latest MoveInput.Yaw and drops a Seq that is not newer than the last one it accepted.
+    public sealed class C2S_Attack : IPacket
+    {
+        public uint Seq;
+        public PacketId Id => PacketId.C2S_Attack;
+        public void Write(PacketWriter w) => w.WriteUInt32(Seq);
+        public static C2S_Attack Read(ref PacketReader r) => new C2S_Attack { Seq = r.ReadUInt32() };
+    }
+
+    // R1 (11/17): the lobby skill choice. SkillId is a role-qualified choice (SkillIds.Choice): 0..4 a Survivor skill,
+    // 0x80..0x83 a Killer skill, 0xFF no choice (random). Any other value is a wire-format violation.
+    public sealed class C2S_ChooseSkill : IPacket
+    {
+        public byte SkillId = SkillIds.NoChoice;
+        public PacketId Id => PacketId.C2S_ChooseSkill;
+        public void Write(PacketWriter w) => w.WriteByte(SkillId);
+        public static C2S_ChooseSkill Read(ref PacketReader r) => new C2S_ChooseSkill { SkillId = SkillIds.ReadChoice(ref r) };
     }
 }

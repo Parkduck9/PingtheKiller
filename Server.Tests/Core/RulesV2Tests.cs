@@ -7,12 +7,12 @@ using Xunit;
 
 namespace PingTheKiller.Tests.Core;
 
-// GDD v2 rules R1-R9 (U6a): co-hack rates, kick and regression, sync checks, switches, collapse, hatch, capture stages,
+// GDD v2 rules R1-R9 (U6a): co-hack rates, kick and regression, switches, collapse, hatch, capture stages,
 // winner and end reasons.
 public sealed class RulesV2Tests
 {
     private const float Dt = 1f / GameConstants.TickRate;
-    private const double HackPerTick = Dt * 100.0 / GameConstants.TerminalHackTimeSeconds;
+    private const double HackPerTick = Dt * 100.0 / GameConstants.TerminalPassiveSeconds;
     // Parking spot for a bystander survivor: open street east of the (42,16)-(53,30) block on map v2.1, >= 8 m from
     // every terminal and > 20 m from every hatch point, exit and switch. (Map v2's (48.5, 25) is inside that block now.)
     private const float ParkX = 54f, ParkZ = 20f;
@@ -57,7 +57,7 @@ public sealed class RulesV2Tests
     public void CoHackRatesAreOneOnePointEightAndTwoPointFourAtMost(int hackers, double rate)
     {
         Assert.Equal(rate, GameConstants.CoHackRate(hackers), 6);
-        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);
+        Assert.Equal(90f, GameConstants.TerminalPassiveSeconds); // 11/17 (R2): the passive part only
         Assert.Equal(900f, GameConstants.MatchLengthSeconds);
     }
 
@@ -145,169 +145,7 @@ public sealed class RulesV2Tests
         Assert.False(Has(World(m[0]).Terminals[2], TerminalFlags.Regressing));
     }
 
-    // ---- R3: sync checks
-
-    // One survivor hacks terminal 0 from 50 % with sync checks on; the next check fires on the next tick.
-    private static (RulesMatch M, Peer S, S2C_SyncCheck Check) StartCheck()
-    {
-        var m = RulesMatch.Start(1);
-        var srv = m.F.Server; var s = m[0]; var t = srv.Map.TerminalPositions[0];
-        srv.SyncChecksEnabled = true;
-        srv.PlaceForTests(m.Killer.Id, 48.5f, 60);
-        srv.PlaceForTests(s.Id, t.X - .5f, t.Z);
-        srv.SetTerminalProgressForTests(0, 50);
-        Hold(s, true);
-        m.Tick();
-        Assert.Empty(Fresh<S2C_SyncCheck>(s));
-        srv.SetSyncTimerForTests(s.Id, 0.01);
-        m.Tick();
-        var check = Assert.Single(Fresh<S2C_SyncCheck>(s));
-        Assert.Equal(World(s).Terminals[0].Id, check.TerminalId);
-        Assert.Equal((GameConstants.SyncCheckDurationSeconds, GameConstants.SyncZoneSize, GameConstants.SyncGreatSize),
-            (check.Duration, check.ZoneSize, check.GreatSize));
-        Assert.InRange(check.ZoneStart, GameConstants.SyncZoneStartMin, GameConstants.SyncZoneStartMax);
-        return (m, s, check);
-    }
-
-    // Waits until the press arrives at least `late` seconds after the target moment, then sets the RTT so that the
-    // judge's estimate (arrival - rtt) is exactly the target, and presses. Returns the progress change of the press tick.
-    // The fixture clock stands still, so the press is timed at the start of the tick that handles it.
-    private static (S2C_SyncResult Result, double Change) PressAt(RulesMatch m, Peer s, S2C_SyncCheck check, double fraction, double late = 0.06)
-    {
-        var srv = m.F.Server;
-        double target = P(m, s).SyncSentAt + fraction * GameConstants.SyncCheckDurationSeconds;
-        while (Now(m) < target + late) m.Tick();
-        srv.SetRttForTests(s.Id, Now(m) - target);
-        double before = srv.TerminalProgressForTests(0);
-        s.Send(new C2S_SyncPress { CheckId = check.CheckId });
-        m.Tick();
-        var result = Assert.Single(Fresh<S2C_SyncResult>(s));
-        Assert.Equal(check.CheckId, result.CheckId);
-        return (result, srv.TerminalProgressForTests(0) - before);
-    }
-
-    [Fact]
-    public void GreatPressAddsAPointAndTheRttOffsetMovesALateArrivalBackIntoTheGreatPart()
-    {
-        var (m, s, check) = StartCheck();
-        using var _ = m;
-        // Arrival is after the whole zone and its tolerance; only the RTT estimate puts the press in the great part.
-        double late = (check.ZoneSize + GameConstants.SyncToleranceSeconds / GameConstants.SyncCheckDurationSeconds) *
-            GameConstants.SyncCheckDurationSeconds + 0.02;
-        var (result, change) = PressAt(m, s, check, check.ZoneStart + check.GreatSize / 2, late);
-        Assert.Equal((byte)SyncResult.Great, result.Result);
-        Assert.InRange(change, HackPerTick + 1 - 0.001, HackPerTick + 1 + 0.001);
-        Assert.False(Has(World(s).Terminals[0], TerminalFlags.Overloaded));
-        Assert.InRange(P(m, s).SyncTimer, GameConstants.SyncCheckIntervalMinSeconds - Dt, GameConstants.SyncCheckIntervalMaxSeconds);
-    }
-
-    [Theory]
-    [InlineData(0.5, (byte)SyncResult.Good)]          // the middle of the zone after the great part
-    [InlineData(-0.99, (byte)SyncResult.Good)]        // just inside the leading tolerance
-    [InlineData(1.99, (byte)SyncResult.Good)]         // just inside the trailing tolerance
-    [InlineData(-1.01, (byte)SyncResult.Fail)]        // just outside the leading tolerance
-    [InlineData(2.01, (byte)SyncResult.Fail)]         // just outside the trailing tolerance
-    public void PressesAreJudgedWithTheToleranceOnBothEdges(double where, byte expected)
-    {
-        var (m, s, check) = StartCheck();
-        using var _ = m;
-        double tol = GameConstants.SyncToleranceSeconds / GameConstants.SyncCheckDurationSeconds;
-        // where: 0.5 = middle of the non-great zone; -1 = leading tolerance edge; 2 = trailing tolerance edge (scaled).
-        double fraction = where == 0.5 ? check.ZoneStart + (check.GreatSize + check.ZoneSize) / 2
-            : where < 0 ? check.ZoneStart - tol * -where
-            : check.ZoneStart + check.ZoneSize + tol * (where - 1);
-        var (result, change) = PressAt(m, s, check, fraction);
-        Assert.Equal(expected, result.Result);
-        var survivorFlags = World(s).Terminals[0];
-        if (expected == (byte)SyncResult.Good)
-        {
-            Assert.InRange(change, HackPerTick - 0.001, HackPerTick + 0.001);
-            Assert.False(Has(survivorFlags, TerminalFlags.Overloaded));
-        }
-        else
-        {
-            Assert.InRange(change, HackPerTick - 5 - 0.001, HackPerTick - 5 + 0.001);
-            Assert.True(Has(survivorFlags, TerminalFlags.Overloaded));
-            Assert.True(Has(World(m.Killer).Terminals[0], TerminalFlags.Overloaded)); // everyone sees Overloaded
-            m.Tick(41);
-            Assert.False(Has(World(s).Terminals[0], TerminalFlags.Overloaded));
-        }
-    }
-
-    [Fact]
-    public void AnUnansweredCheckFailsAfterDurationPlusToleranceAndTheRtt()
-    {
-        var (m, s, check) = StartCheck();
-        using var _ = m;
-        m.F.Server.SetRttForTests(s.Id, 0.2);
-        int n = 0;
-        List<S2C_SyncResult> results;
-        while ((results = Fresh<S2C_SyncResult>(s)).Count == 0 && n < 60) { m.Tick(); n++; }
-        // The check left at the start of its tick; 1.1 + 0.15 + 0.2 = 1.45 s = 29 ticks later a tick starts past the
-        // limit, after every press made in time has arrived.
-        Assert.InRange(n, 28, 30);
-        Assert.Equal((byte)SyncResult.Fail, Assert.Single(results).Result);
-        Assert.True(Has(World(m.Killer).Terminals[0], TerminalFlags.Overloaded));
-        // Hacked since StartCheck: its two ticks plus the n waiting ticks.
-        Assert.InRange(m.F.Server.TerminalProgressForTests(0), 50 + (n + 2) * HackPerTick - 5 - 0.01, 50 + (n + 2) * HackPerTick - 5 + 0.01);
-    }
-
-    [Fact]
-    public void StoppingTheHackCancelsTheCheckSilentlyAndStaleUnknownRepeatedOrKillerPressesAreIgnored()
-    {
-        var (m, s, check) = StartCheck();
-        using var _ = m;
-        var srv = m.F.Server;
-        Hold(s, false);
-        m.Tick();
-        double kept = srv.TerminalProgressForTests(0);
-        m.Tick(40);
-        s.Send(new C2S_SyncPress { CheckId = check.CheckId }); // the cancelled check
-        s.Send(new C2S_SyncPress { CheckId = 12345 });         // an unknown check
-        m.Tick(2);
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
-        Assert.Equal(kept, srv.TerminalProgressForTests(0), 6);
-        Assert.False(Has(World(s).Terminals[0], TerminalFlags.Overloaded));
-        Assert.False(P(m, s).SyncPending);
-
-        // The interval timer only runs while hacking.
-        srv.SetSyncTimerForTests(s.Id, 0.5);
-        m.Tick(40);
-        Assert.Empty(Fresh<S2C_SyncCheck>(s));
-        Hold(s, true);
-        m.Tick(11);
-        var next = Assert.Single(Fresh<S2C_SyncCheck>(s));
-        Assert.True(next.CheckId > check.CheckId);
-
-        // The killer cannot answer it, a wrong id is ignored, and a second press after the result is ignored.
-        m.Killer.Send(new C2S_SyncPress { CheckId = next.CheckId });
-        s.Send(new C2S_SyncPress { CheckId = next.CheckId + 1 });
-        m.Tick();
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
-        Assert.Empty(Fresh<S2C_SyncResult>(m.Killer));
-        Assert.True(P(m, s).SyncPending);
-        PressAt(m, s, next, next.ZoneStart + next.GreatSize / 2);
-        double after = srv.TerminalProgressForTests(0);
-        s.Send(new C2S_SyncPress { CheckId = next.CheckId });
-        m.Tick();
-        Assert.Empty(Fresh<S2C_SyncResult>(s));
-        Assert.InRange(srv.TerminalProgressForTests(0) - after, HackPerTick - 0.001, HackPerTick + 0.001);
-    }
-
-    [Theory]
-    [InlineData(0.5, 0.5, SyncResult.Great)]
-    [InlineData(0.535, 0.5, SyncResult.Great)]
-    [InlineData(0.536, 0.5, SyncResult.Good)]
-    [InlineData(0.62, 0.5, SyncResult.Good)]
-    [InlineData(0.4999, 0.5, SyncResult.Good)]         // the leading tolerance band is Good, not Great
-    [InlineData(0.3637, 0.5, SyncResult.Good)]         // 0.5 - 0.15/1.1 = 0.36364
-    [InlineData(0.3635, 0.5, SyncResult.Fail)]
-    [InlineData(0.7563, 0.5, SyncResult.Good)]         // 0.62 + 0.13636
-    [InlineData(0.7565, 0.5, SyncResult.Fail)]
-    [InlineData(0.0, 0.5, SyncResult.Fail)]
-    [InlineData(1.2, 0.8, SyncResult.Fail)]
-    public void ClassifyUsesTheGreatPartTheZoneAndTheToleranceInFractions(double fraction, float zoneStart, SyncResult expected) =>
-        Assert.Equal(expected, GameServer.Classify(fraction, zoneStart));
+    // ---- R3: the sync check was replaced by packet routing (11/17, R2): see PacketRoutingTests.
 
     // ---- R4: switches and escape
 

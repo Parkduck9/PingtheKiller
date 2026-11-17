@@ -43,7 +43,14 @@ public sealed class GameConstantsTests
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds);
         Assert.Equal(1.5f, GameConstants.TerminalRadius);
-        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);
+        Assert.Equal(90f, GameConstants.TerminalPassiveSeconds); // 11/17 (R2): passive part; routes add bursts
+        // R2-hack attempt 2: a short gap and a minimum cycle, so the key pace sets most of the route cycle.
+        Assert.Equal((4, 3.4f, 2f, .7f, 1.3f, 12, 1.5f), (GameConstants.RouteLength, GameConstants.RouteBurstPoints,
+            GameConstants.RouteErrorPenaltyPoints, GameConstants.RouteGapSeconds, GameConstants.RouteMinCycleSeconds,
+            GameConstants.RouteInputsPerSecond, GameConstants.OverloadedSeconds));
+        Assert.Equal(1f, GameConstants.RouteBurstShare(1));
+        Assert.Equal(.81f, GameConstants.RouteBurstShare(2), 5);
+        Assert.Equal(.64f, GameConstants.RouteBurstShare(3), 5);
         Assert.Equal(new[] { 0f, 1f, 1.8f, 2.4f, 2.4f }, Enumerable.Range(0, 5).Select(GameConstants.CoHackRate));
         Assert.Equal(2f, GameConstants.ExitRadius);
         Assert.Equal(900f, GameConstants.MatchLengthSeconds);

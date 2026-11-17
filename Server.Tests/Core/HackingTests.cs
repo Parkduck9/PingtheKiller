@@ -10,7 +10,7 @@ public sealed class HackingTests
     private static byte Progress(RulesMatch m, int terminal = 0) => m.Survivors[0].Last<S2C_WorldState>().Terminals[terminal].Progress;
 
     [Fact]
-    public void OneSurvivorCompletesATerminalInFortyFiveSecondsAndIsSignalWhileHacking()
+    public void OneIdleSurvivorCompletesATerminalInNinetySecondsAndIsSignalWhileHacking()
     {
         using var m = RulesMatch.Start(2);
         var a = m[0];
@@ -18,7 +18,7 @@ public sealed class HackingTests
         m.Tick(25); // past the Signal hold and a possible Packet Afterimage second
         Assert.Null(m.KillerSees(a)); // Silent before hacking.
         a.Send(new C2S_Interact { Active = 1 });
-        m.Tick(899);
+        m.Tick(1799); // 11/17 (R2): the passive part takes 90 s solo, twice the old 45 s.
         Assert.Equal(99, Progress(m));
         var seen = m.KillerSees(a);
         Assert.NotNull(seen);
@@ -33,12 +33,12 @@ public sealed class HackingTests
         Assert.Equal(0, m.Truth(a).Flags);
     }
 
-    // GDD v2 §2: 1 hacker 1.0x (900 ticks), 2 hackers 1.8x (500 ticks), 3 or more 2.4x (375 ticks).
+    // GDD v2 §2 (11/17 R2: the 90 s passive part): 1 hacker 1.0x (1800 ticks), 2 hackers 1.8x (1000), 3 or more 2.4x (750).
     [Theory]
-    [InlineData(1, 900)]
-    [InlineData(2, 500)]
-    [InlineData(3, 375)]
-    [InlineData(4, 375)]
+    [InlineData(1, 1800)]
+    [InlineData(2, 1000)]
+    [InlineData(3, 750)]
+    [InlineData(4, 750)]
     public void CoHackingUsesTheDiminishingRates(int hackers, int ticksToComplete)
     {
         using var m = RulesMatch.Start(4);
@@ -58,7 +58,7 @@ public sealed class HackingTests
         var a = m[0];
         m.WalkTo(a, 10, 26, GameConstants.SurvivorSpeed);
         a.Send(new C2S_Interact { Active = 1 });
-        m.Tick(360);
+        m.Tick(720); // 11/17 (R2): the passive part takes 90 s solo, twice the old 45 s.
         Assert.Equal(40, Progress(m));
         a.Send(new C2S_Interact { Active = 0 });
         m.Tick(40);
@@ -70,7 +70,7 @@ public sealed class HackingTests
         Assert.Equal(40, Progress(m));
         // Held state persists: walking back into range resumes the hack.
         m.WalkTo(a, 10, 26, GameConstants.SurvivorSpeed);
-        m.Tick(90);
+        m.Tick(180);
         Assert.InRange(Progress(m), 50, 52);
     }
 
@@ -80,7 +80,7 @@ public sealed class HackingTests
         using var m = RulesMatch.Start(2);
         var a = m[1]; // spawn (10,26), 1 m from terminal 0
         a.Send(new C2S_Interact { Active = 1 });
-        m.Tick(90);
+        m.Tick(180); // 11/17 (R2): the passive part takes 90 s solo, twice the old 45 s.
         Assert.Equal(10, Progress(m));
         m.WalkTo(m.Killer, 10, 25, GameConstants.KillerSpeed); // contact at 1.2 m on the way in
         Assert.Equal((byte)PlayerStatus.Lagging, m.Truth(a).Status);

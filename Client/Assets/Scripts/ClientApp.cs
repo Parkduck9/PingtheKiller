@@ -36,6 +36,10 @@ namespace PingTheKiller.Client
         private int playerId, botCount;
         private MovementInput movement = new MovementInput();
         private readonly InteractInput interact = new InteractInput();
+        private readonly RouteKeys routeKeys = new RouteKeys(); // HUD_SPEC 13.2: the left-stick flick re-arm
+        // R1 (11/17): the Killer's attack press (C2S_Attack) and its own swing as the snapshots show it.
+        private readonly AttackInput attackInput = new AttackInput();
+        private readonly KillerSwingWatch swingWatch = new KillerSwingWatch();
         private readonly CharacterFacing facing = new CharacterFacing();
         private readonly SelfStateHolder selfState = new SelfStateHolder();
         private readonly HashSet<byte> loggedEffects = new HashSet<byte>();
@@ -48,6 +52,9 @@ namespace PingTheKiller.Client
         // U4e Survivor feedback: threat visuals (HUD_SPEC 4.2), capture banner, elimination reason, cues and the stutter (4.5).
         private readonly ThreatVisual threatVisual = new ThreatVisual();
         private readonly CaptureWatch capture = new CaptureWatch();
+        // 11/17 R3 onboarding: the 7 s intro card (any key dismisses it) and the once-per-match first-time hints.
+        private readonly IntroCardState intro = new IntroCardState();
+        private readonly HintTracker hints = new HintTracker();
         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
         private LaggingStutter stutter;
         // U8 capture feel (HUD_SPEC 4.5, 4.10): the pooled impact burst, the presentation hit-stop and the dev frame-time log.
@@ -119,6 +126,7 @@ namespace PingTheKiller.Client
             screens.Leave += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             screens.ChangeBots += delta => { if (IsHost()) link.Send(new C2S_SetBots { Count = (byte)Mathf.Clamp(botCount + delta, 0, 7) }); };
             screens.ChangeRole += choice => { if (IsHost()) link.Send(new C2S_SetRole { RoleChoice = choice }); };
+            screens.ChooseSkill += choice => link?.Send(new C2S_ChooseSkill { SkillId = choice }); // R1: lobby skill picker
             screens.StartMatch += () => { if (IsHost()) link.Send(new C2S_StartMatch()); };
             screens.BackToLobby += () => { if (lobby != null && link != null && link.IsConnected) screens.ShowLobby(lobby, playerId); };
             // Play menu, both roles (HUD_SPEC 5, 6.6): Resume, or leave the match like the lobby's Leave.
@@ -126,9 +134,12 @@ namespace PingTheKiller.Client
             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
             screens.Survivor.Menu.Resume += () => SetMenu(false);
             screens.Survivor.Menu.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
-            // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
-            screens.Survivor.Sync.State.Press += SendSyncPress;
-            v2Audio = gameObject.AddComponent<RulesV2Audio>(); screens.Survivor.Sync.Resolved += v2Audio.OnSync;
+            // HUD_SPEC 13.2 (11/17, R2): every own route key ticks (right) and pulses the own holo panel; a completed route
+            // plays the rising chord, an error the glitch. Other Survivors' panels keep the fixed beat.
+            v2Audio = gameObject.AddComponent<RulesV2Audio>();
+            screens.Survivor.Route.Key += right => { if (right) v2Audio.OnRoute(V2Cue.RouteKey); world?.OwnKeyPulse(LinkClock.Now); };
+            screens.Survivor.Route.RouteDone += () => v2Audio.OnRoute(V2Cue.RouteDone);
+            screens.Survivor.Route.RouteFailed += () => v2Audio.OnRoute(V2Cue.RouteError);
             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
             var fxObject = new GameObject("Skill FX");
             fxObject.transform.SetParent(transform, false);
@@ -200,7 +211,7 @@ namespace PingTheKiller.Client
             Release();
             link = next; endpointText = endpoint;
             movement = new MovementInput(); // Seq lives as long as the link.
-            interact.Reset();
+            interact.Reset(); attackInput.Reset();
             selfState.Reset();
             link.PacketReceived += Receive;
             link.Disconnected += Disconnect;
@@ -233,9 +244,10 @@ namespace PingTheKiller.Client
                     DestroyWorld();
                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
-                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu();
-                    selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
+                    playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu(); swingWatch.Reset();
+                    selfState.Reset(); facing.Reset(0); screens.Survivor.Route.Reset(); routeKeys.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
+                    intro.Begin(role, skillId, LinkClock.Now); hints.Reset();
                     skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
                     impactFx.Warm(SkillFxArt.Load()?.Ring); impactFx.Clear(); hitStop.Reset(); killerCaptures = 0; killerImpactUntil = 0; // U8: pool built before any capture
                     impactFx.FirstPerson = role == Role.Killer; // U8: small first-person sizes on the Killer client
@@ -259,12 +271,15 @@ namespace PingTheKiller.Client
                         if (implied > state.ThreatLevel) state.ThreatLevel = implied;
                     }
                     world.Accept(state, received.Time);
+                    intro.SetTerminals(state.TerminalsRequired);
                     killerLayer?.Accept(state, received.Time);
+                    if (killerLayer != null && killerLayer.VanishedNear) swingWatch.OnVanish(received.Time); // a2: maybe an eliminating hit
                     if (killerLayer != null && killerLayer.Captures != killerCaptures)
                     {
                         // U8: the own capture's impact at the tracker instance (a position this client already has).
                         killerCaptures = killerLayer.Captures;
                         killerImpactUntil = LinkClock.Now + .3; // played once the tracker instance is in the rendered views
+                        if (swingWatch.OnCapture(received.Time) == SwingEvent.Hit) { Debug.Log("[client] swing hit"); dev?.OnSwing(SwingEvent.Hit); }
                         frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "killer capture");
                     }
                     chase.Accept(state, received.Time);
@@ -275,16 +290,18 @@ namespace PingTheKiller.Client
                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
                         if (role == Role.Killer ? player.Role != (byte)Role.Killer : player.Id != playerId) continue;
                         localStatus = (PlayerStatus)player.Status;
+                        if (role == Role.Killer) ObserveOwnSwing(player.Chase, state.Tick, received.Time); // R1: the own Swinging flag
                         if (role == Role.Killer) break;
-                        // HUD_SPEC 13.2: a sync check only exists while Normal (the server cancels it otherwise).
-                        if (localStatus != PlayerStatus.Normal) screens.Survivor.Sync.Clear();
+                        // HUD_SPEC 13.2: a route only exists while Normal (the server clears it otherwise).
+                        if (localStatus != PlayerStatus.Normal) screens.Survivor.Route.Clear();
                         selfState.CollapseRate = localStatus == PlayerStatus.Lagging ? GameConstants.CollapseLaggingRate : 1;
                         byte flags = player.Flags;
                         own = new OwnEntry
                         {
                             Status = localStatus, X = player.X, Z = player.Z, StatusTimer = player.StatusTimer, CaptureCount = player.CaptureCount,
                             Signal = (flags & (byte)PlayerFlags.Signal) != 0, Hacking = (flags & (byte)PlayerFlags.Hacking) != 0,
-                            Rescuing = (flags & (byte)PlayerFlags.Rescuing) != 0, Stealthed = (flags & (byte)PlayerFlags.Stealthed) != 0
+                            Rescuing = (flags & (byte)PlayerFlags.Rescuing) != 0, Stealthed = (flags & (byte)PlayerFlags.Stealthed) != 0,
+                            GettingUp = (flags & (byte)PlayerFlags.GettingUp) != 0
                         };
                         hackingTerminal = null;
                         if (own.Hacking)
@@ -310,19 +327,11 @@ namespace PingTheKiller.Client
                     v2Audio.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
                     chase?.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
                     if (world != null) world.SetOwnAction(self.ActionKind); // U10: the own exit switch pose
+                    // HUD_SPEC 13.2 (11/17, R2): the own route (only the hacker receives it). Survivors only, while Normal.
+                    if (role == Role.Survivor && localStatus == PlayerStatus.Normal && screens.Survivor.Route.OnSelf(self, received.Time))
+                        dev?.OnRoute(screens.Survivor.Route);
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
                     dev?.OnSelfState(self, selfState.Received);
-                    break;
-                case S2C_SyncCheck check:
-                    // Own-only (U6a R3). Ignored outside a match, for the Killer, and while not Normal.
-                    if (!playing || role != Role.Survivor || localStatus != PlayerStatus.Normal) break;
-                    bool accepted = screens.Survivor.Sync.OnCheck(check, received.Time);
-                    dev?.OnSyncCheck(check, accepted);
-                    break;
-                case S2C_SyncResult sync:
-                    if (!playing || role != Role.Survivor) break;
-                    bool matched = screens.Survivor.Sync.OnResult(sync.CheckId, sync.Result, received.Time);
-                    dev?.OnSyncResult(sync, matched);
                     break;
                 case S2C_SkillEffect effect:
                     if (killerLayer != null) { killerLayer.OnEffect(effect, received.Time); PlayFx(killerLayer.LastEffect); }
@@ -345,7 +354,8 @@ namespace PingTheKiller.Client
         private void EndMatch(S2C_GameResult result, bool preview)
         {
             bool wasPlaying = playing;
-            playing = false; joinDeadline = 0; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
+            playing = false; joinDeadline = 0; ResetMenu(); selfState.Reset(); screens.Survivor.Route.Reset();
+            intro.End(); screens.Intro.Set(intro, false); screens.Survivor.ClearAllyMarkers();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false); v2Audio.End();
             skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0; impactFx.Clear();
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
@@ -386,11 +396,15 @@ namespace PingTheKiller.Client
             if (order.Remove(ownId)) order.Insert(0, ownId);
             for (int i = 0; i < order.Count; i++) (i < escaped ? result.EscapedIds : result.EliminatedIds).Add(order[i]);
         }
-        private void SendSyncPress(uint checkId)
+        // HUD_SPEC 13.2 (11/17, R2): one route key through the tracker (WASD, arrows, d-pad, stick flick or the dev
+        // autopilot); the tracker predicts it and returns the packet.
+        private void PressRoute(RouteDirection direction, double now)
         {
             if (!playing || role != Role.Survivor || link == null || !link.IsConnected) return;
-            link.Send(new C2S_SyncPress { CheckId = checkId });
-            Debug.Log("[net] SyncPress check=" + checkId + " needle=" + screens.Survivor.Sync.State.PressFraction.ToString("0.000"));
+            RouteTracker route = screens.Survivor.Route;
+            if (!route.TryPress(direction, now, out C2S_HackInput input)) return;
+            link.Send(input);
+            dev?.OnRouteKey(input, route);
         }
         // HUD_SPEC 5 / 6.6, both roles: opening sends one zero MoveInput and the Interact release (when held) and frees the
         // cursor; closing locks it again (when focused). The match keeps running.
@@ -438,7 +452,10 @@ namespace PingTheKiller.Client
             // Both roles: Esc / Start backs out of Settings first (focus returns to the play menu), otherwise opens or closes
             // the play menu; gamepad B on the open menu is Resume.
             Gamepad gamepad = Gamepad.current;
-            bool back = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
+            bool escKey = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+            // INTEG-R minors: Esc on the intro card dismisses the card alone; it never opens the menu that press.
+            if (Application.isFocused && !screens.SettingsOpen && intro.ConsumeEscape(now, menuGate.Open, escKey)) escKey = false;
+            bool back = escKey || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
             bool cancel = gamepad != null && gamepad.buttonEast.wasPressedThisFrame && (screens.SettingsOpen || menuGate.Open);
             if (back || cancel)
             {
@@ -450,6 +467,12 @@ namespace PingTheKiller.Client
             {
                 releasedCursor = false; rig.SetCursor(true);
             }
+            // 11/17 R3 (HUD_SPEC 3): the intro card lasts HelpCopy.IntroSeconds and ends at once on Esc, Enter, Space or a click
+            // (INTEG-R: movement keys no longer end it).
+            bool introOn = intro.Visible(now, menuGate.Open);
+            if (introOn && Application.isFocused && IntroDismissPressed(keyboard)) { intro.Dismiss(); introOn = false; }
+            screens.Intro.Set(intro, introOn);
+            screens.Survivor.IntroHeight = survivor && introOn ? SurvivorIntroHeight : 0;
             bool active = menuGate.Active(Application.isFocused, releasedCursor);
             bool presses = menuGate.Presses(active, Time.frameCount); // press edges skip the frame a Submit closed the menu
             rig.Look(active);
@@ -467,9 +490,20 @@ namespace PingTheKiller.Client
             float steered = rig.Yaw;
             bool turned = dev != null && (survivor ? dev.Steer(rig.Yaw, dt, out steered) || dev.Orbit(facing.Yaw, out steered) : dev.Aim(aimFound, position, aim, out steered));
             if (turned) rig.Turn(steered);
+            // Hold E (both roles: Survivors hack, hold a switch, take the hatch; the Killer kicks or closes the hatch): one
+            // press edge and one release edge; losing focus, the cursor or the play menu counts as release. -ptk-dev-hack
+            // holds it through the same path.
+            bool interactHeld = (active && keyboard != null && keyboard.eKey.isPressed) || (dev != null && dev.HoldInteract);
+            // HUD_SPEC 13.2 (11/17, R2): while E is held, the own entry is Hacking and a route is present, WASD, the arrows,
+            // the d-pad and a stick flick answer the route and movement sends zero; otherwise the keys move, at once.
+            RouteTracker route = survivor ? screens.Survivor.Route : null;
+            bool routing = survivor && own.Status == PlayerStatus.Normal && RouteKeys.Capturing(interactHeld, own.Hacking, route.Held);
+            // The panel stays up for the whole hold at the terminal (the +8 % flash and the short gap between routes),
+            // and movement stays off for it too (QA a2 N1); only a present route answers the keys (TryPress).
+            bool hackHeld = survivor && own.Status == PlayerStatus.Normal && interactHeld && own.Hacking;
             // Opposing keys still count as held. MovementInput owns the 30 Hz rate and the release zeros.
-            bool keys = active && keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed || keyboard.sKey.isPressed || keyboard.dKey.isPressed);
-            bool scripted = dev != null && dev.HoldForward; // dev capture: scripted W through the same 30 Hz path
+            bool keys = active && !routing && keyboard != null && (keyboard.wKey.isPressed || keyboard.aKey.isPressed || keyboard.sKey.isPressed || keyboard.dKey.isPressed);
+            bool scripted = !routing && dev != null && dev.HoldForward; // dev capture: scripted W through the same 30 Hz path
             bool held = keys || scripted;
             float right = keys ? (keyboard.dKey.isPressed ? 1 : 0) - (keyboard.aKey.isPressed ? 1 : 0) : 0;
             float forward = scripted ? 1 : keys ? (keyboard.wKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed ? 1 : 0) : 0;
@@ -478,26 +512,34 @@ namespace PingTheKiller.Client
             Vector3 move = held ? ClientMath.InputDirection(right, forward, rig.Yaw) : Vector3.zero;
             float facingYaw = survivor ? facing.Update(move, dt, position, hackingTerminal) : rig.Yaw;
             if (movement.TryCreate(held, right, forward, rig.Yaw, facingYaw, dt, out C2S_MoveInput input)) link.Send(input);
-            // Hold E (both roles: Survivors hack, hold a switch, take the hatch; the Killer kicks or closes the hatch): one
-            // press edge and one release edge; losing focus, the cursor or the play menu counts as release. -ptk-dev-hack
-            // holds it through the same path.
-            bool interactHeld = (active && keyboard != null && keyboard.eKey.isPressed) || (dev != null && dev.HoldInteract);
             if (interact.TryCreate(interactHeld, out C2S_Interact use)) link.Send(use);
-            // HUD_SPEC 13.2: Space or gamepad A presses the sync check; nothing else is bound to them. -ptk-auto-sync presses
-            // through the same TryPress.
             if (survivor)
             {
-                SyncCheckTracker sync = screens.Survivor.Sync;
-                sync.Tick(now);
+                // Press edges only (one key, one HackInput); -ptk-auto-route presses through the same path.
                 Gamepad pad = Gamepad.current;
-                bool syncKey = presses && ((keyboard != null && keyboard.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame));
-                if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
-                screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
+                RouteDirection? key = null;
+                if (routing && presses)
+                {
+                    if (keyboard != null)
+                        key = RouteKeys.FromPresses(keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame,
+                            keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame,
+                            keyboard.aKey.wasPressedThisFrame || keyboard.leftArrowKey.wasPressedThisFrame,
+                            keyboard.dKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame);
+                    if (key == null && pad != null)
+                        key = RouteKeys.FromPresses(pad.dpad.up.wasPressedThisFrame, pad.dpad.down.wasPressedThisFrame,
+                            pad.dpad.left.wasPressedThisFrame, pad.dpad.right.wasPressedThisFrame) ?? routeKeys.Flick(pad.leftStick.ReadValue());
+                }
+                else routeKeys.Reset();
+                if (key.HasValue) PressRoute(key.Value, now);
+                else if (routing && dev != null && dev.PressRoute(route, now, out RouteDirection scriptedKey)) PressRoute(scriptedKey, now);
+                screens.Survivor.SetRoute(hackHeld, pad != null && keyboard == null ? RouteCopy.PadGlyph : RouteCopy.KeyboardGlyph, skillFx.Reduced, now);
+                world.SetOwnRouting(hackHeld);
             }
             bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill(DevSkillAble())); // dev: -ptk-skill-at (-ptk-skill-when-able)
             bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
+            if (!survivor) AttackFrame(presses, gamepad, position, now);
             SkillFeedbackFrame(now, position);
             if (!survivor) rig.KillerFovOffset += chase.Stun.FovOffset(now, skillFx.Reduced); // HUD_SPEC 15.4 stun impulse
             chase.Frame(now);
@@ -511,15 +553,23 @@ namespace PingTheKiller.Client
             if (survivor)
             {
                 stutter.SetActive(own.Status == PlayerStatus.Lagging);
-                UpdateSurvivorHud(now);
+                UpdateSurvivorHud(now, introOn);
                 screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);
+                // HUD_SPEC 4.6 (R3): a tag or edge arrow for every Lagging ally, while Normal.
+                if (own.Status == PlayerStatus.Normal) screens.Survivor.DrawAllyMarkers(own.X, own.Z, mates, nameOf ??= NameOf, rig.Pose);
+                else screens.Survivor.ClearAllyMarkers();
                 dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
+                dev?.OnKillerSwingSeen(world.KillerSwings); // R1: the Killer model winding up
             }
             else if (killerLayer != null && located)
             {
                 killerLayer.Render(rig.Pose, now, dt, menuGate.Open);
                 if (now < killerImpactUntil && killerLayer.CapturePoint(out Vector3 struck)) { killerImpactUntil = 0; PlayImpact(struck); }
                 chase.ApplyKillerHud(screens.Killer, position, menuGate.Open, now); // HUD_SPEC 15.2 / 15.4
+                // R3: the first time a tracked blip is within 6 m, in an empty prompt slot.
+                bool near = killerLayer.NearestBlip(position, false, out Vector3 blip) && new Vector2(blip.x - position.x, blip.z - position.z).magnitude <= SurvivorReadout.ApproachRange;
+                string hint = hints.Killer(now, introOn, near, screens.Killer.PromptFree);
+                if (hint != null && screens.Killer.PromptFree) screens.Killer.SetPrompt(new InteractPrompt { Text = hint }, default);
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
@@ -553,7 +603,7 @@ namespace PingTheKiller.Client
             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
             bool survivor = role == Role.Survivor;
             bool precondition = survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
-                : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+                : true; // R1 (11/17): Firewall block also locks a terminal; only the server knows whether one has progress
             string reason = SkillFeedback.PressReason(role, skillId, localStatus, cooldown, precondition, out bool watch);
             if (survivor)
             {
@@ -569,9 +619,57 @@ namespace PingTheKiller.Client
             Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
         }
 
+        // R1 (11/17): the own Killer entry's Swinging flag (and the snapshot's server tick): its rise is the server's accepted
+        // swing (the wind-up); a2: its fall settles a swing whose verdict was held (an eliminating hit or a miss).
+        private void ObserveOwnSwing(byte chase, uint tick, double time)
+        {
+            swingWatch.OwnChase = chase; // INTEG-R (R1 QA M1): a press the server will refuse plays no sweep
+            SwingEvent swing = swingWatch.Observe((chase & (byte)ChaseFlags.Swinging) != 0, tick, time);
+            if (swing == SwingEvent.Started) { Debug.Log("[client] swing wind-up"); dev?.OnSwing(SwingEvent.Started); }
+            else if (swing == SwingEvent.Hit)
+            {
+                // The eliminating hit: no CaptureConfirm (the entry is gone); the kick and the impact where the blip was.
+                Debug.Log("[client] swing hit (eliminating, entry gone)");
+                killerLayer?.PlayUnseenHit();
+                if (killerLayer != null) PlayImpact(killerLayer.VanishedPoint);
+                dev?.OnSwing(SwingEvent.Hit, true);
+            }
+            else if (swing == SwingEvent.Missed) OnSwingMissed(time);
+            else if (swing == SwingEvent.LateHit) Debug.Log("[client] swing hit (late: an unseen Survivor, shown as missed)");
+        }
+
+        private void OnSwingMissed(double now)
+        {
+            killerLayer?.Fx.OnMissed(now);
+            Debug.Log("[client] swing missed");
+            dev?.OnSwing(SwingEvent.Missed);
+        }
+
+        // R1 (11/17): left mouse button or gamepad right trigger swings (the play menu, a lost focus or a released cursor
+        // blocks it like every other press). a2: the press itself plays the swing (view sweep and whoosh) at once; the
+        // result follows from the server: a hit (CaptureConfirm: kick, impact) or Missed (the line).
+        private void AttackFrame(bool presses, Gamepad gamepad, Vector3 position, double now)
+        {
+            if (killerLayer == null) return;
+            killerLayer.PadPrompt = gamepad != null && Keyboard.current == null;
+            bool key = presses && ((Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) || (gamepad != null && gamepad.rightTrigger.wasPressedThisFrame));
+            bool scripted = dev != null && dev.PressAttack(killerLayer.NearestNormalBlip(position)); // dev: -ptk-chase swings
+            if (attackInput.TryCreate(key || scripted, role, out C2S_Attack attack))
+            {
+                link.Send(attack);
+                if (swingWatch.Predict(now))
+                {
+                    v2Audio.Play(V2Cue.SwingWhoosh);
+                    killerLayer.Kick?.PlaySwing(Time.unscaledTimeAsDouble);
+                    Debug.Log("[client] swing pressed: sweep + whoosh");
+                    dev?.OnSwingPressed();
+                }
+            }
+            if (swingWatch.Tick(now) == SwingEvent.Missed) OnSwingMissed(now);
+        }
+
         // Dev only (-ptk-skill-when-able): the same derived precondition OnSkillPress uses (Restore target, switch in progress).
-        private bool DevSkillAble() => role == Role.Survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
-            : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+        private bool DevSkillAble() => role != Role.Survivor || skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates);
 
         // HUD_SPEC 14.3 (Q3): the server's reason for refusing the own pending press replaces the 0.5 s inference.
         private void OnSkillRejected(S2C_SkillRejected rejected, double time)
@@ -654,13 +752,15 @@ namespace PingTheKiller.Client
             return false;
         }
         // Lobby nickname for a player id (prompts ellipsize it).
+        private Func<int, string> nameOf; // one cached delegate: the ally markers run every frame (INTEG-R, R3 QA minor 9)
         private string NameOf(int id)
         {
             if (lobby != null) foreach (Slot slot in lobby.Slots) if (slot.PlayerId == id && slot.PlayerId != 0) return slot.Nickname;
             return null;
         }
         // HUD_SPEC 4.0-4.9 and 13, every frame from the last snapshot, the SelfState clock and the effect timing.
-        private void UpdateSurvivorHud(double now)
+        public const float SurvivorIntroHeight = 134; // IntroCard, HUD_SPEC 3
+        private void UpdateSurvivorHud(double now, bool introOn)
         {
             if (lastWorld == null) return;
             SurvivorHud hud = screens.Survivor;
@@ -684,8 +784,37 @@ namespace PingTheKiller.Client
             // HUD_SPEC 15.2: the Shutter / Rail action line, or their prompt in an empty slot.
             if (chase != null)
                 ChasePropsLayer.SurvivorPrompt(ref prompt, ref hold, chase.ChaseAction, own.Status == PlayerStatus.Normal, releasedCursor || capture.BannerVisible(now), own.X, own.Z, chase.Shutters);
+            // R3: the intro card takes the prompt row's slot; afterwards the first-time hints use an empty slot.
+            if (introOn) prompt = default;
+            else if (string.IsNullOrEmpty(prompt.Text) && !releasedCursor)
+            {
+                string hint = hints.Survivor(now, false, own.Status == PlayerStatus.Normal, TerminalNear(), LaggingMateName(), own.Signal, hold.Kind == HoldKind.None);
+                if (hint != null && hold.Kind == HoldKind.None) prompt = new PromptState { Text = hint };
+            }
             hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
+        }
+        private static bool IntroDismissPressed(Keyboard keyboard)
+        {
+            Mouse mouse = Mouse.current;
+            bool click = mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame);
+            if (keyboard == null) return click;
+            return IntroCardState.DismissInput(keyboard.escapeKey.wasPressedThisFrame,
+                keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame, keyboard.spaceKey.wasPressedThisFrame, click);
+        }
+
+        // R3 hints: an unfinished terminal within 6 m of the own Survivor, and the first Lagging ally's prompt name (null = none).
+        private bool TerminalNear()
+        {
+            if (lastWorld?.Terminals == null) return false;
+            foreach (TerminalState terminal in lastWorld.Terminals)
+                if (terminal.Progress < 100 && new Vector2(terminal.X - own.X, terminal.Z - own.Z).magnitude <= SurvivorReadout.ApproachRange) return true;
+            return false;
+        }
+        private string LaggingMateName()
+        {
+            foreach (Mate mate in mates) if (mate.Status == PlayerStatus.Lagging) return SurvivorReadout.Ellipsize(NameOf(mate.Id));
+            return null;
         }
         private void OnApplicationFocus(bool focused)
         {
@@ -715,7 +844,8 @@ namespace PingTheKiller.Client
         private void Disconnect(string notice)
         {
             Release();
-            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
+            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; ResetMenu(); selfState.Reset(); screens.Survivor.Route.Reset();
+            intro.End(); screens.Intro.Set(intro, false); screens.Survivor.ClearAllyMarkers();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
             skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0; impactFx?.Clear();
             DestroyWorld();

@@ -130,8 +130,8 @@ public sealed class InputValidationTests
         server.Tick(0.05f);
         host.Push(new C2S_MoveInput { Seq = seq++ });
         host.Push(new C2S_Interact { Active = 1 });
-        // GDD v2: 45 s per terminal, so 1 % takes 0.45 s.
-        for (int i = 0; i < 12; i++) server.Tick(0.05f);
+        // GDD v2 (11/17 R2): 90 s passive per terminal, so 1 % takes 0.9 s.
+        for (int i = 0; i < 22; i++) server.Tick(0.05f);
         Assert.True(host.All<S2C_WorldState>().Last().Terminals[0].Progress > 0 ||
             host.All<S2C_WorldState>().Last().Players.Single(p => p.Id == hostId).Status != (byte)PlayerStatus.Normal);
         host.Push(new C2S_UseSkill { SkillId = skill });

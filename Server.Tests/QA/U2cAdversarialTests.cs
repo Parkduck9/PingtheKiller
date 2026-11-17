@@ -226,7 +226,7 @@ public sealed class U2cAdversarialTests
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         int partial = 0;
-        for (int n = 1; n <= 930; n++) // GDD v2: 45 s per terminal
+        for (int n = 1; n <= 1830; n++) // GDD v2 (11/17 R2): 90 s passive per terminal
         {
             r.Tick();
             var (_, kTerminals, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.KW));
@@ -237,12 +237,12 @@ public sealed class U2cAdversarialTests
             // the other three terminals are untouched everywhere
             for (int i = 1; i < 4; i++) { Assert.Equal(0, kTerminals[i].Progress); Assert.Equal(0, sTerminals[i].Progress); }
         }
-        Assert.True(partial > 800, "the survivor view really did show partial progress: " + partial);
+        Assert.True(partial > 1700, "the survivor view really did show partial progress: " + partial);
         // Two terminals at different progress: still only done / not done for the killer.
         var second = r.Server.Map.TerminalPositions[1];
         r.Place(r.S[1], second.X + 0.2f, second.Z + 0.5f);
         r.Interact(r.S[1], true);
-        r.Tick(240); // GDD v2: 12 s of 45 s
+        r.Tick(480); // GDD v2: 24 s of the 90 s passive time
         var (_, k2, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.KW));
         var (_, s2, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.SW));
         Assert.InRange((int)s2[1].Progress, 20, 99);
@@ -662,7 +662,7 @@ public sealed class U2cAdversarialTests
     // 3. RNG
     // ====================================================================================================================
 
-    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom", "_rttRandom" };
+    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_routeRandom", "_rttRandom" };
 
     [Fact]
     public void Rng_HiddenStreams_AreXoshiro256NotSystemRandom_With256BitCsprngStateThatDiffersPerServerAndPerMatch()
@@ -795,7 +795,7 @@ public sealed class U2cAdversarialTests
         // Draw sites use only the named private streams (v0.5 adds RTT nonces).
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "Server.Core", "Runtime"), "GameServer*.cs"))
             foreach (var line in File.ReadAllLines(file))
-                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|_rttRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
+                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_routeRandom|_rttRandom|RouteRandom|random\b)\w*[rR]andom\w*\.Next"),
                     "unexpected random source in " + Path.GetFileName(file) + ": " + line.Trim());
     }
 
@@ -968,7 +968,7 @@ public sealed class U2cAdversarialTests
         for (int i = 0; i < 10; i++) s.Tick();                                                  // no execution grace (GDD v2 §4)
         s.Tick(() => r.Place(r.K, 14.5f, 10));                                                  // killer steps away (>3 m)
         for (int i = 0; i < 10; i++) s.Tick();
-        s.Tick(() => r.Place(r.S[0], 11.2f, 10));                                               // S0 arrives: rescue starts
+        s.Tick(() => { r.Place(r.S[0], 11.2f, 10); r.Interact(r.S[0], true); });                // S0 arrives and holds E: rescue starts
         for (int i = 0; i < 25; i++) s.Tick();
         s.Tick(() => r.Place(r.S[0], 20f, 10));                                                 // rescuer leaves: rescue stops, resets
         for (int i = 0; i < 10; i++) s.Tick();
@@ -1055,9 +1055,10 @@ public sealed class U2cAdversarialTests
         r.Tick(2);
         r.K.Drain();
         Assert.Equal(0f, r.K.Packets.OfType<S2C_SelfState>().Last().ExecutionGraceLeft);
-        // byte level: SelfState is a fixed size (v0.4: six floats and the action kind byte) with no identifier
+        // byte level: SelfState is a fixed size (v0.4: six floats and the action kind byte; 11/17 R2: the own route's four
+        // bytes) with no identifier
         byte[] frame = PacketCodec.Encode(all[0].S);
-        Assert.Equal(4 + 2 + 25, frame.Length);
+        Assert.Equal(4 + 2 + 29, frame.Length);
     }
 
     [Fact]
@@ -1192,7 +1193,7 @@ public sealed class U2cAdversarialTests
             {
                 if (pk is not S2C_WorldState w) continue;
                 KillerViewAsserts.AssertAnonymous(w, m.K.Id, "sandbox tick " + t);
-                Assert.All(m.Server.KillerViewSources, s => { Assert.False(s.Phantom); Assert.False(s.Afterimage); });
+                Assert.All(m.Server.KillerViewSources, s => Assert.False(s.Phantom));
                 Assert.All(w.Terminals, x => Assert.Equal(0, x.Progress));
                 if (w.Players.Count > 2) { multi++; orders.Add(string.Join(",", m.Server.KillerViewSources.Select(s => s.Label))); }
             }

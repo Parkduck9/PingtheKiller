@@ -57,8 +57,8 @@ namespace PingTheKiller.Client.Tests
             var state = new KillerFxState();
             state.OnEffect(KillerId, KillerId, SkillIds.Overclock, 20, 30, 3, 0);
             Assert.That(state.Line(.9).Text, Is.EqualTo("Overclock: 1.5× speed · 2.1 s"));
-            Assert.That(state.Line(3.2).Text, Is.EqualTo("Recovering: cannot move · 0.8 s"));
-            Assert.That(state.Line(4.1).Text, Is.Null);
+            Assert.That(state.Line(3.2).Text, Is.EqualTo("Recovering: slowed · 0.1 s"));
+            Assert.That(state.Line(3.31).Text, Is.Null, "R1: the tail lasts 0.3 s");
             Assert.That(state.TakeRecoverCue(2.9), Is.False);
             Assert.That(state.TakeRecoverCue(3.05), Is.True);
             Assert.That(state.TakeRecoverCue(3.1), Is.False, "the Recovering cue plays once");
@@ -100,12 +100,66 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void PacketAfterimageHasNoFeedback()
+        public void PacketTraceBurstsARingOnTheKillerAndWarnsEachTracedSurvivor()
         {
-            Assert.That(SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PacketAfterimage, 0, 0, 1).Viewer, Is.EqualTo(FxViewer.None));
-            string reason = SkillFeedback.PressReason(Role.Killer, SkillIds.PacketAfterimage, PlayerStatus.Normal, 0, true, out bool watch);
-            Assert.That(reason, Is.EqualTo("Packet afterimage is passive."));
-            Assert.That(watch, Is.False);
+            // R1 (11/17): the Killer's own effect carries its own point; the line ticks for the 2.5 s.
+            FxRecord own = SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PacketTrace, 10, 20, SkillIds.PacketTraceSeconds);
+            Assert.That(own.Viewer, Is.EqualTo(FxViewer.Caster));
+            Assert.That(own.Visual.Kind, Is.EqualTo(FxKind.Ring));
+            Assert.That(own.Visual.Anchor, Is.EqualTo(FxAnchor.Own));
+            Assert.That(own.Visual.Diameter, Is.EqualTo(2 * SkillIds.PacketTraceRadius));
+            var state = new KillerFxState();
+            state.OnEffect(KillerId, KillerId, SkillIds.PacketTrace, 10, 20, SkillIds.PacketTraceSeconds, 0);
+            Assert.That(state.Line(1).Text, Is.EqualTo("Survivors within 12 m shown · 1.5 s"));
+            Assert.That(state.Line(2.6).Text, Is.Null);
+            // A traced Survivor (X = Z = 0 on the wire): Affected, a danger line, never a point of the Killer.
+            var frame = new SurvivorFrame { OwnId = 5, Own = new OwnEntry { Status = PlayerStatus.Normal, X = 30, Z = 30 } };
+            FxRecord traced = SkillFeedback.ForSurvivor(frame, KillerId, SkillIds.PacketTrace, 0, 0, SkillIds.PacketTraceSeconds);
+            Assert.That(traced.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(traced.Line.Text, Is.EqualTo("Traced: the Killer sees you · 2.5 s"));
+            Assert.That(traced.Line.Tone, Is.EqualTo(LineTone.Danger));
+            Assert.That(traced.Visual.Anchor, Is.EqualTo(FxAnchor.Own));
+            string reason = SkillFeedback.PressReason(Role.Killer, SkillIds.PacketTrace, PlayerStatus.Normal, 0, true, out bool watch);
+            Assert.That(reason, Is.Null);
+            Assert.That(watch, Is.True, "an active skill arms the refused-press watch");
+        }
+
+        [Test]
+        public void FirewallBlockOnATerminalNamesTheTerminalForBothRoles()
+        {
+            // R1 (11/17): the server sends the locked terminal's map point; Terminal N = static index + 1.
+            var t = SharedMapPoints.Terminals[2];
+            Assert.That(SkillFeedback.TerminalAt(t.X, t.Z), Is.EqualTo(2));
+            Assert.That(SkillFeedback.TerminalAt(-50, -50), Is.EqualTo(-1));
+            var state = new KillerFxState();
+            FxRecord own = state.OnEffect(KillerId, KillerId, SkillIds.FirewallBlock, t.X, t.Z, SkillIds.FirewallTerminalSeconds, 0);
+            Assert.That(own.Viewer, Is.EqualTo(FxViewer.Caster));
+            Assert.That(state.Line(1).Text, Is.EqualTo("Terminal 3 locked · 7.0 s"));
+            Assert.That(state.LockedTerminal(1), Is.EqualTo(2));
+            Assert.That(state.LockedTerminal(8.1), Is.EqualTo(-1));
+            var hacker = new SurvivorFrame { OwnId = 5, Own = new OwnEntry { Status = PlayerStatus.Normal, X = t.X + 1, Z = t.Z, Hacking = true } };
+            FxRecord affected = SkillFeedback.ForSurvivor(hacker, KillerId, SkillIds.FirewallBlock, t.X, t.Z, SkillIds.FirewallTerminalSeconds);
+            Assert.That(affected.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(affected.Line.Text, Is.EqualTo("Terminal 3 · Locked · 8 s"));
+            var far = new SurvivorFrame { OwnId = 5, Own = new OwnEntry { Status = PlayerStatus.Normal, X = 70, Z = 5 } };
+            FxRecord ally = SkillFeedback.ForSurvivor(far, KillerId, SkillIds.FirewallBlock, t.X, t.Z, SkillIds.FirewallTerminalSeconds);
+            Assert.That(ally.Viewer, Is.EqualTo(FxViewer.Ally));
+            Assert.That(ally.Line.Text, Is.EqualTo("Terminal 3 · Locked · 8 s"), "every Survivor learns the lock");
+            Assert.That(ally.Line.Priority, Is.LessThan(affected.Line.Priority));
+            // The exit-switch path is unchanged.
+            var exit = SharedMapPoints.Exits[0];
+            Assert.That(SkillFeedback.ForSurvivor(far, KillerId, SkillIds.FirewallBlock, exit.X, exit.Z, 5).Line.Text ?? string.Empty, Does.Not.Contain("Terminal"));
+        }
+
+        [Test]
+        public void AMissedSwingShowsMissedOnTheResultLine()
+        {
+            // a2: its own brief line in the text tone (more noticeable than the muted reason).
+            var state = new KillerFxState();
+            state.OnMissed(0);
+            Assert.That(state.Line(.5).Text, Is.EqualTo("Missed"));
+            Assert.That(state.Line(.5).Tone, Is.EqualTo(LineTone.Plain));
+            Assert.That(state.Line(SkillFeedback.MissedSeconds + .01).Text, Is.Null, "brief");
         }
 
         // Decoy safety (HUD_SPEC 14.0, 6.3): no Survivor skill can produce any Killer-side output, whatever its fields, so a
@@ -260,15 +314,15 @@ namespace PingTheKiller.Client.Tests
         {
             Mate[] before = { Peer(Mina, 20, 20), Peer(Rio, 20.3f, 20, PlayerStatus.Lagging) };
             FxRecord caster = SkillFeedback.ForSurvivor(Frame(mates: before), Own, SkillIds.EmergencyRestore, 20.3f, 20, 0);
-            Assert.That(caster.Line.Text, Is.EqualTo("Restored Rio · no longer Lagging"));
+            Assert.That(caster.Line.Text, Is.EqualTo("Rescued Rio · no longer Lagging"));
             Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Pillar)); Assert.That(caster.Visual.Seconds, Is.EqualTo(1f));
             FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: before), Mina, SkillIds.EmergencyRestore, 20.3f, 20, 0);
-            Assert.That(ally.Line.Text, Is.EqualTo("Mina restored Rio"));
+            Assert.That(ally.Line.Text, Is.EqualTo("Mina rescued Rio"));
             FxRecord self = SkillFeedback.ForSurvivor(Frame(PlayerStatus.Lagging, 20.1f, 20, mates: Peer(Mina, 21, 20)), Mina, SkillIds.EmergencyRestore, 20.1f, 20, 0);
             Assert.That(self.Viewer, Is.EqualTo(FxViewer.Affected));
-            Assert.That(self.Line.Text, Is.EqualTo("Mina restored you · no longer Lagging"));
+            Assert.That(self.Line.Text, Is.EqualTo("Mina rescued you · no longer Lagging"));
             FxRecord unmatched = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.EmergencyRestore, 5, 5, 0);
-            Assert.That(unmatched.Line.Text, Is.EqualTo("Restored a Survivor · no longer Lagging"));
+            Assert.That(unmatched.Line.Text, Is.EqualTo("Rescued a Survivor · no longer Lagging"));
         }
 
         [Test]
@@ -346,8 +400,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Normal, null, true, out watch), Is.Null); Assert.That(watch, Is.False, "no SelfState yet");
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Eliminated, 0, true, out watch), Is.Null); Assert.That(watch, Is.False);
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.EmergencyRestore, PlayerStatus.Normal, 0, false, out watch), Is.EqualTo("Emergency restore needs a Lagging Survivor next to you.")); Assert.That(watch, Is.False);
-            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.FirewallBlock, PlayerStatus.Normal, 0, false, out watch), Is.EqualTo("No Exit switch in progress")); Assert.That(watch, Is.False);
-            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.PacketAfterimage, PlayerStatus.Normal, 0, true, out watch), Is.Not.Null); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.FirewallBlock, PlayerStatus.Normal, 0, true, out watch), Is.Null); Assert.That(watch, Is.True, "R1: only the server knows a target");
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.WhiteNoise, PlayerStatus.Normal, 0, true, out watch), Is.Null); Assert.That(watch, Is.True, "derived Ready");
 
             var press = new PressWatch();
@@ -425,7 +478,7 @@ namespace PingTheKiller.Client.Tests
             state.OnReason(SkillFeedback.NoSwitchReason, 0);
             FxLine line = state.Line(1);
             hud.SetEffect(line.Text, line.Tone == LineTone.Danger, line.Tone == LineTone.Reason);
-            Assert.That(hud.EffectText, Is.EqualTo("No Exit switch in progress"));
+            Assert.That(hud.EffectText, Is.EqualTo("Not used · nothing to lock"));
             Assert.That(hud.EffectMuted, Is.True); Assert.That(hud.EffectDanger, Is.False);
             Assert.That(state.Line(2.1).Text, Is.Null, "reason lines show 2 s");
             Assert.That(KillerHudCopy.Locked(-1, 1).Length, Is.LessThanOrEqualTo(34));

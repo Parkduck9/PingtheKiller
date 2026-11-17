@@ -17,6 +17,7 @@ namespace PingTheKiller.Client.Tests
     public sealed class CharacterMotionTests
     {
         private const byte N = (byte)PlayerStatus.Normal, L = (byte)PlayerStatus.Lagging, E = (byte)PlayerStatus.Eliminated, X = (byte)PlayerStatus.Escaped;
+        private const byte GettingUpFlag = (byte)PlayerFlags.GettingUp;
         private const byte Hacking = (byte)PlayerFlags.Hacking, Rescuing = (byte)PlayerFlags.Rescuing, Afterimage = (byte)PlayerFlags.Afterimage;
         private const byte Signal = (byte)PlayerFlags.Signal, Stealthed = (byte)PlayerFlags.Stealthed;
         private const double Hit = MotionTiming.HitSeconds, Down = MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds;
@@ -60,13 +61,13 @@ namespace PingTheKiller.Client.Tests
             MotionTracker t = Seen(MotionView.Survivor, L, 0, 1);
             Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl), "first seen Lagging: already down, no knock-down replay");
             Assert.That(double.IsNegativeInfinity(t.PoseSince), Is.True);
-            t.Update(5, N, Signal, 1, 0);
+            t.Update(5, N, GettingUpFlag, 1, 0);
             Assert.That(t.CaptureEdge, Is.False);
             Assert.That(t.Pose, Is.EqualTo(MotionPose.GettingUp));
             Assert.That(t.PoseSince, Is.EqualTo(5));
-            t.Update(5 + MotionTiming.GettingUpSeconds - .01, N, 0, 1, 0);
-            Assert.That(t.Pose, Is.EqualTo(MotionPose.GettingUp));
-            t.Update(5 + MotionTiming.GettingUpSeconds + .01, N, 0, 1, 0);
+            t.Update(5 + MotionTiming.GetUpSeconds - .01, N, GettingUpFlag, 1, 0);
+            Assert.That(t.Pose, Is.EqualTo(MotionPose.GettingUp), "1.5 s, from the server flag");
+            t.Update(5 + MotionTiming.GetUpSeconds + .01, N, 0, 1, 0);
             Assert.That(t.Pose, Is.EqualTo(MotionPose.Injured), "CaptureCount >= 1 in the Survivor view: injured locomotion");
             t.Update(9, N, 0, 0, 4);
             Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion));
@@ -392,11 +393,11 @@ namespace PingTheKiller.Client.Tests
                 Assert.That(motion.Drives, Is.True);
                 Assert.That(instance.Animator.runtimeAnimatorController, Is.SameAs(CharacterMotion.Controller));
                 double now = 0;
-                void Step(byte status, double until)
+                void Step(byte status, double until, byte flags = 0)
                 {
                     for (; now < until; now += 1 / 30.0)
                     {
-                        motion.Observe(now, status, 0, 0, instance.Speed);
+                        motion.Observe(now, status, flags, 0, instance.Speed);
                         motion.Drive(now);
                         instance.Animate(Vector3.zero, now, status == L, false);
                         motion.Ground();
@@ -411,7 +412,7 @@ namespace PingTheKiller.Client.Tests
                 Step(L, 1 + Down + 1);
                 Assert.That(StateIs(instance.Animator, MotionStates.Crawl), Is.True);
                 Assert.That(Lowest(model), Is.EqualTo(0).Within(.005f), "down: the lowest point touches the floor");
-                Step(N, now + 1);
+                Step(N, now + 1, GettingUpFlag);
                 Assert.That(StateIs(instance.Animator, MotionStates.GettingUp), Is.True);
                 Step(E, now + MotionTiming.DeathSeconds + .5);
                 Assert.That(StateIs(instance.Animator, MotionStates.Death), Is.True);

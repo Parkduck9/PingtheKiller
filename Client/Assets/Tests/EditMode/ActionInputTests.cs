@@ -57,10 +57,11 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void PassiveSkillIsNeverSent()
+        public void PacketTraceIsSentSinceR1()
         {
-            Assert.That(SkillInput.TryCreate(true, Role.Killer, 2, PlayerStatus.Normal, out C2S_UseSkill packet), Is.False);
-            Assert.That(packet, Is.Null);
+            // R1 (11/17): the former passive Packet afterimage (id 2) is the active Packet trace.
+            Assert.That(SkillInput.TryCreate(true, Role.Killer, 2, PlayerStatus.Normal, out C2S_UseSkill packet), Is.True);
+            Assert.That(packet.SkillId, Is.EqualTo(2));
         }
 
         [TestCase(PlayerStatus.Lagging)]

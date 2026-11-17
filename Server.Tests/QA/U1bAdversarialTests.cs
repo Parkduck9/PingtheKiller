@@ -60,7 +60,7 @@ public sealed class U1bAdversarialTests
         {
             parts.Add(Le32(i + 1));                   // PlayerId
             parts.Add(new byte[] { 1, 0, (byte)'a' }); // Nickname "a"
-            parts.Add(new[] { isBot, isHost });
+            parts.Add(new[] { isBot, isHost, (byte)0xFF }); // R1: SkillChoice none
         }
         return Concat(parts.ToArray());
     }
@@ -451,10 +451,10 @@ public sealed class U1bAdversarialTests
         Assert.Equal(8, l.Slots.Length);
         Assert.All(l.Slots, s => { Assert.NotNull(s); Assert.Equal(string.Empty, s.Nickname); });
 
-        // Hand-built: header, IsOffline 0, HostRoleChoice 0, count 8, then 8 x (int 0, ushort 0, 0, 0) = 8 bytes.
-        // Payload = 3 + 8*8 = 67; body = 69 = 0x45.
-        byte[] expected = Concat(Hex("45000000 0A00 00 00 08"),
-            Concat(Enumerable.Repeat(Hex("00000000 0000 00 00"), 8).ToArray()));
+        // Hand-built: header, IsOffline 0, HostRoleChoice 0, count 8, then 8 x (int 0, ushort 0, 0, 0, R1 SkillChoice FF)
+        // = 9 bytes. Payload = 3 + 8*9 = 75; body = 77 = 0x4D.
+        byte[] expected = Concat(Hex("4D000000 0A00 00 00 08"),
+            Concat(Enumerable.Repeat(Hex("00000000 0000 00 00 FF"), 8).ToArray()));
         Assert.Equal(expected, PacketCodec.Encode(l));
     }
 
@@ -589,7 +589,7 @@ public sealed class U1bAdversarialTests
         Assert.Equal(60f, GameConstants.LaggingTimeoutSeconds);           // 3.3: 60 s
         Assert.Equal(2f, GameConstants.PostRescueInvulnerabilitySeconds); // 3.3: 2 s
         Assert.Equal(1.5f, GameConstants.TerminalRadius);                 // 3.4: 1.5 m
-        Assert.Equal(45f, GameConstants.TerminalHackTimeSeconds);         // GDD v2 2: 45 s
+        Assert.Equal(90f, GameConstants.TerminalPassiveSeconds);          // GDD v2 2 (11/17 R2): 90 s passive
         Assert.Equal(2.4f, GameConstants.CoHackRate(3));                  // GDD v2 2: 3 or more 2.4x
         Assert.Equal(2.0f, GameConstants.ExitRadius);                     // 3.5: 2 m
         Assert.Equal(900f, GameConstants.MatchLengthSeconds);             // GDD v2 1: 900 s

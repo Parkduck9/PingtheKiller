@@ -33,7 +33,7 @@ namespace PingTheKiller.ServerCore
             if (!_matchStarted) reason = SkillRejectReason.NotInMatch;
             else if (skillId != caster.Skill) reason = SkillRejectReason.NotYourSkill;
             // GDD v2 section 8: a stunned killer cannot use its skill (reported as NotNormal; no new reason on the wire).
-            else if (caster.Status != PlayerStatus.Normal || Stunned(caster)) reason = SkillRejectReason.NotNormal;
+            else if (caster.Status != PlayerStatus.Normal || Stunned(caster) || GettingUp(caster)) reason = SkillRejectReason.NotNormal;
             else if (!SkillReady(caster)) reason = SkillRejectReason.Cooldown;
             else if (caster.Role == Role.Killer ? UseKillerSkill(caster, out reason) : UseSurvivorSkill(caster, out reason))
             {
@@ -91,24 +91,46 @@ namespace PingTheKiller.ServerCore
                     return true;
                 }
                 case SkillIds.Overclock:
+                    // R1 (11/17): the tail after the boost is RecoverySeconds at 60 % speed (GameServer.Simulation).
                     killer.OverclockUntil = _now + SkillIds.OverclockSeconds;
                     killer.RecoveryUntil = killer.OverclockUntil + SkillIds.OverclockRecoverySeconds;
                     SendEffect(killer, killer, SkillIds.Overclock, killer.X, killer.Z, SkillIds.OverclockSeconds);
                     return true;
                 case SkillIds.FirewallBlock:
                 {
-                    // GDD v2 §3: locks the switch of the unopened exit with the most progress; unusable without one.
+                    // GDD v2 §3: locks the switch of the unopened exit with the most progress for 5 s. R1 (11/17): without
+                    // one, it locks the unfinished terminal with the most progress for 8 s; it fails only when neither
+                    // exists. Every Survivor sees exact progress; the Killer learns only which terminal the server picked.
                     int exit = FirewallTarget();
-                    // Every recipient's WorldState carries each exit's switch progress, and a use is a visible effect.
-                    if (exit < 0) { reason = SkillRejectReason.NoSwitchInProgress; return false; }
-                    _exitLockedUntil[exit] = _now + SkillIds.FirewallBlockSeconds;
+                    if (exit >= 0)
+                    {
+                        _exitLockedUntil[exit] = _now + SkillIds.FirewallBlockSeconds;
+                        foreach (var player in _players)
+                            SendEffect(player, killer, SkillIds.FirewallBlock, Map.Exits[exit].X, Map.Exits[exit].Z, SkillIds.FirewallBlockSeconds);
+                        return true;
+                    }
+                    int terminal = FirewallTerminalTarget();
+                    if (terminal < 0) { reason = SkillRejectReason.NoSwitchInProgress; return false; }
+                    LockTerminal(terminal);
                     foreach (var player in _players)
-                        SendEffect(player, killer, SkillIds.FirewallBlock, Map.Exits[exit].X, Map.Exits[exit].Z, SkillIds.FirewallBlockSeconds);
+                        SendEffect(player, killer, SkillIds.FirewallBlock, _terminals[terminal].X, _terminals[terminal].Z, SkillIds.FirewallTerminalSeconds);
+                    return true;
+                }
+                case SkillIds.PacketTrace:
+                {
+                    // R1 (11/17): every active Survivor within PacketTraceRadius is forced Signal (the Ping exposure). It
+                    // never fails, so a press says nothing about where a Silent Survivor is.
+                    SendEffect(killer, killer, SkillIds.PacketTrace, killer.X, killer.Z, SkillIds.PacketTraceSeconds);
+                    foreach (var survivor in _players)
+                    {
+                        if (!survivor.IsActiveSurvivor || !Within(survivor, killer.X, killer.Z, SkillIds.PacketTraceRadius)) continue;
+                        survivor.ExposedUntil = Max(survivor.ExposedUntil, _now + SkillIds.PacketTraceSeconds);
+                        // Survivor-bound effects of killer skills never carry the killer's coordinates.
+                        SendEffect(survivor, killer, SkillIds.PacketTrace, 0, 0, SkillIds.PacketTraceSeconds);
+                    }
                     return true;
                 }
                 default:
-                    // PacketAfterimage is passive and cannot be activated.
-                    if (killer.Skill == SkillIds.PacketAfterimage) reason = SkillRejectReason.Passive;
                     return false;
             }
         }

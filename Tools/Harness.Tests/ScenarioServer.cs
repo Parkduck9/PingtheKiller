@@ -361,7 +361,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
         foreach (var s in Survivors) s.Rescuing = false;
         foreach (var target in Survivors.Where(s => s.Status == PlayerStatus.Lagging).ToList())
         {
-            var rescuers = Survivors.Where(r => r != target && r.Status == PlayerStatus.Normal &&
+            var rescuers = Survivors.Where(r => r != target && r.Status == PlayerStatus.Normal && r.Interact &&
                 Distance(r, target.X, target.Z) <= GameConstants.RescueRadius).ToList();
             if (rescuers.Count == 0) { target.RescueContact = 0; continue; }
             foreach (var r in rescuers) r.Rescuing = true;

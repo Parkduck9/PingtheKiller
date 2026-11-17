@@ -36,7 +36,7 @@ namespace PingTheKiller.Client.Tests
             var own = Own(PlayerStatus.Lagging); own.StatusTimer = 41.2f; own.Signal = true;
             MeterState m = SurvivorReadout.Meter(own, new Self { RescueProgress = .35f }, 0, 0);
             Assert.That(m.Word, Is.EqualTo("Lagging"));
-            Assert.That(m.Reason, Is.EqualTo("Rescue in progress " + Dash + " stay close"));
+            Assert.That(m.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(m.Fill, Is.EqualTo(BarFill.Ally));
             Assert.That(m.Width, Is.EqualTo(.35f));
             // Row 4 when no rescue runs, or before the first SelfState.
@@ -84,7 +84,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(m.Reason, Is.EqualTo("Not visible to the Killer.")); Assert.That(m.ReasonMuted, Is.True);
             Assert.That(SurvivorReadout.Meter(Own(PlayerStatus.Escaped), null, 0, 0).Word, Is.EqualTo("Escaped"));
             Assert.That(SurvivorReadout.Meter(Own(PlayerStatus.Eliminated), null, 0, 0).Word, Is.EqualTo("Eliminated"));
-            foreach (string reason in new[] { "Rescue in progress " + Dash + " stay close", "Always visible " + Dot + " 60 s left", "Scanned by the Killer " + Dot + " 1.5 s" })
+            foreach (string reason in new[] { "Being rescued " + Dash + " stay close", "Always visible " + Dot + " 60 s left", "Scanned by the Killer " + Dot + " 1.5 s" })
                 Assert.That(reason.Length, Is.LessThanOrEqualTo(34), "HUD_SPEC 4.1 row B budget: " + reason);
         }
 
@@ -129,7 +129,7 @@ namespace PingTheKiller.Client.Tests
         {
             var lagging = Mates(new Mate { Id = 3, X = 14, Z = 10, Status = PlayerStatus.Lagging });
             PromptState p = SurvivorReadout.Prompt(Own(), lagging, null, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Mina is Lagging " + Dot + " 4 m " + Dash + " stay within 1.5 m to rescue them"));
+            Assert.That(p.Text, Is.EqualTo("Mina is Lagging " + Dot + " 4 m " + Dash + " move next to them, hold [E] to rescue"));
             Assert.That(SurvivorReadout.Prompt(Own(), lagging, null, new Self(), Names, true, 0, false).Text, Is.EqualTo(SurvivorReadout.CursorHint));
 
             var terminals = new[] { new TerminalState { Id = 1, X = 10.5f, Z = 10, Progress = 47 } };
@@ -140,11 +140,11 @@ namespace PingTheKiller.Client.Tests
             Assert.That(p.Bar, Is.EqualTo(BarFill.Text)); Assert.That(p.Width, Is.EqualTo(.47f).Within(1e-5f));
             Assert.That(SurvivorReadout.Prompt(own, cohack, terminals, new Self(), Names, false, 0, false).Text, Is.EqualTo("Hacking Terminal 2 " + Dot + " 47% " + Dot + " 2 hacking"));
             p = SurvivorReadout.Prompt(Own(), Mates(), terminals, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Hold [E] to hack Terminal 2 " + Dot + " 47% " + Dash + " you will be Signal"));
+            Assert.That(p.Text, Is.EqualTo("Hold [E] + WASD to hack Terminal 2 " + Dot + " 47% " + Dash + " you will be Signal")); // 11/17 (R2): names the route keys
             p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging), Mates(), terminals, new Self(), Names, false, 0, false);
             Assert.That(p.Text, Is.EqualTo("Lagging Survivors cannot hack.")); Assert.That(p.Muted, Is.True);
             p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging, 40, 40), Mates(), terminals, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Skills are off while Lagging."));
+            Assert.That(p.Text, Does.StartWith(HelpCopy.DownedPrefix), "R3: the Lagging row is the persistent restore line");
             p = SurvivorReadout.Prompt(Own(), Mates(), null, new Self(), Names, false, SkillIds.EmergencyRestore, false);
             Assert.That(p.Text, Is.EqualTo("Emergency restore needs a Lagging Survivor next to you."));
             Assert.That(SurvivorReadout.Prompt(Own(), Mates(), null, new Self { SkillCooldown = 3 }, Names, false, SkillIds.EmergencyRestore, false).Text, Is.Null,
@@ -189,7 +189,7 @@ namespace PingTheKiller.Client.Tests
             var own = Own(PlayerStatus.Lagging); own.StatusTimer = 30;
             hud.SetMeter(SurvivorReadout.Meter(own, new Self { RescueProgress = .5f }, 0, 0));
             Assert.That(hud.Word, Is.EqualTo("Lagging"));
-            Assert.That(hud.Reason, Is.EqualTo("Rescue in progress " + Dash + " stay close"));
+            Assert.That(hud.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(hud.MeterFillHas("fill-ally"), Is.True);
             Assert.That(hud.MeterFillPercent, Is.EqualTo(50f).Within(1e-3f));
             var normal = Own(); normal.CaptureCount = 1;

@@ -201,7 +201,7 @@ namespace PingTheKiller.Client.Tests
     {
         [TestCase(Role.Killer, 0, "Ping Scanner")]
         [TestCase(Role.Killer, 1, "Overclock")]
-        [TestCase(Role.Killer, 2, "Packet Afterimage")]
+        [TestCase(Role.Killer, 2, "Packet Trace")]
         [TestCase(Role.Killer, 3, "Firewall Block")]
         [TestCase(Role.Survivor, 0, "Dummy Packet")]
         [TestCase(Role.Survivor, 1, "Stealth Relay")]
@@ -214,12 +214,11 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void OnlyPacketAfterimageIsPassive()
+        public void EverySkillLineSaysQ()
         {
-            Assert.That(HudCopy.SkillLine(Role.Killer, 2), Is.EqualTo("Passive · Packet Afterimage"));
+            Assert.That(HudCopy.SkillLine(Role.Killer, 2), Is.EqualTo("Q · Packet Trace"), "R1: Packet trace is active");
             Assert.That(HudCopy.SkillLine(Role.Killer, 0), Is.EqualTo("Q · Ping Scanner"));
             Assert.That(HudCopy.SkillLine(Role.Survivor, 2), Is.EqualTo("Q · Traffic Overload"));
-            for (byte id = 0; id < 5; id++) Assert.That(HudCopy.IsPassive(Role.Survivor, id), Is.False);
             Assert.That(HudCopy.SkillName(Role.Survivor, 9), Is.EqualTo("Skill 9"), "unknown IDs never throw");
         }
 

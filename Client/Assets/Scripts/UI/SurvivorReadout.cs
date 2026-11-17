@@ -13,7 +13,7 @@ namespace PingTheKiller.Client.UI
     public struct OwnEntry
     {
         public PlayerStatus Status;
-        public bool Signal, Hacking, Rescuing, Stealthed;
+        public bool Signal, Hacking, Rescuing, Stealthed, GettingUp;
         public float StatusTimer, X, Z;
         public byte CaptureCount;
     }
@@ -138,7 +138,7 @@ namespace PingTheKiller.Client.UI
                     m.Word = "Lagging";
                     if (known && self.RescueProgress > 0)
                     {
-                        m.Reason = "Rescue in progress " + Dash + " stay close"; m.Fill = BarFill.Ally; m.Width = Clamp01(self.RescueProgress);
+                        m.Reason = "Being rescued " + Dash + " stay close"; m.Fill = BarFill.Ally; m.Width = Clamp01(self.RescueProgress);
                     }
                     else
                     {
@@ -210,11 +210,13 @@ namespace PingTheKiller.Client.UI
             if (cursorReleased) { p.Text = CursorHint; p.Muted = true; return p; }
             if (own.Status == PlayerStatus.Eliminated || own.Status == PlayerStatus.Escaped) return p;
             bool normal = own.Status == PlayerStatus.Normal;
+            // R3 (11/17): the 1.5 s after a rescue (server flag GettingUp): movement, E and the skill do nothing.
+            if (normal && own.GettingUp) { p.Text = HelpCopy.GettingUp; return p; }
             if (normal && own.Rescuing)
             {
                 int target = NearestLagging(own, mates, GameConstants.RescueRadius, out _);
                 if (target < 0) target = NearestLagging(own, mates, float.MaxValue, out _);
-                p.Text = "Rescuing " + Name(names, target >= 0 ? mates[target].Id : 0) + " " + Dash + " you are Signal";
+                p.Text = HelpCopy.RescuingPrompt(Name(names, target >= 0 ? mates[target].Id : 0));
                 p.Bar = BarFill.Ally; p.Width = self != null && self.Available ? Clamp01(self.RescueProgress) : 0;
                 return p;
             }
@@ -223,8 +225,10 @@ namespace PingTheKiller.Client.UI
                 int near = NearestLagging(own, mates, ApproachRange, out float distance);
                 if (near >= 0)
                 {
-                    p.Text = Name(names, mates[near].Id) + " is Lagging " + Dot + " " + (int)Math.Round(distance, MidpointRounding.AwayFromZero)
-                        + " m " + Dash + " stay within 1.5 m to rescue them";
+                    // R3: within the rescue radius the prompt names the E hold; farther, it says to go next to them first.
+                    string name = Name(names, mates[near].Id);
+                    p.Text = distance <= GameConstants.RescueRadius ? HelpCopy.RescuePrompt(name)
+                        : HelpCopy.ApproachPrompt(name, (int)Math.Round(distance, MidpointRounding.AwayFromZero));
                     return p;
                 }
             }
@@ -245,13 +249,31 @@ namespace PingTheKiller.Client.UI
             if (normal && atTerminal && terminals[terminal].Progress < 100)
             {
                 TerminalState t = terminals[terminal];
-                p.Text = "Hold [E] to hack " + KillerHudCopyTerminal(t.Id) + " " + Dot + " " + Percent(t.Progress) + " " + Dash + " you will be Signal";
+                // 11/17 (R2): the keys of the route panel are named up front (61 characters at most, SLOP length).
+                p.Text = "Hold [E] + WASD to hack " + KillerHudCopyTerminal(t.Id) + " " + Dot + " " + Percent(t.Progress) + " " + Dash + " you will be Signal";
                 return p;
             }
             if (own.Status == PlayerStatus.Lagging && atTerminal) { p.Text = LaggingCannotHack; p.Muted = true; return p; }
-            if (own.Status == PlayerStatus.Lagging) { p.Text = SkillsOffLagging; p.Muted = true; return p; }
+            if (own.Status == PlayerStatus.Lagging) return Downed(own, mates, self);
             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;
             if (skillId == SkillIds.EmergencyRestore && !restoreHasTarget && !(cooldown > 0)) { p.Text = RestoreNeedsTarget; p.Muted = true; }
+            return p;
+        }
+
+        // R3 (11/17): the downed player's persistent line, with the nearest Normal ally's distance from the received state and the
+        // seconds left; the ally bar fills while a rescue runs. Replaces the old `Skills are off while Lagging.` row.
+        public static PromptState Downed(OwnEntry own, IReadOnlyList<Mate> mates, ISelfState self)
+        {
+            float nearest = -1;
+            if (mates != null)
+                foreach (Mate mate in mates)
+                {
+                    if (mate.Status != PlayerStatus.Normal) continue;
+                    float d = Distance(own.X, own.Z, mate.X, mate.Z);
+                    if (nearest < 0 || d < nearest) nearest = d;
+                }
+            var p = new PromptState { Text = HelpCopy.DownedLine(nearest, own.StatusTimer) };
+            if (self != null && self.Available && self.RescueProgress > 0) { p.Bar = BarFill.Ally; p.Width = Clamp01(self.RescueProgress); }
             return p;
         }
 

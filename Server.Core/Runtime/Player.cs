@@ -25,6 +25,7 @@ namespace PingTheKiller.ServerCore
         internal byte CaptureCount;
         internal double LaggingUntil;
         internal double InvulnerableUntil;
+        internal double GetUpUntil;
         internal double RescueProgress;
         internal bool Interacting, Hacking, Rescuing;
         internal double SkillReadyAt;
@@ -40,18 +41,19 @@ namespace PingTheKiller.ServerCore
         internal int KickTerminal = -1;
         // Personal collapse clock (GDD v2 §3).
         internal double CollapseLeft;
-        // Sync checks (GDD v2 §2): seconds of hacking until the next check, and the pending check if any.
-        internal Random SyncRandom;
-        internal double SyncTimer;
-        internal bool SyncPending;
-        internal uint SyncCheckId;
-        internal int SyncTerminal = -1;
-        internal double SyncSentAt;
-        internal float SyncZoneStart;
-        // A survivor bot's planned press instant for the pending check (NaN: it misses).
-        internal double SyncBotPressAt = double.NaN;
-        internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
-        // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
+        // Packet routing (GDD v2 §2, 11/17 R2): the private direction stream, a survivor bot's key-timing stream, the own
+        // route (RouteId 0 = none), its terminal, the next index, the hacking seconds before the next route after a completed
+        // one, the route-input rate window and the per-player log throttle.
+        internal Random RouteRandom, RouteBotRandom;
+        internal byte RouteId, RouteSerial, RouteDirs, RouteIndex;
+        internal int RouteTerminal = -1;
+        internal double RouteGapLeft;
+        // The server time the current route was dealt (RouteMinCycleSeconds).
+        internal double RouteIssuedAt;
+        internal readonly System.Collections.Generic.Queue<double> RouteInputTimes = new System.Collections.Generic.Queue<double>();
+        internal double RouteLoggedAt = double.NegativeInfinity;
+        internal int RouteLogsUnlogged;
+        // Smoothed round-trip time from the server-timed probe (diagnostics); 0 until a measurement exists.
         internal double RttSeconds;
         // Connection state, deliberately preserved across match resets to keep the lobby estimate warm.
         internal uint RttProbeNonce;
@@ -60,7 +62,7 @@ namespace PingTheKiller.ServerCore
         internal double RttProbeSentAt, RttNextProbeAt;
         internal double ExposedUntil, StealthUntil;
         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
-        // Effective Signal for the current tick and the last position the killer saw (Packet Afterimage).
+        // Effective Signal for the current tick and the last position the killer saw.
         internal bool Visible;
         internal double LastVisibleAt = double.NegativeInfinity;
         internal float VisibleX, VisibleZ, VisibleYaw;
@@ -95,6 +97,19 @@ namespace PingTheKiller.ServerCore
         internal int BreakShutter = -1;
         internal double BreakHeld;
         internal double StunnedUntil = double.NegativeInfinity, ChaseSignalUntil = double.NegativeInfinity;
+        // R1 (11/17) Killer swing (GameServer.Combat): attack sequence and throttle, the pending press, the phase
+        // (0 none, 1 wind-up, 2 recovery) with its instants and result, and the swing log throttle.
+        internal uint AttackSeq;
+        internal bool HasAttackSeq, AttackRequested, SwingHit;
+        internal readonly System.Collections.Generic.Queue<double> AttackTimes = new System.Collections.Generic.Queue<double>();
+        internal byte SwingPhase;
+        internal double SwingStart, SwingHitAt, SwingEnd;
+        internal double SwingLoggedAt = double.NegativeInfinity;
+        internal int SwingsUnlogged;
+        // R1 (11/17): the lobby skill choice (SkillIds.Choice encoding), kept across matches while this human stays.
+        internal byte SkillChoice = SkillIds.NoChoice;
+        // R1 (11/17) a2: accepted lobby choice instants of the last second (GameServer.MaxSkillChoicesPerSecond).
+        internal readonly System.Collections.Generic.Queue<double> ChoiceTimes = new System.Collections.Generic.Queue<double>();
 
         internal bool InChaseAction => ChaseKind != 0;
 
@@ -106,6 +121,14 @@ namespace PingTheKiller.ServerCore
             ChaseOnRail = false;
             BreakHeld = 0;
             StunnedUntil = ChaseSignalUntil = double.NegativeInfinity;
+        }
+
+        internal void ResetSwing()
+        {
+            HasAttackSeq = AttackRequested = SwingHit = false;
+            AttackSeq = 0;
+            AttackTimes.Clear();
+            SwingPhase = 0;
         }
 
         internal void ResetBotPlan()
@@ -126,12 +149,13 @@ namespace PingTheKiller.ServerCore
         {
             Status = PlayerStatus.Normal;
             CaptureCount = 0;
-            LaggingUntil = InvulnerableUntil = RescueProgress = 0;
+            LaggingUntil = InvulnerableUntil = GetUpUntil = RescueProgress = 0;
             Interacting = Hacking = Rescuing = false;
-            HackTerminal = SwitchExit = KickTerminal = SyncTerminal = -1;
+            HackTerminal = SwitchExit = KickTerminal = RouteTerminal = -1;
             KickHeld = HatchHeld = 0;
-            SyncPending = false;
-            SyncBotPressAt = double.NaN;
+            RouteId = RouteIndex = RouteDirs = 0;
+            RouteGapLeft = 0;
+            RouteInputTimes.Clear();
             SkillReadyAt = now;
             ExposedUntil = StealthUntil = OverclockUntil = RecoveryUntil = SlowedUntil = double.NegativeInfinity;
             Visible = false;
@@ -142,6 +166,7 @@ namespace PingTheKiller.ServerCore
             HasSeq = false;
             Seq = 0;
             InputTimes.Clear();
+            ResetSwing();
             ResetChase();
             SelfSent = null;
             ResetBotPlan();

@@ -153,6 +153,9 @@ Sounds: none.
 
 ---
 
+### 1.7 How to play **(11/17, R3)**
+A "How to play" button sits under the Offline note in the main menu (class `set-open`), disabled while connecting. It opens the `howto` panel with two tabs, Survivor and Killer, and a Back button; Esc closes it. Each page has the headings `How to win`, `Controls`, `Status` (three lines: `Normal:`, `Lagging:`, `Rescue:`), `Signal and Silent` and `Skills` (names and effects from the existing skill tables). Copy lives in `HelpCopy.Page(role)`.
+
 ## 2. Lobby
 
 Purpose: fill 8 slots and start. The slot list *is* the data (SLOP §8).
@@ -179,13 +182,23 @@ Right column stack (host only; others see read-only S `muted` text `Bots: 6` and
 | 2.7 | Bots | bots = count of `IsBot = 1`; `C2S_SetBots{Count = bots ∓ 1}` | Label `Bots: 6` (M, tabular) [8]; `−` and `+`. `−` disabled at the minimum (filled = 2) with `A match needs 2 players.`; `+` disabled at 8 filled with `All 8 slots are filled.` | 64×40 each, gap 8 [24] |
 | 2.8 | Role | `C2S_SetRole{RoleChoice}`; selected = `HostRoleChoice` | Label: online `Host plays as`, offline `You play as` (S) [8]; options `Survivor`, `Killer`, `Random` in a row, §0.5 *selected* state | 3 × 120×40, gaps 8 |
 
+**2.9 Skill picker (11/17, R1).** A third column right of the controls: x 640 + 400 + 32 = 1072, width 512; the lobby screen grows to 1536 u (≤ 1600 at 720p). Stack: title `Your skill` (M 600) [16]; chosen line `Chosen: Packet trace (Killer)` / `Chosen: random. A skill of the other role also gives a random one.` (S `muted`, wraps) [12]; one group per listed role: group title `Killer skills · 12 s cooldown` / `Survivor skills · 15 s cooldown` (S `muted`) [6], then one row per skill: a 192×36 button with the name (16 u, §0.5 *selected* = the own slot's `SkillChoice`) and, 12 u to its right, the effect line from `PlayMenuCopy.KillerEffect` / `SurvivorEffect` (S `muted`, 308 u, wraps to 2 lines) [6]; **(a2)** names and effect lines are 18 u in `text`; the effect line does not wrap by itself: `LobbyCopy.PickerEffect` breaks the same copy into the fewest lines of ≤ 30 characters, as even as possible (at most 3 lines, no lone word; INTEG-R: a number keeps its unit, so no line starts with `s` or `m`), rows [8]; last a `Random skill` button (192×36, selected when the choice is `NoChoice`).
+- Which groups: both while `HostRoleChoice` is Random; the host sees only its chosen role; a guest of a Killer host sees only Survivor skills; a guest of a Survivor host sees both (it may be the Killer).
+- A press sends `C2S_ChooseSkill{SkillId = SkillIds.Choice(role, id)}` (`0xFF` for Random). The lobby state echoes it in the own slot; the own roster row adds the skill name (`Ana · you · Overclock`). Other rows never show a choice. **(a2)** The server sends each client only its own slot's choice (every other slot `0xFF`) and accepts at most 4 choices per player per second.
+- The server keeps a valid choice for the role dealt at match start; a choice for the other role or none gets a random skill (bots always random).
+- Height: 34 + 16 + 22 + 12 + 2 × (18 + 6) + 9 × 42 + 42 = 552 u with both groups (fits beside the 534 u slot column).
+
 Behaviour: re-render on each `S2C_LobbyState`, no animation. If own `IsHost` becomes 1, host controls appear and `You are now the host.` (S `text`) shows under 2.4 until the next lobby change. `S2C_MatchStart` → §3.
 Focus (host): Start → Leave → (Right) `−` → `+` → (Down) Survivor → Killer → Random. Left from the right column returns to Start. Initial: Start if enabled, else `+`. Non-host: Leave only. Esc / B = Leave.
 Sounds: `ui_join` (short neutral click, −18 dB) when a new human slot appears.
 
 ---
 
-## 3. Match intro (3 s, non-modal)
+## 3. Match intro (7 s card, non-modal) **(11/17, R3)**
+
+**(11/17, R3)** The 3 s block below is superseded by a 7 s intro card (`IntroCard`, class `introcard`), dismissed by Esc, Enter, Space or a mouse click (**INTEG-R minors:** Esc on the card only dismisses it; the play menu stays closed for that press. **INTEG-R:** movement keys, E and Q no longer dismiss it) or after 7 s, and removed in one frame; under Reduced motion it only appears and disappears. Width 672 u, one height slot of 134 u, bottom 104 u for the Survivor (directly above the cluster; the prompt row is suppressed while it shows) and bottom 24 u for the Killer (bottom-center; it never covers the character's feet, §4.10). Content (**INTEG-R**, as built; there is no separate role line): the goal line, which starts with the role (M 600: `Survivor · Hack 3 terminals, then hold an exit switch and escape.` / `Killer · Capture every Survivor before they escape.`), the skill line (M: name, `[Q]`, cooldown, e.g. `Dummy packet [Q] · Cooldown 15 s`), the effect line (S; text only from `PlayMenuCopy.SurvivorEffect` and `PlayMenuCopy.KillerEffect`), and the controls legend (S `muted`; exempt from Title Case checks): `WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu` / `WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu`. `TerminalsRequired` comes from the first `S2C_WorldState`. The Killer's old 3 s block is no longer shown.
+
+### 3.0 Original 3 s block (superseded)
 
 Source: `S2C_MatchStart{Role, SkillId}`; skill name and effect from §8; `TerminalsRequired` from the first `S2C_WorldState`.
 
@@ -235,7 +248,7 @@ Internal layout (304×72, padding 8 left/right and 4 top/bottom inside the clust
 |---|---|---|---|---|---|
 | 1 | Eliminated | `Status = Eliminated` | meter replaced by the spectate block (§4.5) | | |
 | 2 | Escaped | `Status = Escaped` | `Escaped` (`text`) | `Waiting for the result.` (`muted`) | empty |
-| 3 | Lagging, being rescued | `Status = Lagging` and `S2C_SelfState.RescueProgress > 0` | `Lagging` (`text`) | `Rescue in progress — stay close` | fill `ally`, width = `RescueProgress` (§4.4) |
+| 3 | Lagging, being rescued | `Status = Lagging` and `S2C_SelfState.RescueProgress > 0` | `Lagging` (`text`) | `Being rescued — stay close` | fill `ally`, width = `RescueProgress` (§4.4) |
 | 4 | Lagging | `Status = Lagging` | `Lagging` (`text`) | `Always visible · 42 s left` (`ceil(StatusTimer)`, tabular) | fill `danger`, width = `StatusTimer / 60` |
 | 5 | Signal, scanned | `Signal` set and a PingScanner effect for you arrived less than its `Duration` ago | `Signal` (`signal`) | `Scanned by the Killer · 1.2 s` | fill `signal` |
 | 6 | Signal, overload | `Signal` set and own TrafficOverload active (< `Duration`) | `Signal` | `Traffic overload · 1.4 s` | fill `signal` |
@@ -253,7 +266,7 @@ Capture tag (row A, right), first match wins:
 The tags show only while `Status = Normal`, so the word beside them is `Signal` or `Silent` (≈ 60 u at M); `Next capture eliminates` (23 characters, measured in `PlaycheckPolishTests`) plus the 8 u gap fits 288 u. `Protected 1.4 s` is shorter.
 Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
 
-**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 66 characters ≈ 540 u, fits the 656 u row). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor within 1.5 m for 3 s rescues you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
+**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor holding [E] within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 77 characters ≈ 640 u, fits the 656 u row; **(11/17, R3)** the rescue is an explicit E-hold, not automatic). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor holding [E] within 1.5 m for 3 s rescues you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
 
 **(10/30) Elimination reason** (*derived* from the own entry in the snapshot before `Status = Eliminated`):
 
@@ -295,13 +308,16 @@ Sources: `S2C_WorldState.Terminals[]{Id, X, Z, Progress}`, `TerminalsRequired`; 
 
 | State | Trigger | Prompt |
 |---|---|---|
-| Can hack | own `Status = Normal`, an incomplete terminal within 1.5 m (derived), not `Hacking` | `Hold [E] to hack Terminal 2 · 40% — you will be Signal` |
+| Can hack | own `Status = Normal`, an incomplete terminal within 1.5 m (derived), not `Hacking` | `Hold [E] + WASD to hack Terminal 2 · 40% — you will be Signal` **(11/17, R2: names the route keys, §13.2)** |
 | Hacking | own `Hacking` | `Hacking Terminal 2 · 47%` + a 656×4 u bar under the text, fill `text`, width = `Progress` |
 | Co-hacking | `Hacking` and at least one other Survivor within 1.5 m of the same terminal with `Hacking` (derived) | `Hacking Terminal 2 · 47% · 2 hacking` |
 | Lagging at a terminal | `Status = Lagging`, within 1.5 m | `Lagging Survivors cannot hack.` (`muted`) |
 
 Input: E down → `C2S_Interact{Active = 1}`. E up, opening the play menu, or losing window focus → `C2S_Interact{Active = 0}`. The server decides range; the bar shows only the server's `Progress`.
 Sounds: `hack_start` (soft click) when own `Hacking` sets; `terminal_done` (two notes, 300 ms) when any `Progress` reaches 100.
+
+### 4.3a First-time hints **(11/17, R3)**
+One short line in the prompt row, once per match each, 6 s, never while the intro card shows and never over another prompt. Survivor: a terminal within 6 m, the first Lagging ally (`HelpCopy.HintLagging`), the first Signal. Killer: a blip within 6 m (shown in the Killer prompt slot when it is free). `HintTracker.Reset()` re-arms them at MatchStart.
 
 ### 4.4 Rescue
 Sources: Survivors' `Status`, `Flags.Rescuing`, `X/Z`; own `S2C_SelfState.RescueProgress` (protocol v0.3, U2c — §11 Q5); static `RescueRadius` 1.5 m.
@@ -310,12 +326,17 @@ Rescue progress comes from the server, own-only: for a Lagging Survivor it is th
 
 | Viewer | Trigger | Display |
 |---|---|---|
-| Normal Survivor approaching | a Survivor with `Status = Lagging` within 6 m (derived from positions), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — stay within 1.5 m to rescue them` |
-| Rescuer | own `Rescuing` set | prompt row: `Rescuing Mina — you are Signal` + 656×4 bar, fill `ally`, width = own `RescueProgress` |
+| Normal Survivor approaching **(11/17, R3)** | a Survivor with `Status = Lagging` within 6 m but beyond 1.5 m (derived from positions), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — move next to them, hold [E] to rescue` |
+| Helper in reach **(11/17, R3)** | a Lagging Survivor within 1.5 m, own `Rescuing` clear | prompt row: `Hold [E] to rescue Mina — you will be Signal` |
+| Rescuer | own `Rescuing` set (`ActionKind = Rescue`) | prompt row: `Rescuing Mina — you are Signal` + 656×4 bar, fill `ally`, width = own `RescueProgress` |
 | Lagging Survivor | meter row 3 (§4.1) | — |
 | Done | a watched Survivor's `Status` goes Lagging → Normal | prompt and meter return to normal; `rescued` (rising two notes) for the rescued Survivor and the rescuers |
 
 Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_LobbyState`).
+
+**(11/17, R3) Getting up.** A Survivor who is rescued (E-hold or Emergency restore) gets up for 1.5 s: the server holds speed at 0 (MoveInput direction ignored, look yaw kept), refuses E and the skill (`NotNormal`), and the existing 2 s protection covers it; `PlayerFlags.GettingUp (32)` goes to Survivor recipients only (never the Killer: a flag that decoys lack would reveal real Survivors). The rescued player's prompt row shows `Getting up…` (ahead of every other prompt, no error sound). The Survivor view plays the Mixamo `GettingUp` clip from the flag, sped up from 2.7 s to 1.5 s. The Killer view shows no get-up.
+
+**(11/17, R3) Explicit rescue.** The rescue is no longer automatic. A Normal Survivor must hold E within 1.5 m of a Lagging Survivor for 3 s (`RescueTimeSeconds`); releasing E or leaving range resets the count. The server owns it: `Flags.Rescuing` and `ActionKind.Rescue (7)` with `ActionProgress` are set only while E is held in range. **E priority** (one E, one action): rescue, then chase prop, then exit switch, then terminal. While a Lagging Survivor is in reach, E never starts a chase prop, switch or hack. Bots hold E next to a Lagging Survivor. Emergency restore is unchanged. Vocabulary **(INTEG-R)**: one term, SLOP §8 `Rescue` (noun and verb: `Hold [E] to rescue`, `Rescuing`, `Being rescued — stay close`, `rescues you`). Only the skill keeps its name, `Emergency restore`, and its own feedback lines (§14.2.8).
 
 ### 4.5 Own status: Lagging, Escaped, Eliminated
 - **Lagging:** meter rows 3–4.
@@ -336,6 +357,7 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
   - The threat cue, skill and prompts are hidden. The info block stays.
 
 ### 4.6 Screen-edge markers
+**(11/17, R3) Built as:** every Lagging ally (nearest first, at most 7) gets a tag `Mina · Lagging · 38 m` on screen (above the body at 1.2 m) or an edge chevron plus tag off screen, reusing `MarkerLayer`, `EdgePlacement` and `EdgeSpread`. Decision: the chevron is the amber Signal chevron with a Lagging ring (matching the Killer HUD's Lagging marker and the amber Lagging body tint) rather than the `ally` teal in the table. The Lagging viewer's markers for the nearest 2 Normal Survivors are not built; the downed line below replaces them: `Lagging · an ally can rescue you with [E] · nearest ally 18 m · 54 s` (nearest Normal ally distance; an ally bar while `RescueProgress > 0`).
 Sources: Survivors' `X/Z`, `Status`; static Exit position; `ExitOpen`, `ExitLocked`.
 
 | Marker | Shown to | Off-screen | On-screen |
@@ -395,7 +417,7 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - **(11/17, U8) Capture impact:** at every capture of a drawn Survivor (any Survivor, Survivor view), a 0.6 s Killer-red burst of streaks and fragments at chest height (1 m) over its position, starting on the swipe's contact (0.27 s after the capture). The Killer client plays the same burst, at first-person sizes (capped at 0.04 m per particle), at the tracker instance of its own confirmed capture on the view kick's strike (§6.3; never at a position it does not receive). Pooled at match start. Reduced motion does not remove it (it is not camera motion).
   - No other cue is added: the motion never reveals anything the HUD does not already show.
 - **(11/17, U10) Interaction motions and holo props (Survivor client only).** Built on the U4j rules above: driven only by received fields, and an interaction plays only while the character is Normal, upright and still (measured speed < 0.3 m/s), except Restore, which also plays while the rescuer follows a crawling ally (measured speed < 1.5 m/s; the feet are then free, the lean and the link stay).
-  - **Hack** (`Flags.Hacking`, own and mates): the button-pushing loop plus a two-hand IK pose. Both hands type on a floating panel 1.4 m high and 0.5 m in front, on alternating 0.17 s beats; the head looks at the panel. The prop is a translucent `ally` key-grid panel (0.9 × 0.5 m, wide and high enough to show past the shoulders of the own character from the camera behind; tilted toward the eyes, double-sided so the camera behind sees it). It pulses +7 % on each beat, and a thin stream of six small `ally` packet squares flows from the terminal top into it. *(S1: the old one-hand press was lowered by IK to the 0.72 m terminal top, at hip height, so from the camera behind the character it read as standing idle.)*
+  - **Hack** (`Flags.Hacking`, own and mates): the button-pushing loop plus a two-hand IK pose. Both hands type on a floating panel 1.4 m high and 0.5 m in front, on alternating 0.17 s beats; the head looks at the panel. The prop is a translucent `ally` key-grid panel (0.9 × 0.5 m, wide and high enough to show past the shoulders of the own character from the camera behind; tilted toward the eyes, double-sided so the camera behind sees it). It pulses +7 % on each beat **(11/17, R2: the own Survivor's panel pulses on each of its real route keys instead, while it routes, §13.2; every other Survivor's panel keeps the 0.17 s beat)**, and a thin stream of six small `ally` packet squares flows from the terminal top into it. *(S1: the old one-hand press was lowered by IK to the 0.72 m terminal top, at hip height, so from the camera behind the character it read as standing idle.)*
   - **Restore** (`Flags.Rescuing`, the §4.4 source): the hips drop 0.36 m, the torso leans 30° over the nearest Lagging Survivor within 2.1 m, and both hands reach down to it. The prop is an `ally` link line from the hands to the ally, with packets travelling down it.
   - **Exit switch hold** (own `S2C_SelfState.ActionKind = 1` only; other Survivors' holds are not exposed per player, so mates show none): the right palm on the switch at 1.15 m, the body leaning in, and packets streaming from the palm into the switch.
   - **Killer jam** (Killer model, Survivor view): one two-hand slam (0.7 s) when a terminal within 2.0 m of the drawn model turns `Regressing` (the end of a kick, a flag Survivors receive and the HUD tags). A `danger` glitch burst of squares appears at the terminal top on the impact. Nothing plays while the model is not drawn. The kick hold itself is not exposed to Survivors, so the slam is not repeated during it.
@@ -412,7 +434,7 @@ Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it gro
 - Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → **(11/10)** `Next capture eliminates you.` (count-free: `CaptureCount` counts Lagging stages, so a first stage that runs out reaches 2 without a second capture; it read `Captured twice: the next capture eliminates you.`); otherwise no line.
 - Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
-- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync lock bar stay as they are.
+- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) stay as they are; the route panel hides, because E counts as released **(11/17, R2)**.
 
 Opening the menu sends `C2S_Interact{Active = 0}` (only after a sent press) and one zero `C2S_MoveInput`, and it releases the cursor; while it is open there is no mouse look and no W A S D, E, Q or Space. Closing it captures the cursor again (when the window has focus). The match keeps running.
 
@@ -445,21 +467,26 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 | # | Block | Source | Content | Size |
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
-| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding. **(11/17, R1)** With no interact prompt in reach, `Click  Attack` (gamepad only: `RT  Attack`) while the nearest Normal tracked blip is within 3 m; **(INTEG-R minors)** not shown when a wall or a lowered (Down) shutter blocks the line to that blip (`KillerHudCopy.SwingClear`; advisory only, the press is sent either way) | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
 | 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1/3` (M, the Survivor format, §4.3); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
-| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `Needs an Exit switch in progress` (FirewallBlock while no unopened exit has switch progress, disabled) | 320×72 |
+| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; **(11/17, R1)** under it the one-line effect `PlayMenuCopy.KillerSkillLine` (S `text`, ellipsized: `Nearest Survivor shown 3 s`, `1.5× speed for 3 s`, `Signal within 12 m, 2.5 s`, `Locks a switch or terminal`); state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Stunned`; `[Q]`. R1 removed `Passive — always on` and `Needs an Exit switch in progress`: every skill is active, and Firewall block can always target a terminal (the Killer cannot see progress; a refusal says why). | 320×88 (R1: was 72); 3 + 23 + 18 + 18 + 18 + 3 = 83 ≤ 88 |
 
 Width checks:
 - Skill block text area: 320 − 8 − 64 − 8 − 8 = 232 u. The longest name, `Packet afterimage`, is ≈ 168 u, and the longest state line, `Passive — always on`, is ≈ 158 u.
 - Effect line: 282 + 4 + 4 = 290 ≤ 312.
 
 Heights at 720p:
-- Worst case, with everything shown: 208 + 8 + 56 + 8 + 72 + 8 + 32 + 8 + 72 = 472 u ≤ 900 − 48.
-- The cluster's top edge sits at 900 − 24 − 472 = 404 u, below the screen center.
-- In normal play (intro, prompt and effect line hidden), the cluster is 72 + 8 + 72 = 152 u tall; 192 u with the effect line.
+- Worst case, with everything shown: 208 + 8 + 56 + 8 + 72 + 8 + 32 + 8 + 88 = 488 u ≤ 900 − 48 (11/17, R1: the skill block is 88 u).
+- The cluster's top edge sits at 900 − 24 − 488 = 388 u, below the screen center.
+- In normal play (intro, prompt and effect line hidden), the cluster is 72 + 8 + 88 = 168 u tall; 208 u with the effect line.
+- **(11/17, R1)** Effect-line width: the longest one-line effect, `Nearest Survivor shown 3 s`, is ≈ 190 u at S ≤ 232 u.
 
 **(U7b)** The 6.1c effect line also carries the Ping scanner and Firewall block lines and the reason lines, and its Overclock copy changes (§14.1, §14.2).
+
+**6.1f Attack (11/17, R1).** Left mouse button (gamepad right trigger) sends `C2S_Attack{Seq}`; the play menu, a lost focus or a released cursor blocks it like every other press. The server swings (0.2 s wind-up at 50 % speed, then one hit check: 2.75 m (**INTEG-R**: 2.6 → 2.75 m), ±40°, line of sight; recovery 0.6 s at 0 % after a hit, 0.8 s at 48 % after a miss) and sets the own entry's `ChaseFlags.Swinging = 16`. A hit keeps the U8 kick, impact, hit-stop and flash (from the capture confirm). A miss (no capture confirm 0.55 s after the flag rose): the 6.1c line `Missed`, a 0.26 s procedural whoosh (`V2Cue.SwingMiss`, filtered noise swell), and a first-person sweep of the view (yaw ±3°, one sine period over 0.3 s; reduced motion: none). No impact on a miss. **(INTEG-R, R1 QA M1)** A press while the own entry is Stunned, Pulling, Vaulting or Breaking plays no whoosh and no sweep (the server refuses it). **(INTEG-R, M4)** A flag that lasts at most 17 ticks reads as a hit (16 is the hit length; 18 or more is a miss). The prompt is in 6.1p.
+**(a2) Immediate swing.** The press itself (once per swing: not while the own flag is up, not within 0.4 s of the last predicted press) plays the whoosh (`V2Cue.SwingWhoosh`) and the view sweep (yaw ±4° with 1.5° roll, 0.3 s). The result follows from the server: a hit adds the U8 kick and impact; a miss shows `Missed` (`text`, not `muted`, 1 s, above the own skill line). Nothing on a press ever shows a hit. **Eliminating hit:** the third capture removes the entry, so no capture confirm comes. When a Normal blip within 2.8 m vanishes during the pending swing, the verdict waits for the own flag's fall: its length in server ticks is 16 after a hit, 20 after a miss, ≤ 4 after a stun interrupt; ≤ 18 ticks (and over 4) is the hit (kick, impact where the blip was). A Survivor turning Silent also vanishes; its swing's miss-length fall says `Missed`. Without a vanish, a hit-length fall after `Missed` (an unseen Survivor) is only counted and logged.
+**Survivor view (11/17, R1).** The Killer model's swipe (§15.3 / U8) starts when the Killer entry's `Swinging` flag rises (the wind-up, ≈ 0.27 s before contact), only while the model is drawn; a capture then adds no second swipe.
 
 ### 6.2 World layer
 Sources: Killer-bound `S2C_WorldState.Players` (the Killer plus Signal Survivors, including Lagging, forced, afterimage and decoys), `Terminals`, `ExitOpen`, `ExitLocked`, FirewallBlock effect; static map (`FixedMap` walls, terminal and exit positions).
@@ -614,10 +641,12 @@ Focus: 7.5 → 7.6. Initial 7.5. Esc / B = 7.5.
 
 | Role | Id | Name | Effect line (intro, play menu) | Icon (1 u line, 40×40 u; depicts the effect) |
 |---|---|---|---|---|
-| Killer | 0 | Ping scanner | `Shows the nearest Survivor for 1.5 s.` | three concentric arcs from a point toward a small dot |
-| Killer | 1 | Overclock | `1.5× speed for 3 s, then 1 s unable to move.` | two right chevrons followed by a vertical stop bar |
-| Killer | 2 | Packet afterimage | `Passive: Survivors stay visible 1 s after their Signal ends.` | a solid dot with two hollow dots trailing behind |
-| Killer | 3 | Firewall block | `Locks the Exit switch in progress for 5 s.` | a ring with a horizontal bar through it |
+| Killer | 0 | Ping scanner | `Shows the nearest Survivor for 3 s.` (11/17, R1: was 1.5 s) | three concentric arcs from a point toward a small dot |
+| Killer | 1 | Overclock | `1.5× speed for 3 s, then 0.3 s slowed.` (11/17, R1: was a 1 s freeze; the server runs the tail at 60 % speed, the Killer copy shows no percent sign) | two right chevrons followed by a vertical stop bar |
+| Killer | 2 | Packet trace (11/17, R1: was the passive Packet afterimage) | `Survivors within 12 m of you turn Signal for 2.5 s.` | a centre dot in a dashed ring with four short rays bursting out |
+| Killer | 3 | Firewall block | `Locks the Exit switch in progress for 5 s, or else the most hacked terminal for 8 s.` (11/17, R1) | a ring with a horizontal bar through it |
+
+**(11/17, R1)** One copy source: `PlayMenuCopy.KillerEffect(skill)` / `PlayMenuCopy.SurvivorEffect(skill)` feed the intro, the play menu and the lobby picker (§2.9); `PlayMenuCopy.KillerSkillLine(skill)` is the short 6.1d line.
 | Survivor | 0 | Dummy packet | `A fake Signal where you stand, 3 s.` | a dashed-outline dot |
 | Survivor | 1 | Stealth relay | `You and Survivors within 5 m stay Silent for 2 s, even while moving.` | a dot inside a circle, a wave line crossed out |
 | Survivor | 2 | Traffic overload | `You are Signal for 2 s; the Killer moves at half speed for 2 s.` | a dot emitting two arcs, a down chevron beside it |
@@ -754,38 +783,34 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 Sources are the protocol v0.4 fields from the U6a brief. The widgets live in `Client/Assets/Scripts/UI/RulesV2/` and read only plain view models (`RulesV2Views.cs`), so the wiring copies packet fields in. Style is in `Resources/RulesV2.uss`. All global rules in §0 apply: logical units, spacing scale, radius 0, S/M/L type, palette meanings, `danger` never on text.
 
-**New fixed terms** (added to the SLOP §8 vocabulary): Sync lock, Great / Good / Fail, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
+**New fixed terms** (added to the SLOP §8 vocabulary): route **(11/17, R2; Sync lock and Great / Good / Fail are retired with the sync check)**, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
 
 ### 13.1 Placement
 - **Survivor:** one bottom-center stack sits directly on the cluster (§4.0). Its bottom edge is at 96 u (the cluster top), and every child keeps an 8 u gap below it. From top to bottom:
-  1. the sync lock bar (13.2), only during a check;
+  1. the route panel (13.2), only while E is held on a route **(11/17, R2)**;
   2. the prompt row: the §4.3/§4.4 prompts or the 13.3 hold row, 672×40;
   3. the **objective row** (672×48), shown once any exit is Powered or Open, or a collapse clock runs.
-  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u)**. The bar only shows while hacking, which is in act 1, when the objective row is normally hidden; then the bar spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the bar sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
+  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u; R2: the route panel keeps the same 320×80 u)**. The panel only shows while hacking, which is in act 1, when the objective row is normally hidden; then the panel spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a route shows while the objective row shows (hacking after power), the panel sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
 - **v2 info block:** line 3 of the info block (§4.7, `Exit …`) is removed in v2. The objective row replaces it. Line 1 stays the match time and line 2 stays `Terminals 1/5`.
 - **Killer:** two blocks go into the 6.1 cluster between the prompt slot and the info block. In order: the hold block (13.3, in the 6.1p prompt slot) and the collapse block (13.5). Exits stay on world markers (13.4), never in a panel (SLOP §8).
 
-### 13.2 Sync lock bar (Survivor) **(11/17, IP)**
-Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived. The wire, the judge and the timing are unchanged; only the drawing changed from a ring with a needle to a horizontal bar, so it no longer copies another game's well-known timing-check presentation.
-- **Shape (320×80 u):**
-  - `panel` fill with a 1 u `line` edge.
-  - Track area x 16–304 u, y 8–44 u: a waveform in `line` (2 u). A pulse travels left to right as a bump in that wave (3 u `text` near the pulse), with a 4 u `text` crest bar on an 8 u `bg` keyline.
-  - Lock window from `ZoneStart` to `ZoneStart + ZoneSize`: the Good part is a `muted` block the height of the track; the Great part (the first `GreatSize` of the window, exactly as the judge reads it) is a `text` block 6 u taller on both sides. A 2 u `panel` cut separates them. No glow, no `signal` amber (amber means visible to the Killer).
-  - Pulse x = `16 + clamp01(Elapsed / Duration) × 288` u: the same `SyncCheckMath.NeedleFraction` the ring used. The pulse is at the window centre exactly when the old needle was in the middle of the zone.
-  - At 720p (scale 0.8) the default zone (0.12) is ≈ 28 px wide and 29 px tall; the Great part (0.035) is ≈ 8 px wide and 39 px tall.
-- **Label row (y 52–80 u):**
-  - While waiting: `Sync lock · Space`, or `· A` on a gamepad, S `muted`.
-  - After the result: `Great` / `Good` / `Fail`, M 600 `text`.
-- **Press:**
-  - Space or gamepad A calls `SyncCheckState.TryPress()`. This raises `Press(CheckId)` once per check, and the owner sends `C2S_SyncPress`.
-  - The pulse freezes where it was pressed.
-  - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
-- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the bar hides until a new `CheckId` arrives.
-- **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the pulse is drawn in the great part is Great (U6f).
-- **No flashing:** one change only, the label, with no colour flash and no shake.
-- **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
-- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The bar clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
+### 13.2 Route panel (Survivor) **(11/17, R2)**
+Replaces the sync lock bar (and the sync check behind it: `S2C_SyncCheck`, `S2C_SyncResult`, `C2S_SyncPress` and their ids 0x11–0x13 are retired). Hacking is now an active minigame: the server deals the hacker a route of 4 directions; each right key moves along it; a full route adds a burst of progress.
+Source: own `S2C_SelfState {RouteId, RouteLength, RouteDirs, RouteIndex}` (appended fields; `RouteId` 0 = no route; `RouteDirs` packs 2 bits per cell, the first cell in the low bits: Up 0, Down 1, Left 2, Right 3). Only the hacker receives its route; the Killer sees only the terminal's Overloaded flash (§13.6).
+- **Keys (attempt 2):** only while E is held, the own entry is `Hacking` and a route is present (the server sends a route only while its owner hacks that terminal), W A S D and the arrow keys, the gamepad d-pad or a left-stick flick (fires past 0.6 of the radius on its dominant axis, re-arms inside 0.3) send `C2S_HackInput {RouteId, Direction}` on the press edge, and movement sends zero. Releasing E gives the keys back to movement at once. The client sends at most 12 keys per second (the server's limit).
+- **Shape (320×80 u):** `panel` fill, 1 u `line` edge. Four 56×36 u cells at y 8, x 24 / 96 / 168 / 240, each with a drawn arrow (12 u, no glyph font):
+  - done cells: `muted` fill, `bg` arrow;
+  - the current cell: 2 u `text` edge, `text` arrow;
+  - later cells: 1 u `line` edge, `muted` arrow.
+- **Right key:** the cell it completed pulses (+3 u, 0.12 s), a soft tick plays, and the own holo panel pulses (§4.10).
+- **Panel:** shown while E is held and the own entry is `Hacking` (so the flash and the short gap stay on screen), hidden otherwise.
+- **Full route:** the label shows the burst, `+3.4 %` (M 600 `text`), for 0.6 s and a rising chord plays. Then `Next route` (S `muted`) with a thin `muted` bar that fills over the gap (0.7 s) until the next route arrives. During the gap W A S D move.
+- **Wrong key:** the route is dropped (the server takes 2 points and deals a new route; the terminal is Overloaded for 1.5 s, which the Killer sees). The panel shakes ±4 u for 0.3 s, its edge turns 2 u `danger` and the label reads `Route dropped · the Killer was alerted` (S `muted`; `danger` stays off text) for 1.5 s; a glitch sound plays. Nothing more is sent for the dropped route.
+- **Label row (y 52–80 u), otherwise:** `Route · WASD` (or `· D-pad` on a gamepad), S `muted`. The first route of the match shows `Press the arrows in order` instead, until it completes or drops.
+- **Prediction:** the client knows its route, so it moves the current cell, the pulse, the flash and the error at once, then reconciles with the next SelfState: for the same `RouteId` within 0.3 s of the last key the shown index never falls behind the server's; later than that the server's index wins and a predicted error or completion is undone (a dropped key, attempt 2); a new `RouteId` starts clean; `RouteId` 0 clears the cells.
+- **Reduced motion (§14.1):** no pulse growth and no shake; the colours, label and sounds stay.
+- **Wiring:** the route clears at once when the own status leaves Normal and fully resets (the first-route hint again) on MatchStart, GameResult and disconnect. No "skill check" wording anywhere.
+- **Numbers (GDD v2 §2, R2, attempt 2):** passive progress 100 points per 90 s solo; +3.4 per completed route (each of n co-hackers adds (CoHackRate(n)/n)², 0.81 for two), then a 0.7 s gap counted only while hacking, and at least 1.3 s between two routes being dealt; −2 and a new route on a wrong key. Solo: 0.15 s per key ≈ 29 s, 0.5 s ≈ 44 s, 1 s ≈ 56 s, idle 90 s; every fifth key wrong ≈ 50 s; two fast co-hackers ≈ 16 s; the bots ≈ 41 s.
 
 ### 13.3 Hold action (Survivor exit switch, Killer jam and Emergency port close)
 Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0–1, and the percentage is `floor(progress × 100)`, so the row never shows 100 % before the server finishes.
@@ -885,7 +910,7 @@ One packet, `S2C_SkillEffect {CasterId, SkillId, X, Z, Duration}`, sent as in `S
 | Dummy packet (S0), Stealth relay (S1), White noise (S4) | every Survivor; never the Killer | caster | the caster's position | 3 / 2 / 1.5 |
 | Traffic overload (S2) | every Survivor | caster | the caster's position | 2 |
 | Traffic overload (S2) | the Killer | **0** | **0, 0** | 2 |
-| Emergency restore (S3) | every Survivor | caster | the restored Survivor's position | 0 |
+| Emergency restore (S3) | every Survivor | caster | the rescued Survivor's position | 0 |
 
 **Resolution rules (normative):**
 - **Killer client.** It acts on an effect only when `CasterId` = own id (own skill), or when `CasterId = 0` and `SkillId = TrafficOverload`. It ignores everything else. A Survivor skill never reaches the Killer; if one did, this rule would drop it, so no Killer-side output can depend on a decoy skill.
@@ -915,7 +940,7 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
   - no bar and `muted` text: a reason line (14.3).
 - **Time:** shown for **2.5 s** (reason lines 2.0 s), then removed in one frame. Numbers in the line are the skill's static duration, not a countdown. The live countdowns stay where they are: the meter (§4.1), the active arc (§4.8) and the objective row (§13.4).
 - **One line at a time, never stacked (SLOP §5).** Priority: affected (`danger` first) > caster > ally > reason. A new line replaces the shown one when its priority is equal or higher. A lower one is dropped, not queued.
-- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during a sync lock (≤ 2.5 s).
+- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during routing (≤ 2.5 s) **(11/17, R2)**.
 - Hidden while the play menu is open (§5); its timer keeps running.
 
 **Result line, Killer.** The §6.1c effect line (320×32, S, with the 4×18 u bar slot) carries the Killer's lines.
@@ -976,7 +1001,7 @@ Copy in `code` is final. `N` = a nickname (ellipsized at 12 characters); `E` = t
 #### 14.2.1 Ping scanner (Killer 0)
 | Viewer | World | Line | Sound |
 |---|---|---|---|
-| Killer (caster) | A procedural ring, `text`, centred on the own rendered position. Its radius sweeps from 1 to 16 m over 0.6 s, then it is removed. Reduced motion: none. **No blip is marked:** the client cannot know which instance is the scanned Survivor (§6.3). | `Nearest Survivor shown · 1.2 s` (ticking, 1.5 s) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_End_2.wav`, −9 dB, 2D, full length (0.40 s) |
+| Killer (caster) | A procedural ring, `text`, centred on the own rendered position. Its radius sweeps from 1 to 16 m over 0.6 s, then it is removed. Reduced motion: none. **No blip is marked:** the client cannot know which instance is the scanned Survivor (§6.3). | `Nearest Survivor shown · 2.7 s` (ticking, 3 s; 11/17, R1: was 1.5 s) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_End_2.wav`, −9 dB, 2D, full length (0.40 s) |
 | Affected (the scanned Survivor) | Hovl `Marker 5 Circle`, `signal`, at the own character's feet, 2 m, 0.6 s. The position is the own entry's `X, Z`, never the effect's. It is a one-shot for the event; the state itself stays on the meter only (§4.10). | `Scanned: the Killer sees you · 1.5 s` (`danger` bar) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_End_1.wav`, −6 dB, 2D, full length (0.56 s) |
 | Ally Survivors | — (not sent) | — | — |
 
@@ -988,18 +1013,21 @@ Copy in `code` is final. `N` = a nickname (ellipsized at 12 characters); `E` = t
 #### 14.2.2 Overclock (Killer 1)
 | Viewer | World | Line | Sound |
 |---|---|---|---|
-| Killer (caster) | No world object (first person has no body). The camera FOV widens by 4°, eased in over 150 ms, held for `Duration`, and eased out over 150 ms when Recovering starts. Reduced motion: none. | `Overclock: 1.5× speed · 2.1 s`, then `Recovering: cannot move · 0.8 s` (static 1 s after `Duration`) | Start: `Mechanics/SFX_GUNS_MECH_SCIFI_HiTech_Gun1_Set_to_Charge_Part_2.wav`, −9 dB, 2D, full length (0.68 s). Recovering start: `Mechanics/SFX_GUNS_MECH_SCIFI_Analogue_Reload_Magazine_Out_1.wav`, −12 dB, 2D, full length (0.23 s). |
+| Killer (caster) | No world object (first person has no body). The camera FOV widens by 4°, eased in over 150 ms, held for `Duration`, and eased out over 150 ms when Recovering starts. Reduced motion: none. | `Overclock: 1.5× speed · 2.1 s`, then `Recovering: slowed · 0.2 s` (static 0.3 s after `Duration`, 60 % speed; 11/17, R1: was `cannot move`, 1 s) | Start: `Mechanics/SFX_GUNS_MECH_SCIFI_HiTech_Gun1_Set_to_Charge_Part_2.wav`, −9 dB, 2D, full length (0.68 s). Recovering start: `Mechanics/SFX_GUNS_MECH_SCIFI_Analogue_Reload_Magazine_Out_1.wav`, −12 dB, 2D, full length (0.23 s). |
 | Survivors | — (not sent; a Survivor with line of sight only sees the model move faster, §4.10) | — | — |
 
 **Safety:** Killer only. It uses its own `CasterId`, `Duration` and the static `OverclockRecoverySeconds`.
 
-#### 14.2.3 Packet afterimage (Killer 2, passive)
-No feedback for anyone:
-- No packet exists.
-- The Killer never reads the `Afterimage` flag (§6.3 rule 1), so nothing may mark an afterimage.
-- Survivors never receive the flag.
+#### 14.2.3 Packet trace (Killer 2) **(11/17, R1: replaces the passive Packet afterimage)**
+The server forces every active Survivor within 12 m of the Killer Signal for 2.5 s (the Ping scanner exposure). It never fails, so a press tells nothing about a Silent Survivor.
 
-The Killer's skill block keeps `Passive — always on`. A press shows the reason line `Packet afterimage is passive.` (14.3).
+| Viewer | World | Line | Sound |
+|---|---|---|---|
+| Killer (caster) | §14.6 trace ring, `text`, on the own rendered position: grows 2 → 24 m diameter in 0.35 s, gone at 0.6 s. No glyph (own first-person point). Reduced motion: still, full size. **No blip is marked** (§6.3). | `Survivors within 12 m shown · 1.6 s` (ticking, 2.5 s) | the Ping scanner start clip, −9 dB, 2D |
+| Affected (each traced Survivor; `X = Z = 0` on the wire) | the trace ring, `signal`, closing 4 → 2 m on its own feet (its own entry's `X, Z`) | `Traced: the Killer sees you · 2.5 s` (`danger` bar) | the scanned clip, −6 dB, 2D |
+| Other Survivors | — (not sent) | — | — |
+
+**Safety:** the Survivor-bound effect never carries the Killer's position; the Killer's ring uses its own position only.
 
 #### 14.2.4 Firewall block (Killer 3)
 | Viewer | World | Line | Sound |
@@ -1012,6 +1040,14 @@ The Killer's skill block keeps `Passive — always on`. A press shows the reason
 - Every client uses `SkillId`, `Duration`, and `X, Z` only to pick the static exit (14.0).
 - The Survivor also uses its own `SelfState.ActionKind` and its own entry's position.
 - The Killer's position is never in this packet.
+
+**(11/17, R1) Terminal lock.** With no Exit switch in progress, Firewall block locks the unfinished terminal with the most progress for 8 s (`TerminalFlags.Locked = 4`; hackers on it stop, nobody can hack it). The effect's `X, Z` is that terminal's static map point (`SkillFeedback.TerminalAt`, Terminal N = id + 1). It fails (`NoSwitchInProgress`, line `Not used · nothing to lock`) only when no terminal has progress. **(a2)** A terminal cannot be locked again until 20 s after its lock ended; another terminal can (a press with only such terminals fails the same way).
+
+| Viewer | World | Line | Sound |
+|---|---|---|---|
+| Killer (caster) | Hovl `Marker 3 Zone`, `text`, at the terminal, 3 m, 1.0 s. Its §6.2 terminal marker tag reads `Terminal N · Locked` (`text`) while the flag is set. | `Terminal N locked · 7.4 s` (ticking, 8 s) | as above |
+| Affected Survivor (hacking within 2 m of it) | Hovl `Marker 7 Danger zone`, `danger`, at the terminal, 3 m, 1.0 s | `Terminal N · Locked · 8 s` (`danger` bar) | the Survivor clip, −6 dB, 2D |
+| Other Survivors | the same one-shot if in view | `Terminal N · Locked · 8 s` (`danger`, ally priority) | positional at the terminal, −12 dB, 30 m |
 
 #### 14.2.5 Dummy packet (Survivor 0)
 | Viewer | World | Line | Sound |
@@ -1052,7 +1088,7 @@ The Killer's skill block keeps `Passive — always on`. A press shows the reason
 - The Killer uses only `CasterId = 0`, `SkillId` and `Duration`.
 
 #### 14.2.8 Emergency restore (Survivor 3)
-The restored Survivor (the "target") is derived. It is the Survivor in the WorldState before the effect who:
+The rescued Survivor (the "target") is derived. It is the Survivor in the WorldState before the effect who:
 - is not the caster;
 - has `Status = Lagging`;
 - is nearest to `X, Z`, within 0.5 m.
@@ -1061,9 +1097,9 @@ With no match, the target is unnamed (`a Survivor`).
 
 | Viewer | World | Line | Sound |
 |---|---|---|---|
-| Caster | Hovl `Marker 4 Pillar`, `ally`, at `X, Z`, 1.5 m, 1.0 s | `Restored N · no longer Lagging` (`ally` bar) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_Start_2.wav`, −9 dB, 2D, cut at 1.0 s |
-| Affected: own status Lagging → Normal, and own position within 0.5 m of `X, Z` | The same one-shot | `N restored you · no longer Lagging` (`ally` bar). The meter's `Protected` tag follows from `InvulnerableLeft`. | The same clip, −6 dB, 2D, cut at 1.0 s |
-| Ally Survivors | The same one-shot, if in view | `N restored N` (`ally` bar), e.g. `Mina restored Rio` | The same clip, positional at `X, Z`, −15 dB at 2 m, range 20 m |
+| Caster | Hovl `Marker 4 Pillar`, `ally`, at `X, Z`, 1.5 m, 1.0 s | `Rescued N · no longer Lagging` (`ally` bar) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_Start_2.wav`, −9 dB, 2D, cut at 1.0 s |
+| Affected: own status Lagging → Normal, and own position within 0.5 m of `X, Z` | The same one-shot | `N rescued you · no longer Lagging` (`ally` bar). The meter's `Protected` tag follows from `InvulnerableLeft`. | The same clip, −6 dB, 2D, cut at 1.0 s |
+| Ally Survivors | The same one-shot, if in view | `N rescued N` (`ally` bar), e.g. `Mina rescued Rio` | The same clip, positional at `X, Z`, −15 dB at 2 m, range 20 m |
 | Killer | Nothing (not sent). The Lagging instance turns Normal or leaves the view by the §6.3 rules. | — | — |
 
 `Duration = 0`, so the caster's active arc does not show (§4.8). The line and the one-shot use their own times.
@@ -1092,8 +1128,9 @@ The client sends `C2S_UseSkill` on every press, except while its own `Status` is
 | Eliminated, Escaped | own `Status` | `NotNormal` | None: the status banner is the feedback | — |
 | Emergency restore, no target | derived, §4.8 | `NoTarget` | `Emergency restore needs a Lagging Survivor next to you.` | — |
 | Ping scanner, no active Survivor **(11/10, Q3)** | server only | `NoTarget` | — | `Not used · no Survivor to scan` |
-| Firewall block, no switch in progress | derived, §6.1d | `NoSwitchInProgress` | — | `No Exit switch in progress` |
-| Packet afterimage | static | `Passive` | — | `Packet afterimage is passive.` |
+| Firewall block, no switch and no terminal in progress **(11/17, R1)** | server only (the Killer cannot see terminal progress) | `NoSwitchInProgress` | — | `Not used · nothing to lock` |
+| ~~Packet afterimage~~ **(11/17, R1: no passive skill remains; `Passive` reads as the generic refusal)** | — | `Passive` | — | `Not used · server did not accept` |
+| **Killer swing missed (11/17, R1)** | `KillerSwingWatch`: the own `Swinging` flag rose and no capture confirm came within 0.55 s (a2: or a held verdict fell at miss length) | — | — | `Missed` (a2: `text`, 1 s) |
 | Not in a match, not the own skill, dev sandbox **(11/10, Q3)** | server only | `NotInMatch`, `NotYourSkill`, `Sandbox` | `Skill not used — the server did not accept it.` | `Not used · server did not accept` |
 | No answer (fallback) | Derived Ready, but within 0.5 s of the press neither an own effect, nor an `S2C_SkillRejected`, arrives, nor `SkillCooldown` becomes > 0 (§4.8) | — | `Skill not used — the server did not accept it.` | `Not used · server did not accept` |
 
@@ -1143,12 +1180,12 @@ Playtest (11/17): "even when a skill is used, it is hard to tell which skill it 
 |---|---|---|---|---|
 | Ping scanner (K0) | three vertical bands, 0.5–0.85 m above the ground (a band reads in first person; a flat ground ring did not) | **pulse**: Killer — staggered 0.15 s, each sweeps 2 → 16 m in 0.7 s around the own point; scanned Survivor — each closes 3 → 0.35 m onto its own feet | `text` (Killer), `signal` (scanned) | 1.0 s |
 | Overclock (K1) | ten short speed streaks around the first-person camera | **rush past**: 14 m/s toward and past the camera, following the own camera | `text` (Killer only) | the effect (3 s) |
-| Packet afterimage (K2) | — (passive; the §6.3 marker that lingers 1 s is unchanged) | linger | — | — |
+| Packet trace (K2) (11/17, R1) | one flat ground ring (wire, the trace radius) | **flash**: grows 2 → 24 m in 0.35 s (ease-out) and holds; on a traced Survivor it closes 4 → 2 m on the own feet | `text` (Killer), `signal` (traced) | 0.6 s |
 | Firewall block (K3) | a hex-grid barrier wall (cylinder r = 1.5 m, 2 m high, the switch hold radius) + ground ring, at the static switch point | **rise + one blink**: rises in 0.2 s, one 0.1 s blink at 0.72 s | `text` (Killer), `danger` (Survivors) | 1.0 s |
 | Dummy packet (S0) | a dashed wire double of a character (capsule r 0.5 × 1.8 m, 0.035 m lines; hidden while the camera is within 1 m of it, the §4.10 short-boom rule) | **pop-in**: back-ease overshoot to full size in 0.22 s, shrinks out over the last 0.12 s | `signal` | 1.2 s |
 | Stealth relay (S1) | a wire dome over the 5 m relay area (12 meridians, 3 parallels, ground ring) | **envelop**: grows in 0.15 s, turns 20°/s | `ally` | the effect (2 s) |
 | Traffic overload (S2) | ten jagged spikes from the caster's chest, 1.0 m | **burst**: out in 0.1 s, jitters between two jagged frames at 12 Hz | `signal` | 0.8 s |
-| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the restored point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
+| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the rescued point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
 | White noise (S4) | thirty filled static squares (0.12–0.3 m) in a 1.5 m-radius volume, 0.2–1.7 m high | **flicker**: each square blinks on a random 14 Hz pattern, about half on | **`text`** (was `signal`: the fake Signals are elsewhere on the map; nothing transmits at the caster) | 1.0 s |
 
 **Glyph.** The skill's §8 icon floats above its world effect: a 0.6 m camera-facing quad, 1.9 m above the effect point, rising 0.15 m over 1.0 s (ease-out), lowered when needed so its top stays 24 u inside the top screen edge, in the effect's colour, alpha-clipped (no blend), depth-tested. It is rasterized at warm-up from the same primitives the skill block draws (`SkillGlyph`), so the HUD and the world always match. No glyph above the Killer's own first-person point (Ping scanner, Overclock): the 14.1b flash covers those.

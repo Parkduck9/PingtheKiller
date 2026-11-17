@@ -29,6 +29,35 @@ namespace PingTheKiller.Client.UI
             }
         }
 
+        // R1 (11/17) Killer effect lines: the play menu, the Killer intro, the lobby skill picker and the R3 intro card.
+        public static string KillerEffect(byte skillId)
+        {
+            switch (skillId)
+            {
+                case SkillIds.PingScanner: return "Shows the nearest Survivor for 3 s.";
+                case SkillIds.Overclock: return "1.5× speed for 3 s, then 0.3 s slowed.";
+                case SkillIds.PacketTrace: return "Survivors within 12 m of you turn Signal for 2.5 s.";
+                case SkillIds.FirewallBlock: return "Locks the Exit switch in progress for 5 s, or else the most hacked terminal for 8 s.";
+                default: return string.Empty;
+            }
+        }
+
+        // R1 (11/17) the one-line effect under the skill name in the Killer HUD skill block (6.1d, fits 232 u at S).
+        public static string KillerSkillLine(byte skillId)
+        {
+            switch (skillId)
+            {
+                case SkillIds.PingScanner: return "Nearest Survivor shown 3 s";
+                case SkillIds.Overclock: return "1.5× speed for 3 s";
+                case SkillIds.PacketTrace: return "Signal within 12 m, 2.5 s";
+                case SkillIds.FirewallBlock: return "Locks a switch or terminal";
+                default: return string.Empty;
+            }
+        }
+
+        // R1 (11/17) lobby picker: the effect line for either role.
+        public static string Effect(Role role, byte skillId) => role == Role.Killer ? KillerEffect(skillId) : SurvivorEffect(skillId);
+
         // (11/10) CaptureCount counts Lagging stages, not captures (HUD_SPEC 4.3, Q1), so the count >= 2 line names no count.
         // GDD v2 4: the first capture leaves 60 s for a rescue, the second 30 s, the third eliminates. The v1 sentence
         // ("Captured once: the next capture eliminates you.") is only true after two captures now.
@@ -64,7 +93,7 @@ namespace PingTheKiller.Client.UI
         public bool Active(bool focused, bool cursorReleased) => focused && !cursorReleased && !Open;
 
         // Press edges (Space, Q): a Submit on Resume (Space, Enter, gamepad A) may close the menu earlier in the same frame,
-        // and that key must not also press the sync check or the skill.
+        // and that key must not also press a route key or the skill.
         public bool Presses(bool active, int frame) => active && frame != closedFrame;
 
         // Opening: one zero MoveInput, then the Interact release if a press was sent. The match keeps running.

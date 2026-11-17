@@ -8,8 +8,9 @@ namespace PingTheKiller.Client.World
     // its own shape and its own motion; colour stays a palette meaning (SLOP 8: four colours, one meaning each), so two
     // skills always differ in at least shape and motion. Pure: SkillFeedback still decides WHO sees an effect and WHERE
     // (14.0 / 14.2 viewer rules); this only decides HOW it looks.
-    public enum FxShape : byte { None, PulseRings, Streaks, HexWall, WireDouble, Dome, Spikes, Beam, Static, Afterimage }
-    public enum FxMotion : byte { None, Pulse, RushPast, RiseBlink, PopIn, Envelop, Burst, Ascend, Flicker, Linger }
+    // R1 (11/17): TraceRing / Flash (Packet trace) replaced the passive afterimage's Afterimage / Linger.
+    public enum FxShape : byte { None, PulseRings, Streaks, HexWall, WireDouble, Dome, Spikes, Beam, Static, TraceRing }
+    public enum FxMotion : byte { None, Pulse, RushPast, RiseBlink, PopIn, Envelop, Burst, Ascend, Flicker, Flash }
 
     public struct Signature
     {
@@ -18,7 +19,7 @@ namespace PingTheKiller.Client.World
         public FxTint Tint;      // the signature's colour in its main view (records keep their own per-viewer tint)
         public bool TintFixed;   // true: this tint replaces the record's tint (White noise: no Signal at the caster)
         public float Seconds;    // world time; 0 = the record's time
-        public bool Played;      // false: no world effect exists (Packet afterimage, passive)
+        public bool Played;      // false: no world effect exists
     }
 
     // What SkillFx draws for one record. The point is always SkillFeedback.VisualPoint (or, for FollowCamera, the own
@@ -29,6 +30,7 @@ namespace PingTheKiller.Client.World
         public FxTint Tint;
         public float Diameter, Seconds;
         public bool Still, Inward, FollowCamera, Glyph;
+        public float StartDiameter; // R1: TraceRing grows from here
         public bool KillerSkill;
         public byte SkillId;
         public bool Shown => Shape != FxShape.None;
@@ -44,8 +46,9 @@ namespace PingTheKiller.Client.World
             [SkillGlyph.Key(true, SkillIds.PingScanner)] = new Signature { Shape = FxShape.PulseRings, Motion = FxMotion.Pulse, Tint = FxTint.Text, Seconds = 1f, Played = true },
             // Speed streaks rushing past the first-person camera for the whole effect.
             [SkillGlyph.Key(true, SkillIds.Overclock)] = new Signature { Shape = FxShape.Streaks, Motion = FxMotion.RushPast, Tint = FxTint.Text, Played = true },
-            // Passive: the existing Killer-view afterimage (a Signal marker that lingers 1 s); SkillFx plays nothing.
-            [SkillGlyph.Key(true, SkillIds.PacketAfterimage)] = new Signature { Shape = FxShape.Afterimage, Motion = FxMotion.Linger, Tint = FxTint.Signal, Played = false },
+            // R1 (11/17) Packet trace: one flat ground ring that flashes out to the 12 m trace radius in 0.35 s (a short local
+            // burst, not Ping's three staggered bands); on a traced Survivor it snaps in around the feet.
+            [SkillGlyph.Key(true, SkillIds.PacketTrace)] = new Signature { Shape = FxShape.TraceRing, Motion = FxMotion.Flash, Tint = FxTint.Text, Seconds = SkillFeedback.TraceSeconds, Played = true },
             // A hex-grid barrier that rises around the locked switch and blinks once before it drops.
             [SkillGlyph.Key(true, SkillIds.FirewallBlock)] = new Signature { Shape = FxShape.HexWall, Motion = FxMotion.RiseBlink, Tint = FxTint.Danger, Seconds = 1f, Played = true },
             // Survivor: a dashed wireframe double of the caster that pops in (overshoot) where the fake Signal starts.
@@ -96,6 +99,7 @@ namespace PingTheKiller.Client.World
             if (r.Visual.Kind == FxKind.Sweep && reduced) return default; // 14.1: the Ping scanner sweep is off
             plan.Tint = s.TintFixed ? s.Tint : r.Visual.Tint;
             plan.Diameter = r.Visual.Diameter;
+            plan.StartDiameter = r.Visual.StartDiameter;
             plan.Seconds = s.Seconds > 0 ? s.Seconds : r.Visual.Seconds;
             // The scanned Survivor sees the rings close in on itself; the Killer sees them sweep out.
             plan.Inward = r.SkillId == SkillIds.PingScanner && r.KillerSkill && r.Viewer == FxViewer.Affected;
