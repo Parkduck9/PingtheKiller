@@ -281,6 +281,38 @@ public sealed class KillerSwingTests
         Assert.Equal(distance < GameConstants.SwingRange ? (byte)PlayerStatus.Lagging : (byte)PlayerStatus.Normal, StatusOf(m, 0));
     }
 
+    // M1 (F2): a press processed in the tick a recovery ends used to start the next swing in that tick, so the flag never fell.
+    // Now the flag is clear for one tick between swings, and each swing is its own span (16 after a hit, 20 after a miss).
+    [Fact]
+    public void ChainedSwingsEachGetTheirOwnFlagSpan()
+    {
+        using var m = Facing(3.5f);
+        Face(m, 0);
+        var spans = new System.Collections.Generic.List<int>();
+        int run = 0;
+        for (int tick = 0; tick < 100; tick++)
+        {
+            if (tick % 20 == 0) Attack(m.Killer); // the press lands in the very tick the previous recovery ends (5 per second)
+            m.Tick();
+            if ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0) run++;
+            else if (run > 0) { spans.Add(run); run = 0; }
+        }
+        Assert.True(spans.Count >= 3, "spans: " + string.Join(",", spans));
+        Assert.All(spans, length => Assert.Equal(20, length));
+    }
+
+    [Fact]
+    public void AChainedPressIsNotLostByTheOneTickGap()
+    {
+        using var m = Facing(3.5f);
+        Face(m, 0);
+        Attack(m.Killer);
+        m.Tick(20);
+        Attack(m.Killer);
+        m.Tick(2);
+        Assert.True(m.F.Server.SwingingForTests(m.Killer.Id), "the second swing started one tick after the first ended");
+    }
+
     [Fact]
     public void SwingingIsShownToSurvivorsWhoSeeTheKillerAndTheKillerLearnsNothingNew()
     {
@@ -486,7 +518,7 @@ public sealed class KillerSwingTests
         // t = 27.5 s: still refused; t = 28.5 s: terminal 1 locks again.
         m.Tick(49);
         Assert.Equal(0, Fire());
-        m.Tick(19);
+        m.Tick(20);
         Assert.Equal(1, Fire());
         Assert.Equal((terminals[1].X, terminals[1].Z), Locked());
     }

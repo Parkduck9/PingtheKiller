@@ -1,0 +1,7 @@
+Scratch xUnit run (project outside the repo; Server.Tests fixtures linked, nothing added to Server.Tests).
+Presses every 4 ticks (5 per second, the server limit). Source: chain-swing-scratch-test.cs.txt
+
+distance 3.5 (first swing misses): continuous own Swinging flag 80 ticks (loop cap); server log: miss, miss, miss, miss
+distance 2.0 (first swing hits):   continuous own Swinging flag 80 ticks (loop cap); server log: hit target=2, miss, miss, miss, miss
+
+The flag never falls between swings when a press is processed in the tick the recovery ends.

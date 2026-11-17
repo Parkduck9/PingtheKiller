@@ -29,7 +29,8 @@ namespace PingTheKiller.Client.UI
         public void Dismiss() { dismissed = true; }
 
         // The inputs that end the card: Esc, Enter (either), Space or a mouse button press. WASD, arrows, E and Q never do.
-        public static bool DismissInput(bool escape, bool enter, bool space, bool click) => escape || enter || space || click;
+        // (11/18, M1) A gamepad A or B press ends it too (`pad`).
+        public static bool DismissInput(bool escape, bool enter, bool space, bool click, bool pad = false) => escape || enter || space || click || pad;
 
         // INTEG-R minors: Esc while the card shows dismisses it and nothing else (the menu does not open that press, so the card
         // can never come back when the menu closes). Returns true when the press was consumed.
@@ -38,6 +39,10 @@ namespace PingTheKiller.Client.UI
             if (!escape || !Visible(now, menuOpen)) return false;
             Dismiss(); return true;
         }
+
+        // (11/18, M1) Esc or the gamepad Start while the card shows: the same, so Start never opens the menu with the card
+        // waiting behind it.
+        public bool ConsumeBack(double now, bool menuOpen, bool escape, bool start) => ConsumeEscape(now, menuOpen, escape || start);
 
         public bool Visible(double now, bool menuOpen) => !dismissed && !menuOpen && now - startedAt < HelpCopy.IntroSeconds;
 
