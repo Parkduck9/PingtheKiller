@@ -279,7 +279,7 @@ namespace PingTheKiller.Client
                         // U8: the own capture's impact at the tracker instance (a position this client already has).
                         killerCaptures = killerLayer.Captures;
                         killerImpactUntil = LinkClock.Now + .3; // played once the tracker instance is in the rendered views
-                        if (swingWatch.OnCapture(received.Time) == SwingEvent.Hit) { Debug.Log("[client] swing hit"); dev?.OnSwing(SwingEvent.Hit); }
+                        if (swingWatch.OnCapture(received.Time) == SwingEvent.Hit) { Debug.Log("[client] swing hit"); killerLayer.Fx.ClearMissed(); dev?.OnSwing(SwingEvent.Hit); }
                         frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "killer capture");
                     }
                     chase.Accept(state, received.Time);
@@ -627,13 +627,14 @@ namespace PingTheKiller.Client
         {
             swingWatch.OwnChase = chase; // INTEG-R (R1 QA M1): a press the server will refuse plays no sweep
             SwingEvent swing = swingWatch.Observe((chase & (byte)ChaseFlags.Swinging) != 0, tick, time);
-            if (swing == SwingEvent.Started) { Debug.Log("[client] swing wind-up"); dev?.OnSwing(SwingEvent.Started); }
+            if (swing == SwingEvent.Started) { Debug.Log("[client] swing wind-up"); killerLayer?.Fx.ClearMissed(); dev?.OnSwing(SwingEvent.Started); }
             else if (swing == SwingEvent.Hit)
             {
                 // The eliminating hit: no CaptureConfirm (the entry is gone); the kick and the impact where the blip was.
                 Debug.Log("[client] swing hit (eliminating, entry gone)");
                 killerLayer?.PlayUnseenHit();
-                if (killerLayer != null) PlayImpact(killerLayer.VanishedPoint);
+                // (11/18, M1) The impact only where a blip vanished during this swing; otherwise no position belongs to it.
+                if (killerLayer != null && swingWatch.LastHitWasHeld) PlayImpact(killerLayer.VanishedPoint);
                 killerLayer?.Fx.OnHit(time);
                 dev?.OnSwing(SwingEvent.Hit, true);
             }

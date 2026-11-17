@@ -68,6 +68,51 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
+        public void AHeldVerdictWhoseFlagIsStillUpAt18TicksIsAMiss()
+        {
+            var watch = new KillerSwingWatch();
+            watch.Observe(true, 100, 1);
+            watch.OnVanish(1.2);
+            Assert.That(watch.Observe(true, 116, 1.8), Is.EqualTo(SwingEvent.None), "16 ticks: could still be a hit that falls next");
+            Assert.That(watch.Observe(true, 117, 1.85), Is.EqualTo(SwingEvent.None), "17 ticks: still the hit length");
+            Assert.That(watch.Observe(true, 118, 1.9), Is.EqualTo(SwingEvent.Missed), "18 ticks: past the hit length, 0.9 s");
+            Assert.That(watch.Misses, Is.EqualTo(1)); Assert.That(watch.Hits, Is.Zero);
+            Assert.That(watch.Observe(false, 120, 2.0), Is.EqualTo(SwingEvent.None), "the fall adds nothing");
+            Assert.That(watch.Misses, Is.EqualTo(1));
+            // A hit's flag falls at 16: still a hit, and an unheld flag-up swing is never cut short.
+            watch.Observe(true, 200, 10);
+            watch.OnVanish(10.2);
+            Assert.That(watch.Observe(false, 216, 10.8), Is.EqualTo(SwingEvent.Hit));
+            Assert.That(watch.LastHitWasHeld, Is.True);
+            watch.Observe(true, 300, 20);
+            Assert.That(watch.Observe(true, 320, 21), Is.EqualTo(SwingEvent.None));
+        }
+
+        [Test]
+        public void ANewSwingOrAConfirmedHitClearsAStaleMissedLine()
+        {
+            var fx = new KillerFxState();
+            fx.OnMissed(10);
+            Assert.That(fx.Line(10.4).Text, Is.EqualTo("Missed"));
+            fx.ClearMissed();
+            Assert.That(fx.Line(10.5).Text, Is.Null);
+            string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));
+            Assert.That(QaSource.MethodText(code, "void ObserveOwnSwing(").Substring(0, 300), Does.Contain("Fx.ClearMissed()"));
+            Assert.That(code, Does.Contain("killerLayer.Fx.ClearMissed(); dev?.OnSwing(SwingEvent.Hit);"), "the capture-confirm hit");
+        }
+
+        [Test]
+        public void TheImpactPlaysOnlyWhenTheVerdictWasHeldForAVanish()
+        {
+            var watch = new KillerSwingWatch();
+            watch.Observe(true, 100, 1);
+            Assert.That(watch.Observe(false, 116, 1.8), Is.EqualTo(SwingEvent.Hit), "no vanish, fall seen before the window ran out");
+            Assert.That(watch.LastHitWasHeld, Is.False, "no blip position belongs to this swing");
+            string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));
+            Assert.That(code, Does.Contain("swingWatch.LastHitWasHeld) PlayImpact(killerLayer.VanishedPoint)"));
+        }
+
+        [Test]
         public void ClientAppPlaysTheHitFeedbackForALateHit()
         {
             string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));

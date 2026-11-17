@@ -677,6 +677,9 @@ namespace PingTheKiller.Client.UI
         // R1 (11/17) a2: the own swing missed (KillerSwingWatch).
         public void OnMissed(double now) { hitEnd = double.NegativeInfinity; missedEnd = now + SkillFeedback.MissedSeconds; }
 
+        // (11/18, M1) A new swing or a confirmed hit clears a stale `Missed`.
+        public void ClearMissed() { missedEnd = double.NegativeInfinity; }
+
         // (11/18, M1) A hit proven by the own flag's length: replaces a `Missed` still showing.
         public void OnHit(double now) { missedEnd = double.NegativeInfinity; hitEnd = now + SkillFeedback.MissedSeconds; }
 

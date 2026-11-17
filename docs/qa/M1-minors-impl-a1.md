@@ -19,3 +19,14 @@
 **Risks**: `Hit` line is new copy (only on non-confirm hits); `Missed` can flash 0.25 s before a late hit corrects it. The brief file is condensed, not verbatim.
 
 Evidence: `docs/qa/M1-minors/`.
+
+## Attempt 2 (Sonnet 5.5)
+
+- **F1:** `KillerFxState.ClearMissed`, called on `SwingEvent.Started` and the capture-confirm hit. Test `ANewSwingOrAConfirmedHitClearsAStaleMissedLine`.
+- **F2 (server):** `GameServer.Combat.cs` `Swing()`: when a recovery ends this tick, no new swing starts in it and the press is kept for the next tick, so `Swinging` is clear for one tick. Stale-Seq and throttle rules untouched. Tests `ChainedSwingsEachGetTheirOwnFlagSpan` (spans of 20) and `AChainedPressIsNotLostByTheOneTickGap`.
+- **F3:** `KillerSwingWatch.LastHitWasHeld`; impact only when true. Test `TheImpactPlaysOnlyWhenTheVerdictWasHeldForAVanish`.
+- **Sooner miss:** a held verdict whose flag is still up at 18 ticks is `Missed` (0.9 s). No movement rule. Test `AHeldVerdictWhoseFlagIsStillUpAt18TicksIsAMiss`.
+- **F4:** HUD_SPEC (17 ticks, new rule), brief file corrected.
+- **Item 6 skipped:** needs BlipTracker changes plus a new confirm path for a small gain; too much risk here.
+
+Gates: build 0/0; Server.Tests non-sweep 1149/1149, BalanceSweep 18/18; harness 100/100 (H6 passes; ports 7783/7784, stopped after); EditMode 1616 passed, 0 failed, 2 skipped; BuildWindows OK. Live Killer 240 s: 6 swings; server 3 hit, 3 miss; client 3 hit, 3 Missed (match); 0 exceptions. A miss was followed by a hit once, but I did not view that shot; the F1 behaviour is unit-tested. Evidence: `a2-*` files in `docs/qa/M1-minors/`.

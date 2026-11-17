@@ -45,6 +45,9 @@ namespace PingTheKiller.Client.Killer
         public byte OwnChase { get; set; }
         public const byte RefusingChase = (byte)(ChaseFlags.Stunned | ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking);
         public bool Held => held;
+        // (11/18, M1) The last Hit verdict from the flag came from a swing held for a vanished blip: the impact may play at
+        // BlipTracker.VanishedX/Z. Otherwise no blip position belongs to this swing.
+        public bool LastHitWasHeld { get; private set; }
 
         private static int Ticks(double seconds) => (int)System.Math.Round(seconds / TickSeconds);
 
@@ -53,7 +56,7 @@ namespace PingTheKiller.Client.Killer
 
         public void Reset()
         {
-            swinging = pending = held = false; riseTick = 0; result = SwingEvent.None; OwnChase = 0;
+            swinging = pending = held = LastHitWasHeld = false; riseTick = 0; result = SwingEvent.None; OwnChase = 0;
             startedAt = predictedAt = double.NegativeInfinity;
             Swings = Hits = Misses = 0;
         }
@@ -76,11 +79,19 @@ namespace PingTheKiller.Client.Killer
                 pending = true; held = false; result = SwingEvent.None; startedAt = now; Swings++;
                 return SwingEvent.Started;
             }
+            if (swingingFlag && swinging && pending && held && unchecked((int)(tick - riseTick)) > HitTicksMax)
+            {
+                // (11/18, M1) A held verdict whose flag is still up past the hit length (18 ticks, 0.9 s) is a miss: no need to
+                // wait for the fall at 20.
+                pending = held = false; Misses++;
+                return result = SwingEvent.Missed;
+            }
             if (swingingFlag || !swinging) return SwingEvent.None;
             swinging = false;
             bool hit = HitLength(unchecked((int)(tick - riseTick)));
             if (pending)
             {
+                LastHitWasHeld = held;
                 pending = held = false;
                 if (hit) { Hits++; return result = SwingEvent.Hit; }
                 Misses++;
