@@ -32,7 +32,7 @@ namespace PingTheKiller.ServerCore
         {
             if (survivor.Status == PlayerStatus.Lagging) return true;
             if (survivor.Status != PlayerStatus.Normal) return false;
-            if (Active(survivor.ExposedUntil)) return true;
+            if (Active(survivor.ExposedUntil) || ChaseForcesSignal(survivor)) return true;
             if (Active(survivor.StealthUntil)) return false;
             return survivor.InputHeld(_now) || survivor.Hacking || survivor.Rescuing || survivor.SwitchExit >= 0;
         }
@@ -83,7 +83,8 @@ namespace PingTheKiller.ServerCore
                     {
                         Id = player.Id, Role = (byte)Role.Killer, Status = (byte)PlayerStatus.Normal,
                         X = player.X, Z = player.Z, Yaw = player.Yaw,
-                        Flags = player.InputHeld(_now) ? (byte)PlayerFlags.Signal : (byte)PlayerFlags.None
+                        Flags = player.InputHeld(_now) ? (byte)PlayerFlags.Signal : (byte)PlayerFlags.None,
+                        Chase = ChaseFlagsOf(player)
                     });
                     _killerViewSources.Add(new KillerViewSource(player.Id, false, false));
                     continue;
@@ -142,7 +143,7 @@ namespace PingTheKiller.ServerCore
                 {
                     Id = player.Id, Role = (byte)Role.Survivor, Status = (byte)player.Status,
                     X = player.X, Z = player.Z, Yaw = player.Yaw, Flags = (byte)flags,
-                    StatusTimer = StatusTimer(player), CaptureCount = player.CaptureCount
+                    StatusTimer = StatusTimer(player), CaptureCount = player.CaptureCount, Chase = ChaseFlagsOf(player)
                 });
             }
         }
@@ -168,7 +169,7 @@ namespace PingTheKiller.ServerCore
         {
             Id = _killer.Id, Role = (byte)Role.Killer, Status = (byte)_killer.Status,
             X = _killer.X, Z = _killer.Z, Yaw = _killer.Yaw,
-            Flags = (byte)PlayerFlags.None, StatusTimer = 0, CaptureCount = 0
+            Flags = (byte)PlayerFlags.None, StatusTimer = 0, CaptureCount = 0, Chase = ChaseFlagsOf(_killer)
         };
 
         private float StatusTimer(Player player) =>
@@ -221,16 +222,23 @@ namespace PingTheKiller.ServerCore
                 Departs(now.InvulnerableLeft, Math.Max(0, last.InvulnerableLeft - elapsed)) ||
                 Departs(now.RescueProgress, rescue) ||
                 Departs(now.CollapseLeft, last.CollapseLeft < 0 ? -1 : Math.Max(0, last.CollapseLeft - elapsed * CollapseRate(player))) ||
-                Departs(now.ActionProgress, last.ActionProgress <= 0 ? 0 : Math.Min(1, last.ActionProgress + elapsed * ActionRate(last.ActionKind)));
+                Departs(now.ActionProgress, last.ActionProgress <= 0 ? 0 : Math.Min(1, last.ActionProgress + elapsed * ActionRate(player, last.ActionKind)));
         }
 
         private static double CollapseRate(Player player) =>
             player.Role == Role.Survivor && player.Status == PlayerStatus.Lagging ? GameConstants.CollapseLaggingRate : 1;
 
+        // A vault's length depends on the prop and the role, so its rate comes from the running action.
+        private static double ActionRate(Player player, byte kind) =>
+            kind == (byte)ActionKind.Vault && player.InChaseAction ? 1 / Math.Max(TimeEpsilon, player.ChaseEnd - player.ChaseStart)
+            : ActionRate(kind);
+
         private static double ActionRate(byte kind) =>
             kind == (byte)ActionKind.Switch ? 1 / GameConstants.ExitSwitchSeconds
             : kind == (byte)ActionKind.Kick ? 1 / GameConstants.KickHoldSeconds
-            : kind == (byte)ActionKind.HatchClose ? 1 / GameConstants.HatchCloseSeconds : 0;
+            : kind == (byte)ActionKind.HatchClose ? 1 / GameConstants.HatchCloseSeconds
+            : kind == (byte)ActionKind.Pull ? 1 / GameConstants.ShutterPullSeconds
+            : kind == (byte)ActionKind.Break ? 1 / GameConstants.ShutterBreakSeconds : 0;
 
         // v0.4 SelfState: the own collapse clock and the own hold action (exit switch, kick or hatch close).
         private void SetActionState(Player player, S2C_SelfState state)
@@ -239,6 +247,19 @@ namespace PingTheKiller.ServerCore
             {
                 if (player.Role == Role.Killer) state.CollapseLeft = (float)_collapseLeft;
                 else if (player.IsActiveSurvivor) state.CollapseLeft = (float)player.CollapseLeft;
+            }
+            if (player.InChaseAction)
+            {
+                state.ActionKind = player.ChaseKind;
+                state.ActionProgress = (float)Math.Max(0, Math.Min(1,
+                    (_now - player.ChaseStart) / Math.Max(TimeEpsilon, player.ChaseEnd - player.ChaseStart)));
+                return;
+            }
+            if (player.BreakShutter >= 0)
+            {
+                state.ActionKind = (byte)ActionKind.Break;
+                state.ActionProgress = (float)Math.Min(1, player.BreakHeld / GameConstants.ShutterBreakSeconds);
+                return;
             }
             if (player.Role == Role.Survivor)
             {
@@ -278,6 +299,8 @@ namespace PingTheKiller.ServerCore
                     CollapseLeft = _collapseRunning ? (float)_collapseLeft : -1
                 };
                 AddExitStates(world.Exits);
+                // GDD v2 section 8: shutter states are public, the same for every recipient.
+                for (int i = 0; i < WorldChaseProps.ShutterCount; i++) world.Shutters.Add((byte)Map.ShutterAt(i));
                 if (HatchVisibleTo(recipient))
                 {
                     world.HatchVisible = 1;

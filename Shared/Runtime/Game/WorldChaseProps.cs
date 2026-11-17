@@ -56,6 +56,7 @@ namespace PingTheKiller.Shared.Game
 
     // GDD v2 §8: the static shutter and rail boxes of FixedMap v2.1. Server and client read these same values.
     // A shutter spans an alley wall to wall; a rail's vault point is its centre and it is crossed along its Cross axis.
+    // The west road (x < 12, z < 39), the south edge street and the centre crossroads stay free: they are test lanes.
     public static class WorldChaseProps
     {
         public const int ShutterCount = 10;
@@ -77,14 +78,14 @@ namespace PingTheKiller.Shared.Game
 
         public static IReadOnlyList<ChaseProp> Rails { get; } = Array.AsReadOnly(new[]
         {
-            new ChaseProp(0, 5f, 43.85f, 8f, 44.15f),       // west plaza, south edge
+            new ChaseProp(0, 5f, 56.85f, 8f, 57.15f),       // west plaza, north edge
             new ChaseProp(1, 6.85f, 52f, 7.15f, 55f),       // west plaza, north-west
             new ChaseProp(2, 67f, 23.85f, 70f, 24.15f),     // east plaza, south edge
             new ChaseProp(3, 70.85f, 28f, 71.15f, 31f),     // east plaza, east edge
-            new ChaseProp(4, 40f, 38.35f, 43f, 38.65f),     // centre crossroads, south
+            new ChaseProp(4, 55.85f, 32f, 56.15f, 35f),     // east plaza, west edge
             new ChaseProp(5, 36.35f, 25f, 36.65f, 28f),     // loop corner east of the single-box loop
             new ChaseProp(6, 39f, 55.85f, 42f, 56.15f),     // north street
-            new ChaseProp(7, 15f, 1.85f, 18f, 2.15f)        // south edge street
+            new ChaseProp(7, 56f, 19.85f, 59f, 20.15f)       // south of the east plaza
         });
 
         public static bool Has(PlayerState player, ChaseFlags flag) => (player.Chase & (byte)flag) != 0;

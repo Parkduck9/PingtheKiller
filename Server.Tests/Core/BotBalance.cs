@@ -193,6 +193,11 @@ internal static class BotBalance
             f.Tick();
             tally.Stats.Ticks++;
             if (!tally.Ended) tally.Watch.Sample(f.Server, tally.Stats, tally.Stats.Ticks);
+            // Q5a: once every bot survivor is resolved only the idle human (who never acts) is left, so no progress is
+            // possible by construction; that wait is not a bot stall (seed 1012 reached it after the chase props).
+            if (!tally.Ended && !f.Server.PlayerSnapshot().Any(p => p.IsBot && p.Role == Role.Survivor &&
+                    (p.Status == PlayerStatus.Normal || p.Status == PlayerStatus.Lagging)))
+                tally.Watch.Mark(tally.Stats, tally.Stats.Ticks);
             human.Drain();
             human.Packets.Clear();
         }

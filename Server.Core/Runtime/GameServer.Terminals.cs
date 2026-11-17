@@ -44,7 +44,8 @@ namespace PingTheKiller.ServerCore
                 player.Hacking = false;
                 player.HackTerminal = -1;
                 player.SwitchExit = -1;
-                if (player.Role != Role.Survivor || player.Status != PlayerStatus.Normal || !player.Interacting) continue;
+                if (player.Role != Role.Survivor || player.Status != PlayerStatus.Normal || !player.Interacting ||
+                    player.InChaseAction) continue;
                 // An exit switch in reach takes the hold before any terminal.
                 player.SwitchExit = SwitchInReach(player);
                 if (player.SwitchExit >= 0) continue;
@@ -113,7 +114,8 @@ namespace PingTheKiller.ServerCore
         {
             var killer = _killer;
             if (killer == null) return;
-            if (!killer.Interacting || killer.InputHeld(_now))
+            // GDD v2 section 8: a stun, a vault or a shutter break takes Interact before the hatch and the kick.
+            if (!killer.Interacting || killer.InputHeld(_now) || ChaseFrozen(killer))
             {
                 killer.KickHeld = killer.HatchHeld = 0;
                 killer.KickTerminal = -1;

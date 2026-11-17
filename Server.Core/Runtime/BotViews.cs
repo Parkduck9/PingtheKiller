@@ -34,6 +34,8 @@ namespace PingTheKiller.ServerCore
         internal float CollapseLeft = -1;
         internal bool KillerVisible;
         internal float KillerX, KillerZ, KillerYaw;
+        // GDD v2 section 8: the WorldState shutter states (public to every role).
+        internal byte[] Shutters = new byte[WorldChaseProps.ShutterCount];
     }
 
     // What the killer client knows: its own state and the anonymous killer view (Signal survivors, phantoms, afterimages
@@ -57,6 +59,8 @@ namespace PingTheKiller.ServerCore
         internal byte Skill;
         internal bool SkillReady;
         internal readonly List<Blip> Blips = new List<Blip>();
+        // GDD v2 section 8: the WorldState shutter states (public to every role).
+        internal byte[] Shutters = new byte[WorldChaseProps.ShutterCount];
         internal Terminal[] Terminals = new Terminal[0];
         internal int TerminalCount;
         internal BotExit[] Exits = new BotExit[0];

@@ -32,6 +32,9 @@ public sealed class Planner
             if (wall.IntersectsCircle(p.X, p.Y, FixedMap.PlayerRadius + Margin)) return false;
         foreach (var obstacle in obstacles)
             if (obstacle.IntersectsCircle(p.X, p.Y, FixedMap.PlayerRadius + Margin)) return false;
+        // Q5a: rails always block movement (the harness never pulls a shutter, so every shutter stays Up).
+        foreach (var rail in PingTheKiller.Shared.Game.WorldChaseProps.Rails)
+            if (rail.IntersectsCircle(p.X, p.Y, FixedMap.PlayerRadius + Margin)) return false;
         return true;
     }
 
