@@ -1,0 +1,705 @@
+C:\Unity\MultiPlayGame\PtK-work\b1-balance\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+C:\Unity\MultiPlayGame\PtK-work\b1-balance\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.05]   Discovering: Server.Tests
+[xUnit.net 00:00:00.15]   Discovered:  Server.Tests
+[xUnit.net 00:00:00.17]   Starting:    Server.Tests
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v1", survivors: 1, winMin: 0.14999999999999999, winMax: 0.84999999999999998, medianMin: 0, medianMax: 900, timeoutMax: 0.29999999999999999, reqRescueShare: 0) [1 s]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v1 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v1 | 38% | 573 s (270/654) | AllSurvivorsDown 22, AllResolved 15, time 3 | 1.68 | 0.63 / 0.00 / 0.00 | 8% | 0% |
+ Lagging timeouts per match: 0.55; elapsed: 1.2 s
+
+
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v1", survivors: 1, winMin: 0.14999999999999999, winMax: 0.84999999999999998, medianMin: 0, medianMax: 900, timeoutMax: 0.29999999999999999) [1 s]
+  표준 출력 메시지:
+ seed   1:  579.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 550 op 579 stall 0 (longest 40 s)
+ seed   2:  588.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 569 op 588 stall 0 (longest 56 s)
+ seed   3:  171.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed   4:  619.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 599 op 619 stall 0 (longest 56 s)
+ seed   5:  802.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 772 op 801 stall 0 (longest 47 s)
+ seed   6:  838.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 809 op 837 stall 0 (longest 51 s)
+ seed   7:  837.4s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed   8:  518.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 488 op 517 stall 0 (longest 45 s)
+ seed   9:  684.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 654 op 683 stall 0 (longest 45 s)
+ seed  10:  434.7s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  11:  404.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  12:  195.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  13:  790.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  14:  734.2s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 714 op 733 stall 0 (longest 50 s)
+ seed  15:  638.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 609 op 638 stall 0 (longest 33 s)
+ seed  16:  845.7s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 745 op -1 stall 0 (longest 90 s)
+ seed  17:  759.0s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 648 op -1 stall 0 (longest 90 s)
+ seed  18:  168.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  19:  627.8s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  20:  504.9s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  21:  717.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 682 op 716 stall 0 (longest 47 s)
+ seed  22:  878.5s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  23:  219.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  24:  900.0s Killer   TimeUp           terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw 872 op -1 stall 0 (longest 47 s)
+ seed  25:  580.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 561 op 580 stall 0 (longest 39 s)
+ seed  26:  758.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 714 op 757 stall 0 (longest 48 s)
+ seed  27:  542.6s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  28:  669.9s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 543 op -1 stall 0 (longest 90 s)
+ seed  29:  900.0s Killer   TimeUp           terminals 2/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 38 s)
+ seed  30:  292.4s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  31:  870.5s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 764 op -1 stall 0 (longest 90 s)
+ seed  32:  688.5s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 659 op 688 stall 0 (longest 67 s)
+ seed  33:  429.5s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  34:  408.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  35:  411.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  36:  429.1s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  37:  641.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 621 op 640 stall 0 (longest 54 s)
+ seed  38:  116.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  39:  392.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  40:  658.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 628 op 657 stall 0 (longest 57 s)
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v1 | 38% | 624 s (425/758) | all down 23, resolved 15, time up 2 | 2.00 | 0.58 / 0.00 / 0.00 | 5% | 0% |
+ lagging timeouts per match 0.58; sweep 1.5 s
+ GDD v2 bands: win 15%-85%, median 0-900 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v3", survivors: 3, seedStart: 1001) [2 s]
+  표준 출력 메시지:
+ seed 1001:  397.7s Killer   AllResolved      terminals 1/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 1 pw 368 op 397 stall 0 (longest 22 s)
+ seed 1002:  428.5s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 401 op 420 stall 0 (longest 36 s)
+ seed 1003:  597.5s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 2 exe 0 lagTimeout 1 escaped 2 pw 474 op 539 stall 0 (longest 37 s)
+ seed 1004:  845.8s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 2 pw 749 op 817 stall 0 (longest 42 s)
+ seed 1005:  900.0s Killer   TimeUp           terminals 2/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw 866 op -1 stall 0 (longest 45 s)
+ seed 1006:  584.5s Survivor AllResolved      terminals 4/4 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 3 pw 517 op 557 stall 0 (longest 28 s)
+ seed 1007:  446.3s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 29 s)
+ seed 1008:  520.9s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 3 pw 477 op 505 stall 0 (longest 28 s)
+ seed 1009:  550.7s Killer   AllResolved      terminals 4/4 cap 5 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 1 pw 414 op 534 stall 0 (longest 31 s)
+ seed 1010:  803.0s Killer   AllSurvivorsDown terminals 4/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw 678 op -1 stall 0 (longest 40 s)
+ seed 1011:  593.4s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 32 s)
+ seed 1012:  481.8s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 433 op 460 stall 0 (longest 30 s)
+ seed 1013:  543.7s Killer   AllSurvivorsDown terminals 4/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 0 pw 445 op -1 stall 0 (longest 33 s)
+ seed 1014:  546.6s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 536 op -1 stall 0 (longest 49 s)
+ seed 1015:  644.8s Killer   AllResolved      terminals 4/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 1 pw 567 op 594 stall 0 (longest 30 s)
+ seed 1016:  623.3s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 2 pw 547 op 576 stall 0 (longest 33 s)
+ seed 1017:  590.9s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 522 op 564 stall 0 (longest 32 s)
+ seed 1018:  475.2s Killer   AllSurvivorsDown terminals 3/4 cap 4 (2nd 0) res 2 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 76 s)
+ seed 1019:  624.0s Killer   AllSurvivorsDown terminals 4/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 0 pw 441 op -1 stall 0 (longest 30 s)
+ seed 1020:  523.6s Killer   AllSurvivorsDown terminals 4/4 cap 4 (2nd 0) res 2 exe 0 lagTimeout 2 escaped 0 pw 405 op -1 stall 0 (longest 84 s)
+ seed 1021:  815.8s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 2 pw 777 op 796 stall 0 (longest 76 s)
+ seed 1022:  501.1s Killer   AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw 492 op -1 stall 0 (longest 24 s)
+ seed 1023:  546.8s Killer   AllSurvivorsDown terminals 1/4 cap 5 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 0 pw 504 op -1 stall 0 (longest 47 s)
+ seed 1024:  615.6s Survivor AllResolved      terminals 5/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 2 pw 508 op 592 stall 0 (longest 24 s)
+ seed 1025:  551.6s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 509 op 537 stall 0 (longest 30 s)
+ seed 1026:  405.3s Survivor AllResolved      terminals 4/4 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 3 pw 356 op 384 stall 0 (longest 25 s)
+ seed 1027:  370.3s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 333 op 357 stall 0 (longest 28 s)
+ seed 1028:  591.9s Killer   AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw 556 op -1 stall 0 (longest 28 s)
+ seed 1029:  526.9s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 466 op 502 stall 0 (longest 36 s)
+ seed 1030:  629.3s Killer   Collapse         terminals 3/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 0 pw 558 op -1 stall 0 (longest 52 s)
+ seed 1031:  411.3s Killer   Collapse         terminals 4/4 cap 4 (2nd 0) res 2 exe 0 lagTimeout 1 escaped 1 pw 307 op 339 stall 0 (longest 30 s)
+ seed 1032:  479.2s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 446 op 468 stall 0 (longest 26 s)
+ seed 1033:  602.7s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 2 pw 552 op 579 stall 0 (longest 30 s)
+ seed 1034:  575.3s Killer   AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw 469 op 574 stall 0 (longest 45 s)
+ seed 1035:  626.6s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 2 pw 594 op 624 stall 0 (longest 46 s)
+ seed 1036:  472.3s Killer   AllSurvivorsDown terminals 2/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 446 op -1 stall 0 (longest 51 s)
+ seed 1037:  527.4s Killer   AllResolved      terminals 3/4 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 1 pw -1 op -1 stall 0 (longest 31 s)
+ seed 1038:  615.1s Survivor AllResolved      terminals 4/4 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 2 pw 589 op 611 stall 0 (longest 32 s)
+ seed 1039:  385.3s Killer   AllSurvivorsDown terminals 2/4 cap 4 (2nd 0) res 1 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 53 s)
+ seed 1040:  679.6s Survivor Collapse         terminals 4/4 cap 5 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 2 pw 570 op 614 stall 0 (longest 49 s)
+ 1v3 seeds 1001-1040: stall windows 0 in 0 matches (seeds ); longest gap 84 s; silent time-ups 0 (); sweep 2.2 s
+
+
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v3", survivors: 3, winMin: 0.29999999999999999, winMax: 0.65000000000000002, medianMin: 0, medianMax: 660, timeoutMax: 0.20000000000000001, reqRescueShare: 0) [2 s]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v3 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v3 | 48% | 551 s (481/618) | AllResolved 25, AllSurvivorsDown 11, Collapse 3, time 1 | 3.58 | 4.00 / 3.10 / 0.00 | 3% | 98% |
+ Lagging timeouts per match: 0.80; elapsed: 2.2 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v1", survivors: 1, seedStart: 1) [1 s]
+  표준 출력 메시지:
+ seed   1:  579.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 550 op 579 stall 0 (longest 40 s)
+ seed   2:  588.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 569 op 588 stall 0 (longest 56 s)
+ seed   3:  171.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed   4:  619.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 599 op 619 stall 0 (longest 56 s)
+ seed   5:  802.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 772 op 801 stall 0 (longest 47 s)
+ seed   6:  838.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 809 op 837 stall 0 (longest 51 s)
+ seed   7:  837.4s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed   8:  518.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 488 op 517 stall 0 (longest 45 s)
+ seed   9:  684.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 654 op 683 stall 0 (longest 45 s)
+ seed  10:  434.7s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  11:  404.3s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  12:  195.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  13:  790.0s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  14:  734.2s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 714 op 733 stall 0 (longest 50 s)
+ seed  15:  638.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 609 op 638 stall 0 (longest 33 s)
+ seed  16:  845.7s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 745 op -1 stall 0 (longest 90 s)
+ seed  17:  759.0s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 648 op -1 stall 0 (longest 90 s)
+ seed  18:  168.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  19:  627.8s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  20:  504.9s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  21:  717.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 682 op 716 stall 0 (longest 47 s)
+ seed  22:  878.5s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  23:  219.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  24:  900.0s Killer   TimeUp           terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw 872 op -1 stall 0 (longest 47 s)
+ seed  25:  580.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 561 op 580 stall 0 (longest 39 s)
+ seed  26:  758.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 714 op 757 stall 0 (longest 48 s)
+ seed  27:  542.6s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  28:  669.9s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 543 op -1 stall 0 (longest 90 s)
+ seed  29:  900.0s Killer   TimeUp           terminals 2/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 38 s)
+ seed  30:  292.4s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  31:  870.5s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 764 op -1 stall 0 (longest 90 s)
+ seed  32:  688.5s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 659 op 688 stall 0 (longest 67 s)
+ seed  33:  429.5s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  34:  408.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  35:  411.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  36:  429.1s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  37:  641.0s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 621 op 640 stall 0 (longest 54 s)
+ seed  38:  116.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  39:  392.8s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed  40:  658.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 628 op 657 stall 0 (longest 57 s)
+ 1v1 seeds 1-40: stall windows 0 in 0 matches (seeds ); longest gap 90 s; silent time-ups 2 (24, 29); sweep 1.7 s
+
+
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v3", survivors: 3, winMin: 0.29999999999999999, winMax: 0.65000000000000002, medianMin: 0, medianMax: 660, timeoutMax: 0.20000000000000001) [2 s]
+  표준 출력 메시지:
+ seed   1:  843.8s Killer   AllSurvivorsDown terminals 3/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 0 pw 787 op -1 stall 0 (longest 57 s)
+ seed   2:  494.5s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 472 op 491 stall 0 (longest 23 s)
+ seed   3:  470.9s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 423 op 453 stall 0 (longest 33 s)
+ seed   4:  613.1s Killer   AllSurvivorsDown terminals 1/4 cap 6 (2nd 0) res 4 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 39 s)
+ seed   5:  619.8s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 597 op 617 stall 0 (longest 39 s)
+ seed   6:  305.5s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 0) res 1 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 46 s)
+ seed   7:  662.8s Killer   AllSurvivorsDown terminals 4/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 0 pw 560 op -1 stall 0 (longest 46 s)
+ seed   8:  573.7s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 48 s)
+ seed   9:  516.8s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 473 op 501 stall 0 (longest 29 s)
+ seed  10:  400.6s Survivor AllResolved      terminals 4/4 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 3 pw 369 op 394 stall 0 (longest 24 s)
+ seed  11:  358.4s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 317 op 346 stall 0 (longest 26 s)
+ seed  12:  581.7s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 34 s)
+ seed  13:  479.3s Killer   AllSurvivorsDown terminals 4/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 356 op -1 stall 0 (longest 61 s)
+ seed  14:  454.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 409 op 436 stall 0 (longest 31 s)
+ seed  15:  489.0s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 458 op 477 stall 0 (longest 18 s)
+ seed  16:  386.4s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 345 op 374 stall 0 (longest 29 s)
+ seed  17:  613.1s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  18:  524.1s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 456 op 499 stall 0 (longest 43 s)
+ seed  19:  357.0s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 312 op 342 stall 0 (longest 40 s)
+ seed  20:  556.8s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 3 pw 507 op 537 stall 0 (longest 30 s)
+ seed  21:  458.2s Killer   AllResolved      terminals 3/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw -1 op -1 stall 0 (longest 26 s)
+ seed  22:  531.9s Survivor Collapse         terminals 4/4 cap 3 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 2 pw 436 op 463 stall 0 (longest 51 s)
+ seed  23:  558.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 512 op 541 stall 0 (longest 28 s)
+ seed  24:  677.1s Killer   AllResolved      terminals 4/4 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 1 pw 588 op 676 stall 0 (longest 45 s)
+ seed  25:  597.4s Killer   AllResolved      terminals 5/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw 536 op -1 stall 0 (longest 44 s)
+ seed  26:  565.8s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 2 pw 520 op 549 stall 0 (longest 36 s)
+ seed  27:  281.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 89 s)
+ seed  28:  362.8s Killer   AllSurvivorsDown terminals 2/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 32 s)
+ seed  29:  618.7s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  30:  431.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 371 op 414 stall 0 (longest 21 s)
+ seed  31:  545.1s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 2 pw 470 op 498 stall 0 (longest 30 s)
+ seed  32:  502.3s Killer   AllSurvivorsDown terminals 4/4 cap 4 (2nd 0) res 1 exe 0 lagTimeout 3 escaped 0 pw 380 op -1 stall 0 (longest 73 s)
+ seed  33:  653.7s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 598 op 641 stall 0 (longest 42 s)
+ seed  34:  456.3s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 403 op 431 stall 0 (longest 24 s)
+ seed  35:  279.4s Killer   AllSurvivorsDown terminals 1/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 48 s)
+ seed  36:  508.7s Survivor Collapse         terminals 4/4 cap 2 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 2 pw 412 op 446 stall 0 (longest 54 s)
+ seed  37:  447.2s Killer   AllSurvivorsDown terminals 4/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 345 op -1 stall 0 (longest 30 s)
+ seed  38:  547.3s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 26 s)
+ seed  39:  670.3s Killer   AllResolved      terminals 4/4 cap 5 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 1 pw 558 op 636 stall 0 (longest 34 s)
+ seed  40:  703.8s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 73 s)
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v3 | 50% | 520 s (453/601) | resolved 22, all down 16, collapse 2 | 3.50 | 3.70 / 2.65 / 0.00 | 0% | 95% |
+ lagging timeouts per match 1.00; sweep 2.4 s
+ GDD v2 bands: win 30%-65%, median 0-660 s
+
+
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v7", survivors: 7, winMin: 0.29999999999999999, winMax: 0.55000000000000004, medianMin: 540, medianMax: 660, timeoutMax: 0.10000000000000001, reqRescueShare: 0.29999999999999999) [2 s]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 | 53% | 582 s (507/701) | AllResolved 21, Collapse 14, AllSurvivorsDown 5 | 5.35 | 9.75 / 8.40 / 0.00 | 0% | 100% |
+ Lagging timeouts per match: 0.90; elapsed: 2.7 s
+
+
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 0, medianMax: 900, timeoutMax: 1) [3 s]
+  표준 출력 메시지:
+ seed   1:  267.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 221 op 240 stall 0 (longest 13 s)
+ seed   2:  215.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 184 op 203 stall 0 (longest 13 s)
+ seed   3:  226.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 191 op 210 stall 0 (longest 7 s)
+ seed   4:  294.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 247 op 274 stall 0 (longest 23 s)
+ seed   5:  265.2s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 216 op 242 stall 0 (longest 17 s)
+ seed   6:  214.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 183 op 202 stall 0 (longest 11 s)
+ seed   7:  233.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 192 op 214 stall 0 (longest 9 s)
+ seed   8:  203.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 166 op 186 stall 0 (longest 8 s)
+ seed   9:  308.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 263 op 291 stall 0 (longest 46 s)
+ seed  10:  227.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 184 op 208 stall 0 (longest 8 s)
+ seed  11:  259.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 212 op 237 stall 0 (longest 33 s)
+ seed  12:  282.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 248 op 270 stall 0 (longest 36 s)
+ seed  13:  206.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 176 op 195 stall 0 (longest 7 s)
+ seed  14:  228.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 182 op 203 stall 0 (longest 13 s)
+ seed  15:  289.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 247 op 272 stall 0 (longest 6 s)
+ seed  16:  209.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 178 op 197 stall 0 (longest 11 s)
+ seed  17:  212.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 181 op 200 stall 0 (longest 6 s)
+ seed  18:  237.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 189 op 211 stall 0 (longest 12 s)
+ seed  19:  232.1s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 193 op 215 stall 0 (longest 11 s)
+ seed  20:  232.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 216 stall 0 (longest 10 s)
+ seed  21:  247.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 200 op 228 stall 0 (longest 18 s)
+ seed  22:  179.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 151 op 170 stall 0 (longest 7 s)
+ seed  23:  204.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 175 op 195 stall 0 (longest 6 s)
+ seed  24:  257.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 214 op 239 stall 0 (longest 17 s)
+ seed  25:  268.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 230 op 251 stall 0 (longest 23 s)
+ seed  26:  194.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 153 op 178 stall 0 (longest 8 s)
+ seed  27:  339.6s Survivor Collapse         terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 6 pw 195 op 220 stall 0 (longest 94 s)
+ seed  28:  249.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 201 op 226 stall 0 (longest 11 s)
+ seed  29:  243.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 200 op 219 stall 0 (longest 7 s)
+ seed  30:  255.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 212 op 231 stall 0 (longest 12 s)
+ seed  31:  221.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 179 op 201 stall 0 (longest 10 s)
+ seed  32:  248.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 201 op 229 stall 0 (longest 28 s)
+ seed  33:  230.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 182 op 208 stall 0 (longest 9 s)
+ seed  34:  143.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 115 op 134 stall 0 (longest 4 s)
+ seed  35:  221.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 186 op 205 stall 0 (longest 8 s)
+ seed  36:  219.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 188 op 208 stall 0 (longest 10 s)
+ seed  37:  237.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 197 op 219 stall 0 (longest 10 s)
+ seed  38:  254.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 209 op 231 stall 0 (longest 17 s)
+ seed  39:  261.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 215 op 235 stall 0 (longest 15 s)
+ seed  40:  235.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 186 op 208 stall 0 (longest 12 s)
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | idle killer + 7 | 100% | 234 s (219/258) | resolved 39, collapse 1 | 5.13 | 0.00 / 0.00 / 0.00 | 0% | 0% |
+ lagging timeouts per match 0.00; sweep 4.0 s
+ GDD v2 bands: win 90%-100%, median 0-900 s
+ idle survivor outcomes: exit escapes 279/280, collapse losses 1/280
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "idle killer + 7", survivors: 0, seedStart: 1001) [5 s]
+  표준 출력 메시지:
+ seed 1001:  172.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 144 op 164 stall 0 (longest 6 s)
+ seed 1002:  243.3s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 195 op 216 stall 0 (longest 12 s)
+ seed 1003:  234.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 193 op 217 stall 0 (longest 17 s)
+ seed 1004:  219.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 188 op 207 stall 0 (longest 9 s)
+ seed 1005:  225.1s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 213 stall 0 (longest 12 s)
+ seed 1006:  194.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 148 op 167 stall 0 (longest 15 s)
+ seed 1007:  170.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 140 op 159 stall 0 (longest 7 s)
+ seed 1008:  343.8s Survivor Collapse         terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 5 pw 202 op 224 stall 0 (longest 96 s)
+ seed 1009:  260.3s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 217 op 242 stall 0 (longest 14 s)
+ seed 1010:  302.7s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 260 op 287 stall 0 (longest 54 s)
+ seed 1011:  237.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 198 op 220 stall 0 (longest 10 s)
+ seed 1012:  324.3s Survivor Collapse         terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 5 pw 180 op 204 stall 0 (longest 101 s)
+ seed 1013:  228.4s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 197 op 216 stall 0 (longest 11 s)
+ seed 1014:  245.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 200 op 225 stall 0 (longest 8 s)
+ seed 1015:  211.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 167 op 188 stall 0 (longest 12 s)
+ seed 1016:  242.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 202 op 226 stall 0 (longest 24 s)
+ seed 1017:  256.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 213 op 232 stall 0 (longest 12 s)
+ seed 1018:  221.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 188 op 208 stall 0 (longest 12 s)
+ seed 1019:  264.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 215 op 240 stall 0 (longest 11 s)
+ seed 1020:  278.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 233 op 255 stall 0 (longest 24 s)
+ seed 1021:  267.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 218 op 243 stall 0 (longest 16 s)
+ seed 1022:  266.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 222 op 248 stall 0 (longest 26 s)
+ seed 1023:  324.3s Survivor Collapse         terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 6 pw 183 op 204 stall 0 (longest 101 s)
+ seed 1024:  279.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 234 op 256 stall 0 (longest 31 s)
+ seed 1025:  278.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 233 op 255 stall 0 (longest 32 s)
+ seed 1026:  244.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 191 op 216 stall 0 (longest 11 s)
+ seed 1027:  209.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 170 op 192 stall 0 (longest 6 s)
+ seed 1028:  252.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 207 op 226 stall 0 (longest 13 s)
+ seed 1029:  198.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 156 op 175 stall 0 (longest 9 s)
+ seed 1030:  242.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 219 stall 0 (longest 10 s)
+ seed 1031:  241.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 214 stall 0 (longest 10 s)
+ seed 1032:  252.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 209 op 234 stall 0 (longest 11 s)
+ seed 1033:  229.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 182 op 204 stall 0 (longest 13 s)
+ seed 1034:  266.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 217 op 242 stall 0 (longest 26 s)
+ seed 1035:  213.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 179 op 198 stall 0 (longest 9 s)
+ seed 1036:  229.4s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 185 op 211 stall 0 (longest 11 s)
+ seed 1037:  149.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 116 op 135 stall 0 (longest 8 s)
+ seed 1038:  236.8s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 188 op 210 stall 0 (longest 11 s)
+ seed 1039:  174.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 141 op 160 stall 0 (longest 7 s)
+ seed 1040:  238.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 219 stall 0 (longest 7 s)
+ idle killer + 7 seeds 1001-1040: stall windows 0 in 0 matches (seeds ); longest gap 101 s; silent time-ups 0 (); sweep 5.3 s
+
+
+  통과 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 0, medianMax: 900, timeoutMax: 1, reqRescueShare: 0) [4 s]
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: idle killer + 7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | idle killer + 7 | 100% | 242 s (221/265) | AllResolved 37, Collapse 3 | 5.15 | 0.00 / 0.00 / 0.00 | 0% | 0% |
+ Lagging timeouts per match: 0.00; elapsed: 4.3 s
+ idle survivor outcomes: exit escapes 275/280, collapse losses 5/280
+
+
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.BalanceSweepMeetsTheTargets(config: "1v7", survivors: 7, winMin: 0.29999999999999999, winMax: 0.55000000000000004, medianMin: 540, medianMax: 660, timeoutMax: 0.10000000000000001) [2 s]
+  표준 출력 메시지:
+ seed   1:  428.4s Survivor AllResolved      terminals 5/5 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 6 pw 386 op 405 stall 0 (longest 18 s)
+ seed   2:  341.8s Survivor Collapse         terminals 5/5 cap 6 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 4 pw 247 op 272 stall 0 (longest 50 s)
+ seed   3:  604.9s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 0 escaped 5 pw 513 op 531 stall 0 (longest 43 s)
+ seed   4:  727.1s Killer   AllResolved      terminals 7/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 3 pw 539 op 702 stall 0 (longest 32 s)
+ seed   5:  657.3s Killer   AllResolved      terminals 5/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 3 pw 568 op 610 stall 0 (longest 30 s)
+ seed   6:  569.9s Survivor Collapse         terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 6 pw 489 op 510 stall 0 (longest 40 s)
+ seed   7:  470.5s Survivor AllResolved      terminals 5/5 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 7 pw 436 op 457 stall 0 (longest 26 s)
+ seed   8:  492.7s Survivor AllResolved      terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 4 pw 405 op 439 stall 0 (longest 39 s)
+ seed   9:  640.2s Killer   Collapse         terminals 3/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 580 op -1 stall 0 (longest 60 s)
+ seed  10:  686.6s Killer   AllResolved      terminals 7/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 3 pw 545 op 666 stall 0 (longest 25 s)
+ seed  11:  497.9s Killer   AllResolved      terminals 2/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 1 pw 463 op 497 stall 0 (longest 25 s)
+ seed  12:  900.0s Killer   TimeUp           terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 811 op -1 stall 0 (longest 24 s)
+ seed  13:  707.5s Killer   AllResolved      terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 1 pw 631 op -1 stall 0 (longest 28 s)
+ seed  14:  577.5s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 11 exe 0 lagTimeout 0 escaped 6 pw 544 op 563 stall 0 (longest 30 s)
+ seed  15:  590.6s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 2 pw 419 op 530 stall 0 (longest 44 s)
+ seed  16:  653.0s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 12 exe 0 lagTimeout 1 escaped 3 pw 578 op 600 stall 0 (longest 30 s)
+ seed  17:  595.2s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 2 pw 489 op 523 stall 0 (longest 25 s)
+ seed  18:  600.9s Survivor Collapse         terminals 6/5 cap 7 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 4 pw 454 op 541 stall 0 (longest 28 s)
+ seed  19:  551.4s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 1 escaped 4 pw 455 op 487 stall 0 (longest 31 s)
+ seed  20:  470.1s Killer   Collapse         terminals 5/5 cap 6 (2nd 0) res 2 exe 0 lagTimeout 1 escaped 3 pw 387 op 408 stall 0 (longest 41 s)
+ seed  21:  499.0s Survivor AllResolved      terminals 5/5 cap 9 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 5 pw 446 op 487 stall 0 (longest 26 s)
+ seed  22:  336.8s Survivor AllResolved      terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 7 pw 301 op 325 stall 0 (longest 18 s)
+ seed  23:  714.6s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 4 pw 638 op 671 stall 0 (longest 30 s)
+ seed  24:  714.5s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 13 exe 0 lagTimeout 0 escaped 1 pw 564 op 699 stall 0 (longest 35 s)
+ seed  25:  380.3s Survivor AllResolved      terminals 5/5 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 7 pw 343 op 362 stall 0 (longest 28 s)
+ seed  26:  492.8s Killer   AllResolved      terminals 6/5 cap 10 (2nd 0) res 8 exe 0 lagTimeout 2 escaped 3 pw 358 op 462 stall 0 (longest 26 s)
+ seed  27:  569.2s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 1 pw 449 op 568 stall 0 (longest 21 s)
+ seed  28:  304.9s Survivor AllResolved      terminals 5/5 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 7 pw 267 op 288 stall 0 (longest 17 s)
+ seed  29:  519.9s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 5 pw 460 op 496 stall 0 (longest 37 s)
+ seed  30:  483.8s Survivor AllResolved      terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 6 pw 452 op 471 stall 0 (longest 24 s)
+ seed  31:  900.0s Killer   TimeUp           terminals 4/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  32:  852.8s Survivor AllResolved      terminals 5/5 cap 7 (2nd 0) res 6 exe 0 lagTimeout 1 escaped 5 pw 775 op 809 stall 0 (longest 40 s)
+ seed  33:  900.0s Killer   TimeUp           terminals 4/5 cap 13 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 79 s)
+ seed  34:  527.0s Killer   AllResolved      terminals 5/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 1 escaped 1 pw 427 op -1 stall 0 (longest 27 s)
+ seed  35:  853.1s Survivor AllResolved      terminals 5/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 4 pw 739 op 826 stall 0 (longest 19 s)
+ seed  36:  681.7s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 2 pw 574 op 615 stall 0 (longest 47 s)
+ seed  37:  657.2s Killer   AllResolved      terminals 5/5 cap 14 (2nd 0) res 10 exe 0 lagTimeout 4 escaped 1 pw 565 op 642 stall 0 (longest 30 s)
+ seed  38:  635.2s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 5 pw 581 op 608 stall 0 (longest 38 s)
+ seed  39:  531.0s Killer   AllResolved      terminals 6/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 2 pw 382 op 521 stall 0 (longest 17 s)
+ seed  40:  813.5s Killer   AllSurvivorsDown terminals 5/5 cap 13 (2nd 0) res 10 exe 0 lagTimeout 3 escaped 0 pw 684 op -1 stall 0 (longest 71 s)
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 | 48% | 593 s (497/692) | resolved 26, collapse 10, time up 3, all down 1 | 5.00 | 9.80 / 8.43 / 0.00 | 8% | 100% |
+ lagging timeouts per match 0.98; sweep 3.0 s
+ GDD v2 bands: win 30%-55%, median 540-660 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "idle survivor + 6", survivors: -1, seedStart: 1001) [3 s]
+  표준 출력 메시지:
+ seed 1001:  786.3s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 2 escaped 0 pw 475 op -1 stall 0 (longest 40 s)
+ seed 1002:  836.5s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 7 exe 0 lagTimeout 4 escaped 0 pw 497 op -1 stall 0 (longest 90 s)
+ seed 1003:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 7 exe 0 lagTimeout 5 escaped 0 pw 792 op -1 stall 0 (longest 52 s)
+ seed 1004:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 8 exe 0 lagTimeout 4 escaped 0 pw 809 op -1 stall 0 (longest 45 s)
+ seed 1005:  503.7s Killer   Collapse         terminals 3/5 cap 10 (2nd 0) res 3 exe 0 lagTimeout 6 escaped 0 pw 426 op -1 stall 0 (longest 81 s)
+ seed 1006:  900.0s Killer   TimeUp           terminals 5/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 852 op -1 stall 0 (longest 35 s)
+ seed 1007:  570.2s Survivor Collapse         terminals 5/5 cap 5 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 5 pw 431 op 450 stall 0 (longest 48 s)
+ seed 1008:  636.9s Killer   Collapse         terminals 5/5 cap 8 (2nd 0) res 5 exe 0 lagTimeout 2 escaped 3 pw 498 op 517 stall 0 (longest 50 s)
+ seed 1009:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 12 exe 0 lagTimeout 0 escaped 0 pw 798 op -1 stall 0 (longest 36 s)
+ seed 1010:  623.3s Survivor Collapse         terminals 5/5 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 6 pw 460 op 503 stall 0 (longest 47 s)
+ seed 1011:  758.6s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 1 pw 609 op 639 stall 0 (longest 30 s)
+ seed 1012:  712.9s Killer   Collapse         terminals 5/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 3 pw 553 op 593 stall 0 (longest 27 s)
+ seed 1013:  550.7s Killer   Collapse         terminals 5/5 cap 9 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 2 pw 409 op 431 stall 0 (longest 49 s)
+ seed 1014:  414.4s Survivor Collapse         terminals 5/5 cap 4 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 4 pw 275 op 294 stall 0 (longest 48 s)
+ seed 1015:  900.0s Killer   TimeUp           terminals 5/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 2 escaped 2 pw 705 op 830 stall 0 (longest 29 s)
+ seed 1016:  874.4s Killer   Collapse         terminals 4/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 0 pw 754 op -1 stall 0 (longest 54 s)
+ seed 1017:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 42 s)
+ seed 1018:  576.3s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 1 pw 321 op 456 stall 0 (longest 26 s)
+ seed 1019:  675.3s Survivor Collapse         terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 6 pw 531 op 555 stall 0 (longest 16 s)
+ seed 1020:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 57 s)
+ seed 1021:  798.5s Killer   Collapse         terminals 5/5 cap 9 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 3 pw 601 op 678 stall 0 (longest 42 s)
+ seed 1022:  900.0s Killer   TimeUp           terminals 4/5 cap 10 (2nd 0) res 8 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1023:  816.5s Killer   Collapse         terminals 5/5 cap 8 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 3 pw 666 op 696 stall 0 (longest 23 s)
+ seed 1024:  475.9s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 5 pw 300 op 356 stall 0 (longest 17 s)
+ seed 1025:  683.0s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 4 pw 540 op 563 stall 0 (longest 29 s)
+ seed 1026:  900.0s Killer   TimeUp           terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 0 pw 749 op -1 stall 0 (longest 41 s)
+ seed 1027:  651.0s Survivor Collapse         terminals 5/5 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 6 pw 512 op 531 stall 0 (longest 27 s)
+ seed 1028:  900.0s Killer   TimeUp           terminals 5/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 0 pw 872 op -1 stall 0 (longest 49 s)
+ seed 1029:  588.4s Killer   Collapse         terminals 6/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 3 pw 440 op 468 stall 0 (longest 48 s)
+ seed 1030:  900.0s Killer   TimeUp           terminals 4/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 51 s)
+ seed 1031:  679.4s Killer   Collapse         terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 3 pw 519 op 559 stall 0 (longest 30 s)
+ seed 1032:  648.5s Killer   Collapse         terminals 7/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 2 pw 428 op 528 stall 0 (longest 31 s)
+ seed 1033:  900.0s Killer   TimeUp           terminals 6/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 0 pw 590 op -1 stall 0 (longest 30 s)
+ seed 1034:  656.6s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 6 exe 0 lagTimeout 4 escaped 1 pw 371 op 537 stall 0 (longest 27 s)
+ seed 1035:  651.0s Killer   AllSurvivorsDown terminals 4/5 cap 13 (2nd 0) res 7 exe 0 lagTimeout 6 escaped 0 pw -1 op -1 stall 0 (longest 52 s)
+ seed 1036:  636.2s Killer   Collapse         terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 3 pw 492 op 516 stall 0 (longest 43 s)
+ seed 1037:  735.3s Killer   Collapse         terminals 6/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 2 escaped 3 pw 511 op 615 stall 0 (longest 29 s)
+ seed 1038:  900.0s Killer   TimeUp           terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 667 op -1 stall 0 (longest 40 s)
+ seed 1039:  897.2s Killer   Collapse         terminals 6/5 cap 11 (2nd 0) res 11 exe 0 lagTimeout 0 escaped 3 pw 682 op 777 stall 0 (longest 37 s)
+ seed 1040:  885.6s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 2 pw 746 op 766 stall 0 (longest 39 s)
+ idle survivor + 6 seeds 1001-1040: stall windows 0 in 0 matches (seeds ); longest gap 90 s; silent time-ups 0 (); sweep 3.3 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v7", survivors: 7, seedStart: 1) [1 m 3 s]
+  표준 출력 메시지:
+ seed   1:  428.4s Survivor AllResolved      terminals 5/5 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 6 pw 386 op 405 stall 0 (longest 18 s)
+ seed   2:  341.8s Survivor Collapse         terminals 5/5 cap 6 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 4 pw 247 op 272 stall 0 (longest 50 s)
+ seed   3:  604.9s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 0 escaped 5 pw 513 op 531 stall 0 (longest 43 s)
+ seed   4:  727.1s Killer   AllResolved      terminals 7/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 3 pw 539 op 702 stall 0 (longest 32 s)
+ seed   5:  657.3s Killer   AllResolved      terminals 5/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 3 pw 568 op 610 stall 0 (longest 30 s)
+ seed   6:  569.9s Survivor Collapse         terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 6 pw 489 op 510 stall 0 (longest 40 s)
+ seed   7:  470.5s Survivor AllResolved      terminals 5/5 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 7 pw 436 op 457 stall 0 (longest 26 s)
+ seed   8:  492.7s Survivor AllResolved      terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 4 pw 405 op 439 stall 0 (longest 39 s)
+ seed   9:  640.2s Killer   Collapse         terminals 3/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 580 op -1 stall 0 (longest 60 s)
+ seed  10:  686.6s Killer   AllResolved      terminals 7/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 3 pw 545 op 666 stall 0 (longest 25 s)
+ seed  11:  497.9s Killer   AllResolved      terminals 2/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 1 pw 463 op 497 stall 0 (longest 25 s)
+ seed  12:  900.0s Killer   TimeUp           terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 811 op -1 stall 0 (longest 24 s)
+ seed  13:  707.5s Killer   AllResolved      terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 1 pw 631 op -1 stall 0 (longest 28 s)
+ seed  14:  577.5s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 11 exe 0 lagTimeout 0 escaped 6 pw 544 op 563 stall 0 (longest 30 s)
+ seed  15:  590.6s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 2 pw 419 op 530 stall 0 (longest 44 s)
+ seed  16:  653.0s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 12 exe 0 lagTimeout 1 escaped 3 pw 578 op 600 stall 0 (longest 30 s)
+ seed  17:  595.2s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 2 pw 489 op 523 stall 0 (longest 25 s)
+ seed  18:  600.9s Survivor Collapse         terminals 6/5 cap 7 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 4 pw 454 op 541 stall 0 (longest 28 s)
+ seed  19:  551.4s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 1 escaped 4 pw 455 op 487 stall 0 (longest 31 s)
+ seed  20:  470.1s Killer   Collapse         terminals 5/5 cap 6 (2nd 0) res 2 exe 0 lagTimeout 1 escaped 3 pw 387 op 408 stall 0 (longest 41 s)
+ seed  21:  499.0s Survivor AllResolved      terminals 5/5 cap 9 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 5 pw 446 op 487 stall 0 (longest 26 s)
+ seed  22:  336.8s Survivor AllResolved      terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 7 pw 301 op 325 stall 0 (longest 18 s)
+ seed  23:  714.6s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 4 pw 638 op 671 stall 0 (longest 30 s)
+ seed  24:  714.5s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 13 exe 0 lagTimeout 0 escaped 1 pw 564 op 699 stall 0 (longest 35 s)
+ seed  25:  380.3s Survivor AllResolved      terminals 5/5 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 7 pw 343 op 362 stall 0 (longest 28 s)
+ seed  26:  492.8s Killer   AllResolved      terminals 6/5 cap 10 (2nd 0) res 8 exe 0 lagTimeout 2 escaped 3 pw 358 op 462 stall 0 (longest 26 s)
+ seed  27:  569.2s Killer   AllResolved      terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 1 pw 449 op 568 stall 0 (longest 21 s)
+ seed  28:  304.9s Survivor AllResolved      terminals 5/5 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 7 pw 267 op 288 stall 0 (longest 17 s)
+ seed  29:  519.9s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 5 pw 460 op 496 stall 0 (longest 37 s)
+ seed  30:  483.8s Survivor AllResolved      terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 6 pw 452 op 471 stall 0 (longest 24 s)
+ seed  31:  900.0s Killer   TimeUp           terminals 4/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  32:  852.8s Survivor AllResolved      terminals 5/5 cap 7 (2nd 0) res 6 exe 0 lagTimeout 1 escaped 5 pw 775 op 809 stall 0 (longest 40 s)
+ seed  33:  900.0s Killer   TimeUp           terminals 4/5 cap 13 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 79 s)
+ seed  34:  527.0s Killer   AllResolved      terminals 5/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 1 escaped 1 pw 427 op -1 stall 0 (longest 27 s)
+ seed  35:  853.1s Survivor AllResolved      terminals 5/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 4 pw 739 op 826 stall 0 (longest 19 s)
+ seed  36:  681.7s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 2 pw 574 op 615 stall 0 (longest 47 s)
+ seed  37:  657.2s Killer   AllResolved      terminals 5/5 cap 14 (2nd 0) res 10 exe 0 lagTimeout 4 escaped 1 pw 565 op 642 stall 0 (longest 30 s)
+ seed  38:  635.2s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 5 pw 581 op 608 stall 0 (longest 38 s)
+ seed  39:  531.0s Killer   AllResolved      terminals 6/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 2 pw 382 op 521 stall 0 (longest 17 s)
+ seed  40:  813.5s Killer   AllSurvivorsDown terminals 5/5 cap 13 (2nd 0) res 10 exe 0 lagTimeout 3 escaped 0 pw 684 op -1 stall 0 (longest 71 s)
+ 1v7 seeds 1-40: stall windows 0 in 0 matches (seeds ); longest gap 79 s; silent time-ups 0 (); sweep 63.7 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v7", survivors: 7, seedStart: 1001) [40 s]
+  표준 출력 메시지:
+ seed 1001:  531.6s Survivor Collapse         terminals 5/5 cap 8 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 4 pw 441 op 467 stall 0 (longest 44 s)
+ seed 1002:  629.8s Survivor AllResolved      terminals 5/5 cap 12 (2nd 0) res 12 exe 0 lagTimeout 0 escaped 6 pw 573 op 600 stall 0 (longest 26 s)
+ seed 1003:  506.9s Survivor AllResolved      terminals 5/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 5 pw 427 op 453 stall 0 (longest 30 s)
+ seed 1004:  589.3s Killer   AllSurvivorsDown terminals 2/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 30 s)
+ seed 1005:  657.4s Survivor Collapse         terminals 7/5 cap 7 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 6 pw 507 op 597 stall 0 (longest 29 s)
+ seed 1006:  559.2s Survivor Collapse         terminals 6/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 0 escaped 4 pw 449 op 489 stall 0 (longest 50 s)
+ seed 1007:  619.0s Survivor Collapse         terminals 6/5 cap 7 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 5 pw 520 op 559 stall 0 (longest 42 s)
+ seed 1008:  759.5s Killer   AllResolved      terminals 5/5 cap 14 (2nd 0) res 13 exe 0 lagTimeout 1 escaped 1 pw 652 op 758 stall 0 (longest 32 s)
+ seed 1009:  488.2s Killer   Collapse         terminals 7/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 1 pw 333 op 419 stall 0 (longest 41 s)
+ seed 1010:  813.6s Survivor AllResolved      terminals 5/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 5 pw 762 op 811 stall 0 (longest 32 s)
+ seed 1011:  538.2s Survivor Collapse         terminals 6/5 cap 6 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 5 pw 440 op 478 stall 0 (longest 47 s)
+ seed 1012:  392.4s Survivor AllResolved      terminals 5/5 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 7 pw 340 op 365 stall 0 (longest 24 s)
+ seed 1013:  532.8s Survivor AllResolved      terminals 5/5 cap 11 (2nd 0) res 11 exe 0 lagTimeout 0 escaped 4 pw 482 op 508 stall 0 (longest 22 s)
+ seed 1014:  664.9s Killer   Collapse         terminals 6/5 cap 9 (2nd 0) res 7 exe 0 lagTimeout 1 escaped 2 pw 519 op 599 stall 0 (longest 36 s)
+ seed 1015:  421.8s Killer   AllSurvivorsDown terminals 3/5 cap 12 (2nd 0) res 6 exe 0 lagTimeout 6 escaped 0 pw 396 op -1 stall 0 (longest 44 s)
+ seed 1016:  660.4s Killer   Collapse         terminals 5/5 cap 13 (2nd 0) res 12 exe 0 lagTimeout 0 escaped 3 pw 567 op 600 stall 0 (longest 45 s)
+ seed 1017:  790.7s Killer   AllResolved      terminals 7/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 1 escaped 3 pw 597 op 764 stall 0 (longest 20 s)
+ seed 1018:  418.7s Survivor AllResolved      terminals 5/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 5 pw 347 op 400 stall 0 (longest 16 s)
+ seed 1019:  507.7s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 1 escaped 4 pw 427 op 453 stall 0 (longest 29 s)
+ seed 1020:  724.6s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 6 pw 694 op 712 stall 0 (longest 36 s)
+ seed 1021:  578.8s Survivor AllResolved      terminals 6/5 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 7 pw 534 op 560 stall 0 (longest 25 s)
+ seed 1022:  461.6s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 4 pw 386 op 411 stall 0 (longest 28 s)
+ seed 1023:  538.6s Survivor AllResolved      terminals 6/5 cap 7 (2nd 0) res 7 exe 0 lagTimeout 0 escaped 4 pw 475 op 518 stall 0 (longest 15 s)
+ seed 1024:  771.8s Killer   AllResolved      terminals 5/5 cap 11 (2nd 0) res 11 exe 0 lagTimeout 0 escaped 3 pw 721 op 747 stall 0 (longest 33 s)
+ seed 1025:  502.3s Survivor AllResolved      terminals 5/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 1 escaped 4 pw 437 op 462 stall 0 (longest 28 s)
+ seed 1026:  481.8s Survivor AllResolved      terminals 7/5 cap 8 (2nd 0) res 7 exe 0 lagTimeout 1 escaped 4 pw 328 op 434 stall 0 (longest 17 s)
+ seed 1027:  685.8s Killer   AllResolved      terminals 6/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 2 pw 579 op 666 stall 0 (longest 36 s)
+ seed 1028:  769.7s Killer   AllResolved      terminals 5/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 3 pw 716 op 746 stall 0 (longest 34 s)
+ seed 1029:  705.4s Killer   AllSurvivorsDown terminals 6/5 cap 14 (2nd 0) res 11 exe 0 lagTimeout 3 escaped 0 pw 476 op -1 stall 0 (longest 37 s)
+ seed 1030:  457.3s Killer   Collapse         terminals 5/5 cap 7 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 3 pw 372 op 390 stall 0 (longest 49 s)
+ seed 1031:  541.8s Killer   AllResolved      terminals 5/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 1 pw 465 op 541 stall 0 (longest 24 s)
+ seed 1032:  746.5s Killer   AllSurvivorsDown terminals 5/5 cap 13 (2nd 0) res 10 exe 0 lagTimeout 3 escaped 0 pw 586 op -1 stall 0 (longest 65 s)
+ seed 1033:  734.1s Killer   AllResolved      terminals 6/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 1 pw 592 op 690 stall 0 (longest 42 s)
+ seed 1034:  777.3s Killer   AllSurvivorsDown terminals 5/5 cap 13 (2nd 0) res 9 exe 0 lagTimeout 4 escaped 0 pw 650 op -1 stall 0 (longest 38 s)
+ seed 1035:  634.8s Survivor Collapse         terminals 5/5 cap 10 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 5 pw 531 op 562 stall 0 (longest 31 s)
+ seed 1036:  566.6s Killer   Collapse         terminals 5/5 cap 10 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 2 pw 406 op 504 stall 0 (longest 46 s)
+ seed 1037:  699.6s Killer   Collapse         terminals 7/5 cap 10 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 3 pw 550 op 637 stall 0 (longest 51 s)
+ seed 1038:  578.1s Survivor Collapse         terminals 5/5 cap 7 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 5 pw 483 op 518 stall 0 (longest 35 s)
+ seed 1039:  584.4s Survivor Collapse         terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 4 pw 497 op 522 stall 0 (longest 41 s)
+ seed 1040:  471.1s Killer   AllResolved      terminals 5/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 3 pw 381 op 451 stall 0 (longest 37 s)
+ 1v7 seeds 1001-1040: stall windows 0 in 0 matches (seeds ); longest gap 65 s; silent time-ups 0 (); sweep 40.2 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v1", survivors: 1, seedStart: 1001) [707 ms]
+  표준 출력 메시지:
+ seed 1001:  605.3s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 575 op 604 stall 0 (longest 35 s)
+ seed 1002:  676.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 646 op 676 stall 0 (longest 38 s)
+ seed 1003:  644.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 624 op 643 stall 0 (longest 41 s)
+ seed 1004:  596.3s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1005:  121.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1006:  519.8s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 499 op 519 stall 0 (longest 36 s)
+ seed 1007:  900.0s Killer   TimeUp           terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 54 s)
+ seed 1008:  652.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 629 op 651 stall 0 (longest 46 s)
+ seed 1009:  120.1s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1010:  611.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 591 op 610 stall 0 (longest 49 s)
+ seed 1011:  120.3s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1012:  117.1s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1013:  343.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1014:  366.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1015:  900.0s Killer   TimeUp           terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1016:  204.6s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1017:  708.5s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1018:  828.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 809 op 828 stall 0 (longest 47 s)
+ seed 1019:  870.4s Killer   AllSurvivorsDown terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw 763 op -1 stall 0 (longest 90 s)
+ seed 1020:  561.6s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 531 op 560 stall 0 (longest 45 s)
+ seed 1021:  619.2s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 589 op 618 stall 0 (longest 37 s)
+ seed 1022:  648.4s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1023:  131.8s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1024:  687.3s Killer   AllSurvivorsDown terminals 2/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1025:  289.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1026:  555.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 526 op 555 stall 0 (longest 50 s)
+ seed 1027:  465.9s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1028:  900.0s Killer   TimeUp           terminals 3/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 0 pw 849 op -1 stall 0 (longest 54 s)
+ seed 1029:  332.7s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1030:  208.4s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1031:  584.1s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 555 op 583 stall 0 (longest 41 s)
+ seed 1032:  736.2s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 707 op 735 stall 0 (longest 50 s)
+ seed 1033:  645.9s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 623 op 645 stall 0 (longest 43 s)
+ seed 1034:  659.3s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 637 op 658 stall 0 (longest 45 s)
+ seed 1035:  451.9s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1036:  130.5s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1037:  214.3s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1038:  630.4s Survivor AllResolved      terminals 3/3 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 1 pw 601 op 629 stall 0 (longest 39 s)
+ seed 1039:  420.4s Killer   AllSurvivorsDown terminals 1/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ seed 1040:  162.0s Killer   AllSurvivorsDown terminals 0/3 cap 1 (2nd 0) res 0 exe 0 lagTimeout 1 escaped 0 pw -1 op -1 stall 0 (longest 90 s)
+ 1v1 seeds 1001-1040: stall windows 0 in 0 matches (seeds ); longest gap 90 s; silent time-ups 0 (); sweep 0.7 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "idle killer + 7", survivors: 0, seedStart: 1) [1 s]
+  표준 출력 메시지:
+ seed   1:  267.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 221 op 240 stall 0 (longest 13 s)
+ seed   2:  215.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 184 op 203 stall 0 (longest 13 s)
+ seed   3:  226.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 191 op 210 stall 0 (longest 7 s)
+ seed   4:  294.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 247 op 274 stall 0 (longest 23 s)
+ seed   5:  265.2s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 216 op 242 stall 0 (longest 17 s)
+ seed   6:  214.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 183 op 202 stall 0 (longest 11 s)
+ seed   7:  233.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 192 op 214 stall 0 (longest 9 s)
+ seed   8:  203.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 166 op 186 stall 0 (longest 8 s)
+ seed   9:  308.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 263 op 291 stall 0 (longest 46 s)
+ seed  10:  227.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 184 op 208 stall 0 (longest 8 s)
+ seed  11:  259.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 212 op 237 stall 0 (longest 33 s)
+ seed  12:  282.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 248 op 270 stall 0 (longest 36 s)
+ seed  13:  206.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 176 op 195 stall 0 (longest 7 s)
+ seed  14:  228.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 182 op 203 stall 0 (longest 13 s)
+ seed  15:  289.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 247 op 272 stall 0 (longest 6 s)
+ seed  16:  209.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 178 op 197 stall 0 (longest 11 s)
+ seed  17:  212.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 181 op 200 stall 0 (longest 6 s)
+ seed  18:  237.5s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 189 op 211 stall 0 (longest 12 s)
+ seed  19:  232.1s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 193 op 215 stall 0 (longest 11 s)
+ seed  20:  232.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 194 op 216 stall 0 (longest 10 s)
+ seed  21:  247.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 200 op 228 stall 0 (longest 18 s)
+ seed  22:  179.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 151 op 170 stall 0 (longest 7 s)
+ seed  23:  204.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 175 op 195 stall 0 (longest 6 s)
+ seed  24:  257.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 214 op 239 stall 0 (longest 17 s)
+ seed  25:  268.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 230 op 251 stall 0 (longest 23 s)
+ seed  26:  194.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 153 op 178 stall 0 (longest 8 s)
+ seed  27:  339.6s Survivor Collapse         terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 6 pw 195 op 220 stall 0 (longest 94 s)
+ seed  28:  249.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 201 op 226 stall 0 (longest 11 s)
+ seed  29:  243.2s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 200 op 219 stall 0 (longest 7 s)
+ seed  30:  255.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 212 op 231 stall 0 (longest 12 s)
+ seed  31:  221.0s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 179 op 201 stall 0 (longest 10 s)
+ seed  32:  248.3s Survivor AllResolved      terminals 6/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 201 op 229 stall 0 (longest 28 s)
+ seed  33:  230.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 182 op 208 stall 0 (longest 9 s)
+ seed  34:  143.1s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 115 op 134 stall 0 (longest 4 s)
+ seed  35:  221.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 186 op 205 stall 0 (longest 8 s)
+ seed  36:  219.9s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 188 op 208 stall 0 (longest 10 s)
+ seed  37:  237.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 197 op 219 stall 0 (longest 10 s)
+ seed  38:  254.6s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 209 op 231 stall 0 (longest 17 s)
+ seed  39:  261.7s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 215 op 235 stall 0 (longest 15 s)
+ seed  40:  235.4s Survivor AllResolved      terminals 5/5 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 7 pw 186 op 208 stall 0 (longest 12 s)
+ idle killer + 7 seeds 1-40: stall windows 0 in 0 matches (seeds ); longest gap 94 s; silent time-ups 0 (); sweep 1.9 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "idle survivor + 6", survivors: -1, seedStart: 1) [4 s]
+  표준 출력 메시지:
+ seed   1:  804.5s Survivor Collapse         terminals 5/5 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 5 pw 657 op 684 stall 0 (longest 36 s)
+ seed   2:  900.0s Killer   TimeUp           terminals 2/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 0 pw 824 op -1 stall 0 (longest 58 s)
+ seed   3:  900.0s Killer   TimeUp           terminals 4/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 0 pw 899 op -1 stall 0 (longest 40 s)
+ seed   4:  880.6s Survivor Collapse         terminals 5/5 cap 10 (2nd 0) res 10 exe 0 lagTimeout 0 escaped 4 pw 721 op 761 stall 0 (longest 37 s)
+ seed   5:  900.0s Killer   TimeUp           terminals 3/5 cap 12 (2nd 0) res 8 exe 0 lagTimeout 4 escaped 0 pw -1 op -1 stall 0 (longest 43 s)
+ seed   6:  719.4s Killer   Collapse         terminals 5/5 cap 9 (2nd 0) res 5 exe 0 lagTimeout 3 escaped 2 pw 516 op 599 stall 0 (longest 44 s)
+ seed   7:  617.5s Killer   Collapse         terminals 1/5 cap 12 (2nd 0) res 7 exe 0 lagTimeout 5 escaped 0 pw 497 op -1 stall 0 (longest 36 s)
+ seed   8:  881.8s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 2 pw 706 op 762 stall 0 (longest 32 s)
+ seed   9:  900.0s Killer   TimeUp           terminals 4/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 30 s)
+ seed  10:  839.4s Killer   Collapse         terminals 4/5 cap 11 (2nd 0) res 7 exe 0 lagTimeout 4 escaped 0 pw 719 op -1 stall 0 (longest 65 s)
+ seed  11:  887.6s Killer   Collapse         terminals 3/5 cap 11 (2nd 0) res 9 exe 0 lagTimeout 2 escaped 0 pw 768 op -1 stall 0 (longest 90 s)
+ seed  12:  607.3s Survivor Collapse         terminals 6/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 4 pw 428 op 487 stall 0 (longest 50 s)
+ seed  13:  785.1s Killer   AllSurvivorsDown terminals 4/5 cap 14 (2nd 0) res 10 exe 0 lagTimeout 4 escaped 0 pw -1 op -1 stall 0 (longest 29 s)
+ seed  14:  491.8s Survivor Collapse         terminals 5/5 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 6 pw 343 op 372 stall 0 (longest 19 s)
+ seed  15:  900.0s Killer   TimeUp           terminals 5/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 0 pw 844 op -1 stall 0 (longest 42 s)
+ seed  16:  642.9s Killer   Collapse         terminals 3/5 cap 10 (2nd 0) res 5 exe 0 lagTimeout 5 escaped 0 pw 523 op -1 stall 0 (longest 44 s)
+ seed  17:  684.8s Killer   Collapse         terminals 5/5 cap 9 (2nd 0) res 6 exe 0 lagTimeout 3 escaped 2 pw 534 op 565 stall 0 (longest 32 s)
+ seed  18:  398.4s Survivor Collapse         terminals 5/5 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 6 pw 259 op 278 stall 0 (longest 26 s)
+ seed  19:  535.4s Survivor Collapse         terminals 5/5 cap 5 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 4 pw 387 op 415 stall 0 (longest 49 s)
+ seed  20:  663.4s Survivor Collapse         terminals 5/5 cap 7 (2nd 0) res 7 exe 0 lagTimeout 0 escaped 6 pw 524 op 543 stall 0 (longest 27 s)
+ seed  21:  848.6s Killer   Collapse         terminals 6/5 cap 12 (2nd 0) res 11 exe 0 lagTimeout 1 escaped 0 pw 549 op -1 stall 0 (longest 28 s)
+ seed  22:  715.8s Survivor Collapse         terminals 6/5 cap 9 (2nd 0) res 9 exe 0 lagTimeout 0 escaped 4 pw 494 op 596 stall 0 (longest 26 s)
+ seed  23:  900.0s Killer   TimeUp           terminals 5/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 2 pw 847 op 876 stall 0 (longest 46 s)
+ seed  24:  602.5s Killer   Collapse         terminals 6/5 cap 8 (2nd 0) res 6 exe 0 lagTimeout 2 escaped 3 pw 408 op 482 stall 0 (longest 29 s)
+ seed  25:  900.0s Killer   TimeUp           terminals 5/5 cap 13 (2nd 0) res 11 exe 0 lagTimeout 2 escaped 0 pw 738 op -1 stall 0 (longest 30 s)
+ seed  26:  688.4s Killer   Collapse         terminals 7/5 cap 7 (2nd 0) res 4 exe 0 lagTimeout 2 escaped 3 pw 466 op 568 stall 0 (longest 46 s)
+ seed  27:  878.7s Killer   AllSurvivorsDown terminals 4/5 cap 12 (2nd 0) res 8 exe 0 lagTimeout 4 escaped 0 pw 874 op -1 stall 0 (longest 51 s)
+ seed  28:  685.0s Survivor Collapse         terminals 5/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 0 escaped 4 pw 508 op 565 stall 0 (longest 49 s)
+ seed  29:  734.2s Killer   Collapse         terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 2 pw 589 op 614 stall 0 (longest 30 s)
+ seed  30:  751.9s Killer   Collapse         terminals 5/5 cap 12 (2nd 0) res 12 exe 0 lagTimeout 0 escaped 2 pw 611 op 632 stall 0 (longest 26 s)
+ seed  31:  900.0s Killer   TimeUp           terminals 5/5 cap 11 (2nd 0) res 8 exe 0 lagTimeout 3 escaped 0 pw 667 op -1 stall 0 (longest 70 s)
+ seed  32:  900.0s Survivor TimeUp           terminals 6/5 cap 9 (2nd 0) res 8 exe 0 lagTimeout 1 escaped 5 pw 702 op 788 stall 0 (longest 31 s)
+ seed  33:  811.6s Killer   Collapse         terminals 5/5 cap 12 (2nd 0) res 10 exe 0 lagTimeout 2 escaped 0 pw 498 op -1 stall 0 (longest 30 s)
+ seed  34:  900.0s Survivor TimeUp           terminals 5/5 cap 7 (2nd 0) res 5 exe 0 lagTimeout 2 escaped 4 pw 799 op 830 stall 0 (longest 49 s)
+ seed  35:  900.0s Killer   TimeUp           terminals 5/5 cap 11 (2nd 0) res 10 exe 0 lagTimeout 1 escaped 0 pw 577 op -1 stall 0 (longest 90 s)
+ seed  36:  900.0s Killer   TimeUp           terminals 5/5 cap 11 (2nd 0) res 7 exe 0 lagTimeout 4 escaped 1 pw 756 op 808 stall 0 (longest 41 s)
+ seed  37:  855.0s Killer   Collapse         terminals 5/5 cap 12 (2nd 0) res 9 exe 0 lagTimeout 3 escaped 0 pw 646 op -1 stall 0 (longest 30 s)
+ seed  38:  900.0s Killer   TimeUp           terminals 5/5 cap 13 (2nd 0) res 13 exe 0 lagTimeout 0 escaped 3 pw 765 op 789 stall 0 (longest 42 s)
+ seed  39:  900.0s Killer   TimeUp           terminals 3/5 cap 14 (2nd 0) res 12 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  40:  665.8s Killer   Collapse         terminals 3/5 cap 11 (2nd 0) res 7 exe 0 lagTimeout 4 escaped 0 pw 546 op -1 stall 0 (longest 34 s)
+ idle survivor + 6 seeds 1-40: stall windows 0 in 0 matches (seeds ); longest gap 90 s; silent time-ups 0 (); sweep 4.2 s
+
+
+  통과 PingTheKiller.Tests.Core.StallInvariantTests.MatchesNeverStall(config: "1v3", survivors: 3, seedStart: 1) [1 s]
+  표준 출력 메시지:
+ seed   1:  843.8s Killer   AllSurvivorsDown terminals 3/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 0 pw 787 op -1 stall 0 (longest 57 s)
+ seed   2:  494.5s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 472 op 491 stall 0 (longest 23 s)
+ seed   3:  470.9s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 423 op 453 stall 0 (longest 33 s)
+ seed   4:  613.1s Killer   AllSurvivorsDown terminals 1/4 cap 6 (2nd 0) res 4 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 39 s)
+ seed   5:  619.8s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 597 op 617 stall 0 (longest 39 s)
+ seed   6:  305.5s Killer   AllSurvivorsDown terminals 1/4 cap 4 (2nd 0) res 1 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 46 s)
+ seed   7:  662.8s Killer   AllSurvivorsDown terminals 4/4 cap 6 (2nd 0) res 5 exe 0 lagTimeout 1 escaped 0 pw 560 op -1 stall 0 (longest 46 s)
+ seed   8:  573.7s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 48 s)
+ seed   9:  516.8s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 473 op 501 stall 0 (longest 29 s)
+ seed  10:  400.6s Survivor AllResolved      terminals 4/4 cap 0 (2nd 0) res 0 exe 0 lagTimeout 0 escaped 3 pw 369 op 394 stall 0 (longest 24 s)
+ seed  11:  358.4s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 317 op 346 stall 0 (longest 26 s)
+ seed  12:  581.7s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 34 s)
+ seed  13:  479.3s Killer   AllSurvivorsDown terminals 4/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 356 op -1 stall 0 (longest 61 s)
+ seed  14:  454.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 409 op 436 stall 0 (longest 31 s)
+ seed  15:  489.0s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 458 op 477 stall 0 (longest 18 s)
+ seed  16:  386.4s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 345 op 374 stall 0 (longest 29 s)
+ seed  17:  613.1s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 3 exe 0 lagTimeout 2 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  18:  524.1s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 456 op 499 stall 0 (longest 43 s)
+ seed  19:  357.0s Survivor AllResolved      terminals 4/4 cap 1 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 3 pw 312 op 342 stall 0 (longest 40 s)
+ seed  20:  556.8s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 3 pw 507 op 537 stall 0 (longest 30 s)
+ seed  21:  458.2s Killer   AllResolved      terminals 3/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw -1 op -1 stall 0 (longest 26 s)
+ seed  22:  531.9s Survivor Collapse         terminals 4/4 cap 3 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 2 pw 436 op 463 stall 0 (longest 51 s)
+ seed  23:  558.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 512 op 541 stall 0 (longest 28 s)
+ seed  24:  677.1s Killer   AllResolved      terminals 4/4 cap 5 (2nd 0) res 5 exe 0 lagTimeout 0 escaped 1 pw 588 op 676 stall 0 (longest 45 s)
+ seed  25:  597.4s Killer   AllResolved      terminals 5/4 cap 4 (2nd 0) res 4 exe 0 lagTimeout 0 escaped 1 pw 536 op -1 stall 0 (longest 44 s)
+ seed  26:  565.8s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 2 pw 520 op 549 stall 0 (longest 36 s)
+ seed  27:  281.1s Killer   AllSurvivorsDown terminals 2/4 cap 3 (2nd 0) res 0 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 89 s)
+ seed  28:  362.8s Killer   AllSurvivorsDown terminals 2/4 cap 6 (2nd 0) res 3 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 32 s)
+ seed  29:  618.7s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 36 s)
+ seed  30:  431.9s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 371 op 414 stall 0 (longest 21 s)
+ seed  31:  545.1s Survivor AllResolved      terminals 4/4 cap 4 (2nd 0) res 3 exe 0 lagTimeout 1 escaped 2 pw 470 op 498 stall 0 (longest 30 s)
+ seed  32:  502.3s Killer   AllSurvivorsDown terminals 4/4 cap 4 (2nd 0) res 1 exe 0 lagTimeout 3 escaped 0 pw 380 op -1 stall 0 (longest 73 s)
+ seed  33:  653.7s Survivor AllResolved      terminals 4/4 cap 2 (2nd 0) res 2 exe 0 lagTimeout 0 escaped 3 pw 598 op 641 stall 0 (longest 42 s)
+ seed  34:  456.3s Survivor AllResolved      terminals 4/4 cap 3 (2nd 0) res 3 exe 0 lagTimeout 0 escaped 3 pw 403 op 431 stall 0 (longest 24 s)
+ seed  35:  279.4s Killer   AllSurvivorsDown terminals 1/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 48 s)
+ seed  36:  508.7s Survivor Collapse         terminals 4/4 cap 2 (2nd 0) res 1 exe 0 lagTimeout 0 escaped 2 pw 412 op 446 stall 0 (longest 54 s)
+ seed  37:  447.2s Killer   AllSurvivorsDown terminals 4/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw 345 op -1 stall 0 (longest 30 s)
+ seed  38:  547.3s Killer   AllSurvivorsDown terminals 3/4 cap 6 (2nd 0) res 6 exe 0 lagTimeout 0 escaped 0 pw -1 op -1 stall 0 (longest 26 s)
+ seed  39:  670.3s Killer   AllResolved      terminals 4/4 cap 5 (2nd 0) res 4 exe 0 lagTimeout 1 escaped 1 pw 558 op 636 stall 0 (longest 34 s)
+ seed  40:  703.8s Killer   AllSurvivorsDown terminals 3/4 cap 5 (2nd 0) res 2 exe 0 lagTimeout 3 escaped 0 pw -1 op -1 stall 0 (longest 73 s)
+ 1v3 seeds 1-40: stall windows 0 in 0 matches (seeds ); longest gap 89 s; silent time-ups 0 (); sweep 1.9 s
+
+
+[xUnit.net 00:02:10.09]   Finished:    Server.Tests
+  통과 PingTheKiller.Tests.Core.BotBalanceTests.LargeSeedOneVersusSevenSurvivorWinRateIsOnTarget [1 m 59 s]
+  표준 출력 메시지:
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 x2000 | 41% | 597 s (518/694) | resolved 1266, collapse 415, all down 292, time up 27 | 5.14 | 10.53 / 8.95 / 0.00 | 1% | 100% |
+ sweep 119.0 s
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 19
+     통과: 19
+ 총 시간: 2.1733 분

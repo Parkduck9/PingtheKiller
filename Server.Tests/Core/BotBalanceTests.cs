@@ -54,7 +54,7 @@ public sealed class BotBalanceTests
     }
 
     // integ-1118 F1: the 1v7 target is the mean over many seeds (about 42 %; standard error about 1.1 points at 2000 seeds). Main
-    // scores 50.5 % on these seeds and fails the 38-46 % band. About 45 s.
+    // scores 49.4 % on these seeds and fails the 38-46 % band. About 2 min in Debug.
     [Fact]
     [Trait("Category", "BalanceSweep")]
     public void LargeSeedOneVersusSevenSurvivorWinRateIsOnTarget()
