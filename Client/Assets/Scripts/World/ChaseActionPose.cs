@@ -114,11 +114,12 @@ namespace PingTheKiller.Client.World
     // material and the glow children off (SLOP V3). Under Reduced motion a still `danger` ring instead of particles.
     public sealed class StunBurst
     {
-        public const float Diameter = .9f, AboveHead = .45f;
+        public const float Diameter = 1.1f, AboveHead = .1f;
         public static readonly Color Tint = new Color32(229, 72, 77, 255);
         private static readonly string[] GlowChildren = { "Flash", "EndSparks" };
         private readonly Transform parent;
         private GameObject root, ring;
+        private Material ringMaterial;
         private ParticleSystem[] systems = new ParticleSystem[0];
         private bool shown, reducedShown;
 
@@ -142,12 +143,21 @@ namespace PingTheKiller.Client.World
             if (!shown)
             {
                 shown = true; reducedShown = reduced;
+                // The halo ring is always drawn (a flat circle of particles alone is edge-on and invisible from the Survivor camera);
+                // the particles are added on top unless Reduced motion is on.
+                BuildRing(); ring.SetActive(true);
                 if (!reduced && Build()) { root.SetActive(true); foreach (ParticleSystem system in systems) system.Play(false); }
-                else { reducedShown = true; BuildRing(); ring.SetActive(true); }
+                else reducedShown = true;
             }
             Vector3 at = headTop + Vector3.up * AboveHead;
             if (root != null && root.activeSelf) root.transform.position = at;
-            if (ring != null && ring.activeSelf) ring.transform.position = at;
+            if (ring != null && ring.activeSelf)
+            {
+                ring.transform.position = at;
+                // A flat ring is edge-on from the Survivor camera (about head height): the halo faces the camera instead.
+                Camera camera = Camera.main;
+                if (camera != null) ring.transform.rotation = Quaternion.LookRotation(camera.transform.forward, Vector3.up);
+            }
         }
 
         private bool Build()
@@ -194,10 +204,13 @@ namespace PingTheKiller.Client.World
             var line = ring.AddComponent<LineRenderer>();
             const int points = 32;
             line.useWorldSpace = false; line.loop = true; line.positionCount = points;
-            line.alignment = LineAlignment.TransformZ; line.widthMultiplier = .06f;
+            line.alignment = LineAlignment.View; line.widthMultiplier = .1f;
             line.shadowCastingMode = ShadowCastingMode.Off; line.receiveShadows = false;
             SkillFxArt art = SkillFxArt.Load();
-            if (art != null && art.Ring != null) line.sharedMaterial = art.Ring;
+            Material template = art != null ? art.Ring : null;
+            ringMaterial = template != null ? new Material(template) : new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            ringMaterial.name = "stun ring"; ringMaterial.color = Tint; // the shared ring material is white; tint an instance
+            line.sharedMaterial = ringMaterial;
             line.startColor = line.endColor = Tint;
             for (int i = 0; i < points; i++)
             {
@@ -210,7 +223,8 @@ namespace PingTheKiller.Client.World
         public void Dispose()
         {
             CharacterLook.Release(root); CharacterLook.Release(ring);
-            root = ring = null; shown = false;
+            CharacterLook.Release(ringMaterial);
+            ringMaterial = null; root = ring = null; shown = false;
         }
     }
 }

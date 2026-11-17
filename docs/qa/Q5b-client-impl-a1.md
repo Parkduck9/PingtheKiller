@@ -35,3 +35,13 @@
 - On the Killer client, it is assumed that the own entry carries `Chase.Stunned`.
 
 **Risks:** the bone overlay can fight U8's IK, and the hop does not use a clip.
+
+
+## Attempt 2
+
+**Implementer:** Claude Sonnet.
+- **F3:** Broken is now a bent half leaning on a post, a half on the ground, a scrap and a hanging strip, all in the light `Edge` grey. Rails have thicker, lighter tubes and a bigger vault band and plates. Art regenerated; `Matches()` is true.
+- **F4:** the flat ring and circle were edge-on from the head-height camera. A camera-facing `danger` halo ring now always shows; the particles are added unless Reduced motion is on.
+- **F5:** DevCapture shots `chase-shutter-down/broken`, `chase-stun`, `chase-vault-own/seen`, `chase-prompt`. Player reads stay in the guarded Survivor loop.
+- `ChasePropShot` yaw +24 degrees, so the prop is not hidden behind the character.
+- **Gates:** EditMode 1505/1505, BuildWindows ok, live Survivor 300 s with 0 exceptions. Bots used no props, so there are no live `chase-*` shots.
