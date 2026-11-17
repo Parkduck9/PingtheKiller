@@ -1,0 +1,21 @@
+C:\Unity\MultiPlayGame\PtK-work\integ-1117b\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:01.11]     PingTheKiller.Tests.Core.KillerSwingTests.TheBotKillerSwingsOnlyAtANormalBlipCloseInFrontAndAimsAtIt [FAIL]
+  실패 PingTheKiller.Tests.Core.KillerSwingTests.TheBotKillerSwingsOnlyAtANormalBlipCloseInFrontAndAimsAtIt [17 ms]
+  오류 메시지:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  스택 추적:
+     at PingTheKiller.Tests.Core.KillerSwingTests.TheBotKillerSwingsOnlyAtANormalBlipCloseInFrontAndAimsAtIt() in C:\Unity\MultiPlayGame\PtK-work\integ-1117b\Server.Tests\Core\KillerSwingTests.cs:line 531
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.98]     PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [FAIL]
+  실패 PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [2 s]
+  오류 메시지:
+   loopback RTT 0.05718636718750001 s
+  스택 추적:
+     at PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt() in C:\Unity\MultiPlayGame\PtK-work\integ-1117b\Server.Tests\Core\RttProbeTests.cs:line 320
+--- End of stack trace from previous location ---
+
+실패!  - 실패:     2, 통과:  1145, 건너뜀:     0, 전체:  1147, 기간: 1 m 1 s - Server.Tests.dll (net10.0)

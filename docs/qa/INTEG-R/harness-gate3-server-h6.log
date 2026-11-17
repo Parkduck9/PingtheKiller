@@ -1,0 +1,93 @@
+listening address=127.0.0.1 port=7794 bots=0
+join player=1 reconnect=false
+join player=3 reconnect=false
+join player=4 reconnect=false
+match start players=3 killer=1 matchSeed=965276926
+route player=4 terminal=1 complete progress=4.4
+route player=3 terminal=1 complete progress=7.1
+route player=3 terminal=1 complete progress=12.8
+route player=4 terminal=1 complete progress=15.5
+route player=3 terminal=1 complete progress=21.2
+route player=4 terminal=1 complete progress=23.9
+route player=3 terminal=1 complete progress=29.6
+route player=4 terminal=1 complete progress=32.3
+route player=3 terminal=1 complete progress=38.0
+route player=4 terminal=1 complete progress=40.7
+route player=3 terminal=1 complete progress=46.4
+route player=4 terminal=1 complete progress=49.1
+route player=3 terminal=1 complete progress=54.8
+route player=4 terminal=1 complete progress=57.6
+route player=4 terminal=1 complete progress=63.2
+route player=3 terminal=1 complete progress=66.0
+route player=4 terminal=1 complete progress=71.6
+route player=3 terminal=1 complete progress=74.4
+route player=4 terminal=1 complete progress=80.0
+route player=3 terminal=1 complete progress=82.8
+route player=4 terminal=1 complete progress=88.4
+route player=3 terminal=1 complete progress=91.2
+route player=4 terminal=1 complete progress=96.8
+route player=3 terminal=1 complete progress=99.6
+terminal 1 complete
+route player=3 terminal=4 complete progress=5.2
+route player=4 terminal=4 complete progress=7.9
+route player=3 terminal=4 complete progress=13.6
+route player=4 terminal=4 complete progress=16.3
+route player=4 terminal=4 complete progress=22.0
+route player=3 terminal=4 complete progress=24.7
+route player=4 terminal=4 complete progress=30.4
+route player=3 terminal=4 complete progress=33.1
+route player=4 terminal=4 complete progress=38.8
+route player=3 terminal=4 complete progress=41.5
+route player=3 terminal=4 complete progress=47.2
+route player=4 terminal=4 complete progress=49.9
+route player=4 terminal=4 complete progress=55.6
+route player=3 terminal=4 complete progress=58.4
+route player=3 terminal=4 complete progress=64.0
+route player=4 terminal=4 complete progress=66.8
+route player=3 terminal=4 complete progress=72.4
+route player=4 terminal=4 complete progress=75.2
+route player=4 terminal=4 complete progress=80.8
+route player=3 terminal=4 complete progress=83.6
+route player=4 terminal=4 complete progress=89.2
+route player=3 terminal=4 complete progress=92.0
+route player=3 terminal=4 complete progress=97.6
+route player=4 terminal=4 complete progress=100.4
+terminal 4 complete
+route player=4 terminal=3 complete progress=5.7
+route player=3 terminal=3 complete progress=8.4
+route player=3 terminal=3 complete progress=14.1
+route player=4 terminal=3 complete progress=16.8
+route player=3 terminal=3 complete progress=22.5
+route player=4 terminal=3 complete progress=25.2
+route player=4 terminal=3 complete progress=30.9
+route player=3 terminal=3 complete progress=33.6
+route player=4 terminal=3 complete progress=39.3
+route player=3 terminal=3 complete progress=42.0
+route player=3 terminal=3 complete progress=47.7
+route player=4 terminal=3 complete progress=50.4
+route player=3 terminal=3 complete progress=56.1
+route player=4 terminal=3 complete progress=58.9
+route player=3 terminal=3 complete progress=64.5
+route player=4 terminal=3 complete progress=67.3
+route player=4 terminal=3 complete progress=72.9
+route player=3 terminal=3 complete progress=75.7
+route player=4 terminal=3 complete progress=81.3
+route player=3 terminal=3 complete progress=84.1
+route player=4 terminal=3 complete progress=89.7
+route player=3 terminal=3 complete progress=92.5
+route player=3 terminal=3 complete progress=98.1
+route player=4 terminal=3 complete progress=100.9
+terminal 3 complete
+exits powered reason=terminals
+exit 1 open
+collapse start reason=exit
+status player=3 Lagging reason=capture
+swing player=1 result=hit target=3
+status player=3 Normal reason=rescue
+status player=4 Escaped reason=exit
+hatch open x=12 z=39
+status player=3 Escaped reason=exit
+match end winner=Survivor reason=AllResolved escaped=2
+leave player=3
+leave player=1
+leave player=4
