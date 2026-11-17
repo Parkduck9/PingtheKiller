@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // HUD_SPEC 1.7 (11/17 R3): the How to play screen, opened from the main menu under Offline. Two pages, Survivor and Killer,
-    // each with the goal, the controls, the status ladder (Normal, Lagging, Eliminated and how a restore works), Signal and
+    // each with the goal, the controls, the status ladder (Normal, Lagging, Eliminated and how a rescue works), Signal and
     // Silent in one line, and every skill of the role with its effect. Left-aligned like Settings (no modal), Esc or Back
     // returns to the menu. All copy is HelpCopy.Page; skill names and effects are the existing tables'.
     public sealed class HowToPlayScreen

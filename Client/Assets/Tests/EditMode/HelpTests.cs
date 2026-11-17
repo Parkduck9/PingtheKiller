@@ -40,10 +40,10 @@ namespace PingTheKiller.Client.Tests
         {
             var mates = Mates(new Mate { Id = 3, X = 11, Z = 10, Status = PlayerStatus.Lagging });
             PromptState p = SurvivorReadout.Prompt(Own(), mates, new TerminalState[0], new Self(), Names, false, SkillIds.DummyPacket, true);
-            Assert.That(p.Text, Is.EqualTo("Hold [E] to restore Mina " + Dash + " you will be Signal"));
+            Assert.That(p.Text, Is.EqualTo("Hold [E] to rescue Mina " + Dash + " you will be Signal"));
             Assert.That(p.Bar, Is.EqualTo(BarFill.Empty), "the bar belongs to the held rescue, not the prompt");
             mates = Mates(new Mate { Id = 3, X = 11.5f, Z = 10, Status = PlayerStatus.Lagging }); // exactly 1.5 m
-            Assert.That(SurvivorReadout.Prompt(Own(), mates, null, new Self(), Names, false, 0, true).Text, Does.StartWith("Hold [E] to restore Mina"));
+            Assert.That(SurvivorReadout.Prompt(Own(), mates, null, new Self(), Names, false, 0, true).Text, Does.StartWith("Hold [E] to rescue Mina"));
         }
 
         // ---- S5 getting up ----------------------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ namespace PingTheKiller.Client.Tests
         {
             var mates = Mates(new Mate { Id = 3, X = 11.6f, Z = 10, Status = PlayerStatus.Lagging });
             Assert.That(SurvivorReadout.Prompt(Own(), mates, null, new Self(), Names, false, 0, true).Text,
-                Is.EqualTo("Mina is Lagging " + Dot + " 2 m " + Dash + " move next to them, hold [E] to restore"));
+                Is.EqualTo("Mina is Lagging " + Dot + " 2 m " + Dash + " move next to them, hold [E] to rescue"));
             mates = Mates(new Mate { Id = 3, X = 18, Z = 10, Status = PlayerStatus.Lagging });
             Assert.That(SurvivorReadout.Prompt(Own(), mates, null, new Self(), Names, false, 0, true).Text, Is.Null, "7 m: no prompt (the marker covers it)");
         }
@@ -87,7 +87,7 @@ namespace PingTheKiller.Client.Tests
             var own = Own(); own.Rescuing = true; own.Signal = true;
             var mates = Mates(new Mate { Id = 3, X = 11, Z = 10, Status = PlayerStatus.Lagging });
             PromptState p = SurvivorReadout.Prompt(own, mates, null, new Self { RescueProgress = .4f }, Names, false, 0, true);
-            Assert.That(p.Text, Is.EqualTo("Restoring Mina " + Dash + " you are Signal"));
+            Assert.That(p.Text, Is.EqualTo("Rescuing Mina " + Dash + " you are Signal"));
             Assert.That(p.Bar, Is.EqualTo(BarFill.Ally));
             Assert.That(p.Width, Is.EqualTo(.4f));
         }
@@ -103,7 +103,7 @@ namespace PingTheKiller.Client.Tests
                 new Mate { Id = 5, X = 11, Z = 10, Status = PlayerStatus.Lagging },
                 new Mate { Id = 6, X = 12, Z = 10, Status = PlayerStatus.Eliminated });
             PromptState p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging, timer: 53.2f), mates, null, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Lagging " + Dot + " an ally can restore you with [E] " + Dot + " nearest ally 18 m " + Dot + " 54 s"));
+            Assert.That(p.Text, Is.EqualTo("Lagging " + Dot + " an ally can rescue you with [E] " + Dot + " nearest ally 18 m " + Dot + " 54 s"));
             Assert.That(p.Muted, Is.False);
             Assert.That(p.Bar, Is.EqualTo(BarFill.Empty));
         }
@@ -113,7 +113,7 @@ namespace PingTheKiller.Client.Tests
         {
             var alone = Mates(new Mate { Id = 5, X = 11, Z = 10, Status = PlayerStatus.Lagging });
             PromptState p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging, timer: 20), alone, null, new Self(), Names, false, 0, false);
-            Assert.That(p.Text, Is.EqualTo("Lagging " + Dot + " an ally can restore you with [E] " + Dot + " 20 s"));
+            Assert.That(p.Text, Is.EqualTo("Lagging " + Dot + " an ally can rescue you with [E] " + Dot + " 20 s"));
             p = SurvivorReadout.Prompt(Own(PlayerStatus.Lagging, timer: 20), alone, null, new Self { RescueProgress = .5f }, Names, false, 0, false);
             Assert.That(p.Bar, Is.EqualTo(BarFill.Ally));
             Assert.That(p.Width, Is.EqualTo(.5f));
@@ -245,7 +245,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(card.Goal, Is.EqualTo("Survivor " + Dot + " Hack 3 terminals, then hold an exit switch and escape."));
             Assert.That(card.SkillLine, Is.EqualTo("Emergency restore [Q] " + Dot + " Cooldown 15 s"));
             Assert.That(card.Effect, Is.EqualTo(PlayMenuCopy.SurvivorEffect(SkillIds.EmergencyRestore)));
-            Assert.That(card.Controls, Is.EqualTo("WASD Move · Hold E Hack / Restore / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu"));
+            Assert.That(card.Controls, Is.EqualTo("WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu"));
         }
 
         [Test]
@@ -347,7 +347,7 @@ namespace PingTheKiller.Client.Tests
                 Assert.That(page.Ladder.Length, Is.EqualTo(3));
                 Assert.That(page.Ladder[0], Does.StartWith("Normal:"));
                 Assert.That(page.Ladder[1], Does.StartWith("Lagging:"));
-                Assert.That(page.Ladder[2], Does.StartWith("Restore:"), "how a rescue works");
+                Assert.That(page.Ladder[2], Does.StartWith("Rescue:"), "how a rescue works");
                 Assert.That(page.Visibility, Does.Contain("Signal").And.Contain("Silent"));
             }
             Assert.That(survivor.Controls, Is.EqualTo(HelpCopy.SurvivorControls));
@@ -407,7 +407,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(hints.Survivor(11, false, true, true, null, false), Is.EqualTo("Hold [E] at a terminal to hack it"));
             Assert.That(hints.Survivor(14, false, true, true, null, false), Is.EqualTo("Hold [E] at a terminal to hack it"), "stays while its time runs");
             Assert.That(hints.Survivor(11 + HelpCopy.HintSeconds + .1, false, true, true, null, false), Is.Null, "gone, and never again");
-            Assert.That(hints.Survivor(30, false, true, true, "Mina", false), Is.EqualTo("Mina is Lagging " + Dot + " hold [E] next to them to restore"));
+            Assert.That(hints.Survivor(30, false, true, true, "Mina", false), Is.EqualTo("Mina is Lagging " + Dot + " hold [E] next to them to rescue"));
             Assert.That(hints.Survivor(40, false, true, true, "Mina", false), Is.Null, "the Lagging hint fired once too");
             Assert.That(hints.Survivor(50, false, true, false, null, true), Is.EqualTo("You are Signal: the Killer can see you"));
             Assert.That(hints.Survivor(70, false, true, true, "Mina", true), Is.Null, "all three are spent");
@@ -452,8 +452,8 @@ namespace PingTheKiller.Client.Tests
                 byte count = role == Role.Killer ? SkillIds.KillerSkillCount : SkillIds.SurvivorSkillCount;
                 for (byte id = 0; id < count; id++) { yield return HelpCopy.IntroSkillLine(role, id); yield return HelpCopy.SkillEffect(role, id); }
             }
-            yield return HelpCopy.RestorePrompt("AVeryLongNi…");
-            yield return HelpCopy.RestoringPrompt("AVeryLongNi…");
+            yield return HelpCopy.RescuePrompt("AVeryLongNi…");
+            yield return HelpCopy.RescuingPrompt("AVeryLongNi…");
             yield return HelpCopy.ApproachPrompt("AVeryLongNi…", 6);
             yield return HelpCopy.DownedLine(138, 120);
             yield return HelpCopy.DownedLine(-1, 60);
@@ -496,7 +496,7 @@ namespace PingTheKiller.Client.Tests
             // The prompt row is 656 u of M text (about 8.2 u a character): 80 characters at most. The names are the 12-character worst case.
             var promptRow = new List<string>
             {
-                HelpCopy.RestorePrompt("AVeryLongNi…"), HelpCopy.RestoringPrompt("AVeryLongNi…"), HelpCopy.ApproachPrompt("AVeryLongNi…", 6),
+                HelpCopy.RescuePrompt("AVeryLongNi…"), HelpCopy.RescuingPrompt("AVeryLongNi…"), HelpCopy.ApproachPrompt("AVeryLongNi…", 6),
                 HelpCopy.DownedLine(138, 120), HelpCopy.DownedLine(-1, 60), HelpCopy.HintTerminal, HelpCopy.HintSignal, HelpCopy.HintKillerBlip,
                 HelpCopy.HintLagging("AVeryLongNi…"), CaptureWatch.Banner, CaptureWatch.SecondBanner,
             };

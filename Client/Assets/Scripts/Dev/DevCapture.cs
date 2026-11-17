@@ -416,8 +416,8 @@ namespace PingTheKiller.Client.Dev
                 if (Want("r3-ally-tag.png", located && hud.Allies.OnScreenCount > 0 && status == PlayerStatus.Normal)) return;
                 if (Want("r3-ally-edge.png", located && hud.Allies.EdgeCount > 0 && status == PlayerStatus.Normal)) return;
                 string line = hud.PromptText;
-                if (Want("r3-rescue-prompt.png", line != null && line.StartsWith("Hold [E] to restore"))) return;
-                if (Want("r3-restoring.png", line != null && line.StartsWith("Restoring") && self != null && self.RescueProgress >= .3f)) return;
+                if (Want("r3-rescue-prompt.png", line != null && line.StartsWith("Hold [E] to rescue"))) return;
+                if (Want("r3-restoring.png", line != null && line.StartsWith("Rescuing") && self != null && self.RescueProgress >= .3f)) return;
                 if (Want("r3-getting-up.png", line != null && line == HelpCopy.GettingUp)) return;
                 if (Want("r3-downed-line.png", status == PlayerStatus.Lagging && !banner && line != null && line.StartsWith(HelpCopy.DownedPrefix) && capturedAt >= 0 && t - capturedAt >= 3.3)) return;
             }

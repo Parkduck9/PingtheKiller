@@ -457,9 +457,10 @@ namespace PingTheKiller.Client
             {
                 releasedCursor = false; rig.SetCursor(true);
             }
-            // 11/17 R3 (HUD_SPEC 3): the intro card lasts HelpCopy.IntroSeconds and ends at once on any key.
+            // 11/17 R3 (HUD_SPEC 3): the intro card lasts HelpCopy.IntroSeconds and ends at once on Esc, Enter, Space or a click
+            // (INTEG-R: movement keys no longer end it).
             bool introOn = intro.Visible(now, menuGate.Open);
-            if (introOn && keyboard != null && Application.isFocused && keyboard.anyKey.wasPressedThisFrame) { intro.Dismiss(); introOn = false; }
+            if (introOn && Application.isFocused && IntroDismissPressed(keyboard)) { intro.Dismiss(); introOn = false; }
             screens.Intro.Set(intro, introOn);
             screens.Survivor.IntroHeight = survivor && introOn ? SurvivorIntroHeight : 0;
             bool active = menuGate.Active(Application.isFocused, releasedCursor);
@@ -544,7 +545,7 @@ namespace PingTheKiller.Client
                 UpdateSurvivorHud(now, introOn);
                 screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);
                 // HUD_SPEC 4.6 (R3): a tag or edge arrow for every Lagging ally, while Normal.
-                if (own.Status == PlayerStatus.Normal) screens.Survivor.DrawAllyMarkers(own.X, own.Z, mates, NameOf, rig.Pose);
+                if (own.Status == PlayerStatus.Normal) screens.Survivor.DrawAllyMarkers(own.X, own.Z, mates, nameOf ??= NameOf, rig.Pose);
                 else screens.Survivor.ClearAllyMarkers();
                 dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
             }
@@ -555,7 +556,7 @@ namespace PingTheKiller.Client
                 chase.ApplyKillerHud(screens.Killer, position, menuGate.Open, now); // HUD_SPEC 15.2 / 15.4
                 // R3: the first time a tracked blip is within 6 m, in an empty prompt slot.
                 bool near = killerLayer.NearestBlip(position, false, out Vector3 blip) && new Vector2(blip.x - position.x, blip.z - position.z).magnitude <= SurvivorReadout.ApproachRange;
-                string hint = hints.Killer(now, introOn, near);
+                string hint = hints.Killer(now, introOn, near, screens.Killer.PromptFree);
                 if (hint != null && screens.Killer.PromptFree) screens.Killer.SetPrompt(new InteractPrompt { Text = hint }, default);
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
@@ -691,6 +692,7 @@ namespace PingTheKiller.Client
             return false;
         }
         // Lobby nickname for a player id (prompts ellipsize it).
+        private Func<int, string> nameOf; // one cached delegate: the ally markers run every frame (INTEG-R, R3 QA minor 9)
         private string NameOf(int id)
         {
             if (lobby != null) foreach (Slot slot in lobby.Slots) if (slot.PlayerId == id && slot.PlayerId != 0) return slot.Nickname;
@@ -726,12 +728,21 @@ namespace PingTheKiller.Client
             if (introOn) prompt = default;
             else if (string.IsNullOrEmpty(prompt.Text) && !releasedCursor)
             {
-                string hint = hints.Survivor(now, false, own.Status == PlayerStatus.Normal, TerminalNear(), LaggingMateName(), own.Signal);
+                string hint = hints.Survivor(now, false, own.Status == PlayerStatus.Normal, TerminalNear(), LaggingMateName(), own.Signal, hold.Kind == HoldKind.None);
                 if (hint != null && hold.Kind == HoldKind.None) prompt = new PromptState { Text = hint };
             }
             hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
         }
+        private static bool IntroDismissPressed(Keyboard keyboard)
+        {
+            Mouse mouse = Mouse.current;
+            bool click = mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame);
+            if (keyboard == null) return click;
+            return IntroCardState.DismissInput(keyboard.escapeKey.wasPressedThisFrame,
+                keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame, keyboard.spaceKey.wasPressedThisFrame, click);
+        }
+
         // R3 hints: an unfinished terminal within 6 m of the own Survivor, and the first Lagging ally's prompt name (null = none).
         private bool TerminalNear()
         {

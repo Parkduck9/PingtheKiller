@@ -119,7 +119,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
 
             // Banner wording check
             string banner = CaptureWatch.Banner;
-            Assert.That(banner, Is.EqualTo("Lagging. A Survivor holding [E] within 1.5 m for 3 s restores you · 60 s left"));
+            Assert.That(banner, Is.EqualTo("Lagging. A Survivor holding [E] within 1.5 m for 3 s rescues you · 60 s left"));
             Assert.That(CaptureWatch.BannerPrompt.Danger, Is.True);
         }
 

@@ -16,6 +16,9 @@ namespace PingTheKiller.Client.UI
     public sealed class AllyMarkers
     {
         public const float TagPointHeight = 1.2f, TagGap = 4, MaxMarkers = 7;
+        // INTEG-R (R3 QA minor 8): an ally this close is beside the own character; its on-screen tag would sit on the own head and
+        // the rescue prompt already names it, so only an edge arrow (an ally behind the camera) is kept.
+        public const float MinTagDistance = 2f;
 
         public struct Mark
         {
@@ -33,6 +36,14 @@ namespace PingTheKiller.Client.UI
         private readonly List<int> spreadIndex = new List<int>();
         private readonly EdgeSpread spread = new EdgeSpread();
         private readonly List<Mate> lagging = new List<Mate>();
+        // INTEG-R (R3 QA minor 9): Build allocates nothing per frame once warm. The sort comparison is one cached delegate reading
+        // the own position from fields, and a tag string is rebuilt only when that ally's name or rounded distance changes.
+        private float sortX, sortZ;
+        private readonly Comparison<Mate> byDistance;
+        private struct TagText { public string Name; public int Metres; public string Text; }
+        private readonly Dictionary<int, TagText> tagTexts = new Dictionary<int, TagText>();
+
+        public AllyMarkers() { byDistance = (a, b) => Sq(a.X - sortX, a.Z - sortZ).CompareTo(Sq(b.X - sortX, b.Z - sortZ)); }
 
         public IReadOnlyList<Mark> Marks => marks;
         public int OnScreenCount { get; private set; }
@@ -44,19 +55,21 @@ namespace PingTheKiller.Client.UI
             marks.Clear(); spreadIndex.Clear(); lagging.Clear();
             OnScreenCount = EdgeCount = 0;
             if (mates == null) return;
-            foreach (Mate mate in mates) if (mate.Status == PlayerStatus.Lagging) lagging.Add(mate);
+            for (int m = 0; m < mates.Count; m++) if (mates[m].Status == PlayerStatus.Lagging) lagging.Add(mates[m]);
             // The nearest first, so a crowded frame keeps the closest allies (at most MaxMarkers).
-            lagging.Sort((a, b) => Sq(a.X - ownX, a.Z - ownZ).CompareTo(Sq(b.X - ownX, b.Z - ownZ)));
+            sortX = ownX; sortZ = ownZ;
+            lagging.Sort(byDistance);
             Rect safe = EdgePlacement.SafeRect(screen, false), keepOut = EdgePlacement.KeepOut(cluster);
             spread.Begin(safe, keepOut);
             for (int i = 0; i < lagging.Count && i < MaxMarkers; i++)
             {
                 Mate mate = lagging[i];
                 float distance = Mathf.Sqrt(Sq(mate.X - ownX, mate.Z - ownZ));
-                string text = HelpCopy.AllyTag(SurvivorReadout.Ellipsize(names?.Invoke(mate.Id)), distance);
+                string text = Tag(mate.Id, names?.Invoke(mate.Id), distance);
                 var point = new Vector3(mate.X, TagPointHeight, mate.Z);
                 if (pose.ToViewport(point, out Vector2 v) && v.x >= 0 && v.x <= 1 && v.y >= 0 && v.y <= 1)
                 {
+                    if (distance < MinTagDistance) continue;
                     var p = new Vector2(v.x * screen.x, (1 - v.y) * screen.y);
                     p = EdgePlacement.ClampOutside(p, keepOut, safe);
                     marks.Add(new Mark { Id = mate.Id, OnScreen = true, At = p, Text = text, Distance = distance, TagShown = true });
@@ -102,6 +115,16 @@ namespace PingTheKiller.Client.UI
             layer.Layout(safe, keepOut);
             layer.Commit(MarkerLayer.Static);
             layer.Commit(MarkerLayer.Signals);
+        }
+
+        // HelpCopy.AllyTag, cached per ally id: the same name and rounded metres reuse the last string.
+        private string Tag(int id, string rawName, float distance)
+        {
+            int metres = (int)Math.Round(Math.Max(0, distance), MidpointRounding.AwayFromZero);
+            if (tagTexts.TryGetValue(id, out TagText cached) && cached.Metres == metres && ReferenceEquals(cached.Name, rawName)) return cached.Text;
+            string text = HelpCopy.AllyTag(SurvivorReadout.Ellipsize(rawName), distance);
+            tagTexts[id] = new TagText { Name = rawName, Metres = metres, Text = text };
+            return text;
         }
 
         private static float Sq(float dx, float dz) => dx * dx + dz * dz;

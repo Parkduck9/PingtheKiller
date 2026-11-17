@@ -99,7 +99,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             // Row 3: Lagging survivor being rescued
             MeterState mRescue = SurvivorReadout.Meter(own, self, 0, 0);
             Assert.That(mRescue.Word, Is.EqualTo("Lagging"));
-            Assert.That(mRescue.Reason, Does.Contain("Being restored"));
+            Assert.That(mRescue.Reason, Does.Contain("Being rescued"));
             Assert.That(mRescue.Fill, Is.EqualTo(BarFill.Ally));
             Assert.That(mRescue.Width, Is.EqualTo(0.65f).Within(1e-3f));
 

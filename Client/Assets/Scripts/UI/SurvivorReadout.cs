@@ -138,7 +138,7 @@ namespace PingTheKiller.Client.UI
                     m.Word = "Lagging";
                     if (known && self.RescueProgress > 0)
                     {
-                        m.Reason = "Being restored " + Dash + " stay close"; m.Fill = BarFill.Ally; m.Width = Clamp01(self.RescueProgress);
+                        m.Reason = "Being rescued " + Dash + " stay close"; m.Fill = BarFill.Ally; m.Width = Clamp01(self.RescueProgress);
                     }
                     else
                     {
@@ -154,7 +154,7 @@ namespace PingTheKiller.Client.UI
                         m.Reason = scannedLeft > 0 ? "Scanned by the Killer " + Dot + " " + Seconds1(scannedLeft)
                             : overloadLeft > 0 ? "Traffic overload " + Dot + " " + Seconds1(overloadLeft)
                             : own.Hacking ? "Visible while you hack."
-                            : own.Rescuing ? "Visible while you restore."
+                            : own.Rescuing ? "Visible while you rescue."
                             : "Visible while you move.";
                     }
                     else if (own.Stealthed) { m.Word = "Silent"; m.Reason = "Relay: hidden while moving"; m.AllyOutline = true; }
@@ -216,7 +216,7 @@ namespace PingTheKiller.Client.UI
             {
                 int target = NearestLagging(own, mates, GameConstants.RescueRadius, out _);
                 if (target < 0) target = NearestLagging(own, mates, float.MaxValue, out _);
-                p.Text = HelpCopy.RestoringPrompt(Name(names, target >= 0 ? mates[target].Id : 0));
+                p.Text = HelpCopy.RescuingPrompt(Name(names, target >= 0 ? mates[target].Id : 0));
                 p.Bar = BarFill.Ally; p.Width = self != null && self.Available ? Clamp01(self.RescueProgress) : 0;
                 return p;
             }
@@ -227,7 +227,7 @@ namespace PingTheKiller.Client.UI
                 {
                     // R3: within the rescue radius the prompt names the E hold; farther, it says to go next to them first.
                     string name = Name(names, mates[near].Id);
-                    p.Text = distance <= GameConstants.RescueRadius ? HelpCopy.RestorePrompt(name)
+                    p.Text = distance <= GameConstants.RescueRadius ? HelpCopy.RescuePrompt(name)
                         : HelpCopy.ApproachPrompt(name, (int)Math.Round(distance, MidpointRounding.AwayFromZero));
                     return p;
                 }
@@ -261,7 +261,7 @@ namespace PingTheKiller.Client.UI
         }
 
         // R3 (11/17): the downed player's persistent line, with the nearest Normal ally's distance from the received state and the
-        // seconds left; the ally bar fills while a restore runs. Replaces the old `Skills are off while Lagging.` row.
+        // seconds left; the ally bar fills while a rescue runs. Replaces the old `Skills are off while Lagging.` row.
         public static PromptState Downed(OwnEntry own, IReadOnlyList<Mate> mates, ISelfState self)
         {
             float nearest = -1;

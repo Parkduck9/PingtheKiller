@@ -64,7 +64,7 @@ namespace PingTheKiller.Client.QA.Tests
             OwnEntry own = Own(PlayerStatus.Lagging); own.StatusTimer = 41.2f; own.Signal = true;
             MeterState m = SurvivorReadout.Meter(own, new Self { RescueProgress = .6f }, 0, 0);
             Assert.That(m.Word, Is.EqualTo("Lagging"));
-            Assert.That(m.Reason, Is.EqualTo("Being restored " + Dash + " stay close"));
+            Assert.That(m.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(m.Fill, Is.EqualTo(BarFill.Ally));
             Assert.That(m.Width, Is.EqualTo(.6f).Within(1e-4f));
             m = SurvivorReadout.Meter(own, new Self { RescueProgress = 0f }, 0, 0);
@@ -83,7 +83,7 @@ namespace PingTheKiller.Client.QA.Tests
             OwnEntry rescuer = Own(); rescuer.Signal = true; rescuer.Rescuing = true;
             MeterState m = SurvivorReadout.Meter(rescuer, new Self { RescueProgress = .5f }, 0, 0);
             Assert.That(m.Word, Is.EqualTo("Signal"));
-            Assert.That(m.Reason, Is.EqualTo("Visible while you restore."), "row 8, not the Lagging row");
+            Assert.That(m.Reason, Is.EqualTo("Visible while you rescue."), "row 8, not the Lagging row");
             Assert.That(m.Fill, Is.EqualTo(BarFill.Signal));
             m = SurvivorReadout.Meter(Own(PlayerStatus.Escaped), new Self { RescueProgress = .5f }, 0, 0);
             Assert.That(m.Word, Is.EqualTo("Escaped"));
@@ -114,7 +114,7 @@ namespace PingTheKiller.Client.QA.Tests
             var mates = new List<Mate> { new Mate { Id = 7, X = 10.5f, Z = 10, Status = PlayerStatus.Lagging } };
             System.Func<int, string> names = id => id == 7 ? "Mina" : null;
             PromptState p = SurvivorReadout.Prompt(own, mates, new List<TerminalState>(), new Self { RescueProgress = .45f }, names, false, SkillIds.EmergencyRestore, true);
-            Assert.That(p.Text, Is.EqualTo("Restoring Mina " + Dash + " you are Signal"));
+            Assert.That(p.Text, Is.EqualTo("Rescuing Mina " + Dash + " you are Signal"));
             Assert.That(p.Bar, Is.EqualTo(BarFill.Ally));
             Assert.That(p.Width, Is.EqualTo(.45f).Within(1e-4f));
             Assert.That(p.Muted, Is.False);
@@ -168,7 +168,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(hud.Tag, Is.Null, "the tag label is hidden again");
             OwnEntry lagging = Own(PlayerStatus.Lagging);
             hud.SetMeter(SurvivorReadout.Meter(lagging, new Self { RescueProgress = .25f }, 0, 0));
-            Assert.That(hud.Reason, Is.EqualTo("Being restored " + Dash + " stay close"));
+            Assert.That(hud.Reason, Is.EqualTo("Being rescued " + Dash + " stay close"));
             Assert.That(hud.MeterFillHas("fill-ally"), Is.True);
             Assert.That(hud.MeterFillPercent, Is.EqualTo(25f).Within(.01f));
         }

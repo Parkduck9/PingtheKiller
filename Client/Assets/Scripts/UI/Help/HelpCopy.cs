@@ -34,7 +34,7 @@ namespace PingTheKiller.Client.UI
         public const string SurvivorTab = "Survivor", KillerTab = "Killer", Back = "Back";
 
         // --- Controls legends (one per role, shared by the intro card and the How to play page) ---
-        public const string SurvivorControls = "WASD Move · Hold E Hack / Restore / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu";
+        public const string SurvivorControls = "WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu";
         public const string KillerControls = "WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu";
         public static string Controls(Role role) => role == Role.Killer ? KillerControls : SurvivorControls;
 
@@ -69,14 +69,14 @@ namespace PingTheKiller.Client.UI
         private static string Seconds(float value) => ((int)System.Math.Round(value)).ToString(CultureInfo.InvariantCulture) + " s";
 
         // --- Rescue prompts (HUD_SPEC 4.4) ---
-        public static string RestorePrompt(string name) => "Hold [E] to restore " + name + " " + Dash + " you will be Signal";
-        public static string RestoringPrompt(string name) => "Restoring " + name + " " + Dash + " you are Signal";
-        public static string ApproachPrompt(string name, int metres) => name + " is Lagging " + Dot + " " + metres + " m " + Dash + " move next to them, hold [E] to restore";
+        public static string RescuePrompt(string name) => "Hold [E] to rescue " + name + " " + Dash + " you will be Signal";
+        public static string RescuingPrompt(string name) => "Rescuing " + name + " " + Dash + " you are Signal";
+        public static string ApproachPrompt(string name, int metres) => name + " is Lagging " + Dot + " " + metres + " m " + Dash + " move next to them, hold [E] to rescue";
 
-        // R3: the rescued player's line for the 1.5 s get-up.
+        // R3: the rescued player's line for the GetUpSeconds (1.5 s) get-up.
         public const string GettingUp = "Getting up…";
-        // The downed player's persistent line: `Lagging · an ally can restore you with [E] · nearest ally 18 m · 54 s`.
-        public const string DownedPrefix = "Lagging " + Dot + " an ally can restore you with [E]";
+        // The downed player's persistent line: `Lagging · an ally can rescue you with [E] · nearest ally 18 m · 54 s`.
+        public const string DownedPrefix = "Lagging " + Dot + " an ally can rescue you with [E]";
         public static string DownedLine(float nearestAllyMetres, float secondsLeft)
         {
             string line = DownedPrefix;
@@ -93,13 +93,14 @@ namespace PingTheKiller.Client.UI
         public const string HintTerminal = "Hold [E] at a terminal to hack it";
         public const string HintSignal = "You are Signal: the Killer can see you";
         public const string HintKillerBlip = "Get close and left click to attack";
-        public static string HintLagging(string name) => name + " is Lagging " + Dot + " hold [E] next to them to restore";
+        public static string HintLagging(string name) => name + " is Lagging " + Dot + " hold [E] next to them to rescue";
 
         // --- How to play pages ---
         public static HelpPage Page(Role role)
         {
             string stage1 = Seconds(GameConstants.LaggingTimeoutSeconds), stage2 = Seconds(GameConstants.SecondLaggingTimeoutSeconds);
-            string restore = Seconds(GameConstants.RescueTimeSeconds), safe = Seconds(GameConstants.PostRescueInvulnerabilitySeconds);
+            string rescue = Seconds(GameConstants.RescueTimeSeconds), safe = Seconds(GameConstants.PostRescueInvulnerabilitySeconds);
+            string getUp = GameConstants.GetUpSeconds.ToString("0.#", CultureInfo.InvariantCulture) + " s";
             string radius = GameConstants.RescueRadius.ToString("0.0", CultureInfo.InvariantCulture) + " m";
             var skills = new List<HelpSkill>();
             if (role == Role.Killer)
@@ -116,9 +117,9 @@ namespace PingTheKiller.Client.UI
                     Controls = KillerControls,
                     Ladder = new[]
                     {
-                        "Normal: a capture makes a Survivor Lagging. The third capture eliminates.",
+                        "Normal: a hit (left click) makes a Survivor Lagging. The third hit eliminates.",
                         "Lagging: crawling and always Signal, for " + stage1 + " (" + stage2 + " the second time). Then eliminated.",
-                        "Restore: an ally who holds E within " + radius + " for " + restore + " makes a Lagging Survivor Normal; it is safe for " + safe + " and gets up for the first 1.5 s.",
+                        "Rescue: a Survivor who holds E within " + radius + " for " + rescue + " makes a Lagging Survivor Normal. It cannot be hit for " + safe + " and cannot move for the first " + getUp + " while it gets up.",
                     },
                     Visibility = "You see only Signal Survivors, even through walls. Silent Survivors never show.",
                     Skills = skills.ToArray()
@@ -130,11 +131,11 @@ namespace PingTheKiller.Client.UI
                 Controls = SurvivorControls,
                 Ladder = new[]
                 {
-                    "Normal: full speed. The Killer's touch makes you Lagging; the third capture eliminates you.",
+                    "Normal: full speed. A hit from the Killer makes you Lagging; the third hit eliminates you.",
                     "Lagging: you crawl, stay Signal and cannot use skills. " + stage1 + " the first time, " + stage2 + " the second. Then you are eliminated.",
-                    "Restore: an ally holds E within " + radius + " of you for " + restore + ". You are safe for " + safe + " and get up for the first 1.5 s.",
+                    "Rescue: an ally holds E within " + radius + " of you for " + rescue + ". Nothing can hit you for " + safe + "; for the first " + getUp + " you get up and cannot move.",
                 },
-                Visibility = "Signal: the Killer can see you. Moving, hacking and restoring make you Signal; standing still keeps you Silent.",
+                Visibility = "Signal: the Killer can see you. Moving, hacking and rescuing make you Signal; standing still keeps you Silent.",
                 Skills = skills.ToArray()
             };
         }

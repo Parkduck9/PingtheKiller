@@ -154,7 +154,7 @@ Sounds: none.
 ---
 
 ### 1.7 How to play **(11/17, R3)**
-A "How to play" button sits under the Offline note in the main menu (class `set-open`), disabled while connecting. It opens the `howto` panel with two tabs, Survivor and Killer, and a Back button; Esc closes it. Each page has the headings `How to win`, `Controls`, `Status` (three lines: `Normal:`, `Lagging:`, `Restore:`), `Signal and Silent` and `Skills` (names and effects from the existing skill tables). Copy lives in `HelpCopy.Page(role)`.
+A "How to play" button sits under the Offline note in the main menu (class `set-open`), disabled while connecting. It opens the `howto` panel with two tabs, Survivor and Killer, and a Back button; Esc closes it. Each page has the headings `How to win`, `Controls`, `Status` (three lines: `Normal:`, `Lagging:`, `Rescue:`), `Signal and Silent` and `Skills` (names and effects from the existing skill tables). Copy lives in `HelpCopy.Page(role)`.
 
 ## 2. Lobby
 
@@ -190,7 +190,7 @@ Sounds: `ui_join` (short neutral click, −18 dB) when a new human slot appears.
 
 ## 3. Match intro (7 s card, non-modal) **(11/17, R3)**
 
-**(11/17, R3)** The 3 s block below is superseded by a 7 s intro card (`IntroCard`, class `introcard`), dismissed by any key and removed in one frame; under Reduced motion it only appears and disappears. Width 672 u, one height slot of 134 u, bottom 104 u for the Survivor (directly above the cluster; the prompt row is suppressed while it shows) and bottom 24 u for the Killer (bottom-center; it never covers the character's feet, §4.10). Content: role line (L 600), goal line (`Hack 3 terminals, then reach the Exit.` / Killer goal), skill line (name, effect, `[Q]`, cooldown; text only from `PlayMenuCopy.SurvivorEffect` and `PlayMenuCopy.KillerEffect`), and a controls legend (S `muted`; the legend is exempt from Title Case checks). `TerminalsRequired` comes from the first `S2C_WorldState`. The Killer's old 3 s block is no longer shown.
+**(11/17, R3)** The 3 s block below is superseded by a 7 s intro card (`IntroCard`, class `introcard`), dismissed by Esc, Enter, Space or a mouse click (**INTEG-R:** movement keys, E and Q no longer dismiss it) or after 7 s, and removed in one frame; under Reduced motion it only appears and disappears. Width 672 u, one height slot of 134 u, bottom 104 u for the Survivor (directly above the cluster; the prompt row is suppressed while it shows) and bottom 24 u for the Killer (bottom-center; it never covers the character's feet, §4.10). Content (**INTEG-R**, as built; there is no separate role line): the goal line, which starts with the role (M 600: `Survivor · Hack 3 terminals, then hold an exit switch and escape.` / `Killer · Capture every Survivor before they escape.`), the skill line (M: name, `[Q]`, cooldown, e.g. `Dummy packet [Q] · Cooldown 15 s`), the effect line (S; text only from `PlayMenuCopy.SurvivorEffect` and `PlayMenuCopy.KillerEffect`), and the controls legend (S `muted`; exempt from Title Case checks): `WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu` / `WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu`. `TerminalsRequired` comes from the first `S2C_WorldState`. The Killer's old 3 s block is no longer shown.
 
 ### 3.0 Original 3 s block (superseded)
 
@@ -242,7 +242,7 @@ Internal layout (304×72, padding 8 left/right and 4 top/bottom inside the clust
 |---|---|---|---|---|---|
 | 1 | Eliminated | `Status = Eliminated` | meter replaced by the spectate block (§4.5) | | |
 | 2 | Escaped | `Status = Escaped` | `Escaped` (`text`) | `Waiting for the result.` (`muted`) | empty |
-| 3 | Lagging, being rescued | `Status = Lagging` and `S2C_SelfState.RescueProgress > 0` | `Lagging` (`text`) | `Rescue in progress — stay close` | fill `ally`, width = `RescueProgress` (§4.4) |
+| 3 | Lagging, being rescued | `Status = Lagging` and `S2C_SelfState.RescueProgress > 0` | `Lagging` (`text`) | `Being rescued — stay close` | fill `ally`, width = `RescueProgress` (§4.4) |
 | 4 | Lagging | `Status = Lagging` | `Lagging` (`text`) | `Always visible · 42 s left` (`ceil(StatusTimer)`, tabular) | fill `danger`, width = `StatusTimer / 60` |
 | 5 | Signal, scanned | `Signal` set and a PingScanner effect for you arrived less than its `Duration` ago | `Signal` (`signal`) | `Scanned by the Killer · 1.2 s` | fill `signal` |
 | 6 | Signal, overload | `Signal` set and own TrafficOverload active (< `Duration`) | `Signal` | `Traffic overload · 1.4 s` | fill `signal` |
@@ -260,7 +260,7 @@ Capture tag (row A, right), first match wins:
 The tags show only while `Status = Normal`, so the word beside them is `Signal` or `Silent` (≈ 60 u at M); `Next capture eliminates` (23 characters, measured in `PlaycheckPolishTests`) plus the 8 u gap fits 288 u. `Protected 1.4 s` is shorter.
 Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
 
-**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor holding [E] within 1.5 m for 3 s restores you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 77 characters ≈ 640 u, fits the 656 u row; **(11/17, R3)** the rescue is an explicit E-hold, not automatic). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor holding [E] within 1.5 m for 3 s restores you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
+**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor holding [E] within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 77 characters ≈ 640 u, fits the 656 u row; **(11/17, R3)** the rescue is an explicit E-hold, not automatic). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor holding [E] within 1.5 m for 3 s rescues you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
 
 **(10/30) Elimination reason** (*derived* from the own entry in the snapshot before `Status = Eliminated`):
 
@@ -320,9 +320,9 @@ Rescue progress comes from the server, own-only: for a Lagging Survivor it is th
 
 | Viewer | Trigger | Display |
 |---|---|---|
-| Normal Survivor approaching **(11/17, R3)** | a Survivor with `Status = Lagging` within 6 m but beyond 1.5 m (derived from positions), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — move next to them, hold [E] to restore` |
-| Helper in reach **(11/17, R3)** | a Lagging Survivor within 1.5 m, own `Rescuing` clear | prompt row: `Hold [E] to restore Mina — you will be Signal` |
-| Rescuer | own `Rescuing` set (`ActionKind = Rescue`) | prompt row: `Restoring Mina — you are Signal` + 656×4 bar, fill `ally`, width = own `RescueProgress` |
+| Normal Survivor approaching **(11/17, R3)** | a Survivor with `Status = Lagging` within 6 m but beyond 1.5 m (derived from positions), own `Rescuing` clear | prompt row: `Mina is Lagging · 4 m — move next to them, hold [E] to rescue` |
+| Helper in reach **(11/17, R3)** | a Lagging Survivor within 1.5 m, own `Rescuing` clear | prompt row: `Hold [E] to rescue Mina — you will be Signal` |
+| Rescuer | own `Rescuing` set (`ActionKind = Rescue`) | prompt row: `Rescuing Mina — you are Signal` + 656×4 bar, fill `ally`, width = own `RescueProgress` |
 | Lagging Survivor | meter row 3 (§4.1) | — |
 | Done | a watched Survivor's `Status` goes Lagging → Normal | prompt and meter return to normal; `rescued` (rising two notes) for the rescued Survivor and the rescuers |
 
@@ -330,7 +330,7 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
 
 **(11/17, R3) Getting up.** A Survivor who is restored (E-hold or Emergency restore) gets up for 1.5 s: the server holds speed at 0 (MoveInput direction ignored, look yaw kept), refuses E and the skill (`NotNormal`), and the existing 2 s protection covers it; `PlayerFlags.GettingUp (32)` goes to Survivor recipients only (never the Killer: a flag that decoys lack would reveal real Survivors). The rescued player's prompt row shows `Getting up…` (ahead of every other prompt, no error sound). The Survivor view plays the Mixamo `GettingUp` clip from the flag, sped up from 2.7 s to 1.5 s. The Killer view shows no get-up.
 
-**(11/17, R3) Explicit rescue.** The rescue is no longer automatic. A Normal Survivor must hold E within 1.5 m of a Lagging Survivor for 3 s (`RescueTimeSeconds`); releasing E or leaving range resets the count. The server owns it: `Flags.Rescuing` and `ActionKind.Rescue (7)` with `ActionProgress` are set only while E is held in range. **E priority** (one E, one action): rescue, then chase prop, then exit switch, then terminal. While a Lagging Survivor is in reach, E never starts a chase prop, switch or hack. Bots hold E next to a Lagging Survivor. Emergency restore is unchanged. Vocabulary: the verb for the E-hold is **restore** (SLOP §6 `Rescue` stays the noun for the system and for `Rescuing`); the Lagging Survivor's meter says `Being restored — stay close`.
+**(11/17, R3) Explicit rescue.** The rescue is no longer automatic. A Normal Survivor must hold E within 1.5 m of a Lagging Survivor for 3 s (`RescueTimeSeconds`); releasing E or leaving range resets the count. The server owns it: `Flags.Rescuing` and `ActionKind.Rescue (7)` with `ActionProgress` are set only while E is held in range. **E priority** (one E, one action): rescue, then chase prop, then exit switch, then terminal. While a Lagging Survivor is in reach, E never starts a chase prop, switch or hack. Bots hold E next to a Lagging Survivor. Emergency restore is unchanged. Vocabulary **(INTEG-R)**: one term, SLOP §8 `Rescue` (noun and verb: `Hold [E] to rescue`, `Rescuing`, `Being rescued — stay close`, `rescues you`). Only the skill keeps its name, `Emergency restore`, and its own feedback lines (§14.2.8).
 
 ### 4.5 Own status: Lagging, Escaped, Eliminated
 - **Lagging:** meter rows 3–4.
@@ -351,7 +351,7 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
   - The threat cue, skill and prompts are hidden. The info block stays.
 
 ### 4.6 Screen-edge markers
-**(11/17, R3) Built as:** every Lagging ally (nearest first, at most 7) gets a tag `Mina · Lagging · 38 m` on screen (above the body at 1.2 m) or an edge chevron plus tag off screen, reusing `MarkerLayer`, `EdgePlacement` and `EdgeSpread`. Decision: the chevron is the amber Signal chevron with a Lagging ring (matching the Killer HUD's Lagging marker and the amber Lagging body tint) rather than the `ally` teal in the table. The Lagging viewer's markers for the nearest 2 Normal Survivors are not built; the downed line below replaces them: `Lagging · an ally can restore you with [E] · nearest ally 18 m · 54 s` (nearest Normal ally distance; an ally bar while `RescueProgress > 0`).
+**(11/17, R3) Built as:** every Lagging ally (nearest first, at most 7) gets a tag `Mina · Lagging · 38 m` on screen (above the body at 1.2 m) or an edge chevron plus tag off screen, reusing `MarkerLayer`, `EdgePlacement` and `EdgeSpread`. Decision: the chevron is the amber Signal chevron with a Lagging ring (matching the Killer HUD's Lagging marker and the amber Lagging body tint) rather than the `ally` teal in the table. The Lagging viewer's markers for the nearest 2 Normal Survivors are not built; the downed line below replaces them: `Lagging · an ally can rescue you with [E] · nearest ally 18 m · 54 s` (nearest Normal ally distance; an ally bar while `RescueProgress > 0`).
 Sources: Survivors' `X/Z`, `Status`; static Exit position; `ExitOpen`, `ExitLocked`.
 
 | Marker | Shown to | Off-screen | On-screen |

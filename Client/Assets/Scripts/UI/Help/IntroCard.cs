@@ -5,7 +5,8 @@ using UnityEngine.UIElements;
 namespace PingTheKiller.Client.UI
 {
     // HUD_SPEC 3 (11/17 R3): when the card shows, what it says and for how long. Pure; ClientApp feeds the clock and the keys.
-    // It shows from the match start for HelpCopy.IntroSeconds, ends at once on any key, and never shows under the play menu.
+    // It shows from the match start for HelpCopy.IntroSeconds and never shows under the play menu. Esc, Enter, Space or a mouse
+    // click ends it at once (INTEG-R, R3 QA minor 4); movement, E and Q do not, so the first steps never hide it by accident.
     // It never blocks input and has no animation, so Reduced motion needs no variant.
     public sealed class IntroCardState
     {
@@ -26,6 +27,9 @@ namespace PingTheKiller.Client.UI
         public void SetTerminals(int required) { if (required > 0) terminals = required; }
 
         public void Dismiss() { dismissed = true; }
+
+        // The inputs that end the card: Esc, Enter (either), Space or a mouse button press. WASD, arrows, E and Q never do.
+        public static bool DismissInput(bool escape, bool enter, bool space, bool click) => escape || enter || space || click;
 
         public bool Visible(double now, bool menuOpen) => !dismissed && !menuOpen && now - startedAt < HelpCopy.IntroSeconds;
 

@@ -23,7 +23,7 @@ namespace PingTheKiller.Client.UI
                 case SkillIds.DummyPacket: return "A fake Signal where you stand, 3 s.";
                 case SkillIds.StealthRelay: return "You and Survivors within 5 m stay Silent for 2 s, even while moving.";
                 case SkillIds.TrafficOverload: return "You are Signal for 2 s; the Killer moves at half speed for 2 s.";
-                case SkillIds.EmergencyRestore: return "Instantly restores a Lagging Survivor next to you.";
+                case SkillIds.EmergencyRestore: return "Instantly rescues a Lagging Survivor next to you.";
                 case SkillIds.WhiteNoise: return "Five fake Signals across the map, 1.5 s.";
                 default: return string.Empty;
             }
