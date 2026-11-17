@@ -71,7 +71,7 @@ namespace PingTheKiller.Client.UI
             + Num(GameConstants.RescueTimeSeconds) + " s rescues you " + SurvivorReadout.Dot + " " + Num(seconds) + " s left";
         public static string BannerFor(byte captureCount) => SurvivorReadout.SecondStage(captureCount) ? SecondBanner : Banner;
         // GDD v2 4: no execution. The second Lagging stage running out, a third capture, or the collapse eliminates.
-        public const string Collapse = "Disconnected: the collapse reached you.";
+        public const string Collapse = "Disconnected: the shutdown reached you.";
         // The server's CaptureCount counts Lagging stages, not captures: a first stage that runs out raises it to 2 without a
         // capture. So the capture elimination names a number only when this watch saw every capture (Caught); otherwise
         // this count-free line, which is true for any history.

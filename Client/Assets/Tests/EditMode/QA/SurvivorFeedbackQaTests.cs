@@ -528,7 +528,7 @@ namespace PingTheKiller.Client.QA.Tests
             var cases = new (EliminationReason reason, string text)[]
             {
                 (EliminationReason.TimedOut, "Disconnected: no rescue in the second Lagging stage (30 s)."),
-                (EliminationReason.Collapse, "Disconnected: the collapse reached you."),
+                (EliminationReason.Collapse, "Disconnected: the shutdown reached you."),
                 (EliminationReason.ThirdCapture, "Disconnected: caught with no Lagging stage left."),
             };
             var result = new S2C_GameResult { WinnerRole = (byte)Role.Killer, Reason = (byte)GameEndReason.AllSurvivorsDown };

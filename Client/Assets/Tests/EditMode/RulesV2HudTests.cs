@@ -139,10 +139,10 @@ namespace PingTheKiller.Client.Tests
             Assert.That(HoldCopy.Percent(.62f), Is.EqualTo(62));
             Assert.That(HoldCopy.Percent(5f), Is.EqualTo(100));
             Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.ExitSwitch, Progress01 = .62f }), Is.EqualTo("Opening the Exit · 62% — you are Signal"));
-            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = 1.4f }), Is.EqualTo("Kicking the Terminal · 100%"));
-            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.CloseHatch, Progress01 = -1 }), Is.EqualTo("Closing the Hatch · 0%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = 1.4f }), Is.EqualTo("Jamming the Terminal · 100%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.CloseHatch, Progress01 = -1 }), Is.EqualTo("Closing the Emergency port · 0%"));
             Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.None }), Is.Empty);
-            Assert.That(HoldCopy.Hint(HoldKind.KickTerminal, "[E]"), Is.EqualTo("Hold [E] · moving cancels the kick"));
+            Assert.That(HoldCopy.Hint(HoldKind.KickTerminal, "[E]"), Is.EqualTo("Hold [E] · moving cancels the jam"));
         }
 
         [Test]
@@ -153,7 +153,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.None));
             bar.Set(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = 1.5f }, "X");
             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.Flex));
-            Assert.That(bar.Text, Is.EqualTo("Kicking the Terminal · 100%"));
+            Assert.That(bar.Text, Is.EqualTo("Jamming the Terminal · 100%"));
             VisualElement fill = bar.Q(className: "v2-fill");
             Assert.That(fill.style.width.value.value, Is.EqualTo(100f));
             Assert.That(fill.style.width.value.unit, Is.EqualTo(LengthUnit.Percent));
@@ -208,7 +208,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(CollapseCopy.Clock(-1), Is.EqualTo("0:00"));
             var lagging = new CollapseView { GlobalLeft = 52, PersonalLeft = 25, Lagging = true };
             Assert.That(CollapseCopy.Urgent(lagging), Is.True, "the personal clock decides");
-            Assert.That(CollapseCopy.Main(lagging), Is.EqualTo("Collapse 0:52"));
+            Assert.That(CollapseCopy.Main(lagging), Is.EqualTo("Shutdown 0:52"));
             Assert.That(CollapseCopy.Personal(lagging), Is.EqualTo("Lagging: 2× faster · you 0:25"));
             var recovered = new CollapseView { GlobalLeft = 52, PersonalLeft = 40 };
             Assert.That(CollapseCopy.Personal(recovered), Is.EqualTo("You 0:40"));
@@ -240,8 +240,8 @@ namespace PingTheKiller.Client.Tests
         {
             TerminalFlagsView t = TerminalFlagsView.FromWire(2, 40, 1 | 2);
             Assert.That(t.Regressing && t.Overloaded, Is.True);
-            Assert.That(TerminalFlagCopy.Regressing(t, Role.Survivor), Is.EqualTo("Terminal 3 · 40% · Regressing"));
-            Assert.That(TerminalFlagCopy.Regressing(t, Role.Killer), Is.EqualTo("Terminal 3 · Regressing"), "no percentage for the Killer");
+            Assert.That(TerminalFlagCopy.Regressing(t, Role.Survivor), Is.EqualTo("Terminal 3 · 40% · Rolling back"));
+            Assert.That(TerminalFlagCopy.Regressing(t, Role.Killer), Is.EqualTo("Terminal 3 · Rolling back"), "no percentage for the Killer");
             Assert.That(TerminalFlagCopy.Overloaded(t, 23.6f), Is.EqualTo("Terminal 3 overloaded · 24 m"));
             Assert.That(TerminalFlagCopy.ShowOverloaded(t, Role.Killer), Is.True);
             Assert.That(TerminalFlagCopy.ShowOverloaded(t, Role.Survivor), Is.False, "Overloaded is the Killer alert");
@@ -267,7 +267,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ResultV2Copy.Headline(view.Winner), Is.EqualTo("Survivors win"));
             Assert.That(ResultV2Copy.Rule(view.Escaped, view.Starting), Is.EqualTo("4 of 7 escaped · Survivors win when half or more escape (4 of 7)"));
             Assert.That(ResultV2Copy.Outcome(view), Is.EqualTo("You escaped."));
-            Assert.That(ResultV2Copy.Reason(view.Reason), Is.EqualTo("The collapse eliminated the Survivors still inside."));
+            Assert.That(ResultV2Copy.Reason(view.Reason), Is.EqualTo("The shutdown eliminated the Survivors still inside."));
             Assert.That(ResultV2Copy.RowName(view.Rows[3], 3), Is.EqualTo("P4 (you)"));
             Assert.That(ResultV2Copy.RowState(view.Rows[3]), Is.EqualTo("Escaped"));
             Assert.That(ResultV2Copy.RowState(view.Rows[4]), Is.EqualTo("Eliminated"));

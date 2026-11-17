@@ -95,7 +95,7 @@ namespace PingTheKiller.Client.UI.RulesV2
         }
     }
 
-    // HUD_SPEC 13.5: the collapse clock. A 4x18 u bar, then `Collapse 1:52` (M 600 `text`). Urgent (shown value 0:30 or
+    // HUD_SPEC 13.5: the collapse clock. A 4x18 u bar, then `Shutdown 1:52` (M 600 `text`). Urgent (shown value 0:30 or
     // less) changes only the bar colour: `muted` -> `danger` (Survivor) or `text` (Killer). The text never changes colour
     // and nothing flashes. Survivor: line 2 (S `text`) `Lagging: 2x faster · you 0:48` / `You 0:48` while the personal
     // clock shows a different value.

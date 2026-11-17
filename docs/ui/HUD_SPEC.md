@@ -261,7 +261,7 @@ Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 
 |---|---|---|
 | Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue in the second Lagging stage (30 s).` |
 | Normal | `CaptureCount ≥ 2` | **(11/08, Q1)** names the captures the client saw: `Disconnected: caught 3 times.`, or after a first stage ran out `Disconnected: caught 2 times, no Lagging stage left.` When the client did not see the whole match (first snapshot not Normal with `CaptureCount` 0) or its count disagrees with the server's: `Disconnected: caught with no Lagging stage left.` (was `caught a third time.`, wrong after an escalation) |
-| anything else, a collapse clock running | — | `Disconnected: the collapse reached you.` |
+| anything else, a collapse clock running | — | `Disconnected: the shutdown reached you.` |
 | anything else | — | none (the meter keeps `Watching until the match ends.`) |
 
 **(U6c-wire)** Rules v2 has no execution: the two `Executed: …` lines are gone. A Survivor is eliminated by the third capture, by the second Lagging stage running out (`SecondLaggingTimeoutSeconds` 30 s), or by the collapse clock. The Lagging meter's full scale follows the stage: 60 s on the first capture, 30 s on the second; from `CaptureCount` 2 the tag reads `Next capture eliminates` (11/08, Q1; it read `Captured twice`).
@@ -397,7 +397,7 @@ Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it gro
 - Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → **(11/10)** `Next capture eliminates you.` (count-free: `CaptureCount` counts Lagging stages, so a first stage that runs out reaches 2 without a second capture; it read `Captured twice: the next capture eliminates you.`); otherwise no line.
 - Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
-- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync ring stay as they are.
+- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync lock bar stay as they are.
 
 Opening the menu sends `C2S_Interact{Active = 0}` (only after a sent press) and one zero `C2S_MoveInput`, and it releases the cursor; while it is open there is no mouse look and no W A S D, E, Q or Space. Closing it captures the cursor again (when the window has focus). The match keeps running.
 
@@ -430,7 +430,7 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 | # | Block | Source | Content | Size |
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
-| 6.1p | Prompt | §13.3 | interact prompt (kick, hatch close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
 | 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1/3` (M, the Survivor format, §4.3); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
 | 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `Needs an Exit switch in progress` (FirewallBlock while no unopened exit has switch progress, disabled) | 320×72 |
@@ -513,7 +513,7 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
    - The Killer's own capture (`CaptureConfirm`, §6.5) gives a 0.22 s first-person lunge: vertical FOV −4° and the eye 0.12 m forward, easing out. None with reduced motion (`-ptk-reduce-stutter`, later the settings toggle).
 
 ### 6.4 Execution guidance — removed in v2
-**(U6c-wire)** GDD v2 has no execution and protocol v0.4 has no `ExecutionGraceLeft`. The 6.1p prompt slot now shows the §13.3 Killer interact prompt (kick, hatch close), and the hold block while holding.
+**(U6c-wire)** GDD v2 has no execution and protocol v0.4 has no `ExecutionGraceLeft`. The 6.1p prompt slot now shows the §13.3 Killer interact prompt (jam, Emergency port close), and the hold block while holding.
 
 ### 6.5 Killer sounds
 | Cue | Trigger (all observable in the Killer view) |
@@ -739,50 +739,47 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 Sources are the protocol v0.4 fields from the U6a brief. The widgets live in `Client/Assets/Scripts/UI/RulesV2/` and read only plain view models (`RulesV2Views.cs`), so the wiring copies packet fields in. Style is in `Resources/RulesV2.uss`. All global rules in §0 apply: logical units, spacing scale, radius 0, S/M/L type, palette meanings, `danger` never on text.
 
-**New fixed terms** (added to the SLOP §8 vocabulary): Sync check, Great / Good / Fail, Powered, No power, switch, Hatch, Collapse, Regressing, Overloaded, kick (verb, Killer).
+**New fixed terms** (added to the SLOP §8 vocabulary): Sync lock, Great / Good / Fail, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
 
 ### 13.1 Placement
 - **Survivor:** one bottom-center stack sits directly on the cluster (§4.0). Its bottom edge is at 96 u (the cluster top), and every child keeps an 8 u gap below it. From top to bottom:
-  1. the sync check ring (13.2), only during a check;
+  1. the sync lock bar (13.2), only during a check;
   2. the prompt row: the §4.3/§4.4 prompts or the 13.3 hold row, 672×40;
   3. the **objective row** (672×48), shown once any exit is Powered or Open, or a collapse clock runs.
-  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 144 + 8 = 352 u. The ring only shows while hacking, which is in act 1, when the objective row is normally hidden; then the ring spans 152–296 u from the bottom, so its top edge is at 604 u of 900 at 720p (67.1 %) and 784 u of 1080 at 1080p (72.6 %). That is at or below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the ring sits 56 u higher and may overlap the feet; that case is rare and accepted.
+  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u)**. The bar only shows while hacking, which is in act 1, when the objective row is normally hidden; then the bar spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the bar sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
 - **v2 info block:** line 3 of the info block (§4.7, `Exit …`) is removed in v2. The objective row replaces it. Line 1 stays the match time and line 2 stays `Terminals 1/5`.
 - **Killer:** two blocks go into the 6.1 cluster between the prompt slot and the info block. In order: the hold block (13.3, in the 6.1p prompt slot) and the collapse block (13.5). Exits stay on world markers (13.4), never in a panel (SLOP §8).
 
-### 13.2 Sync check ring (Survivor)
-Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived.
-- **Shape (144×144 u):**
-  - `panel` disc with a 1 u `line` edge.
-  - Track: 10 u `line` at radius 56, clearly darker than the zone.
-  - Good zone: 10 u `text` over the full band width, from `ZoneStart` to `ZoneStart + ZoneSize`.
-  - Great part: **22 u** `text`, the first `GreatSize` of the zone, standing 6 u out of the band on both sides. It differs from Good by shape; no glow, and no `signal` (amber means visible to the Killer).
-  - Needle **(U6c-wire a2)**: the moving hand, 3 u `text` from radius 30 (inside the band) to radius 80 (8 u past the disc edge, inside the 8 u stack gap), on a 7 u `bg` keyline. At 50 u it is more than twice as long as the Great head is thick.
-  - A 2 u `panel` cut separates the Great part from the Good part, so the zone reads as two blocks, not one tapered arrow.
-  - At 720p (scale 0.8) the default zone (0.12) is an arc ≈ 34 px long and 8 px thick; the great part (0.035) is ≈ 10 px long and 18 px thick.
-  - Angles: fraction 0 is 12 o'clock; the needle turns clockwise; `needle = clamp01(Elapsed / Duration)`.
-- **Centre:**
-  - While waiting: the key glyph, S `muted`: `Space`, or `A` on a gamepad.
+### 13.2 Sync lock bar (Survivor) **(11/17, IP)**
+Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived. The wire, the judge and the timing are unchanged; only the drawing changed from a ring with a needle to a horizontal bar, so it no longer copies another game's well-known timing-check presentation.
+- **Shape (320×80 u):**
+  - `panel` fill with a 1 u `line` edge.
+  - Track area x 16–304 u, y 8–44 u: a waveform in `line` (2 u). A pulse travels left to right as a bump in that wave (3 u `text` near the pulse), with a 4 u `text` crest bar on an 8 u `bg` keyline.
+  - Lock window from `ZoneStart` to `ZoneStart + ZoneSize`: the Good part is a `muted` block the height of the track; the Great part (the first `GreatSize` of the window, exactly as the judge reads it) is a `text` block 6 u taller on both sides. A 2 u `panel` cut separates them. No glow, no `signal` amber (amber means visible to the Killer).
+  - Pulse x = `16 + clamp01(Elapsed / Duration) × 288` u: the same `SyncCheckMath.NeedleFraction` the ring used. The pulse is at the window centre exactly when the old needle was in the middle of the zone.
+  - At 720p (scale 0.8) the default zone (0.12) is ≈ 28 px wide and 29 px tall; the Great part (0.035) is ≈ 8 px wide and 39 px tall.
+- **Label row (y 52–80 u):**
+  - While waiting: `Sync lock · Space`, or `· A` on a gamepad, S `muted`.
   - After the result: `Great` / `Good` / `Fail`, M 600 `text`.
 - **Press:**
   - Space or gamepad A calls `SyncCheckState.TryPress()`. This raises `Press(CheckId)` once per check, and the owner sends `C2S_SyncPress`.
-  - The needle freezes where it was pressed.
+  - The pulse freezes where it was pressed.
   - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
-- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the ring hides until a new `CheckId` arrives.
+- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the bar hides until a new `CheckId` arrives.
 - **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the needle is drawn in the great part is Great (U6f).
-- **No flashing:** one change only, the centre word, with no colour flash and no shake.
+- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the pulse is drawn in the great part is Great (U6f).
+- **No flashing:** one change only, the label, with no colour flash and no shake.
 - **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
-- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The ring clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
+- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The bar clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
 
-### 13.3 Hold action (Survivor exit switch, Killer kick and hatch close)
+### 13.3 Hold action (Survivor exit switch, Killer jam and Emergency port close)
 Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0–1, and the percentage is `floor(progress × 100)`, so the row never shows 100 % before the server finishes.
 
 | Kind | Role | Text | Block |
 |---|---|---|---|
 | 1 switch | Survivor | `Opening the Exit · 62% — you are Signal` (M) | prompt row 672×40, 656×4 bar `text` |
-| 2 kick | Killer | `Kicking the Terminal · 55%` (M 600) + `Hold [E] · moving cancels the kick` (S `muted`) | 320×72: padding 8/7; 23 + 4 + 4 bar + 4 + 18 |
-| 3 hatch close | Killer | `Closing the Hatch · 70%` + `Hold [E] · releasing cancels` | same |
+| 2 jam | Killer | `Jamming the Terminal · 55%` (M 600) + `Hold [E] · moving cancels the jam` (S `muted`) | 320×72: padding 8/7; 23 + 4 + 4 bar + 4 + 18 |
+| 3 Emergency port close | Killer | `Closing the Emergency port · 70%` + `Hold [E] · releasing cancels` | same |
 
 `ActionKind = 0` hides the row or block.
 
@@ -790,11 +787,11 @@ Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0
 
 | Role | Condition (first match wins) | Line 1 | Line 2 (Killer, S `muted`) |
 |---|---|---|---|
-| Survivor | `HatchVisible` and within `HatchRadius` 1.5 m | `Press [E] to escape through the Hatch` | — |
+| Survivor | `HatchVisible` and within `HatchRadius` 1.5 m | `Press [E] to escape through the Emergency port` | — |
 | Survivor | nearest exit switch within `ExitSwitchRadius` 1.5 m, exit Powered, not Open, not Locked | `Hold [E] to open Exit 1 · 62% — you will be Signal` | — |
 | Survivor | the same switch while Locked | `Exit 1 is Locked 3 s by the Killer` (`muted`; seconds from the own FirewallBlock knowledge, else `Exit 1 is Locked by the Killer`) | — |
-| Killer | `HatchVisible` and within `HatchRadius` | `Hold [E] to close the Hatch` | `Stand still · starts the collapse` |
-| Killer | an unfinished terminal within `TerminalRadius` 1.5 m (Killer `Progress` is 0/100 only, N9) | `Hold [E] to kick Terminal 3` | `Stand still · hacked Terminals only` |
+| Killer | `HatchVisible` and within `HatchRadius` | `Hold [E] to close the Emergency port` | `Stand still · starts the shutdown` |
+| Killer | an unfinished terminal within `TerminalRadius` 1.5 m (Killer `Progress` is 0/100 only, N9) | `Hold [E] to jam Terminal 3` | `Stand still · hacked Terminals only` |
 
 Every Killer line is at most 38 characters and fits the 302 u inner width at S. The server decides every action; the prompt is guidance.
 
@@ -820,20 +817,20 @@ Source: `WorldState` exits `{Id, Flags (Powered 1, Open 2, Locked 4), SwitchProg
 
 Off-screen exits get no indicator. Every tag is clamped inside the 24 u screen inset.
 
-### 13.5 Collapse clock
+### 13.5 Shutdown clock
 Source: `WorldState.CollapseLeft` (global) and `SelfState.CollapseLeft` (personal); −1 means not running. The format is `m:ss` of `ceil`.
 - **Survivor cell** (272×46, the third cell of the objective row):
-  - Line 1: a 4×18 bar, then `Collapse 1:52` (M 600 `text`) showing the global clock.
+  - Line 1: a 4×18 bar, then `Shutdown 1:52` (M 600 `text`) showing the global clock.
   - Line 2 (S `text`), only when the personal `m:ss` differs from the global one: `Lagging: 2× faster · you 0:48` while the own `Status = Lagging`, otherwise `You 0:48`.
-- **Killer block** (320×32): the bar and `Collapse 1:52`. There is no personal clock.
+- **Killer block** (320×32): the bar and `Shutdown 1:52`. There is no personal clock.
 - **Urgent:** the clock that eliminates the viewer is checked. That is the personal clock when it runs, otherwise the global one. When it shows `0:30` or less, only the bar colour changes: `muted` → `danger` for Survivors, `muted` → `text` for the Killer (the Killer HUD keeps `danger` for the overload slow). The text keeps its colour, nothing flashes, and nothing animates.
 - **Sound** (wiring): `collapse_start` once (exit opened or hatch closed) and one tone at 30 s.
 
 ### 13.6 Terminal flags
 Source: `TerminalState.Flags` (Regressing 1, Overloaded 2).
-- **Regressing** (both roles) replaces the terminal's world tag:
-  - Survivor: `Terminal 3 · 40% · Regressing`, with a 2 u `danger` left bar. **(U6c-wire a2)** Survivors have no other terminal tag, so this one is drawn by the Survivor HUD's own v2 marker layer: above the terminal's 1.5 m point, only while that point is on screen (no edge indicator), clamped out of the cluster and stack keep-out.
-  - Killer: `Terminal 3 · Regressing`, with no percentage (N9) and a 2 u `text` left bar.
+- **Rolling back** (both roles; the terminal's `Regressing` flag) replaces the terminal's world tag:
+  - Survivor: `Terminal 3 · 40% · Rolling back`, with a 2 u `danger` left bar. **(U6c-wire a2)** Survivors have no other terminal tag, so this one is drawn by the Survivor HUD's own v2 marker layer: above the terminal's 1.5 m point, only while that point is on screen (no edge indicator), clamped out of the cluster and stack keep-out.
+  - Killer: `Terminal 3 · Rolling back`, with no percentage (N9) and a 2 u `text` left bar.
 - **Overloaded** (Killer alert, shown while the flag is set, about 2 s):
   - On screen: a 16 u filled `signal` square at the terminal (1.5 m), drawn through walls, with a 1 u `bg` keyline.
   - Off screen: the same square at the §6.2 edge-indicator position (`EdgePlacement.Place`, Killer slide rule, cluster keep-out including the v2 blocks), with an 8 u `signal` pointer toward the terminal.
@@ -849,7 +846,7 @@ Source: `S2C_GameResult {WinnerRole, Reason, EscapedIds, EliminatedIds}`, lobby 
 | 1 | Headline | `Survivors win` / `Killer wins` (from `WinnerRole`) | L 600 [8] |
 | 2 | Own outcome | `You escaped.` / `You were eliminated.` / Killer: `You eliminated 4 of 7 Survivors.` | M [8] |
 | 3 | Rule | `3 of 7 escaped · Survivors win when half or more escape (4 of 7)` | S `muted` [4] |
-| 4 | Reason | AllResolved `Every Survivor escaped or was eliminated.` · AllSurvivorsDown `Every Survivor was eliminated before anyone escaped.` · TimeUp `Time ran out. Survivors still inside were eliminated.` · Collapse `The collapse eliminated the Survivors still inside.` | S `muted` [24] |
+| 4 | Reason | AllResolved `Every Survivor escaped or was eliminated.` · AllSurvivorsDown `Every Survivor was eliminated before anyone escaped.` · TimeUp `Time ran out. Survivors still inside were eliminated.` · Collapse `The shutdown eliminated the Survivors still inside.` | S `muted` [24] |
 | 5 | Rows | One row per starting Survivor, in slot order, 560×32 [4]: name (M, ellipsized at 24 characters, ` (you)` on the own row) on the left; `Escaped` (M `text`) or `Eliminated` (M `muted`) on the right. The own row has a 4 u `text` bar inside its left edge and a 600-weight name. | [32] |
 
 At 720p this is 48 + 34 + 8 + 23 + 8 + 18 + 4 + 18 + 24 + 7 × 36 + 32 + 48 = 523 u ≤ 900. There is no colour per outcome (no ally/danger), because both roles see the same list. The winner is the server's; `ResultV2Copy.Consistent` checks it against `escaped × 2 ≥ starting` in development only.
@@ -903,7 +900,7 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
   - no bar and `muted` text: a reason line (14.3).
 - **Time:** shown for **2.5 s** (reason lines 2.0 s), then removed in one frame. Numbers in the line are the skill's static duration, not a countdown. The live countdowns stay where they are: the meter (§4.1), the active arc (§4.8) and the objective row (§13.4).
 - **One line at a time, never stacked (SLOP §5).** Priority: affected (`danger` first) > caster > ally > reason. A new line replaces the shown one when its priority is equal or higher. A lower one is dropped, not queued.
-- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 144 + 8 = 400 u. While hacking (ring shown, objective row normally hidden), a line lifts the ring by 48 u. The ring top is then 344 u from the bottom, at 61.8 % of the 720p height, over the feet (67 %, §4.10). This happens only while a line shows during a sync check (≤ 2.5 s), and it is accepted like the §13.1 case.
+- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during a sync lock (≤ 2.5 s).
 - Hidden while the play menu is open (§5); its timer keeps running.
 
 **Result line, Killer.** The §6.1c effect line (320×32, S, with the 4×18 u bar slot) carries the Killer's lines.

@@ -339,7 +339,7 @@ namespace PingTheKiller.Client.Tests
         public void TheThreeReasonsUseTheSpecCopyOnTheMeter()
         {
             // GDD v2 4 (U6c-wire S5): no execution wording; the result screen (13.7) names the outcome only.
-            Assert.That(CaptureWatch.ReasonText(EliminationReason.Collapse), Is.EqualTo("Disconnected: the collapse reached you."));
+            Assert.That(CaptureWatch.ReasonText(EliminationReason.Collapse), Is.EqualTo("Disconnected: the shutdown reached you."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.TimedOut), Is.EqualTo("Disconnected: no rescue in the second Lagging stage (30 s)."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.ThirdCapture), Is.EqualTo("Disconnected: caught with no Lagging stage left."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.None), Is.Null);

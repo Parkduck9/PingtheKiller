@@ -28,7 +28,7 @@ namespace PingTheKiller.Client.UI
         private float scale = 1;
 
         public SyncCheckTracker Sync { get; } = new SyncCheckTracker();
-        public SyncCheckRing SyncRing { get; }
+        public SyncLockBar SyncRing { get; }
         public HoldActionBar Hold { get; }
         public ObjectiveRow Objective { get; }
         // HUD_SPEC 5: the shared play menu in its Row layout, in the prompt row's slot of the 13.1 stack (it grows upward).
@@ -42,7 +42,7 @@ namespace PingTheKiller.Client.UI
             V2Markers = new V2MarkerLayer(font);
             root.Add(V2Markers);
             stack = Box(root, "v2-survivor-stack");
-            SyncRing = new SyncCheckRing(Sync.State, font);
+            SyncRing = new SyncLockBar(Sync.State, font);
             stack.Add(SyncRing);
             // HUD_SPEC 14.1a: the skill result line, directly above the prompt row.
             result = Box(stack, "sresult");
@@ -397,7 +397,7 @@ namespace PingTheKiller.Client.UI
             else if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
-            if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;
+            if (SyncRing.style.display != DisplayStyle.None) height += SyncLockBar.Height + Gap;
             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);
         }
 

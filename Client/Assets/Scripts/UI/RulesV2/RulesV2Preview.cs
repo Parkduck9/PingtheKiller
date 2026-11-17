@@ -22,7 +22,7 @@ namespace PingTheKiller.Client.UI.RulesV2
         private PanelSettings panel;
         private VisualElement root;
         private Font font;
-        private SyncCheckRing ring;
+        private SyncLockBar ring;
         private readonly SyncCheckState sync = new SyncCheckState();
         private HoldActionBar hold;
         private ObjectiveRow objective;
@@ -85,7 +85,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             if (role == Role.Survivor)
             {
                 VisualElement stack = V2Ui.Box(overlay, "v2-survivor-stack");
-                ring = new SyncCheckRing(sync, font);
+                ring = new SyncLockBar(sync, font);
                 stack.Add(ring);
                 hold = new HoldActionBar(Role.Survivor, font);
                 stack.Add(hold);

@@ -114,7 +114,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ResultV2Copy.Reason(ResultReasonV2.AllResolved), Is.EqualTo("Every Survivor escaped or was eliminated."));
             Assert.That(ResultV2Copy.Reason(ResultReasonV2.AllSurvivorsDown), Is.EqualTo("Every Survivor was eliminated before anyone escaped."));
             Assert.That(ResultV2Copy.Reason(ResultReasonV2.TimeUp), Is.EqualTo("Time ran out. Survivors still inside were eliminated."));
-            Assert.That(ResultV2Copy.Reason(ResultReasonV2.Collapse), Is.EqualTo("The collapse eliminated the Survivors still inside."));
+            Assert.That(ResultV2Copy.Reason(ResultReasonV2.Collapse), Is.EqualTo("The shutdown eliminated the Survivors still inside."));
         }
 
         // v0.4 (GDD v2): the winner comes from WinnerRole (at least half escaped), whatever the reason.

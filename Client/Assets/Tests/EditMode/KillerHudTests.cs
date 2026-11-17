@@ -37,10 +37,10 @@ namespace PingTheKiller.Client.Tests
             hud.Begin(0);
             var terminals = new System.Collections.Generic.List<TerminalState> { new TerminalState { Id = 2, X = 5, Z = 5, Progress = 0 } };
             hud.SetPrompt(InteractCopy.Killer(5.5f, 5, terminals, false, 0, 0), default);
-            Assert.That(hud.PromptText, Is.EqualTo("Hold [E] to kick Terminal 3"));
+            Assert.That(hud.PromptText, Is.EqualTo("Hold [E] to jam Terminal 3"));
             hud.SetPrompt(InteractCopy.Killer(5.5f, 5, terminals, false, 0, 0), new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .55f });
             Assert.That(hud.PromptText, Is.Null, "the hold block takes the prompt slot");
-            Assert.That(hud.Hold.Text, Is.EqualTo("Kicking the Terminal " + Dot + " 55%"));
+            Assert.That(hud.Hold.Text, Is.EqualTo("Jamming the Terminal " + Dot + " 55%"));
             hud.SetPrompt(InteractCopy.Killer(30, 30, terminals, false, 0, 0), default);
             Assert.That(hud.PromptText, Is.Null, "out of reach, no hold: nothing (a Lagging Survivor adds no prompt)");
         }
@@ -53,7 +53,7 @@ namespace PingTheKiller.Client.Tests
             self.Feed(0, 0, 0, -1, .5f, (byte)ActionKind.HatchClose, 1);
             HoldActionView hold = V2Wire.Hold(self);
             Assert.That(hold.Kind, Is.EqualTo(HoldKind.CloseHatch));
-            Assert.That(HoldCopy.Label(hold), Is.EqualTo("Closing the Hatch " + Dot + " 50%"));
+            Assert.That(HoldCopy.Label(hold), Is.EqualTo("Closing the Emergency port " + Dot + " 50%"));
         }
 
         [Test]

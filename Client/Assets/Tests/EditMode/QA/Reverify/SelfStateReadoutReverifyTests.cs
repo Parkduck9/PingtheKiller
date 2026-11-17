@@ -130,11 +130,11 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             InteractPrompt none = InteractCopy.Killer(40, 40, terminals, false, 0, 0);
             Assert.That(none.Text, Is.Null, "no terminal or hatch in reach: no prompt (a Lagging Survivor never adds one)");
             InteractPrompt kick = InteractCopy.Killer(10.8f, 10, terminals, false, 0, 0);
-            Assert.That(kick.Text, Is.EqualTo("Hold [E] to kick Terminal 3"));
+            Assert.That(kick.Text, Is.EqualTo("Hold [E] to jam Terminal 3"));
             Assert.That(kick.Hint, Does.StartWith("Stand still"));
             Assert.That(InteractCopy.Killer(20, 20.5f, terminals, false, 0, 0).Text, Is.Null, "a done terminal cannot be kicked");
             InteractPrompt hatch = InteractCopy.Killer(10.8f, 10, terminals, true, 11, 10);
-            Assert.That(hatch.Text, Is.EqualTo("Hold [E] to close the Hatch"), "the hatch close comes first");
+            Assert.That(hatch.Text, Is.EqualTo("Hold [E] to close the Emergency port"), "the hatch close comes first");
         }
 
         [Test]
