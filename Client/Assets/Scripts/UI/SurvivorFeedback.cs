@@ -226,26 +226,4 @@ namespace PingTheKiller.Client.UI
 
         public static float Db(float db) => (float)Math.Pow(10, db / 20);
     }
-
-    // HUD_SPEC 4.5 Lagging frame stutter, pure timing: the world image is presented at 8 Hz (each frame held 125 ms) and
-    // blended with the previous presented frame at 30 %. Reduced (-ptk-reduce-stutter): a new frame every frame, still
-    // blended 30 %, no hold and no border.
-    public sealed class StutterClock
-    {
-        public const double Hz = 8;
-        public const float PreviousWeight = .3f;
-        private long slot = long.MinValue;
-
-        public void Reset() => slot = long.MinValue;
-
-        // True when a new world frame should be presented at this time.
-        public bool Present(double now, bool reduced)
-        {
-            if (reduced) return true;
-            long current = (long)Math.Floor(now * Hz);
-            if (current == slot) return false;
-            slot = current;
-            return true;
-        }
-    }
 }

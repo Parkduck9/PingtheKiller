@@ -57,6 +57,12 @@ namespace PingTheKiller.Client.World
         private bool killerShown;
         private Vector3 killerGround;
 
+        // U8: a capture (Normal -> Lagging / Eliminated) of a Survivor that is drawn this frame, at its ground position.
+        // ClientApp plays the pooled CaptureImpactFx there. Survivor view only (full state, HUD_SPEC 0.1); the Killer client
+        // builds no character here, so it never raises this.
+        public static event System.Action<Vector3> Impact;
+        public int Impacts { get; private set; }
+
         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
         public float KillerAlpha { get; private set; }
         // Alpha of the Killer's visor material after the last Render; it fades with the body (KillerAlpha).
@@ -216,6 +222,7 @@ namespace PingTheKiller.Client.World
                 bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha) && body;
                 avatar.Root.SetActive(visible);
                 if (!visible) { avatar.Offset = Vector2.zero; continue; }
+                if (avatar.Motion.Tracker.CaptureEdge) { Impacts++; Impact?.Invoke(new Vector3(position.x, 0, position.z)); }
                 avatar.Position = position; avatar.Yaw = yaw; avatar.Alpha = alpha; avatar.Lagging = status == (byte)PlayerStatus.Lagging;
                 // The own avatar is pinned: the camera follows it, so only the other body steps aside.
                 bodies.Add(new SeparationBody(entry.Key, position.x, position.z, own));

@@ -97,6 +97,16 @@ namespace PingTheKiller.Client.Dev
         }
 
         private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0 && !KillerDownStaging;
+        // U8 (dev only): -ptk-chase on a Survivor client seeks a capture of the own Survivor for the capture-moment shots and
+        // frame-time log: while Normal it walks toward the Killer model's entry when one arrived (line of sight), else the
+        // terminals in turn. Never sent anywhere; the server sees only the usual MoveInput.
+        private bool Seeking => role == Role.Survivor && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0 && localStatus == (byte)PlayerStatus.Normal;
+        // The Killer entry's ground position (Survivor clients receive it in line of sight). Read before the local-player
+        // guard in OnWorld, used only as the seek target of Chase, never logged (RulesReadoutQaTests checks both).
+        private Vector3 killerEntry;
+        private double killerCaptureAt = -1; // U8: the Killer client's latest own capture (shots, first 4)
+        private int killerShotCaptures;
+        private bool killerEntryKnown;
         // -ptk-preview-motion killer-down (U4j): after the first capture the chase stops; the Killer walks away from the
         // nearest instance for RetreatSeconds, then turns to face it, so the downed Survivor is framed at a few metres.
         private const double RetreatSeconds = 1.3, KillerDownShotSeconds = 2.4;
@@ -114,7 +124,7 @@ namespace PingTheKiller.Client.Dev
 
         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
         // -ptk-chase and -ptk-rescue walk through the same path.
-        public bool HoldForward => PilotWalk || RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+        public bool HoldForward => PilotWalk || RescueWalk || Chasing || Seeking || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
 
         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
         public bool Steer(float currentYaw, float dt, out float yaw)
@@ -132,6 +142,7 @@ namespace PingTheKiller.Client.Dev
                 if (PilotWalk) return Route(pilot.Goal, out yaw);
             }
             if (RescueWalk) return Route(rescueAt, out yaw);
+            if (Seeking) return Chase(killerEntryKnown, killerEntry, out yaw);
             if (!Wandering || !located) return false;
             if (wander == null) wander = new Wander(currentYaw);
             yaw = wander.Next(SharedMap.Map, position.x, position.z, dt);
@@ -243,8 +254,9 @@ namespace PingTheKiller.Client.Dev
             if (routed && Now - chaseLogAt >= 1)
             {
                 chaseLogAt = Now;
-                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " chase " + (hasTarget ? "blip" : "terminal") + " from=" + Stamp(position.x) + "," + Stamp(position.z)
-                    + " to=" + Stamp(goal.x) + "," + Stamp(goal.z) + " yaw=" + Stamp(Mathf.Repeat(yaw, 360)));
+                bool seek = role == Role.Survivor && hasTarget; // a Survivor's seek target is the Killer entry: not logged
+                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " chase " + (seek ? "killer" : hasTarget ? "blip" : "terminal") + " from=" + Stamp(position.x) + "," + Stamp(position.z)
+                    + (seek ? string.Empty : " to=" + Stamp(goal.x) + "," + Stamp(goal.z)) + " yaw=" + Stamp(Mathf.Repeat(yaw, 360)));
             }
             return routed;
         }
@@ -267,6 +279,13 @@ namespace PingTheKiller.Client.Dev
         public const int CrowdCount = 6;
         public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, string prompt = null, int captures = 0, int overloaded = 0)
         {
+            if (captures > killerShotCaptures && captures <= 4) { killerShotCaptures = captures; killerCaptureAt = Now; }
+            if (args.Shots != null && !capturing && pending.Count == 0 && killerCaptureAt >= 0)
+            {
+                string strike = "u8-killer-capture-" + killerShotCaptures + "-strike.png", after = "u8-killer-capture-" + killerShotCaptures + "-after.png";
+                if (Now - killerCaptureAt >= .2 && !taken.Contains(strike)) EventShot(strike, 0);
+                else if (Now - killerCaptureAt >= .5 && !taken.Contains(after)) EventShot(after, 0);
+            }
             if (captures > 0 && captureSeenAt < 0 && args.PreviewMotion == MotionPreviewClip.KillerDown)
             {
                 captureSeenAt = Now; Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " motion preview: capture seen");
@@ -335,6 +354,11 @@ namespace PingTheKiller.Client.Dev
             if (Want("threat-1.png", located && threat == 1 && status == PlayerStatus.Normal && t - threatSince >= .3)) return;
             if (Want("threat-2.png", located && threat == 2 && status == PlayerStatus.Normal && t - threatSince >= .3)) return;
             if (Want("threat-3.png", located && threat == 3 && status == PlayerStatus.Normal && t - threatSince >= .2)) return;
+            // U8: the capture moment: the hit-stop frame (first Lagging frame), mid-burst and after the burst (steady look).
+            if (Want("u8-capture-a-windup.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= .1)) return;
+            if (Want("u8-capture-0-hit.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= .3)) return;
+            if (Want("u8-capture-1-burst.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= .45)) return;
+            if (Want("u8-capture-2-after.png", status == PlayerStatus.Lagging && capturedAt >= 0 && t - capturedAt >= 1.1)) return;
             if (Want("capture-banner.png", banner && capturedAt >= 0 && t - capturedAt >= .6)) return;
             if (Want("lagging-stutter.png", status == PlayerStatus.Lagging && !banner && stutterFrames >= 4 && capturedAt >= 0 && t - capturedAt >= 3.3)) return;
             if (Want("eliminated-reason.png", status == PlayerStatus.Eliminated && eliminatedAt >= 0 && t - eliminatedAt >= 1)) return;
@@ -435,8 +459,11 @@ namespace PingTheKiller.Client.Dev
             if (exitOpen && located) EventShot("exit-open.png");
             // Survivor client only: the Killer client never reads a Survivor entry (its view logs blip counts from the tracker).
             if (role != Role.Survivor) return;
+            // -ptk-chase (Survivor): the Killer entry steers the seek walk only; its position is never logged.
+            killerEntryKnown = false;
             foreach (PlayerState player in state.Players)
             {
+                if (player.Role == (byte)Role.Killer) { killerEntry = new Vector3(player.X, 0, player.Z); killerEntryKnown = true; continue; }
                 if (player.Id != localId) continue;
                 if (player.Status == (byte)PlayerStatus.Lagging && localStatus != (byte)PlayerStatus.Lagging && laggingAt < 0) laggingAt = Now;
                 string hud = HudCopy.StatusLine((PlayerStatus)player.Status, player.StatusTimer);

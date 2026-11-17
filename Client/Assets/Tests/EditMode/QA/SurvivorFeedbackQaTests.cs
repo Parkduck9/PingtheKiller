@@ -596,38 +596,38 @@ namespace PingTheKiller.Client.QA.Tests
         // Lagging stutter
         // ------------------------------------------------------------------------------------------------------------------
 
+        // U8 (11/17): the 8 Hz hold is gone; the Lagging look is drawn every frame (full rate) in both modes.
         [TestCase(30)]
         [TestCase(60)]
         [TestCase(144)]
-        public void StutterClock_PresentsEightFramesPerSecond_NoMatterTheFrameRate(int fps)
+        public void LaggingLook_IsDrawnEveryFrame_NoMatterTheFrameRate(int fps)
         {
-            var clock = new StutterClock();
-            int presents = 0;
-            double last = double.NaN;
-            for (int k = 0; k < fps; k++)
+            var look = new LaggingLook();
+            look.SetActive(true, 100);
+            for (int k = 1; k <= fps; k++)
             {
                 double t = 100.0 + (double)k / fps;
-                if (!clock.Present(t, false)) continue;
-                presents++;
-                if (!double.IsNaN(last)) Assert.That(t - last, Is.GreaterThan(.125 - 1.0 / fps), "frames are held about 125 ms");
-                last = t;
+                foreach (bool reduced in new[] { false, true })
+                    Assert.That(look.Evaluate(t, reduced).Steady, Is.GreaterThan(0), "frame " + k + " reduced=" + reduced);
             }
-            Assert.That(presents, Is.EqualTo(8));
+            Assert.That(look.Evaluate(100 + LaggingLook.FadeInSeconds, false).Steady, Is.EqualTo(1).Within(1e-5));
         }
 
         [Test]
-        public void StutterClock_ReducedModePresentsEveryFrame_AndResetPresentsTheNextOne()
+        public void LaggingLook_ReducedModeHasNoBurstTearOrFlash_AndResetClearsIt()
         {
-            var reduced = new StutterClock();
-            for (int k = 0; k < 120; k++) Assert.That(reduced.Present(50 + k / 60.0, true), Is.True, "reduced, frame " + k);
-            var clock = new StutterClock();
-            Assert.That(clock.Present(10.0, false), Is.True);
-            Assert.That(clock.Present(10.0, false), Is.False);
-            Assert.That(clock.Present(10.05, false), Is.False, "still inside the 125 ms hold");
-            clock.Reset();
-            Assert.That(clock.Present(10.05, false), Is.True, "a new Lagging period shows its first frame at once");
-            Assert.That(StutterClock.PreviousWeight, Is.EqualTo(.3f), "30 % previous-frame blend");
-            Assert.That(StutterClock.Hz, Is.EqualTo(8d));
+            var look = new LaggingLook();
+            look.SetActive(true, 10); look.Capture(10);
+            for (double t = 10; t < 10.5; t += .01)
+            {
+                LaggingLook.Frame reduced = look.Evaluate(t, true);
+                Assert.That(reduced.Burst, Is.Zero); Assert.That(reduced.Flash, Is.Zero); Assert.That(reduced.TearSeed, Is.Zero);
+            }
+            Assert.That(look.Evaluate(10.01, false).Burst, Is.GreaterThan(.9f));
+            look.Reset();
+            Assert.That(look.Active, Is.False);
+            Assert.That(look.Evaluate(10.01, false).Burst, Is.Zero);
+            Assert.That(look.Evaluate(10.01, false).Steady, Is.Zero);
         }
 
         [Test]
@@ -640,7 +640,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(DevArgs.Parse(new string[0]).ReduceStutter, Is.False);
             string app = Code("ClientApp.cs");
             Assert.That(app, Does.Contain("stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);"));
-            Assert.That(Code("World/LaggingStutter.cs"), Does.Contain("clock.Present(Time.unscaledTimeAsDouble, reduced)"), "reduced reaches the clock");
+            Assert.That(Code("World/LaggingStutter.cs"), Does.Contain("look.Evaluate(now, reduced)"), "reduced reaches the look");
         }
 
         [Test]
@@ -650,7 +650,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(Regex.Matches(app, @"stutter\.SetActive\(own\.Status == PlayerStatus\.Lagging\)").Count, Is.EqualTo(1));
             int off = Regex.Matches(app, @"stutter\??\.SetActive\(false\)").Count;
             Assert.That(off, Is.GreaterThanOrEqualTo(3), "match start, match end and leaving the match all switch it off");
-            Assert.That(Code("World/LaggingStutter.cs"), Does.Contain("view.targetTexture = null"), "the camera is given back to the screen");
+            Assert.That(Code("World/LaggingStutter.cs"), Does.Not.Contain("targetTexture"), "U8: the camera always renders to the screen");
         }
 
         // ------------------------------------------------------------------------------------------------------------------
