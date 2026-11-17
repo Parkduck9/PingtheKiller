@@ -1,0 +1,15 @@
+U4l-gapfill: no see-through gaps up close; art fills its collision boxes
+
+Add WorldArtGapScan: eye-level rays (0.3/1.0/1.7/2.6 m, +-60 deg fan, 1 m
+and 2 m from every wall and obstacle face) against temporary MeshColliders
+on the placed catalog, plus fill ratios, through-gaps above the podium and
+sky between skyline pieces. It writes docs/qa/U4l-gaps-<label>.md/.json and
+1280x720 cluster and sweep shots.
+
+Fill: obstacles become generated ribbed containers, dumpster rows or crate
+stacks with a dark core and corner posts (cars and works pens left the box
+empty at 0.3 m and 1.0 m); fitted single-box houses get a two-storey core
+block; a 12 m backing row closes the sky behind the skyline houses.
+See-through rays 10754 -> 0, upper through-gaps 470 -> 0, sky gaps 8 -> 0.
+
+Tests: WorldArtGapTests (reduced-density scan, obstacle fill, podium cover).
