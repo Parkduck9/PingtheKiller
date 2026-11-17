@@ -71,6 +71,8 @@ namespace PingTheKiller.Client.UI
             VisualElement column = Box(skill, "sskill-text");
             skillName = Text(column, string.Empty, "ks", "kbold", "sname");
             Text(column, "[Q]", "ks", "kmuted");
+            CastFlash = new SkillCastFlash(true, 16); // U9: left of the cluster, 8 u outside its border
+            skill.Add(CastFlash);
 
             VisualElement meter = Box(cluster, "smeter");
             threatStrip = Box(meter, "sthreat-strip");
@@ -98,6 +100,7 @@ namespace PingTheKiller.Client.UI
 
         public VisualElement Root => root;
         public SkillRing Ring => ring;
+        public SkillCastFlash CastFlash { get; }
 
         private static VisualElement Box(VisualElement parent, string style)
         {
@@ -180,6 +183,7 @@ namespace PingTheKiller.Client.UI
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
             Show(result, false);
+            CastFlash.Hide();
             Hold.Hide();
             Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Sync.Reset();
@@ -414,6 +418,7 @@ namespace PingTheKiller.Client.UI
                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
             }
             ring.Scale = scale; ring.MarkDirtyRepaint();
+            CastFlash.SetScale(scale);
             V2Markers.Scale = scale;
             SyncRing.Scale = scale;
         }

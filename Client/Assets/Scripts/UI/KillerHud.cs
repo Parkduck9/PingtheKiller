@@ -26,6 +26,7 @@ namespace PingTheKiller.Client.UI
         public CollapseTimer Collapse { get; }
         // HUD_SPEC 6.6: the shared play menu in its Stacked layout (skill + effect + Resume, Settings and Leave match).
         public PlayMenu Menu { get; }
+        public SkillCastFlash CastFlash { get; }
         public event Action Resume { add => Menu.Resume += value; remove => Menu.Resume -= value; }
         public event Action OpenSettings { add => Menu.OpenSettings += value; remove => Menu.OpenSettings -= value; }
         public event Action LeaveMatch { add => Menu.LeaveMatch += value; remove => Menu.LeaveMatch -= value; }
@@ -79,6 +80,8 @@ namespace PingTheKiller.Client.UI
             skillName = Text(column, string.Empty, "km", "kbold");
             skillState = Text(column, string.Empty, "ks", "kmuted");
             skillKey = Text(column, "[Q]", "ks", "kmuted");
+            CastFlash = new SkillCastFlash(false, 8); // U9: right of the bottom-left cluster
+            skill.Add(CastFlash);
 
             blocks = new[] { intro, Menu, prompt, info, effect, skill, Hold, Collapse };
             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
@@ -123,7 +126,7 @@ namespace PingTheKiller.Client.UI
             Menu.SetContent(introSkill.text, introEffect.text);
             skillName.text = KillerHudCopy.SkillName(skillId);
             Show(skillKey, skillId != SkillIds.PacketAfterimage);
-            Show(intro, true); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide();
+            Show(intro, true); Menu.SetOpen(false); Show(prompt, false); Show(effect, false); Hold.Hide(); CastFlash.Hide();
             Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
             Show(root, true);
         }
@@ -218,7 +221,7 @@ namespace PingTheKiller.Client.UI
                 block.style.borderTopWidth = border; block.style.borderBottomWidth = border;
                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
             }
-            Markers.Scale = scale; ring.Scale = scale; V2Markers.Scale = scale;
+            Markers.Scale = scale; ring.Scale = scale; V2Markers.Scale = scale; CastFlash.SetScale(scale);
             Markers.MarkDirtyRepaint(); ring.MarkDirtyRepaint();
         }
     }

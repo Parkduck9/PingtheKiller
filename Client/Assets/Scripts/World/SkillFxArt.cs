@@ -6,13 +6,15 @@ namespace PingTheKiller.Client.World
     // HUD_SPEC 14 skill feedback assets, built by Editor/Setup/SkillFxSetup (-executeMethod
     // PingTheKiller.Editor.Setup.SkillFxSetup.Run): the Hovl one-shot prefabs (indexed by FxPrefab), the Sci-Fi pack clips
     // (indexed by FxClip), the low-emission copy of the vendor marker material and the unlit ring material
-    // (both under Assets/Art/SkillFx). The vendor files stay untouched.
+    // (both under Assets/Art/SkillFx). The vendor files stay untouched. U9: the alpha-clipped unlit glyph material (it keeps
+    // the URP Unlit alpha-test variant in the player build); the signatures use runtime copies of Ring.
     public sealed class SkillFxArt : ScriptableObject
     {
         public GameObject[] Prefabs = new GameObject[0];
         public AudioClip[] Clips = new AudioClip[0];
         public Material Marker;
         public Material Ring;
+        public Material Glyph;
 
         public static SkillFxArt Load() => Resources.Load<SkillFxArt>("SkillFxArt");
 

@@ -39,6 +39,9 @@ namespace PingTheKiller.Client.Dev
         // Uses the own skill once at this match second (retried each second until the server starts a cooldown, at most
         // SkillTries presses): the cooldown shots.
         public float SkillAt { get; private set; }
+        // U9 evidence, with -ptk-skill-at: a scripted press waits (uncounted) until the client's derived precondition holds
+        // (Firewall block: a switch in progress; Emergency restore: a Lagging Survivor next to you).
+        public bool SkillWhenAble { get; private set; }
         public const int SkillTries = 6;
         // Killer chase: for this many seconds from match second 2, hold W and steer (NavGrid route) toward the nearest
         // tracked instance, Lagging or Signal; with none in sight it walks the terminals. Makes captures happen for the grace shot.
@@ -94,6 +97,7 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-offline") { result.Offline = true; continue; }
                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
                 if (flag == "-ptk-rescue") { result.Rescue = true; continue; }
+                if (flag == "-ptk-skill-when-able") { result.SkillWhenAble = true; continue; }
                 if (flag == "-ptk-settings") { result.Settings = true; continue; }
                 if (flag == "-ptk-menu-leave") { result.MenuLeave = true; continue; }
                 if (flag == "-ptk-dev-switch") { result.DevSwitch = true; continue; }
