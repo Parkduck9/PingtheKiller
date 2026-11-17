@@ -284,7 +284,7 @@ public sealed class KillerSwingTests
     // M1 (F2): a press processed in the tick a recovery ends used to start the next swing in that tick, so the flag never fell.
     // Now the flag is clear for one tick between swings, and each swing is its own span (16 after a hit, 20 after a miss).
     [Fact]
-    public void ChainedSwingsEachGetTheirOwnFlagSpan()
+    public void APressEvery20TicksGivesEachSwingItsOwnFlagSpan()
     {
         using var m = Facing(3.5f);
         Face(m, 0);
@@ -292,13 +292,47 @@ public sealed class KillerSwingTests
         int run = 0;
         for (int tick = 0; tick < 100; tick++)
         {
-            if (tick % 20 == 0) Attack(m.Killer); // the press lands in the very tick the previous recovery ends (5 per second)
+            if (tick % 20 == 0) Attack(m.Killer); // the press lands in the very tick the previous recovery ends (one press per second)
             m.Tick();
             if ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0) run++;
             else if (run > 0) { spans.Add(run); run = 0; }
         }
         Assert.True(spans.Count >= 3, "spans: " + string.Join(",", spans));
         Assert.All(spans, length => Assert.Equal(20, length));
+    }
+
+    // integ-1118 F7: the real fast-clicking pattern, 5 presses per second (a press every 4 ticks). Every span is a whole swing
+    // (16 after a hit, 20 after a miss), every gap is at least one tick, and no press on an idle Killer is lost.
+    [Theory]
+    [InlineData(2.0f, 16)]
+    [InlineData(3.5f, 20)]
+    public void APressEvery4TicksGivesSeparateSwingsWithAGapOfAtLeastOneTick(float distance, int length)
+    {
+        using var m = Facing(distance);
+        Face(m, 0);
+        var spans = new System.Collections.Generic.List<int>();
+        var gaps = new System.Collections.Generic.List<int>();
+        int run = 0, gap = 0;
+        for (int tick = 0; tick < 200; tick++)
+        {
+            if (tick % 4 == 0) Attack(m.Killer);
+            m.Tick();
+            if ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0)
+            {
+                if (run == 0 && spans.Count > 0) gaps.Add(gap);
+                run++; gap = 0;
+            }
+            else
+            {
+                if (run > 0) { spans.Add(run); run = 0; }
+                gap++;
+            }
+        }
+        Assert.True(spans.Count >= 6, "spans: " + string.Join(",", spans));
+        // The first swing of a hit makes the target Lagging, so later swings miss (20): only the first span can be 16.
+        Assert.Equal(length, spans[0]);
+        Assert.All(spans.Skip(1), s => Assert.Equal(20, s));
+        Assert.All(gaps, g => Assert.True(g >= 1));
     }
 
     [Fact]

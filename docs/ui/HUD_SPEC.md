@@ -467,7 +467,7 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 | # | Block | Source | Content | Size |
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
-| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding. **(11/17, R1)** With no interact prompt in reach, `Click  Attack` (gamepad only: `RT  Attack`) while the nearest Normal tracked blip is within 3 m; **(INTEG-R minors)** not shown when a wall or a lowered (Down) shutter blocks the line to that blip (`KillerHudCopy.SwingClear`; advisory only, the press is sent either way) | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding. **(11/17, R1)** With no interact prompt in reach, `Click  Attack` (gamepad only: `RT  Attack`) while the nearest Normal tracked blip is within the swing reach (**integ-1118:** `GameConstants.SwingRange`, 2.95 m, no margin; was a fixed 3 m); **(INTEG-R minors)** not shown when a wall or a lowered (Down) shutter blocks the line to that blip (`KillerHudCopy.SwingClear`; advisory only, the press is sent either way) | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
 | 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1/3` (M, the Survivor format, §4.3); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
 | 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; **(11/17, R1)** under it the one-line effect `PlayMenuCopy.KillerSkillLine` (S `text`, ellipsized: `Nearest Survivor shown 3 s`, `1.5× speed for 3 s`, `Signal within 12 m, 2.5 s`, `Locks a switch or terminal`); state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Stunned`; `[Q]`. R1 removed `Passive — always on` and `Needs an Exit switch in progress`: every skill is active, and Firewall block can always target a terminal (the Killer cannot see progress; a refusal says why). | 320×88 (R1: was 72); 3 + 23 + 18 + 18 + 18 + 3 = 83 ≤ 88 |
@@ -945,7 +945,7 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
 
 **Result line, Killer.** The §6.1c effect line (320×32, S, with the 4×18 u bar slot) carries the Killer's lines.
 - Own-skill lines tick (`· 1.2 s`, `Seconds1`) for exactly the effect's duration. Reason lines show for 2.0 s.
-- One line at a time: Slowed (`danger` bar) > own skill > reason (`muted`, no bar).
+- One line at a time: **(integ-1118)** a swing result (`Missed` / `Hit`, 1 s) > Slowed (`danger` bar) > own skill > reason (`muted`, no bar). A result hides the slow countdown for its 1 s only.
 - At most 34 characters (282 u, §6.1).
 
 **World effects (VFX).**

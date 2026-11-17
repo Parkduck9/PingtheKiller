@@ -17,7 +17,9 @@ namespace PingTheKiller.Client.Killer
         // R1 (11/17): the attack prompt (6.1b), shown while a visible blip is within AttackPromptRange.
         public const string AttackPrompt = "Click  Attack";
         public const string AttackPromptPad = "RT  Attack";
-        public const float AttackPromptRange = 3f;
+        // integ-1118: the prompt range IS the server's reach (no margin): it shows only while a hit is possible on the blip positions this
+        // client holds. A margin would show it where the swing misses; blip positions are already 100 ms old, so none is added.
+        public const float AttackPromptRange = GameConstants.SwingRange;
         public const string Resume = "Resume";
         public const string LeaveMatch = "Leave match";
         public const string LaggingTitle = "Lagging Survivor";

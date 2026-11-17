@@ -23,7 +23,17 @@ Branch `claude/b1-balance`, not pushed. Evidence: `docs/qa/B1-balance/` (sweep t
 
 - 1v7 hits per match: 12.0 → 13.0 (non-eliminating captures 10.0 → 10.6).
 - 1v7 medians: 598 / 604 / 604 s. No 1v7 match ends before 4 min.
-- BalanceSweep bands: 1v7 30–55 %, 1v3 30–65 %.
+- BalanceSweep bands: 1v7 30–55 %, 1v3 30–65 % (40-seed smoke checks only).
+
+**Merged numbers (integ-1118, B1 + M1 one-tick swing gap).** The target is the large-seed mean; 40-seed sets carry about +-8 points of noise.
+
+| Setup | Fixed sets (1-40 / 1001-1040) | Mean over 9480 seeds (main) |
+|---|---|---|
+| 1v7 | 47.5 / 52.5 | **41.7** (50.6) |
+| 1v3 | 50 / 47.5 | **47.9** (53.0) |
+| 1v1 | 37.5 / 37.5 | - |
+
+Correction: the range gain at 1v3 is about -5 points (both changes together), not -1. The 1v7 target (38-46 %) is checked by `LargeSeedOneVersusSevenSurvivorWinRateIsOnTarget` (seeds 20001-22000, `Category=BalanceSweep`).
 
 **Gates**
 - Build `-warnaserror`: 0 warnings.

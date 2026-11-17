@@ -1,0 +1,85 @@
+using PingTheKiller.ServerCore;
+using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace PingTheKiller.Tests.Core;
+
+// QA scratch (B1 integ-1118): the own Swinging flag under repeated presses, on the merged tree.
+public sealed class ChainTests
+{
+    private readonly ITestOutputHelper _out;
+    public ChainTests(ITestOutputHelper o) { _out = o; }
+    private static uint _seq = 5000;
+
+    [Theory]
+    [InlineData(3.5f, 1)] [InlineData(3.5f, 2)] [InlineData(3.5f, 3)] [InlineData(3.5f, 4)] [InlineData(3.5f, 5)]
+    [InlineData(3.5f, 7)] [InlineData(3.5f, 20)] [InlineData(3.5f, 21)] [InlineData(3.5f, 16)]
+    [InlineData(2.0f, 1)] [InlineData(2.0f, 4)] [InlineData(2.0f, 16)] [InlineData(2.0f, 17)]
+    public void SpansAndGaps(float distance, int period)
+    {
+        using var m = RulesMatch.Start(2, -1);
+        m.F.Server.ContactSwingForTests = false;
+        m.F.Server.PlaceForTests(m.Killer.Id, 5, 24);
+        m.F.Server.PlaceForTests(m[0].Id, 5, 24 + distance);
+        m.F.Server.PlaceForTests(m[1].Id, 5, 36);
+        m.Tick(25);
+        var log = new List<string>();
+        m.F.Server.Log += l => { if (l.Contains("swing")) log.Add(l); };
+        m.Killer.Send(new C2S_MoveInput { DirX = 0, DirZ = 0, Yaw = 0, Seq = m.Killer.NextSeq++ });
+        var spans = new List<int>(); var gaps = new List<int>();
+        int run = 0, gap = 0, phaseStarts = 0; bool prevTruth = false; int presses = 0;
+        var flags = new System.Text.StringBuilder();
+        for (int t = 0; t < 400; t++)
+        {
+            if (t % period == 0) { m.Killer.Send(new C2S_Attack { Seq = ++_seq }); presses++; }
+            m.Tick();
+            bool flag = (m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0;
+            bool truth = m.F.Server.SwingingForTests(m.Killer.Id);
+            Assert.Equal(truth, flag);
+            if (truth && !prevTruth) phaseStarts++;
+            prevTruth = truth;
+            flags.Append(flag ? '#' : '.');
+            if (flag) { if (run == 0 && spans.Count > 0) gaps.Add(gap); run++; gap = 0; }
+            else { if (run > 0) { spans.Add(run); run = 0; } gap++; }
+        }
+        _out.WriteLine($"d={distance} period={period} presses={presses} spans={string.Join(",", spans)} gaps={string.Join(",", gaps)} swingLogLines={log.Count}");
+        _out.WriteLine(flags.ToString());
+        bool firstHit = distance < GameConstants.SwingRange;
+        for (int i = 0; i < spans.Count; i++) Assert.Equal(i == 0 && firstHit ? 16 : 20, spans[i]);
+        Assert.All(gaps, g => Assert.True(g >= 1));
+        // (Periods under 4 ticks exceed MaxAttacksPerSecond = 5, so the throttle refuses some.) No dropped press: with a press every `period` ticks the flag is never down longer than
+        // the period (a press on a clear flag starts a swing in its own tick, a press in the end tick one tick later).
+        if (period == 4 || period == 5) Assert.All(gaps, g => Assert.True(g <= period, "gap " + g));
+        Assert.Equal(spans.Count + (run > 0 ? 1 : 0), phaseStarts);
+        Assert.True(spans.Count >= 10);
+    }
+
+    // A press in every tick of a swing other than the end tick never starts a swing early (wind-up and recovery refuse).
+    [Fact]
+    public void PressDuringWindUpOrRecoveryStartsNothing()
+    {
+        using var m = RulesMatch.Start(2, -1);
+        m.F.Server.ContactSwingForTests = false;
+        m.F.Server.PlaceForTests(m.Killer.Id, 5, 24);
+        m.F.Server.PlaceForTests(m[0].Id, 5, 27.5f);
+        m.F.Server.PlaceForTests(m[1].Id, 5, 36);
+        m.Tick(25);
+        for (int k = 1; k < 20; k++)
+        {
+            m.Killer.Send(new C2S_Attack { Seq = ++_seq });
+            m.Tick(); // swing starts: flag tick 1
+            for (int i = 1; i < 20; i++)
+            {
+                if (i == k) m.Killer.Send(new C2S_Attack { Seq = ++_seq });
+                m.Tick();
+                Assert.True(m.F.Server.SwingingForTests(m.Killer.Id), $"k={k} i={i}");
+            }
+            m.Tick(); // tick 21: recovery ends, no press pending
+            Assert.False(m.F.Server.SwingingForTests(m.Killer.Id), $"k={k} end");
+            m.Tick(30);
+            Assert.False(m.F.Server.SwingingForTests(m.Killer.Id), $"k={k}: a press at swing tick {k} must not start a later swing");
+        }
+    }
+}

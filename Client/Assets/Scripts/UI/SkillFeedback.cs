@@ -701,12 +701,13 @@ namespace PingTheKiller.Client.UI
             return now < overclockEnd + SkillIds.OverclockRecoverySeconds;
         }
 
-        // The 6.1c line: Slowed > the most recent own skill > reason. Text null = hidden.
+        // The 6.1c line: a swing result (1 s) > Slowed > the most recent own skill > reason. Text null = hidden.
         public FxLine Line(double now)
         {
-            if (now < slowedEnd) return new FxLine { Text = KillerHudCopy.Slowed((float)(slowedEnd - now)), Tone = LineTone.Danger };
+            // integ-1118 F4: a swing's result (1 s) shows over Slowed; the slow line comes back after it.
             if (now >= missedEnd - SkillFeedback.MissedSeconds && now < missedEnd) return new FxLine { Text = SkillFeedback.Missed, Tone = LineTone.Plain };
             if (now >= hitEnd - SkillFeedback.MissedSeconds && now < hitEnd) return new FxLine { Text = SkillFeedback.Hit, Tone = LineTone.Plain };
+            if (now < slowedEnd) return new FxLine { Text = KillerHudCopy.Slowed((float)(slowedEnd - now)), Tone = LineTone.Danger };
             string own = OwnLine(now);
             if (own != null) return new FxLine { Text = own, Tone = LineTone.Plain };
             if (now < reasonEnd) return new FxLine { Text = reason, Tone = LineTone.Reason };

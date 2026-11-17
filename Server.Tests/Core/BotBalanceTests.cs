@@ -16,8 +16,9 @@ public sealed class BotBalanceTests
     {
         // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share.
         // U6d: enforce the GDD v2 win, median and timeout bands on both fixed seed sets.
-        // B1 (11/18): a stronger Killer at 1v7 (target 38-46 %, about 42 % on 240 seeds) and 1v3 (target 40-55 %). The bands
-        // leave room for the +-8 point noise of 40 seeds but fail a return to the pre-B1 1v7 balance (50 %+ is common there).
+        // B1 (11/18): a stronger Killer at 1v7 and 1v3 (target 40-55 %). These 40-seed sets are SMOKE checks only: their
+        // +-8 point noise means the 1v7 30-55 % band also passes the pre-B1 balance (main scores 50.0 / 52.5 here). The real 1v7
+        // balance target is the large-seed mean, checked by LargeSeedOneVersusSevenSurvivorWinRateIsOnTarget.
         new object[] { "1v7", 7, 0.30, 0.55, 540.0, 660.0, 0.10 },
         new object[] { "1v3", 3, 0.30, 0.65, 0.0, 660.0, 0.20 },
         new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30 },
@@ -50,6 +51,22 @@ public sealed class BotBalanceTests
             Assert.True(exits > Seeds * 7 / 2, "most survivors must escape through exits");
             Assert.True(exits > collapse);
         }
+    }
+
+    // integ-1118 F1: the 1v7 target is the mean over many seeds (about 42 %; standard error about 1.1 points at 2000 seeds). Main
+    // scores 50.5 % on these seeds and fails the 38-46 % band. About 45 s.
+    [Fact]
+    [Trait("Category", "BalanceSweep")]
+    public void LargeSeedOneVersusSevenSurvivorWinRateIsOnTarget()
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var runs = BotBalance.Sweep(Enumerable.Range(20001, 2000), seed => BotBalance.RunAllBots(seed, 7));
+        var summary = BotBalance.Summarize(runs);
+        _output.WriteLine(BotBalance.Header);
+        _output.WriteLine(summary.Row("1v7 x2000"));
+        _output.WriteLine($"sweep {watch.Elapsed.TotalSeconds:0.0} s");
+        Assert.Equal(2000, summary.Matches);
+        Assert.InRange(summary.WinRate, 0.38, 0.46);
     }
 
     // The all-bot hook is deterministic per private seed: the same seed replays the same match.

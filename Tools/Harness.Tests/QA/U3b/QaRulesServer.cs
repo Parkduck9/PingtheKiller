@@ -69,7 +69,7 @@ internal sealed class QaRulesServer : IAsyncDisposable
 {
     private const float Dt = 1f / GameConstants.TickRate;
     // GDD v2 (U6a): the fake hacks a terminal alone in 10 s (it validates the harness, not the 45 s timing) and uses
-    // the v2 co-hack rates, the 15 s exit switch, per-survivor escape and the v0.4 exit states.
+    // the v2 co-hack rates, the 17 s exit switch, per-survivor escape and the v0.4 exit states.
     private const float FakeHackSeconds = 10f;
 
     private sealed class Player(int id)

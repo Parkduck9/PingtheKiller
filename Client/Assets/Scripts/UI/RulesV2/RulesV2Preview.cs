@@ -158,7 +158,7 @@ namespace PingTheKiller.Client.UI.RulesV2
 
         private void ExitSwitch(float t)
         {
-            float progress = Mathf.Clamp01(.5f + t / 15f);
+            float progress = Mathf.Clamp01(.5f + t / GameConstants.ExitSwitchSeconds);
             hold.Set(new HoldActionView { Kind = HoldKind.ExitSwitch, Progress01 = progress }, "[E]");
             var exits = new[]
             {

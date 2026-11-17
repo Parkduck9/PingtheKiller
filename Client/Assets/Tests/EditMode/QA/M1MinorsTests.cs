@@ -113,6 +113,21 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         [Test]
+        public void ASwingResultShowsOverTheSlowedLineForItsSecondThenSlowedReturns()
+        {
+            var fx = new KillerFxState();
+            // Slowed by Traffic overload (2 s) while swinging: the verdict must be readable.
+            fx.OnEffect(1, 0, SkillIds.TrafficOverload, 0, 0, 2f, 10);
+            Assert.That(fx.Line(10.1).Tone, Is.EqualTo(LineTone.Danger));
+            fx.OnMissed(10.2);
+            Assert.That(fx.Line(10.5).Text, Is.EqualTo("Missed"));
+            Assert.That(fx.Line(11.3).Text, Does.StartWith("Slowed"), "after the result's second the slow line is back");
+            fx.OnHit(10.3);
+            Assert.That(fx.Line(10.5).Text, Is.EqualTo("Hit"));
+            Assert.That(fx.Line(11.5).Text, Does.StartWith("Slowed"));
+        }
+
+        [Test]
         public void ClientAppPlaysTheHitFeedbackForALateHit()
         {
             string code = QaSource.StripComments(QaPaths.ReadScript("ClientApp.cs"));

@@ -72,9 +72,10 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheAttackPromptShowsWithinThreeMetresOfAVisibleBlip()
         {
-            Assert.That(KillerHudCopy.Attack(2.99f, false), Is.EqualTo("Click  Attack"));
-            Assert.That(KillerHudCopy.Attack(3f, false), Is.EqualTo("Click  Attack"), "3 m inclusive");
-            Assert.That(KillerHudCopy.Attack(3.01f, false), Is.Null);
+            Assert.That(KillerHudCopy.AttackPromptRange, Is.EqualTo(GameConstants.SwingRange), "integ-1118: follows the server reach");
+            Assert.That(KillerHudCopy.Attack(GameConstants.SwingRange - .01f, false), Is.EqualTo("Click  Attack"));
+            Assert.That(KillerHudCopy.Attack(GameConstants.SwingRange, false), Is.EqualTo("Click  Attack"), "the reach inclusive");
+            Assert.That(KillerHudCopy.Attack(GameConstants.SwingRange + .01f, false), Is.Null);
             Assert.That(KillerHudCopy.Attack(float.PositiveInfinity, false), Is.Null, "no blip, no prompt");
             Assert.That(KillerHudCopy.Attack(1f, true), Is.EqualTo("RT  Attack"), "gamepad-only players");
             // A kick or hatch prompt in reach keeps the slot (KillerWorldLayer only fills an empty interact prompt).

@@ -6,12 +6,12 @@ using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Harness;
 
-// H6 (GDD v2): sight -> hack (solving packet routes, 11/17 R2) -> exits powered -> switch held 15 s -> exit open -> capture -> retreat
+// H6 (GDD v2): sight -> hack (solving packet routes, 11/17 R2) -> exits powered -> switch held 17 s -> exit open -> capture -> retreat
 // -> rescue -> both survivors escape -> GameResult, played by three real TCP clients on a dedicated fresh lobby server
 // (--bots 0, no --autostart), with a killer-coordinate leak scan.
 public static class ScenarioCheck
 {
-    // Three terminals co-hacked (the 90 s passive part at 1.8x plus both actors' route bursts, about 20 s each), a 15 s
+    // Three terminals co-hacked (the 90 s passive part at 1.8x plus both actors' route bursts, about 20 s each), a 17 s
     // switch and the walks between them.
     public static readonly TimeSpan Budget = TimeSpan.FromSeconds(300);
     public const string NeedsOwnServer = "H6 needs its own fresh server: pass --h6-port";
@@ -543,7 +543,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         evidence.Add($"exits Powered (not open) seen by killer, A and B; {A.RouteSummary}; {B.RouteSummary}");
     }
 
-    // GDD v2 §3: one survivor holds the switch of the exit farthest from the killer for 15 s; the exit opens and the
+    // GDD v2 §3: one survivor holds the switch of the exit farthest from the killer for 17 s; the exit opens and the
     // collapse starts. The other survivor stays where it is.
     private async Task SwitchAsync(CancellationToken ct)
     {
