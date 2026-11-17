@@ -104,6 +104,9 @@ namespace PingTheKiller.Editor.Setup
             public static Material Door => Lit("Door", new Color32(58, 50, 44, 255), .2f);
             public static Material Steel => Lit("Steel", new Color32(66, 70, 77, 255), .45f);
             public static Material SteelDark => Lit("Steel dark", new Color32(40, 43, 48, 255), .45f);
+            public static Material Underside => Lit("Underside", new Color32(20, 21, 23, 255), .1f);
+            public static Material ContainerRust => Lit("Container rust", new Color32(118, 76, 62, 255), .2f);
+            public static Material ContainerSlate => Lit("Container slate", new Color32(74, 90, 102, 255), .2f);
         }
 
         // Building wall colours: muted, mid value (walls read against the dark ground), never close to signal, ally or danger.
@@ -833,6 +836,8 @@ namespace PingTheKiller.Editor.Setup
         public const float Storey = 2.5f;
         // Fitted house models on single-box buildings: at least this tall (well above two storeys over the podium).
         public const float MinModelTop = 7f;
+        // U4l: the block behind a fitted house stands this far inside the house's footprint (the house's walls hide it).
+        public const float HouseCoreInset = .2f;
 
         // An axis-aligned footprint on the ground plane.
         public struct Area
@@ -1187,6 +1192,12 @@ namespace PingTheKiller.Editor.Setup
             if (plan.Model != null)
             {
                 FitUpper(Model(plan.Model), root.transform, box.Inset(Setback), plan.ModelTop, plan.Ordinal % 2 == 1, "Upper");
+                // U4l: the fitted house fills its footprint only by its bounds (eaves, notches, recessed wings), so rays went
+                // through it above the podium. A plain two-storey block HouseCoreInset behind its outline closes every such gap.
+                var core = new MeshBuilder();
+                Storeys(core, box.Inset(Setback + HouseCoreInset), 2, Storey, new Style { Wall = style.Wall, Base = style.Base, Accent = style.Accent },
+                    plan.Facade, new System.Random(7919 * (index + 1) + 1), new byte[] { 2, 2, 2, 2 }, new[] { true, true, true, true });
+                MeshObject("Upper core", root.transform, core, "Building " + index + " core");
                 return SavePrefab(root, "Building " + index);
             }
             var upperStyle = new Style { Wall = style.Wall, Base = style.Base, Accent = style.Accent };
@@ -1241,69 +1252,131 @@ namespace PingTheKiller.Editor.Setup
 
         // ---- obstacles -----------------------------------------------------------------------------------------------------
 
+        // U4l: the collision is the box, so the art fills it at eye level: any ray that enters an obstacle box below
+        // MapGeometry.ObstacleHeight meets art within 0.25 m (WorldArtGapScan). Long boxes (edge containers) and every second
+        // elongated one get a generated low container that is solid to its outline; the others a row of dumpsters, and the
+        // square ones dumpsters or a crate stack. Model props are stretched to their slot, and a dark core block 0.1 m inside
+        // the outline closes the seams and the space under them. Nothing exceeds the box or MaxObstacleHeight.
         private static GameObject ObstaclePiece(int index, Obstacle obstacle)
         {
             float hx = (obstacle.MaxX - obstacle.MinX) * .5f, hz = (obstacle.MaxZ - obstacle.MinZ) * .5f;
             var root = new GameObject("Obstacle " + index);
-            if (hx > hz + .5f || hz > hx + .5f) ParkedCar(root.transform, hx, hz, index);
-            else
-                switch (index % 3)
-                {
-                    case 0: Dumpsters(root.transform, hx, hz); break;
-                    case 1: Crates(root.transform, hx, hz, index); break;
-                    default: WorksPen(root.transform, hx, hz); break;
-                }
+            bool elongated = hx > hz + .5f || hz > hx + .5f;
+            if (Mathf.Max(hx, hz) * 2 >= 5.5f || (elongated && index % 2 == 1)) Container(root.transform, hx, hz, index);
+            else if (elongated) DumpsterRow(root.transform, hx, hz);
+            else if (index % 3 == 0) Dumpsters(root.transform, hx, hz);
+            else Crates(root.transform, hx, hz, index);
             return SavePrefab(root, "Obstacle " + index);
         }
+
+        public const float CoreInset = .1f;
+
+        // The dark block inside a prop group: seen only through the seams between props and under them.
+        // With posts, a dark post stands in each corner of the outline, where rounded props leave the corners open.
+        private static void Core(Transform root, float hx, float hz, float top, bool posts = false)
+        {
+            var core = new MeshBuilder();
+            core.Box(Palette.Underside, new Vector3(-hx + CoreInset, 0, -hz + CoreInset), new Vector3(hx - CoreInset, top, hz - CoreInset));
+            const float post = .16f;
+            if (posts)
+                for (int c = 0; c < 4; c++)
+                {
+                    float x = c % 2 == 0 ? -hx : hx - post, z = c < 2 ? -hz : hz - post;
+                    core.Box(Palette.SteelDark, new Vector3(x, 0, z), new Vector3(x + post, top, z + post));
+                }
+            string size = F2(hx * 2) + "x" + F2(hz * 2) + "x" + F2(top) + (posts ? " posts" : "");
+            MeshObject("Core", root, core, "Obstacle core " + size, false);
+        }
+
+        private static string F2(float v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
         private static void Dumpsters(Transform root, float hx, float hz)
         {
             GameObject dumpster = Model("Dumpster 2");
             Fit(dumpster, root, new Vector3(-hx, 0, -hz), new Vector3(hx, 1.3f, 0), 0, "Dumpster A");
             Fit(dumpster, root, new Vector3(-hx, 0, 0), new Vector3(hx, 1.3f, hz), 180, "Dumpster B");
+            Core(root, hx, hz, 1.15f, true);
         }
 
+        // Dumpsters side by side along the long axis, each spanning the short one (about 1.1 m deep each, their natural size).
+        private static void DumpsterRow(Transform root, float hx, float hz)
+        {
+            GameObject dumpster = Model("Dumpster 2");
+            bool alongX = hx > hz;
+            float length = (alongX ? hx : hz) * 2;
+            int count = Mathf.Max(1, Mathf.RoundToInt(length / 1.1f));
+            float slot = length / count;
+            for (int i = 0; i < count; i++)
+            {
+                float a = -length * .5f + i * slot, b = a + slot;
+                Vector3 min = alongX ? new Vector3(a, 0, -hz) : new Vector3(-hx, 0, a), max = alongX ? new Vector3(b, 1.3f, hz) : new Vector3(hx, 1.3f, b);
+                Fit(dumpster, root, min, max, (alongX ? 90 : 0) + (i % 2) * 180, "Dumpster " + i);
+            }
+            Core(root, hx, hz, 1.15f, true);
+        }
+
+        // A 2 x 2 stack of crates, 1.05 to 1.25 m tall (above the 1.0 m eye ray), with a flat crate on one of them.
         private static void Crates(Transform root, float hx, float hz, int index)
         {
             GameObject box = Model("Box 1");
-            float[] heights = { .95f, .82f, 1.0f, .88f };
+            float[] heights = { 1.2f, 1.05f, 1.25f, 1.1f };
             for (int i = 0; i < 4; i++)
             {
                 float x0 = i % 2 == 0 ? -hx : 0, z0 = i < 2 ? -hz : 0;
                 Fit(box, root, new Vector3(x0, 0, z0), new Vector3(x0 + hx, heights[(i + index) % 4], z0 + hz), 90 * ((i + index) % 4), "Crate " + i);
             }
             float under = heights[(2 + index) % 4];
-            Fit(Model("Box 2"), root, new Vector3(-hx * .9f, under, .1f), new Vector3(-.05f, under + .42f, hz * .85f), 0, "Crate top");
+            Fit(Model("Box 2"), root, new Vector3(-hx * .9f, under, .1f), new Vector3(-.05f, under + .24f, hz * .85f), 0, "Crate top");
+            Core(root, hx, hz, 1f);
         }
 
-        private static void WorksPen(Transform root, float hx, float hz)
-        {
-            GameObject fence = Model("Road Fence 1");
-            const float t = .19f, h = 1f;
-            Fit(fence, root, new Vector3(-hx, 0, -hz), new Vector3(-hx + t, h, hz), 0, "Fence W");
-            Fit(fence, root, new Vector3(hx - t, 0, -hz), new Vector3(hx, h, hz), 0, "Fence E");
-            Fit(fence, root, new Vector3(-hx + t, 0, -hz), new Vector3(hx - t, h, -hz + t), 90, "Fence S");
-            Fit(fence, root, new Vector3(-hx + t, 0, hz - t), new Vector3(hx - t, h, hz), 90, "Fence N");
-            Fit(Model("Manhole Covers 1"), root, new Vector3(.05f, 0, -.2f), new Vector3(.75f, .08f, .6f), 0, "Opened cover");
-        }
+        public const float ContainerHeight = 1.45f;
 
-        private static void ParkedCar(Transform root, float hx, float hz, int index)
+        // A generated low steel container (a cut-down shipping container) that fills the box: base and top rails on the
+        // outline, a body Recess inside it, vertical ribs out to the outline, corner posts, and the door end with lock bars.
+        private static void Container(Transform root, float hx, float hz, int index)
         {
+            Material body = index % 2 == 0 ? Palette.ContainerRust : Palette.ContainerSlate;
+            const float rail = .1f, topRail = .07f, post = .12f, rib = .07f, pitch = .3f, top = ContainerHeight;
+            const float i = Recess;
+            var mb = new MeshBuilder();
+            mb.Box(Palette.SteelDark, new Vector3(-hx, 0, -hz), new Vector3(hx, rail, hz));
+            mb.Box(Palette.SteelDark, new Vector3(-hx, top - topRail, -hz), new Vector3(hx, top, hz));
+            mb.Box(body, new Vector3(-hx + i, rail, -hz + i), new Vector3(hx - i, top - topRail, hz - i), Palette.Roof);
             bool alongX = hx > hz;
-            var pad = new MeshBuilder();
-            pad.Box(Palette.Kerb, new Vector3(-hx, 0, -hz), new Vector3(hx, .08f, hz), Palette.Paving);
-            MeshObject("Parking pad", root, pad, "Parking pad " + index, false); // one mesh per obstacle: pad sizes differ
-            string model = index % 2 == 0 ? "Red Car" : "Gray Car";
-            int yaw = model == "Red Car" ? (alongX ? 0 : 90) : (alongX ? 90 : 0);
-            float length = (alongX ? hx : hz) * 2 - .12f;
-            var probe = (GameObject)Object.Instantiate(Model(model));
-            probe.transform.rotation = Quaternion.Euler(0, yaw, 0);
-            var frame = new GameObject("frame").transform;
-            Bounds b = BoundsIn(probe, frame);
-            Object.DestroyImmediate(probe); Object.DestroyImmediate(frame.gameObject);
-            float scale = Mathf.Min(length / (alongX ? b.size.x : b.size.z), (MaxObstacleHeight - .1f) / b.size.y);
-            Vector3 size = b.size * scale;
-            Fit(Model(model), root, new Vector3(-size.x * .5f, .08f, -size.z * .5f), new Vector3(size.x * .5f, .08f + size.y, size.z * .5f), yaw, "Car");
+            int k = -1;
+            foreach (Face face in Faces(-hx, -hz, hx, hz))
+            {
+                k++;
+                Vector3 origin = face.Origin - face.Out * i + Vector3.up * rail;
+                float height = top - topRail - rail;
+                // Corner posts at both ends of every face.
+                mb.Panel(Palette.SteelDark, origin, face.Right, face.Out, 0, post, 0, height, -i);
+                mb.Reveal(Palette.SteelDark, origin, face.Right, face.Out, 0, post, 0, height, -i);
+                mb.Panel(Palette.SteelDark, origin, face.Right, face.Out, face.Length - post, face.Length, 0, height, -i);
+                mb.Reveal(Palette.SteelDark, origin, face.Right, face.Out, face.Length - post, face.Length, 0, height, -i);
+                if (alongX ? k == 1 : k == 2)
+                {
+                    // The door end: two leaves split in the middle, two lock bars on each.
+                    float mid = face.Length * .5f;
+                    mb.Panel(Palette.Frame, origin, face.Right, face.Out, mid - .015f, mid + .015f, 0, height, -i * .5f);
+                    foreach (float u in new[] { face.Length * .2f, mid - .18f, mid + .15f, face.Length * .8f - .03f })
+                    {
+                        mb.Panel(Palette.Steel, origin, face.Right, face.Out, u, u + .03f, .05f, height - .05f, -i);
+                        mb.Reveal(Palette.Steel, origin, face.Right, face.Out, u, u + .03f, .05f, height - .05f, -i);
+                    }
+                    continue;
+                }
+                int ribs = Mathf.FloorToInt((face.Length - 2 * post - .2f) / pitch);
+                float start = (face.Length - (ribs - 1) * pitch - rib) * .5f;
+                for (int r = 0; r < ribs; r++)
+                {
+                    float u0 = start + r * pitch;
+                    mb.Panel(body, origin, face.Right, face.Out, u0, u0 + rib, .04f, height - .04f, -i);
+                    mb.Reveal(body, origin, face.Right, face.Out, u0, u0 + rib, .04f, height - .04f, -i);
+                }
+            }
+            MeshObject("Container", root, mb, "Container " + index);
         }
 
         // ---- ground --------------------------------------------------------------------------------------------------------
@@ -1440,6 +1513,12 @@ namespace PingTheKiller.Editor.Setup
             Row(root.transform, ref pick, "N", Vector3.left, Vector3.forward, new Vector3(FixedMap.Size + 16, 0, hi), 112, 6, 180);
             Row(root.transform, ref pick, "W", Vector3.back, Vector3.left, new Vector3(lo, 0, hi), hi - lo, 0, 270);
             Row(root.transform, ref pick, "E", Vector3.forward, Vector3.right, new Vector3(hi, 0, lo), hi - lo, 0, 90);
+            // U4l: a continuous block row BackingGap behind the houses' line closes the sky between and under their roofs.
+            const float near = BackingGap, far = BackingGap + 6;
+            Backing(root.transform, "S", new Area(lo - far, lo - far, hi + far, lo - near), Vector3.forward);
+            Backing(root.transform, "N", new Area(lo - far, hi + near, hi + far, hi + far), Vector3.back);
+            Backing(root.transform, "W", new Area(lo - far, lo - near, lo - near, hi + near), Vector3.right);
+            Backing(root.transform, "E", new Area(hi + near, lo - near, hi + far, hi + near), Vector3.left);
             foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = ShadowCastingMode.Off;
             return SavePrefab(root, "Backdrop");
         }
@@ -1519,6 +1598,27 @@ namespace PingTheKiller.Editor.Setup
                 Filler(root, side + " " + fillers++, along, away, start + along * cursor, length - cursor);
                 cursor = length;
             }
+        }
+
+        public const float BackingGap = 7f;
+
+        // A plain three-storey block row behind the skyline houses, windows toward the arena.
+        private static void Backing(Transform root, string side, Area area, Vector3 toArena)
+        {
+            Color32 colour = WallColours[6];
+            var style = new Style
+            {
+                Wall = WallMaterial(colour),
+                Base = WallMaterial(new Color32((byte)(colour.r * .62f), (byte)(colour.g * .62f), (byte)(colour.b * .62f), 255)),
+                Accent = Lit("Accent " + Hex(AccentColours[0]), AccentColours[0], .1f)
+            };
+            var mb = new MeshBuilder();
+            foreach (Face face in Faces(area.MinX, area.MinZ, area.MaxX, area.MaxZ))
+                mb.Panel(style.Base, face.Origin, face.Right, face.Out, 0, face.Length, 0, Wall, 0);
+            var faces = new byte[] { 1, 1, 1, 1 };
+            faces[FaceIndex(toArena)] = 2;
+            Storeys(mb, area, 3, 2.9f, style, Facades[2], new System.Random(Seed("backing " + side)), faces, new[] { true, true, true, true });
+            MeshObject("Backing " + side, root, mb, "Backdrop backing " + side, false);
         }
 
         // A generated three-storey block, 7 m deep, windows toward the arena.
