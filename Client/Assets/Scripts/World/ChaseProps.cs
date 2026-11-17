@@ -28,7 +28,7 @@ namespace PingTheKiller.Client.World
 
     // The one geometry definition of the props, shared by the editor setup (ChasePropSetup builds prefabs from it) and the
     // runtime primitive fallback. Parts are boxes in the prop's local frame: x along the prop, z across it, y up, origin at
-    // the box centre on the floor. Nothing stands outside the server box in x/z except the Broken panel and the vault
+    // the box centre on the floor. Nothing stands outside the server box in x/z except the Broken scraps and the vault
     // ground marks, which lie flat (below MaxFlatHeight).
     public static class ChasePropShapes
     {
@@ -76,6 +76,7 @@ namespace PingTheKiller.Client.World
         {
             float length = prop.HalfLength * 2, inner = length - 2 * PostWidth, half = length * .5f;
             float depth = Mathf.Max(.2f, prop.HalfThickness * 2);
+            float lean = Mathf.Min(1.1f, inner * .4f);
             var parts = new List<Part>
             {
                 // Frame: guide posts against the alley walls and the roll housing overhead (always shown).
@@ -88,10 +89,13 @@ namespace PingTheKiller.Client.World
                 new Part(Down, "Panel", new Vector3(0, PanelHeight * .5f, 0), new Vector3(inner, PanelHeight, .06f), Paint.Shutter),
                 new Part(Down, "Bottom bar", new Vector3(0, .05f, 0), new Vector3(inner, .1f, .1f), Paint.Edge),
                 new Part(Down, "Top bar", new Vector3(0, PanelHeight - .04f, 0), new Vector3(inner, .08f, .1f), Paint.Edge),
-                // Broken: the panel torn in two halves lying flat across the gap, and a torn strip left under the housing.
-                new Part(Broken, "Torn half A", new Vector3(-inner * .25f, .06f, .5f), new Vector3(inner * .5f - .06f, .05f, 1.1f), Paint.Shutter, new Vector3(4, 0, 5)),
-                new Part(Broken, "Torn half B", new Vector3(inner * .25f, .07f, -.45f), new Vector3(inner * .5f - .06f, .05f, 1.0f), Paint.Shutter, new Vector3(-6, 0, -4)),
-                new Part(Broken, "Torn strip", new Vector3(0, PostHeight - .14f, 0), new Vector3(inner, .28f, .05f), Paint.Shutter, new Vector3(9, 0, 0)),
+                // Broken: wrecked. One torn half leans bent against the left post, a second lies on the ground across the gap,
+                // a third scrap leans on the right post, and a torn strip hangs askew under the housing. All lighter than the
+                // rolled-up Up lip, so the gap reads as wrecked, not as an open shutter.
+                new Part(Broken, "Torn half A", new Vector3(-half + PostWidth + lean * .36f + .03f, lean * .51f, .12f), new Vector3(lean * 1.22f, .06f, 1.15f), Paint.Edge, new Vector3(0, 9, -55)),
+                new Part(Broken, "Torn half B", new Vector3(inner * .2f, .09f, -.5f), new Vector3(inner * .5f - .1f, .06f, 1.1f), Paint.Edge, new Vector3(5, -22, 7)),
+                new Part(Broken, "Torn scrap", new Vector3(half - PostWidth - .3f, .3f, .15f), new Vector3(.8f, .05f, .7f), Paint.Shutter, new Vector3(0, -12, 38)),
+                new Part(Broken, "Torn strip", new Vector3(-inner * .18f, PostHeight - .2f, 0), new Vector3(inner * .55f, .3f, .05f), Paint.Shutter, new Vector3(0, 0, 14)),
             };
             for (int i = 0; i < 5; i++)
                 parts.Add(new Part(Down, "Slat " + i, new Vector3(0, .2f * (i + 1), 0), new Vector3(inner, .025f, .09f), Paint.Slat));
@@ -103,14 +107,14 @@ namespace PingTheKiller.Client.World
             float length = prop.HalfLength * 2, half = length * .5f;
             return new List<Part>
             {
-                new Part(Rail, "Post L", new Vector3(-half + .05f, RailHeight * .5f, 0), new Vector3(.08f, RailHeight, .08f), Paint.SteelDark),
-                new Part(Rail, "Post R", new Vector3(half - .05f, RailHeight * .5f, 0), new Vector3(.08f, RailHeight, .08f), Paint.SteelDark),
-                new Part(Rail, "Top tube", new Vector3(0, RailHeight - .035f, 0), new Vector3(length, .07f, .1f), Paint.Edge),
-                new Part(Rail, "Mid tube", new Vector3(0, .55f, 0), new Vector3(length, .05f, .06f), Paint.Steel),
+                new Part(Rail, "Post L", new Vector3(-half + .07f, RailHeight * .5f, 0), new Vector3(.12f, RailHeight, .12f), Paint.Steel),
+                new Part(Rail, "Post R", new Vector3(half - .07f, RailHeight * .5f, 0), new Vector3(.12f, RailHeight, .12f), Paint.Steel),
+                new Part(Rail, "Top tube", new Vector3(0, RailHeight - .06f, 0), new Vector3(length, .12f, .16f), Paint.Edge),
+                new Part(Rail, "Mid tube", new Vector3(0, .55f, 0), new Vector3(length, .09f, .11f), Paint.Edge),
                 // The vault point: a light band on the top tube and a flat plate on each side of the rail.
-                new Part(Marker, "Vault band", new Vector3(0, RailHeight - .035f, 0), new Vector3(.4f, .085f, .115f), Paint.Marker),
-                new Part(Marker, "Vault plate +", new Vector3(0, .005f, .45f), new Vector3(.5f, .01f, .25f), Paint.Marker),
-                new Part(Marker, "Vault plate -", new Vector3(0, .005f, -.45f), new Vector3(.5f, .01f, .25f), Paint.Marker),
+                new Part(Marker, "Vault band", new Vector3(0, RailHeight - .06f, 0), new Vector3(.6f, .14f, .18f), Paint.Marker),
+                new Part(Marker, "Vault plate +", new Vector3(0, .005f, .5f), new Vector3(.8f, .01f, .35f), Paint.Marker),
+                new Part(Marker, "Vault plate -", new Vector3(0, .005f, -.5f), new Vector3(.8f, .01f, .35f), Paint.Marker),
             };
         }
     }

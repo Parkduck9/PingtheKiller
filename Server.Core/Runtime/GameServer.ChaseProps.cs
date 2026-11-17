@@ -27,6 +27,16 @@ namespace PingTheKiller.ServerCore
 
         internal ShutterState ShutterStateForTests(int id) => Map.ShutterAt(id);
 
+        // Test hook: whether a player is mid-vault at this exact position (a vaulting body crosses over the prop).
+        internal bool VaultingAtForTests(float x, float z)
+        {
+            lock (_tickGate)
+                foreach (var player in _players)
+                    if (player.ChaseKind == (byte)ActionKind.Vault && Math.Abs(player.X - x) < 0.001f && Math.Abs(player.Z - z) < 0.001f)
+                        return true;
+            return false;
+        }
+
         // Test hook: set a shutter state between ticks (keeps the navigation grid in sync).
         internal void SetShutterForTests(int id, ShutterState state)
         {

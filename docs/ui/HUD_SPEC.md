@@ -1183,9 +1183,9 @@ The server decides every outcome. The client only shows the state it received an
   - frame (always): a guide post against each wall and the roll housing overhead (bottom at 2.6 m), thin and out of the way;
   - `Up`: only the light bottom lip of the rolled panel shows under the housing;
   - `Down`: a slatted steel panel 1.2 m high with light top and bottom bars, the same from both sides. On an Up → Down change after the first snapshot, the panel drops out of the housing in 0.12 s (at once under Reduced motion);
-  - `Broken`: the panel torn in two halves lying flat across the gap (≤ 0.16 m), and a torn strip under the housing.
-- **Rail:** 3 m long and 1.0 m high: two posts, a top tube and a mid tube.
-  - The vault point is marked by a light band on the top tube and a flat light plate on each side.
+  - `Broken` (a2): wrecked, in the light `Edge` grey: one bent half leaning on the left post (about 1.1 m high, below the Killer eye), a second half on the ground across the gap, a scrap on the right post and a torn strip hanging askew under the housing. It reads as wrecked at 6 m, not as a rolled-up Up.
+- **Rail:** 3 m long and 1.0 m high: two 0.12 m posts and a top and a mid tube in the light `Edge` grey (a2: thicker and lighter, so a rail reads as vaultable beside the non-vaultable fences).
+  - The vault point is marked by a 0.6 m light band on the top tube and a flat light plate (0.8 × 0.35 m) on each side.
   - The marker colour is `#D6D4CC`: a neutral readability cue like the hatch rim, never a role colour.
 - **Sight:** the panel (1.2 m) and the rail (1.0 m) are below the Killer eye (1.7 m) and the Survivor camera, like the existing low obstacles. The housing is overhead. Tags and markers are screen overlays, so the props do not hide them.
 - **Late join or reconnect:** the first `WorldState` sets every shutter look at once, with no drop and no sound.
@@ -1231,8 +1231,9 @@ Same rows and rules as 13.3. The ranges are the server's (`GameConstants`): meas
 
 ### 15.4 Stun feedback
 - **Survivors**, while the Killer model is drawn:
-  - a small burst over its head: the Hovl `Marker 5 Circle`, 0.9 m across, tinted `danger` (the Killer colour), with the low-emission marker material and the glow children off;
-  - under Reduced motion, a still `danger` ring instead;
+  - a halo ring over its head, 1.1 m across, tinted `danger` (the Killer colour), turned to face the camera (a flat ring is edge-on from the Survivor camera and was invisible in a1);
+  - unless Reduced motion is on, the Hovl `Marker 5 Circle` particles are added inside it, with the low-emission marker material and the glow children off;
+  - under Reduced motion, the still ring alone;
   - it lasts while `Stunned` is set, at most 2.0 + 0.2 s.
 - **The Killer player:**
   - a 0.25 s view impulse: the vertical FOV narrows by up to 5° and eases back;

@@ -458,12 +458,14 @@ namespace PingTheKiller.Client.Dev
             threatLevel = state.ThreatLevel;
             if (hacking && located) EventShot("hacking.png");
             if (exitOpen && located) EventShot("exit-open.png");
+            ChaseShutterShots(state.Shutters);
             // Survivor client only: the Killer client never reads a Survivor entry (its view logs blip counts from the tracker).
             if (role != Role.Survivor) return;
             // -ptk-chase (Survivor): the Killer entry steers the seek walk only; its position is never logged.
             killerEntryKnown = false;
             foreach (PlayerState player in state.Players)
             {
+                ChasePlayerShots(player, localId, state.Shutters);
                 if (player.Role == (byte)Role.Killer) { killerEntry = new Vector3(player.X, 0, player.Z); killerEntryKnown = true; continue; }
                 if (player.Id != localId) continue;
                 if (player.Status == (byte)PlayerStatus.Lagging && localStatus != (byte)PlayerStatus.Lagging && laggingAt < 0) laggingAt = Now;
@@ -473,6 +475,31 @@ namespace PingTheKiller.Client.Dev
                         + " hud=\"" + hud + "\" pos=" + Stamp(player.X) + "," + Stamp(player.Z));
                 localStatus = player.Status; localHud = hud;
             }
+        }
+
+        // HUD_SPEC 15 (Q5) event shots, from what this client sees: a shutter changing to Down / Broken, a stunned Killer, a vault
+        // (own or seen) and the own prompt beside a prop. Shutter shots wait ~8 frames so the 0.12 s drop has landed.
+        private byte[] chaseShutters = new byte[0];
+        private void ChaseShutterShots(IReadOnlyList<byte> now)
+        {
+            if (now == null) return;
+            for (int i = 0; i < now.Count && i < chaseShutters.Length; i++)
+            {
+                if (now[i] == chaseShutters[i]) continue;
+                if (now[i] == (byte)ShutterState.Down) EventShot("chase-shutter-down.png", 8);
+                else if (now[i] == (byte)ShutterState.Broken) EventShot("chase-shutter-broken.png", 8);
+            }
+            if (chaseShutters.Length != now.Count) chaseShutters = new byte[now.Count];
+            for (int i = 0; i < now.Count; i++) chaseShutters[i] = now[i];
+        }
+
+        // Survivor client only (called from the guarded entry loop): a stunned Killer, a vault, the own prompt beside a prop.
+        private void ChasePlayerShots(PlayerState player, int localId, IReadOnlyList<byte> shutters)
+        {
+            if ((player.Chase & (byte)ChaseFlags.Stunned) != 0) EventShot("chase-stun.png", 6);
+            if ((player.Chase & (byte)ChaseFlags.Vaulting) != 0) EventShot(player.Id == localId ? "chase-vault-own.png" : "chase-vault-seen.png", 6);
+            if (player.Id == localId && player.Status == (byte)PlayerStatus.Normal
+                && ChasePropPrompt.Survivor(player.X, player.Z, shutters) != ChasePromptKind.None) EventShot("chase-prompt.png", 2);
         }
 
         public void OnResult(S2C_GameResult result, ResultV2View view)

@@ -1,3 +1,4 @@
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 using Xunit;
@@ -43,7 +44,9 @@ public sealed class BotMatchTests
                 else
                     Assert.True(world.Players.Count(p => p.Role == (byte)Role.Killer) <= 1);
                 Assert.All(world.Players, p => Assert.True(float.IsFinite(p.X) && float.IsFinite(p.Z) && float.IsFinite(p.Yaw) &&
-                    float.IsFinite(p.StatusTimer) && f.Server.Map.CanStand(p.X, p.Z)));
+                    float.IsFinite(p.StatusTimer) &&
+                    // Q5a: a vaulting body crosses over the rail or Down shutter (never a wall or an obstacle).
+                    (f.Server.Map.CanStand(p.X, p.Z) || (f.Server.Map.CanStandStatic(p.X, p.Z, FixedMap.PlayerRadius) && f.Server.VaultingAtForTests(p.X, p.Z)))));
             }
             human.Packets.Clear();
         }

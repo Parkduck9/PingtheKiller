@@ -91,7 +91,7 @@ namespace PingTheKiller.Editor.Setup
             }
             if (role == Role.Survivor)
             {
-                yaw += 8;
+                yaw += 24; // turned so the prop is not hidden behind the character
                 view.SetLocalLook(yaw, false);
                 new SurvivorOrbitRig().Place(camera, yaw, ground, 0);
             }

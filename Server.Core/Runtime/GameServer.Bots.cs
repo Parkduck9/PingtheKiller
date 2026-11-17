@@ -24,8 +24,8 @@ namespace PingTheKiller.ServerCore
         private const int WhiteNoiseTerminalPointChoices = 3;
 
         // GDD v2 section 8: A* vault-link cost in metres on top of the crossing (about vault seconds x speed, plus a margin).
-        internal const float SurvivorVaultCostMeters = 3f;
-        internal const float KillerVaultCostMeters = 7.5f;
+        internal const float SurvivorVaultCostMeters = 2f;
+        internal const float KillerVaultCostMeters = 6f;
 
         private readonly Dictionary<Player, BotBrain> _brains = new Dictionary<Player, BotBrain>();
         private readonly SurvivorBotView _survivorBotView = new SurvivorBotView();
@@ -64,7 +64,7 @@ namespace PingTheKiller.ServerCore
                         brain.VaultCostMeters = SurvivorVaultCostMeters;
                         intent = brain.Update(_survivorBotView, Nav, Map, _random);
                         if (brain.VaultWanted) intent.Interact = !bot.Interacting;
-                        brain.Tactics.Survivor(_survivorBotView, ref intent);
+                        brain.Tactics.Survivor(_survivorBotView, Nav, ref intent);
                     }
                 }
                 finally { BotProbeForTests?.Invoke(bot.Id, false); }
