@@ -84,6 +84,29 @@ namespace PingTheKiller.ServerCore
         internal PingTheKiller.Shared.Packets.S2C_SelfState SelfSent;
         internal double SelfSentAt = double.NegativeInfinity;
         internal float BotHideX, BotHideZ;
+        // GDD v2 section 8 (GameServer.ChaseProps): a fresh Interact press, the running pull/vault, the killer's break
+        // hold, its stun and a survivor's forced-Signal tail.
+        internal bool InteractPressed;
+        internal byte ChaseKind;          // ActionKind.None, Pull or Vault while one runs
+        internal int ChaseProp = -1;      // shutter id for a pull or a shutter vault, rail id for a rail vault
+        internal bool ChaseOnRail;
+        internal double ChaseStart, ChaseEnd;
+        internal float ChaseFromX, ChaseFromZ, ChaseToX, ChaseToZ, ChaseSide;
+        internal int BreakShutter = -1;
+        internal double BreakHeld;
+        internal double StunnedUntil = double.NegativeInfinity, ChaseSignalUntil = double.NegativeInfinity;
+
+        internal bool InChaseAction => ChaseKind != 0;
+
+        internal void ResetChase()
+        {
+            InteractPressed = false;
+            ChaseKind = 0;
+            ChaseProp = BreakShutter = -1;
+            ChaseOnRail = false;
+            BreakHeld = 0;
+            StunnedUntil = ChaseSignalUntil = double.NegativeInfinity;
+        }
 
         internal void ResetBotPlan()
         {
@@ -119,6 +142,7 @@ namespace PingTheKiller.ServerCore
             HasSeq = false;
             Seq = 0;
             InputTimes.Clear();
+            ResetChase();
             SelfSent = null;
             ResetBotPlan();
             HasLastSeen = false;

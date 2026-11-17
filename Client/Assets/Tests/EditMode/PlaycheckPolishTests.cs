@@ -99,7 +99,7 @@ namespace PingTheKiller.Client.Tests
             collapse.Observe(PlayerStatus.Lagging, 40, 1, 2);
             collapse.Observe(PlayerStatus.Eliminated, 0, 1, 3, collapseRunning: true);
             Assert.That(collapse.Reason, Is.EqualTo(EliminationReason.Collapse));
-            Assert.That(collapse.ReasonText(), Is.EqualTo("Disconnected: the collapse reached you."));
+            Assert.That(collapse.ReasonText(), Is.EqualTo("Disconnected: the shutdown reached you."));
             Assert.That(collapse.CaughtTimes, Is.Null, "only the capture elimination carries a count");
 
             CaptureWatch reused = Feed((PlayerStatus.Normal, 0, 0), (PlayerStatus.Lagging, 60, 1), (PlayerStatus.Normal, 0, 1), (PlayerStatus.Lagging, 30, 2), (PlayerStatus.Normal, 0, 2), (PlayerStatus.Eliminated, 0, 3));

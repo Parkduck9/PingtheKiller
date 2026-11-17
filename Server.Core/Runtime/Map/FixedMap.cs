@@ -139,6 +139,36 @@ namespace PingTheKiller.ServerCore.Map
                 if (_walls[i].IntersectsCircle(x, z, radius)) return false;
             for (int i = 0; i < _obstacles.Length; i++)
                 if (_obstacles[i].IntersectsCircle(x, z, radius)) return false;
+            return !ChasePropBlocks(x, z, radius);
+        }
+
+        // GDD v2 section 8: rails always block movement, shutters only while Down. Neither ever blocks sight.
+        // The shutter states belong to this map instance (one per server); the game loop alone writes them.
+        private readonly ShutterState[] _shutters = new ShutterState[WorldChaseProps.ShutterCount];
+        public ShutterState ShutterAt(int id) => _shutters[id];
+        public void SetShutter(int id, ShutterState state) => _shutters[id] = state;
+        public void ResetShutters() => Array.Clear(_shutters, 0, _shutters.Length);
+
+        public bool ChasePropBlocks(float x, float z, float radius)
+        {
+            var rails = WorldChaseProps.Rails;
+            for (int i = 0; i < rails.Count; i++)
+                if (rails[i].IntersectsCircle(x, z, radius)) return true;
+            var shutters = WorldChaseProps.Shutters;
+            for (int i = 0; i < shutters.Count; i++)
+                if (_shutters[i] == ShutterState.Down && shutters[i].IntersectsCircle(x, z, radius)) return true;
+            return false;
+        }
+
+        // Walls and obstacles only (the static map before chase props): a vault ends on a standable spot of this.
+        public bool CanStandStatic(float x, float z, float radius)
+        {
+            if (float.IsNaN(x) || float.IsNaN(z) || x < radius || z < radius || x > Size - radius || z > Size - radius)
+                return false;
+            for (int i = 0; i < _walls.Length; i++)
+                if (_walls[i].IntersectsCircle(x, z, radius)) return false;
+            for (int i = 0; i < _obstacles.Length; i++)
+                if (_obstacles[i].IntersectsCircle(x, z, radius)) return false;
             return true;
         }
 

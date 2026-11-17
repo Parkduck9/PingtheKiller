@@ -148,7 +148,7 @@ namespace PingTheKiller.Client.Tests
                 hud.SetSync("Space");
                 Assert.That(hud.SyncRing.style.display.value, Is.EqualTo(DisplayStyle.Flex));
                 Rect withRing = hud.ClusterRect(new Vector2(1600, 900));
-                Assert.That(withRing.height, Is.EqualTo(SurvivorHud.Height + SyncCheckRing.Size + 8), "the ring and its 8 u gap join the keep-out");
+                Assert.That(withRing.height, Is.EqualTo(SurvivorHud.Height + SyncLockBar.Height + 8), "the bar and its 8 u gap join the keep-out");
                 hud.Sync.Clear();
                 hud.SetSync("Space");
                 Assert.That(hud.SyncRing.style.display.value, Is.EqualTo(DisplayStyle.None));
@@ -167,7 +167,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(hold.Kind, Is.EqualTo(HoldKind.ExitSwitch));
             Assert.That(HoldCopy.Label(hold), Is.EqualTo("Opening the Exit " + Dot + " 62% — you are Signal"));
             CollapseView collapse = V2Wire.Collapse(112f, self.CollapseLeft, true);
-            Assert.That(CollapseCopy.Main(collapse), Is.EqualTo("Collapse 1:52"));
+            Assert.That(CollapseCopy.Main(collapse), Is.EqualTo("Shutdown 1:52"));
             Assert.That(CollapseCopy.Personal(collapse), Is.EqualTo("Lagging: 2× faster " + Dot + " you 0:48"));
             Assert.That(CollapseCopy.Urgent(collapse), Is.False);
             self.CollapseRate = 2;
@@ -224,7 +224,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ObjectiveRow.Applies(exits, V2Wire.Collapse(world.CollapseLeft, -1, false)), Is.True);
             TerminalFlagsView regressing = V2Wire.Terminal(world.Terminals[0]);
             Assert.That(regressing.Regressing, Is.True);
-            Assert.That(TerminalFlagCopy.Regressing(regressing, Role.Survivor), Is.EqualTo("Terminal 1 " + Dot + " 40% " + Dot + " Regressing"));
+            Assert.That(TerminalFlagCopy.Regressing(regressing, Role.Survivor), Is.EqualTo("Terminal 1 " + Dot + " 40% " + Dot + " Rolling back"));
             TerminalFlagsView overloaded = V2Wire.Terminal(world.Terminals[1]);
             Assert.That(overloaded.Overloaded && !overloaded.Regressing, Is.True);
             Assert.That(V2Wire.Terminal(world.Terminals[2]).Regressing || V2Wire.Terminal(world.Terminals[2]).Overloaded, Is.False);
@@ -248,7 +248,7 @@ namespace PingTheKiller.Client.Tests
                 Assert.That(hud.ObjectiveShown, Is.True);
                 Assert.That(hud.Objective.Exits[0].Text, Is.EqualTo("Exit 1 62%"));
                 Assert.That(hud.Objective.Exits[1].Text, Is.EqualTo("Exit 2 Open"));
-                Assert.That(hud.Objective.Collapse.Main, Is.EqualTo("Collapse 1:36"));
+                Assert.That(hud.Objective.Collapse.Main, Is.EqualTo("Shutdown 1:36"));
                 Assert.That(hud.Objective.Collapse.Personal, Is.EqualTo("You 0:30"));
                 Assert.That(hud.Objective.Collapse.Urgent, Is.True);
             }
@@ -267,7 +267,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(InteractCopy.Survivor(73, 73, exits, switches, false, 0, 0).Text, Is.Null, "an open exit's switch offers nothing");
             Assert.That(InteractCopy.Survivor(7, 9, exits, switches, false, 0, 0).Text, Is.Null, "2 m is out of the 1.5 m reach");
             InteractPrompt hatch = InteractCopy.Survivor(7.5f, 7, exits, switches, true, 8, 7);
-            Assert.That(hatch.Text, Is.EqualTo("Press [E] to escape through the Hatch"), "the hatch comes first");
+            Assert.That(hatch.Text, Is.EqualTo("Press [E] to escape through the Emergency port"), "the hatch comes first");
             Assert.That(InteractCopy.Survivor(7.5f, 7, exits, switches, true, 8, 9).Text, Does.StartWith("Hold [E] to open"), "a hatch 2 m away is out of reach");
             ExitView[] locked = { ExitView.FromWire(0, 1 | 4, 30) };
             locked[0].LockedLeft = 2.2f;
@@ -301,7 +301,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ResultV2Copy.Headline(view.Winner), Is.EqualTo("Killer wins"));
             Assert.That(ResultV2Copy.Outcome(view), Is.EqualTo("You were eliminated."));
             Assert.That(ResultV2Copy.Rule(view.Escaped, view.Starting), Is.EqualTo("3 of 7 escaped " + Dot + " Survivors win when half or more escape (4 of 7)"));
-            Assert.That(ResultV2Copy.Reason(view.Reason), Is.EqualTo("The collapse eliminated the Survivors still inside."));
+            Assert.That(ResultV2Copy.Reason(view.Reason), Is.EqualTo("The shutdown eliminated the Survivors still inside."));
             Assert.That(ResultV2Copy.RowName(view.Rows[0], 0), Is.EqualTo("Mina (you)"));
             Assert.That(ResultV2Copy.RowState(view.Rows[1]), Is.EqualTo("Escaped"));
             Assert.That(ResultV2Copy.Consistent(view), Is.True);
@@ -476,7 +476,7 @@ namespace PingTheKiller.Client.Tests
                 world.Terminals.Add(new TerminalState { Id = 5, X = 60, Z = 11, Progress = 30, Flags = 1 | 2 });
                 hud.DrawTerminalFlags(world, LookingNorthFrom(0, 0), new Vector2(1600, 900));
                 Assert.That(hud.RegressingShown, Is.EqualTo(1), "only the Regressing terminal in front: not the plain one, not the one behind, not the off-screen one");
-                Assert.That(hud.V2Markers.Tags, Is.EqualTo(new[] { "Terminal 3 " + Dot + " 40% " + Dot + " Regressing" }));
+                Assert.That(hud.V2Markers.Tags, Is.EqualTo(new[] { "Terminal 3 " + Dot + " 40% " + Dot + " Rolling back" }));
                 world.Terminals[0] = new TerminalState { Id = 2, X = 0, Z = 10, Progress = 38, Flags = 1 };
                 hud.DrawTerminalFlags(world, LookingNorthFrom(0, 0), new Vector2(1600, 900));
                 Assert.That(hud.V2Markers.Tags[0], Does.Contain("38%"), "the percentage follows the snapshot");
@@ -575,19 +575,58 @@ namespace PingTheKiller.Client.Tests
             timer.Set(V2Wire.Collapse(95.2f, -1, false));
             Assert.That(timer.Main, Is.SameAs(main), "1:36 both times: not rebuilt");
             timer.Set(V2Wire.Collapse(94.9f, -1, false));
-            Assert.That(timer.Main, Is.EqualTo("Collapse 1:35"));
+            Assert.That(timer.Main, Is.EqualTo("Shutdown 1:35"));
         }
 
-        // ---- attempt 2: the needle is the moving hand ------------------------------------------------------------------------
+        // ---- IP audit (11/17): the sync lock bar replaces the ring, same timing ----------------------------------------------
 
         [Test]
-        public void TheNeedleIsALongHandAndTheGreatPartIsCutFromTheGoodPart()
+        public void TheSyncLockBarIsAShortWideBarWithItsTrackInsideAndAGreatPartCutFromTheGoodPart()
         {
-            Assert.That(SyncCheckRing.NeedleOuter - SyncCheckRing.NeedleInner, Is.GreaterThan(2 * SyncCheckRing.GreatWidth), "longer than twice the Great head is thick");
-            Assert.That(SyncCheckRing.NeedleInner, Is.LessThan(SyncCheckRing.BandRadius - SyncCheckRing.GreatWidth * .5f), "starts inside the band");
-            Assert.That(SyncCheckRing.NeedleOuter, Is.EqualTo(SyncCheckRing.Size * .5f + 8), "ends 8 u past the disc, inside the stack gap");
-            Assert.That(SyncCheckRing.NeedleWidth, Is.EqualTo(3f));
-            Assert.That(SyncCheckRing.GreatGap, Is.GreaterThan(0f));
+            Assert.That(SyncLockBar.Width, Is.GreaterThan(SyncLockBar.Height * 3), "a horizontal bar, not a disc");
+            Assert.That(SyncLockBar.Height, Is.LessThan(144), "shorter than the old ring: it covers less of the character");
+            Assert.That(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth, Is.LessThanOrEqualTo(SyncLockBar.Width), "the track fits in the bar");
+            Assert.That(SyncLockBar.TrackTop - SyncLockBar.GreatExtra, Is.GreaterThanOrEqualTo(0f), "the Great block stays inside the bar");
+            Assert.That(SyncLockBar.TrackTop + SyncLockBar.TrackHeight + SyncLockBar.GreatExtra, Is.LessThan(SyncLockBar.LabelTop), "and above the label row");
+            Assert.That(SyncLockBar.GreatGap, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void ThePulseIsAtTheWindowCentreExactlyWhenTheOldNeedleWasInTheMiddleOfTheZone()
+        {
+            const float duration = 1.1f;
+            var view = new SyncCheckView { ZoneStart = .6f, ZoneSize = .12f, GreatSize = .035f, Duration = duration };
+            float centre = view.ZoneStart + view.ZoneSize * .5f;
+            float elapsed = centre * duration;
+            Assert.That(SyncCheckMath.NeedleFraction(elapsed, duration), Is.EqualTo(centre).Within(1e-5f), "the unchanged time-to-fraction function");
+            Assert.That(SyncLockBar.PulseX(SyncCheckMath.NeedleFraction(elapsed, duration)), Is.EqualTo(SyncLockBar.WindowCentreX(view)).Within(1e-3f));
+            Assert.That(SyncCheckMath.NeedleDegrees(elapsed, duration), Is.EqualTo(centre * 360f).Within(1e-3f), "the old ring angle is still the same fraction");
+        }
+
+        [Test]
+        public void ThePulseMapsLinearlyAndRoundTripsFromStartToEndOfTheTrack()
+        {
+            Assert.That(SyncLockBar.PulseX(0), Is.EqualTo(SyncLockBar.TrackLeft));
+            Assert.That(SyncLockBar.PulseX(1), Is.EqualTo(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth));
+            Assert.That(SyncLockBar.PulseX(-3), Is.EqualTo(SyncLockBar.TrackLeft), "clamped");
+            Assert.That(SyncLockBar.PulseX(9), Is.EqualTo(SyncLockBar.TrackLeft + SyncLockBar.TrackWidth), "clamped");
+            for (int i = 0; i <= 20; i++)
+            {
+                float fraction = i / 20f;
+                Assert.That(SyncLockBar.FractionAtX(SyncLockBar.PulseX(fraction)), Is.EqualTo(fraction).Within(1e-5f));
+            }
+            Assert.That(SyncLockBar.PulseX(.75f) - SyncLockBar.PulseX(.25f), Is.EqualTo(SyncLockBar.TrackWidth * .5f).Within(1e-3f), "equal time steps are equal distances");
+        }
+
+        [Test]
+        public void ThePulseBumpFollowsThePulseAndTheLabelNamesTheKey()
+        {
+            float px = SyncLockBar.PulseX(.5f);
+            float atPulse = Mathf.Abs(SyncLockBar.WaveOffset(px + 1.5f, px));
+            float far = Mathf.Abs(SyncLockBar.WaveOffset(SyncLockBar.TrackLeft + 5f, px));
+            Assert.That(atPulse, Is.GreaterThan(far), "the wave is tallest at the pulse");
+            Assert.That(SyncLockBar.WaitingText("Space"), Is.EqualTo("Sync lock · Space"));
+            Assert.That(SyncLockBar.WaitingText("A"), Is.EqualTo("Sync lock · A"));
         }
     }
 }

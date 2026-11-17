@@ -240,8 +240,8 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheKillerPromptLinesAreTheSpecCopyAndFitTheBlock()
         {
-            Assert.That(InteractCopy.Kick(2), Is.EqualTo("Hold [E] to kick Terminal 3"));
-            Assert.That(InteractCopy.HatchClose, Is.EqualTo("Hold [E] to close the Hatch"));
+            Assert.That(InteractCopy.Kick(2), Is.EqualTo("Hold [E] to jam Terminal 3"));
+            Assert.That(InteractCopy.HatchClose, Is.EqualTo("Hold [E] to close the Emergency port"));
             foreach (string line in new[] { InteractCopy.Kick(7), InteractCopy.HatchClose, InteractCopy.KickHint, InteractCopy.HatchCloseHint })
                 Assert.That(line.Length, Is.LessThanOrEqualTo(38), line);
             Assert.That(typeof(KillerHudCopy).GetMethod("PromptLine"), Is.Null, "the execution lines are gone");
@@ -250,8 +250,8 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheHoldBlockFloorsThePercentSoItNeverShowsAHundredEarly()
         {
-            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .999f }), Is.EqualTo("Kicking the Terminal " + Dot + " 99%"));
-            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.CloseHatch, Progress01 = .7f }), Is.EqualTo("Closing the Hatch " + Dot + " 70%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .999f }), Is.EqualTo("Jamming the Terminal " + Dot + " 99%"));
+            Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.CloseHatch, Progress01 = .7f }), Is.EqualTo("Closing the Emergency port " + Dot + " 70%"));
             Assert.That(HoldCopy.Label(new HoldActionView { Kind = HoldKind.None, Progress01 = .5f }), Is.Empty);
         }
 
@@ -261,7 +261,7 @@ namespace PingTheKiller.Client.QA.Tests
             InteractPrompt prompt = InteractCopy.Killer(10.5f, 10, Terminals(), true, 10, 11);
             Assert.That(prompt.Text, Is.EqualTo(InteractCopy.HatchClose));
             Assert.That(prompt.Hint, Is.EqualTo(InteractCopy.HatchCloseHint));
-            Assert.That(InteractCopy.Killer(10.5f, 10, Terminals(), false, 10, 11).Text, Is.EqualTo("Hold [E] to kick Terminal 1"), "an unseen hatch is not offered");
+            Assert.That(InteractCopy.Killer(10.5f, 10, Terminals(), false, 10, 11).Text, Is.EqualTo("Hold [E] to jam Terminal 1"), "an unseen hatch is not offered");
         }
 
         [Test]
@@ -269,7 +269,7 @@ namespace PingTheKiller.Client.QA.Tests
         {
             Assert.That(InteractCopy.Killer(12, 10.4f, new List<TerminalState> { Terminals()[1] }, false, 0, 0).Text, Is.Null, "done");
             Assert.That(InteractCopy.Killer(30, 31.51f, Terminals(), false, 0, 0).Text, Is.Null, "1.51 m is out of the 1.5 m reach");
-            Assert.That(InteractCopy.Killer(30, 31.5f, Terminals(), false, 0, 0).Text, Is.EqualTo("Hold [E] to kick Terminal 5"), "exactly 1.5 m is in reach");
+            Assert.That(InteractCopy.Killer(30, 31.5f, Terminals(), false, 0, 0).Text, Is.EqualTo("Hold [E] to jam Terminal 5"), "exactly 1.5 m is in reach");
         }
 
         [Test]
@@ -286,7 +286,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheHoldHintsNameWhatCancelsTheHold()
         {
-            Assert.That(HoldCopy.Hint(HoldKind.KickTerminal, "[E]"), Is.EqualTo("Hold [E] " + Dot + " moving cancels the kick"));
+            Assert.That(HoldCopy.Hint(HoldKind.KickTerminal, "[E]"), Is.EqualTo("Hold [E] " + Dot + " moving cancels the jam"));
             Assert.That(HoldCopy.Hint(HoldKind.CloseHatch, "[E]"), Is.EqualTo("Hold [E] " + Dot + " releasing cancels"));
             Assert.That(HoldCopy.Hint(HoldKind.ExitSwitch, "[E]"), Is.Empty, "the Survivor row has no hint line");
         }

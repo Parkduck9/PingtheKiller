@@ -29,6 +29,7 @@ namespace PingTheKiller.Client
         private RoleCamera rig;
         private WorldView world;
         private KillerWorldLayer killerLayer;
+        private ChasePropsLayer chase; // HUD_SPEC 15 (Q5): Shutters and Rails
         private ThreatAudio threat;
         private RulesV2Audio v2Audio;
         private DevCapture dev;
@@ -49,6 +50,12 @@ namespace PingTheKiller.Client
         private readonly CaptureWatch capture = new CaptureWatch();
         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
         private LaggingStutter stutter;
+        // U8 capture feel (HUD_SPEC 4.5, 4.10): the pooled impact burst, the presentation hit-stop and the dev frame-time log.
+        private CaptureImpactFx impactFx;
+        private readonly HitStop hitStop = new HitStop();
+        private CaptureFrameLog frameLog;
+        private int killerCaptures;
+        private double killerImpactUntil;
         private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
         private readonly ExitCache exitCache = new ExitCache(); // HUD_SPEC 13.4: one exit buffer per WorldState
         // HUD_SPEC 14 skill feedback: the pooled world effects and skill sounds (kept across matches), the Survivor-side
@@ -129,6 +136,11 @@ namespace PingTheKiller.Client
             reduceArg = devArgs.ReduceStutter;
             stutter = gameObject.AddComponent<LaggingStutter>();
             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
+            var impactObject = new GameObject("Capture impact");
+            impactObject.transform.SetParent(transform, false);
+            impactFx = impactObject.AddComponent<CaptureImpactFx>();
+            CharacterViews.Impact += PlayImpact;
+            if (devArgs.Active) frameLog = new CaptureFrameLog();
             options = screens.Options;
             rig.Options = options;
             options.Changed += ApplyOptions;
@@ -136,7 +148,7 @@ namespace PingTheKiller.Client
             if (devArgs.FakeKiller > 0) fakeKiller = new FakeKiller(devArgs.FakeKiller);
             if (devArgs.Active)
             {
-                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState);
+                dev = gameObject.AddComponent<DevCapture>(); dev.Initialize(devArgs, screens, selfState, point => { Vector3 v = view.WorldToViewportPoint(point); return v.z > 0 && v.x > 0 && v.x < 1 && v.y > 0 && v.y < 1; });
                 dev.Join += value => { screens.Address = value; Join(value); };
                 dev.Offline += StartOffline;
                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
@@ -150,6 +162,7 @@ namespace PingTheKiller.Client
             AudioListener.volume = options.Volume01;
             stutter.SetReducedOption(options.ReducedMotion);
             skillFx.Reduced = options.ReducedMotion || reduceArg; // HUD_SPEC 14.1 Reduced motion
+            KillerAttackKick.ReducedMotion = options.ReducedMotion || reduceArg; // U8: the Killer view kick and shake too
         }
         private void OnApplicationQuit() => options?.Save();
         private bool IsHost()
@@ -224,8 +237,11 @@ namespace PingTheKiller.Client
                     selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
                     skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
+                    impactFx.Warm(SkillFxArt.Load()?.Ring); impactFx.Clear(); hitStop.Reset(); killerCaptures = 0; killerImpactUntil = 0; // U8: pool built before any capture
+                    impactFx.FirstPerson = role == Role.Killer; // U8: small first-person sizes on the Killer client
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
+                    chase = map.AddComponent<ChasePropsLayer>(); chase.Initialize(playerId, role, skillFx.Reduced);
                     rig.Begin(role); screens.ShowPlay(role, skillId);
                     if (role == Role.Killer)
                     {
@@ -244,6 +260,14 @@ namespace PingTheKiller.Client
                     }
                     world.Accept(state, received.Time);
                     killerLayer?.Accept(state, received.Time);
+                    if (killerLayer != null && killerLayer.Captures != killerCaptures)
+                    {
+                        // U8: the own capture's impact at the tracker instance (a position this client already has).
+                        killerCaptures = killerLayer.Captures;
+                        killerImpactUntil = LinkClock.Now + .3; // played once the tracker instance is in the rendered views
+                        frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "killer capture");
+                    }
+                    chase.Accept(state, received.Time);
                     lastWorld = state;
                     v2Audio.OnWorld(state, received.Time);
                     foreach (PlayerState player in state.Players)
@@ -284,6 +308,8 @@ namespace PingTheKiller.Client
                     if (!playing) break;
                     selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
                     v2Audio.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
+                    chase?.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
+                    if (world != null) world.SetOwnAction(self.ActionKind); // U10: the own exit switch pose
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
                     dev?.OnSelfState(self, selfState.Received);
                     break;
@@ -321,7 +347,7 @@ namespace PingTheKiller.Client
             bool wasPlaying = playing;
             playing = false; joinDeadline = 0; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false); v2Audio.End();
-            skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
+            skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0; impactFx.Clear();
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
             DestroyWorld();
@@ -383,6 +409,8 @@ namespace PingTheKiller.Client
         }
         private void Update()
         {
+            string frames = frameLog?.Frame(Time.realtimeSinceStartupAsDouble, Time.unscaledDeltaTime);
+            if (frames != null) Debug.Log(frames);
             link?.Pump();
             v2Audio.Frame(LinkClock.Now, playing && world != null);
             Keyboard keyboard = Keyboard.current;
@@ -466,15 +494,20 @@ namespace PingTheKiller.Client
                 if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
                 screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
             }
-            bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+            bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill(DevSkillAble())); // dev: -ptk-skill-at (-ptk-skill-when-able)
             bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
             SkillFeedbackFrame(now, position);
+            if (!survivor) rig.KillerFovOffset += chase.Stun.FovOffset(now, skillFx.Reduced); // HUD_SPEC 15.4 stun impulse
+            chase.Frame(now);
             // TODO: client-side prediction for the local camera (it renders 100 ms in the past).
-            if (located) rig.Place(position, dt);
+            // U8 hit-stop: the world view (and every Animator it advances) and the camera follow hold the capture frame;
+            // input, snapshots, audio and the HUD keep the real clock.
+            double shown = hitStop.Present(now);
+            if (located) rig.Place(shown != now && world.LocalPosition(shown, out Vector3 frozen) ? frozen : position, dt);
             if (survivor) world.SetLocalLook(facingYaw, rig.Dither);
-            world.Render(now);
+            world.Render(shown);
             if (survivor)
             {
                 stutter.SetActive(own.Status == PlayerStatus.Lagging);
@@ -485,6 +518,8 @@ namespace PingTheKiller.Client
             else if (killerLayer != null && located)
             {
                 killerLayer.Render(rig.Pose, now, dt, menuGate.Open);
+                if (now < killerImpactUntil && killerLayer.CapturePoint(out Vector3 struck)) { killerImpactUntil = 0; PlayImpact(struck); }
+                chase.ApplyKillerHud(screens.Killer, position, menuGate.Open, now); // HUD_SPEC 15.2 / 15.4
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
@@ -494,7 +529,14 @@ namespace PingTheKiller.Client
         private void OnOwnSnapshot(byte threatLevel, double time)
         {
             StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time, selfState.Available && selfState.CollapseLeft >= 0);
-            if (change == StatusEvent.Captured) { cueSource.PlayOneShot(survivorCues[SurvivorCue.Captured]); Debug.Log("[client] captured: banner + stutter"); }
+            if (change == StatusEvent.Captured)
+            {
+                cueSource.PlayOneShot(survivorCues[SurvivorCue.Captured]);
+                // U8: glitch burst + 100 ms presentation hit-stop on the swing's contact (MotionTiming.SwipeContactSeconds)
+                stutter.Capture(Time.unscaledTimeAsDouble + MotionTiming.SwipeContactSeconds); hitStop.Begin(LinkClock.Now + MotionTiming.SwipeContactSeconds);
+                frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "own capture");
+                Debug.Log("[client] captured: banner + burst + hit-stop");
+            }
             if (change == StatusEvent.Eliminated)
             {
                 cueSource.PlayOneShot(survivorCues[SurvivorCue.Eliminated]);
@@ -526,6 +568,10 @@ namespace PingTheKiller.Client
             }
             Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
         }
+
+        // Dev only (-ptk-skill-when-able): the same derived precondition OnSkillPress uses (Restore target, switch in progress).
+        private bool DevSkillAble() => role == Role.Survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
+            : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
 
         // HUD_SPEC 14.3 (Q3): the server's reason for refusing the own pending press replaces the 0.5 s inference.
         private void OnSkillRejected(S2C_SkillRejected rejected, double time)
@@ -570,12 +616,25 @@ namespace PingTheKiller.Client
             if (!world.LocalPosition(LinkClock.Now, out Vector3 self)) self = new Vector3(own.X, 0, own.Z);
             self.y = 0;
             skillFx.Play(record, self);
+            if (SkillSignature.IsOwnCast(record)) // U9 own-cast flash beside the skill block (HUD_SPEC 14.1b)
+                (record.KillerSkill ? screens.Killer.CastFlash : screens.Survivor.CastFlash).Show(record.KillerSkill, record.SkillId, skillFx.Reduced, Time.unscaledTimeAsDouble);
             dev?.OnSkillFx(record);
             int key = (record.KillerSkill ? 100 : 0) + record.SkillId * 10 + (int)record.Viewer;
             if (loggedFx.Add(key))
                 Debug.Log("[fx] " + (record.KillerSkill ? "killer" : "survivor") + " skill=" + record.SkillId + " viewer=" + record.Viewer
-                    + " line=\"" + record.Line.Text + "\" visual=" + record.Visual.Kind + (record.Visual.Prefab != FxPrefab.None ? "/" + record.Visual.Prefab : string.Empty)
+                    + " line=\"" + record.Line.Text + "\" visual=" + SkillSignature.Plan(record, skillFx.Reduced).Shape
                     + " sound=" + record.Sound.Clip + (record.Sound.Positional ? " (positional)" : string.Empty) + " reduced=" + skillFx.Reduced);
+        }
+
+        // U8: the capture impact at a captured Survivor's ground position (CharacterViews on a Survivor client, the tracker
+        // instance on the Killer client).
+        private void PlayImpact(Vector3 at)
+        {
+            if (!playing) return;
+            // Survivor client: on the Killer model's contact (SwipeContactSeconds after the capture). Killer client: on the
+            // view kick's strike peak (WindUpSeconds + StrikePeak after the instance is resolved).
+            impactFx.Schedule(at, Time.unscaledTimeAsDouble + (role == Role.Survivor ? MotionTiming.SwipeContactSeconds : KillerAttackKick.WindUpSeconds + KillerAttackKick.StrikePeak));
+            if (dev != null) Debug.Log("[fx] capture impact scheduled (dev log, no position)");
         }
 
         // Survivor client only (HUD_SPEC 0.1: Survivors receive every Survivor): the others, for rescue and co-hacking prompts.
@@ -621,7 +680,11 @@ namespace PingTheKiller.Client
                 InteractPrompt reach = InteractCopy.Survivor(own.X, own.Z, exits, SharedMap.Map.ExitSwitches, lastWorld.HatchVisible == 1, lastWorld.HatchX, lastWorld.HatchZ);
                 if (!string.IsNullOrEmpty(reach.Text)) prompt = new PromptState { Text = reach.Text, Muted = reach.Muted };
             }
-            hud.SetPrompt(prompt, V2Wire.Hold(selfState));
+            HoldActionView hold = V2Wire.Hold(selfState);
+            // HUD_SPEC 15.2: the Shutter / Rail action line, or their prompt in an empty slot.
+            if (chase != null)
+                ChasePropsLayer.SurvivorPrompt(ref prompt, ref hold, chase.ChaseAction, own.Status == PlayerStatus.Normal, releasedCursor || capture.BannerVisible(now), own.X, own.Z, chase.Shutters);
+            hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
         }
         private void OnApplicationFocus(bool focused)
@@ -635,7 +698,7 @@ namespace PingTheKiller.Client
         }
         private void DestroyWorld()
         {
-            killerLayer = null;
+            killerLayer = null; chase = null;
             if (world == null) return;
             world.gameObject.SetActive(false); Destroy(world.gameObject); world = null;
         }
@@ -654,12 +717,13 @@ namespace PingTheKiller.Client
             Release();
             playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
-            skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0;
+            skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0; impactFx?.Clear();
             DestroyWorld();
             screens.ShowMenu(notice);
         }
         private void OnDestroy()
         {
+            CharacterViews.Impact -= PlayImpact;
             link?.Dispose(); if (readyClip != null) Destroy(readyClip);
             foreach (AudioClip clip in survivorCues.Values) if (clip != null) Destroy(clip);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;

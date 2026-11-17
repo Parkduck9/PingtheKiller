@@ -1,0 +1,28 @@
+U10-motion: holo interaction motions, readable hacking, Survivors run
+
+S1: the hack pose was already ButtonPushing, but the U4j IK dropped the
+one-hand press to the 0.72 m terminal top. That is hip height, so from
+the third-person camera behind the character it read as standing idle.
+
+- InteractionMotion / InteractionRig: an IK layer on the base pass, after
+  the clip. Hack: both hands type on a chest-high floating panel on
+  alternating beats. Restore: crouch and lean over the Lagging ally,
+  hands down. Own exit switch hold: palm on the switch, leaning in.
+  Killer model (Survivor view): one two-hand slam when a terminal next to
+  it turns Regressing.
+- HoloPropFx: per-character pooled props (built once): a translucent ally
+  key-grid panel with a beat pulse and a packet stream from the terminal,
+  an ally link line for restore, and a danger glitch burst for the jam.
+  New Art/Holo/Resources URP Unlit materials.
+- Masking: driven only by received flags (Hacking, Rescuing), the own
+  ActionKind and the Regressing flag. The Killer view shows none.
+- Locomotion: the speed blend runs at 4.0 m/s (idle / walk to 1.6 / run
+  at 4.0, faster run for the Killer at 4.6 and 6.9). Rates come from the
+  measured clip ground speeds, so the feet do not slide. The injured limp
+  blends into the run.
+- Attempt 2: the own hack panel is raised to 1.4 m and widened to 0.9 m so it
+  shows past the shoulders from the camera behind; Restore stays active up to
+  1.5 m/s (feet freed, lean and link kept); dead jam helpers removed.
+- HUD_SPEC 4.10 (11/17, U10); InteractionMotionTests.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

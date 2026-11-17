@@ -1,0 +1,16 @@
+IP-audit: replace the sync check ring and rename five terms that match another game
+
+Audit (docs/qa/IP-audit-findings.md): no character, logo, map, sound or text from
+another game is used; one high and four medium items were presentation or
+term-of-art matches with Dead by Daylight.
+
+- Sync check ring (circle, sweeping needle, success zone) -> sync lock bar:
+  horizontal waveform track, a travelling pulse, a lock window with a Great part.
+  Client presentation only. Same NeedleFraction timing function, same packets,
+  server judge and -ptk-auto-sync behaviour. 80 u tall (was 144 u), so it covers
+  less of the character; HUD_SPEC 13.1/13.2/14 updated (11/17, IP).
+- Copy renames: Collapse -> Shutdown, Regressing -> Rolling back, kick -> jam,
+  Hatch -> Emergency port (player text only; protocol and identifiers unchanged).
+- Copy tests updated; new tests for the pulse-to-window mapping.
+- Store listing already had no references to other games; no change needed.
+- Third-party list extended (Mixamo, DOTween, Inter, world FBX); docs/store/THIRD_PARTY.md template added.

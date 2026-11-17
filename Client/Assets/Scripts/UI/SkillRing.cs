@@ -16,7 +16,6 @@ namespace PingTheKiller.Client.UI
         private static readonly Color Text = new Color32(232, 230, 225, 255);
         private static readonly Color Muted = new Color32(154, 152, 144, 255);
         private static readonly Color Signal = new Color32(255, 176, 32, 255);
-        private static readonly Vector2[] NoiseDots = { new Vector2(5, 7), new Vector2(20, 5), new Vector2(13, 16), new Vector2(27, 19), new Vector2(8, 27) };
         private readonly Label count;
         private State state;
         private byte skill;
@@ -92,76 +91,9 @@ namespace PingTheKiller.Client.UI
             if (count.style.display == DisplayStyle.None) Icon(p, new Vector2(16, 16), state == State.Disabled ? Muted : Text);
         }
 
-        // HUD_SPEC 8 icons in a 32 u box (origin = its top-left), 1 u lines.
+        // HUD_SPEC 8 icons in a 32 u box (origin = its top-left), 1 u lines; U9: drawn from SkillGlyph, the same glyph the
+        // world effect and the own-cast flash show.
         private void Icon(Painter2D p, Vector2 o, Color color)
-        {
-            p.strokeColor = color; p.fillColor = color; p.lineWidth = Stroke(1);
-            p.lineCap = LineCap.Butt; p.lineJoin = LineJoin.Miter;
-            if (SurvivorSkills) { SurvivorIcon(p, o); return; }
-            switch (skill)
-            {
-                case SkillIds.PingScanner: // three concentric arcs from a point toward a small dot
-                    for (int i = 0; i < 3; i++)
-                    {
-                        p.BeginPath(); p.Arc(o + new Vector2(6, 26), 7 + i * 6, Angle.Degrees(-80), Angle.Degrees(-10)); p.Stroke();
-                    }
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 26), 1.5f, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.Arc(o + new Vector2(27, 5), 2, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    break;
-                case SkillIds.Overclock: // two right chevrons followed by a vertical stop bar
-                    for (int i = 0; i < 2; i++)
-                    {
-                        float x = 5 + i * 8;
-                        p.BeginPath(); p.MoveTo(o + new Vector2(x, 8)); p.LineTo(o + new Vector2(x + 7, 16)); p.LineTo(o + new Vector2(x, 24)); p.Stroke();
-                    }
-                    p.BeginPath(); p.MoveTo(o + new Vector2(26, 7)); p.LineTo(o + new Vector2(26, 25)); p.Stroke();
-                    break;
-                case SkillIds.PacketAfterimage: // a solid dot with two hollow dots trailing behind
-                    p.BeginPath(); p.Arc(o + new Vector2(24, 16), 4, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.Arc(o + new Vector2(14, 16), 3, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 2.5f, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
-                    break;
-                case SkillIds.FirewallBlock: // a ring with a horizontal bar through it
-                    p.BeginPath(); p.Arc(o + new Vector2(16, 16), 10, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
-                    p.BeginPath(); p.MoveTo(o + new Vector2(2, 16)); p.LineTo(o + new Vector2(30, 16)); p.Stroke();
-                    break;
-            }
-        }
-
-        private void SurvivorIcon(Painter2D p, Vector2 o)
-        {
-            switch (skill)
-            {
-                case SkillIds.DummyPacket: // a dashed-outline dot
-                    for (int i = 0; i < 8; i++)
-                    {
-                        p.BeginPath(); p.Arc(o + new Vector2(16, 16), 9, Angle.Degrees(i * 45), Angle.Degrees(i * 45 + 25)); p.Stroke();
-                    }
-                    break;
-                case SkillIds.StealthRelay: // a dot inside a circle, a wave line crossed out
-                    p.BeginPath(); p.Arc(o + new Vector2(10, 16), 7, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
-                    p.BeginPath(); p.Arc(o + new Vector2(10, 16), 2, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.MoveTo(o + new Vector2(20, 16)); p.LineTo(o + new Vector2(23, 12)); p.LineTo(o + new Vector2(26, 20)); p.LineTo(o + new Vector2(29, 16)); p.Stroke();
-                    p.BeginPath(); p.MoveTo(o + new Vector2(20, 23)); p.LineTo(o + new Vector2(30, 9)); p.Stroke();
-                    break;
-                case SkillIds.TrafficOverload: // a dot emitting two arcs, a down chevron beside it
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 2, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 6, Angle.Degrees(-45), Angle.Degrees(45)); p.Stroke();
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 11, Angle.Degrees(-45), Angle.Degrees(45)); p.Stroke();
-                    p.BeginPath(); p.MoveTo(o + new Vector2(22, 12)); p.LineTo(o + new Vector2(26, 18)); p.LineTo(o + new Vector2(30, 12)); p.Stroke();
-                    break;
-                case SkillIds.EmergencyRestore: // two dots joined by a solid line
-                    p.BeginPath(); p.Arc(o + new Vector2(6, 16), 3, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.Arc(o + new Vector2(26, 16), 3, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    p.BeginPath(); p.MoveTo(o + new Vector2(9, 16)); p.LineTo(o + new Vector2(23, 16)); p.Stroke();
-                    break;
-                case SkillIds.WhiteNoise: // five scattered dots
-                    foreach (Vector2 d in NoiseDots)
-                    {
-                        p.BeginPath(); p.Arc(o + d, 2, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
-                    }
-                    break;
-            }
-        }
+            => SkillGlyph.Paint(p, SkillGlyph.For(!SurvivorSkills, skill), o, 32, color, Stroke(1));
     }
 }

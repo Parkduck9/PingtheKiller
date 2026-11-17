@@ -339,7 +339,7 @@ namespace PingTheKiller.Client.Tests
         public void TheThreeReasonsUseTheSpecCopyOnTheMeter()
         {
             // GDD v2 4 (U6c-wire S5): no execution wording; the result screen (13.7) names the outcome only.
-            Assert.That(CaptureWatch.ReasonText(EliminationReason.Collapse), Is.EqualTo("Disconnected: the collapse reached you."));
+            Assert.That(CaptureWatch.ReasonText(EliminationReason.Collapse), Is.EqualTo("Disconnected: the shutdown reached you."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.TimedOut), Is.EqualTo("Disconnected: no rescue in the second Lagging stage (30 s)."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.ThirdCapture), Is.EqualTo("Disconnected: caught with no Lagging stage left."));
             Assert.That(CaptureWatch.ReasonText(EliminationReason.None), Is.Null);
@@ -410,19 +410,176 @@ namespace PingTheKiller.Client.Tests
             Assert.That(SurvivorCueSynth.Seconds(SurvivorCue.Eliminated), Is.EqualTo(.6f), "eliminated: 600 ms");
         }
 
+        // ---- U8: Lagging look, hit-stop, swipe timing, capture impact pool ----------------------------------------------
+
         [Test]
-        public void TheStutterHoldsEachFrameFor125MsAndTheReducedModePresentsEveryFrame()
+        public void TheLaggingLookRunsAtFullRate_TheBurstLasts04s_AndTheFlashOnlyItsStart()
         {
-            var clock = new StutterClock();
-            var presented = new List<double>();
-            for (int frame = 0; frame < 60; frame++) { double t = 10 + frame / 60.0; if (clock.Present(t, false)) presented.Add(t); }
-            Assert.That(presented.Count, Is.EqualTo(8), "8 Hz over one second of 60 fps frames");
-            for (int i = 1; i < presented.Count; i++) Assert.That(presented[i] - presented[i - 1], Is.EqualTo(.125).Within(1.0 / 60 + 1e-9));
-            var reduced = new StutterClock();
-            int count = 0;
-            for (int frame = 0; frame < 60; frame++) if (reduced.Present(10 + frame / 60.0, true)) count++;
-            Assert.That(count, Is.EqualTo(60), "no hold in the reduced mode");
-            Assert.That(StutterClock.PreviousWeight, Is.EqualTo(.3f), "30 % previous-frame blend in both modes");
+            var look = new LaggingLook();
+            Assert.That(look.Evaluate(5, false).Steady, Is.Zero, "nothing before Lagging");
+            look.SetActive(true, 10); look.Capture(10);
+            int frames = 0;
+            for (int frame = 1; frame <= 60; frame++) if (look.Evaluate(10 + frame / 60.0, false).Steady > 0) frames++;
+            Assert.That(frames, Is.EqualTo(60), "every frame shows the look (no hold)");
+            Assert.That(LaggingLook.BurstSeconds, Is.InRange(.3f, .5f));
+            Assert.That(look.Evaluate(10 + .01, false).Flash, Is.GreaterThan(0));
+            Assert.That(look.Evaluate(10 + LaggingLook.FlashSeconds + .001, false).Flash, Is.Zero, "one short flash");
+            Assert.That(look.Evaluate(10 + LaggingLook.BurstSeconds - .01, false).Burst, Is.GreaterThan(0));
+            Assert.That(look.Evaluate(10 + LaggingLook.BurstSeconds + 1e-6, false).Burst, Is.Zero, "the burst ends at 0.4 s");
+            Assert.That(look.Evaluate(10 + LaggingLook.BurstSeconds + 1e-6, false).Steady, Is.EqualTo(1), "the steady look stays while Lagging");
+            Assert.That(look.Evaluate(10 + .02, false).TearSeed, Is.Not.EqualTo(look.Evaluate(10 + .07, false).TearSeed), "the tear moves every 50 ms");
+            look.SetActive(false, 20);
+            Assert.That(look.Evaluate(20.01, false).Steady, Is.Zero, "off with Lagging");
+            for (int bar = 0; bar < LaggingLook.TearBars; bar++)
+            {
+                LaggingLook.Tear(3, bar, out float top, out float height, out float direction);
+                Assert.That(top, Is.InRange(0f, .9f)); Assert.That(height, Is.InRange(.01f, .07f)); Assert.That(Mathf.Abs(direction), Is.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void TheLaggingStutterComponentShowsTheBurstOnlyOutsideReducedMode()
+        {
+            var go = new GameObject("u8-look");
+            try
+            {
+                var look = go.AddComponent<LaggingStutter>();
+                var back = new VisualElement(); var front = new VisualElement();
+                look.Initialize(null, back, front, false);
+                look.SetActive(true, 50); look.Capture(50); look.Apply(50.05);
+                Assert.That(look.BackShown && look.FrontShown, Is.True, "steady look + burst");
+                look.Apply(50.5);
+                Assert.That(look.BackShown, Is.True); Assert.That(look.FrontShown, Is.False, "burst over");
+                look.SetReducedOption(true);
+                look.Capture(60); look.Apply(60.05);
+                Assert.That(look.FrontShown, Is.False, "reduced: no burst, tear or flash");
+                Assert.That(look.BackShown, Is.True, "reduced: the steady look only");
+                look.SetActive(false, 61); look.Apply(61.01);
+                Assert.That(look.BackShown || look.FrontShown, Is.False);
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void TheHitStopHoldsThePresentationFor100MsOncePerImpact()
+        {
+            var stop = new HitStop();
+            Assert.That(stop.Present(5), Is.EqualTo(5));
+            Assert.That(stop.Begin(10), Is.True);
+            Assert.That(HitStop.Seconds, Is.InRange(.08, .12));
+            Assert.That(stop.Present(10.05), Is.EqualTo(10), "frozen inside the window");
+            Assert.That(stop.Begin(10.06), Is.False, "a hit during an active stop does not extend it");
+            Assert.That(stop.Present(10 + HitStop.Seconds - 1e-6), Is.EqualTo(10));
+            Assert.That(stop.Present(10 + HitStop.Seconds), Is.EqualTo(10).Within(1e-9), "no jump when the stop ends");
+            double previous = 10, end = 10 + HitStop.Seconds + HitStop.EaseSeconds;
+            for (double t = 10 + HitStop.Seconds; t <= end + .05; t += 1 / 60.0)
+            {
+                double shown = stop.Present(t);
+                Assert.That(shown - previous, Is.LessThanOrEqualTo(2.0 / 60 + 1e-9), "eases back: at most 2 frames of world time per frame");
+                Assert.That(shown, Is.GreaterThanOrEqualTo(previous - 1e-9));
+                previous = shown;
+            }
+            Assert.That(stop.Present(end), Is.EqualTo(end).Within(1e-9), "real time again 0.15 s after the stop");
+            Assert.That(stop.Present(9.99), Is.EqualTo(9.99), "a stop scheduled for the contact leaves earlier frames alone");
+            Assert.That(stop.Begin(11), Is.True);
+            Assert.That(stop.Count, Is.EqualTo(2));
+            stop.Reset();
+            Assert.That(stop.Present(11.05), Is.EqualTo(11.05));
+        }
+
+        [Test]
+        public void TheSwipeWindsUpThenStrikesThenHoldsTheStrikePose()
+        {
+            Assert.That(MotionTiming.SwipeSeconds, Is.InRange(.9f, 1.3f), "visible swing 0.9-1.3 s");
+            Assert.That(MotionTiming.SwipeRealKeys[MotionTiming.SwipeRealKeys.Length - 1], Is.EqualTo(MotionTiming.SwipeSeconds));
+            Assert.That(MotionTiming.SwipeClipKeys[MotionTiming.SwipeClipKeys.Length - 1], Is.EqualTo(MotionTiming.SwipeClipSeconds));
+            Assert.That(MotionTiming.SwipeClipTime(0), Is.EqualTo(MotionTiming.SwipeClipKeys[0]), "starts with the arm already cocking (frame 12)");
+            Assert.That(MotionTiming.SwipeClipTime(-1), Is.EqualTo(MotionTiming.SwipeClipKeys[0]));
+            Assert.That(MotionTiming.SwipeRealKeys[1], Is.InRange(.15f, .2f), "fast anticipation");
+            Assert.That(MotionTiming.SwipeContactSeconds, Is.InRange(.2f, .3f), "contact about 0.25 s after the capture");
+            Assert.That(MotionTiming.SwipeContactSeconds, Is.EqualTo(MotionTiming.SwipeStrikeAt));
+            Assert.That(MotionTiming.SwipeClipTime(9), Is.EqualTo(MotionTiming.SwipeClipSeconds));
+            float previous = MotionTiming.SwipeClipKeys[0];
+            for (double t = 0; t <= MotionTiming.SwipeSeconds; t += 1 / 120.0)
+            {
+                float clip = MotionTiming.SwipeClipTime(t);
+                Assert.That(clip, Is.GreaterThanOrEqualTo(previous - 1e-5f), "never runs backwards");
+                previous = clip;
+            }
+            // The strike pose holds: the same clip time for SwipeHoldSeconds, i.e. at least 3 frames at 30 fps.
+            float strike = MotionTiming.SwipeClipTime(MotionTiming.SwipeStrikeAt);
+            Assert.That(MotionTiming.SwipeClipTime(MotionTiming.SwipeStrikeAt + MotionTiming.SwipeHoldSeconds), Is.EqualTo(strike).Within(1e-5));
+            Assert.That(MotionTiming.SwipeHoldSeconds * 30, Is.GreaterThanOrEqualTo(3));
+            // The strike (keys 1-2) plays slower than the wind-up (keys 0-1), at about clip rate (>= 3 frames at 30 fps),
+            // and the follow-through (keys 3-4) is slow.
+            float windRate = (MotionTiming.SwipeClipKeys[1] - MotionTiming.SwipeClipKeys[0]) / (MotionTiming.SwipeRealKeys[1] - MotionTiming.SwipeRealKeys[0]);
+            float strikeRate = (MotionTiming.SwipeClipKeys[2] - MotionTiming.SwipeClipKeys[1]) / (MotionTiming.SwipeRealKeys[2] - MotionTiming.SwipeRealKeys[1]);
+            Assert.That(strikeRate, Is.LessThan(windRate));
+            Assert.That((MotionTiming.SwipeRealKeys[2] - MotionTiming.SwipeRealKeys[1]) * 30, Is.GreaterThanOrEqualTo(3));
+            float followRate = (MotionTiming.SwipeClipKeys[4] - MotionTiming.SwipeClipKeys[3]) / (MotionTiming.SwipeRealKeys[4] - MotionTiming.SwipeRealKeys[3]);
+            Assert.That(followRate, Is.LessThan(.6f), "slow follow-through");
+            Assert.That(MotionTiming.SwipeFromSeconds, Is.LessThan(.45f), "starts earlier than the old trim (the arm raise shows)");
+            var attack = new AttackTracker();
+            attack.Trigger(3, true);
+            Assert.That(attack.ClipTime(3 + MotionTiming.SwipeStrikeAt), Is.EqualTo(strike).Within(1e-5));
+        }
+
+        [Test]
+        public void TheCaptureImpactPoolIsBuiltOnceAndReusedWithoutGrowth()
+        {
+            var go = new GameObject("u8-impact");
+            try
+            {
+                var fx = go.AddComponent<CaptureImpactFx>();
+                fx.Play(Vector3.zero, 0);
+                Assert.That(fx.Plays, Is.Zero, "nothing plays before warm-up");
+                fx.Warm(null);
+                int created = fx.Created;
+                Assert.That(created, Is.EqualTo(CaptureImpactFx.PoolSize * 3), "root + 2 systems per pooled impact");
+                fx.Warm(null);
+                Assert.That(fx.Created, Is.EqualTo(created), "warm is idempotent");
+                for (int i = 0; i < 10; i++) fx.Play(new Vector3(i, 0, 2), 1 + i * .1);
+                Assert.That(fx.Created, Is.EqualTo(created), "no allocation on play: the oldest is reused");
+                Assert.That(fx.Plays, Is.EqualTo(10));
+                Assert.That(fx.Busy, Is.EqualTo(CaptureImpactFx.PoolSize));
+                Assert.That(fx.LastPoint, Is.EqualTo(new Vector3(9, CaptureImpactFx.ChestHeight, 2)), "at the captured Survivor's chest");
+                Assert.That(CaptureImpactFx.Seconds, Is.InRange(.5f, .8f));
+                fx.Tick(1 + .9 + CaptureImpactFx.Seconds);
+                Assert.That(fx.Busy, Is.Zero, "each impact ends after its lifetime");
+                // Scheduled on the contact: nothing before its time, played once after it, no growth.
+                fx.FirstPerson = true;
+                fx.Schedule(new Vector3(1, 0, 1), 20.27);
+                fx.Tick(20.2);
+                Assert.That(fx.Plays, Is.EqualTo(10)); Assert.That(fx.Pending, Is.EqualTo(1));
+                fx.Tick(20.3);
+                Assert.That(fx.Plays, Is.EqualTo(11)); Assert.That(fx.Pending, Is.Zero);
+                Assert.That(fx.Created, Is.EqualTo(created));
+                foreach (ParticleSystemRenderer r in go.GetComponentsInChildren<ParticleSystemRenderer>(true))
+                    if (r.transform.parent.gameObject.activeSelf) Assert.That(r.maxParticleSize, Is.EqualTo(CaptureImpactFx.FirstPersonMaxSize), "Killer view: hard size cap");
+                for (int i = 0; i < 6; i++) fx.Schedule(Vector3.zero, 30);
+                Assert.That(fx.Pending, Is.EqualTo(CaptureImpactFx.PendingSize), "bounded queue");
+                fx.Clear();
+                Assert.That(fx.Pending, Is.Zero);
+                Assert.That(go.transform.childCount, Is.EqualTo(CaptureImpactFx.PoolSize));
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void TheFrameLogReportsSpikesAroundACapture()
+        {
+            var log = new CaptureFrameLog();
+            string line = null;
+            double t = 0;
+            for (int i = 0; i < 200 && line == null; i++)
+            {
+                float dt = i == 100 ? .05f : 1 / 60f;
+                t += dt;
+                if (i == 90) log.Mark(t, "test");
+                line = log.Frame(t, dt);
+            }
+            Assert.That(line, Does.Contain("spikes>33ms=1"));
+            Assert.That(line, Does.Contain("max=50.0"));
         }
 
         // ---- dev: -ptk-fake-killer and -ptk-reduce-stutter --------------------------------------------------------------

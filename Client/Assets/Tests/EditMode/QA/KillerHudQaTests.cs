@@ -348,7 +348,7 @@ namespace PingTheKiller.Client.QA.Tests
             var kick = new InteractPrompt { Text = InteractCopy.Kick(2), Hint = InteractCopy.KickHint };
             hud.SetPrompt(kick, default);
             Assert.That(Shown(prompt, root), Is.True);
-            Assert.That(LabelShown(prompt, "Hold [E] to kick Terminal 3"), Is.True);
+            Assert.That(LabelShown(prompt, "Hold [E] to jam Terminal 3"), Is.True);
             Assert.That(LabelShown(prompt, InteractCopy.KickHint), Is.True);
             hud.SetPrompt(new InteractPrompt { Text = InteractCopy.HatchClose, Hint = InteractCopy.HatchCloseHint }, default);
             Assert.That(LabelShown(prompt, InteractCopy.HatchClose), Is.True);
@@ -440,7 +440,7 @@ namespace PingTheKiller.Client.QA.Tests
         {
             CollapseView view = V2Wire.KillerCollapse(31, 12);
             Assert.That(view.PersonalLeft, Is.EqualTo(-1f), "the Killer has no personal clock");
-            Assert.That(CollapseCopy.Main(view), Is.EqualTo("Collapse 0:31"));
+            Assert.That(CollapseCopy.Main(view), Is.EqualTo("Shutdown 0:31"));
             Assert.That(CollapseCopy.Urgent(view), Is.False);
             Assert.That(CollapseCopy.Urgent(V2Wire.KillerCollapse(30, -1)), Is.True);
             Assert.That(V2Wire.KillerCollapse(-1, -1).Running, Is.False);
@@ -461,9 +461,9 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheKillersRegressingTagCarriesNoPercentage()
         {
             TerminalFlagsView flags = V2Wire.Terminal(new TerminalState { Id = 0, Progress = 40, Flags = 1 });
-            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Killer), Is.EqualTo("Terminal 1 " + Dot + " Regressing"));
+            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Killer), Is.EqualTo("Terminal 1 " + Dot + " Rolling back"));
             Assert.That(TerminalFlagCopy.Regressing(flags, Role.Killer), Does.Not.Contain("%"));
-            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Survivor), Is.EqualTo("Terminal 1 " + Dot + " 40% " + Dot + " Regressing"));
+            Assert.That(TerminalFlagCopy.Regressing(flags, Role.Survivor), Is.EqualTo("Terminal 1 " + Dot + " 40% " + Dot + " Rolling back"));
         }
 
         [Test]
@@ -495,7 +495,7 @@ namespace PingTheKiller.Client.QA.Tests
             hud.Begin(SkillIds.PingScanner);
             hud.SetIntro(false);
             hud.SetPrompt(default, new HoldActionView { Kind = HoldKind.KickTerminal, Progress01 = .55f });
-            Assert.That(hud.Hold.Text, Is.EqualTo("Kicking the Terminal " + Dot + " 55%"));
+            Assert.That(hud.Hold.Text, Is.EqualTo("Jamming the Terminal " + Dot + " 55%"));
             Assert.That(hud.ClusterRect(900).height, Is.EqualTo(152f + 80), "the 72 u hold block and its 8 u gap");
             hud.SetPrompt(default, default);
             Assert.That(hud.Hold.style.display.value, Is.EqualTo(DisplayStyle.None));

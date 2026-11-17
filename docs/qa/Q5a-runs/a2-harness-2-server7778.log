@@ -1,0 +1,30 @@
+listening address=127.0.0.1 port=7778 bots=0
+join player=1 reconnect=false
+join player=3 reconnect=false
+join player=4 reconnect=false
+match start players=3 killer=1 matchSeed=1528228893
+sync player=4 check=2 result=Good rtt=0
+sync player=3 check=1 result=Good rtt=0
+terminal 1 complete
+sync player=4 check=3 result=Good rtt=0
+sync player=3 check=4 result=Good rtt=0
+sync player=3 check=5 result=Good rtt=0
+sync player=4 check=6 result=Good rtt=0
+terminal 4 complete
+sync player=4 check=7 result=Good rtt=0
+sync player=3 check=8 result=Good rtt=0
+sync player=4 check=9 result=Good rtt=0
+sync player=3 check=10 result=Good rtt=0
+terminal 3 complete
+exits powered reason=terminals
+exit 1 open
+collapse start reason=exit
+status player=3 Lagging reason=capture
+status player=3 Normal reason=rescue
+status player=4 Escaped reason=exit
+hatch open x=66 z=38.5
+status player=3 Escaped reason=exit
+match end winner=Survivor reason=AllResolved escaped=2
+leave player=4
+leave player=3
+leave player=1

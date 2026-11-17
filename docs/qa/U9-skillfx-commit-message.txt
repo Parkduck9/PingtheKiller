@@ -1,0 +1,25 @@
+U9-skillfx: one shape and one motion per skill, plus its glyph
+
+Playtest: after a skill fired, players could not tell which skill it was;
+most U7b effects were similar Hovl marker rings in similar colours.
+
+- World/SkillSignature: pure skill -> signature table (9 distinct shapes,
+  9 distinct motions; colour keeps its palette meaning) and the per-record
+  plan. SkillFeedback still decides who sees what and where.
+- World/SkillShapes + SkillFx: generated wire signatures (pulse rings,
+  speed streaks, hex wall, dashed double, dome, spikes, beam, static),
+  pooled and pre-drawn at warm-up; the skill glyph floats above the effect
+  for 1 s. Reduced motion shows each signature still.
+- UI/SkillGlyph: the HUD_SPEC 8 icons as data, painted by the skill ring
+  and the new own-cast flash and rasterized for the world glyph.
+- UI/SkillCastFlash: 0.6 s glyph beside the own skill block (no name:
+  the block already names the skill).
+- SkillFxSetup: alpha-clip glyph material in SkillFxArt.
+- HUD_SPEC 14.6 (signatures, glyph, 14.1b flash), 0.4 text token note.
+- Attempt 2 (QA a1): Ping scanner as vertical bands readable in first
+  person; denser White noise and dome; smaller, thinner Dummy double
+  hidden at a short boom; world glyph lower and kept inside the frame;
+  [fx] log prints the signature; dev flag -ptk-skill-when-able.
+- Tests: SkillSignatureTests; U7b pooling test updated for the new pools.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

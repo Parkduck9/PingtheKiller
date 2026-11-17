@@ -48,9 +48,10 @@ namespace PingTheKiller.Editor.Setup
             }
             catalog.Marker = Marker();
             catalog.Ring = RingMaterial();
+            catalog.Glyph = GlyphMaterial();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            Debug.Log("[setup] SkillFxArt: " + (catalog.Prefabs.Length - 1) + " prefabs, " + (catalog.Clips.Length - 1) + " clips, marker emission " + MarkerEmission);
+            Debug.Log("[setup] SkillFxArt: " + (catalog.Prefabs.Length - 1) + " prefabs, " + (catalog.Clips.Length - 1) + " clips, marker emission " + MarkerEmission + ", glyph material");
         }
 
         private static Material Marker()
@@ -68,6 +69,30 @@ namespace PingTheKiller.Editor.Setup
             if (copy.HasProperty("_Emission")) copy.SetFloat("_Emission", MarkerEmission);
             EditorUtility.SetDirty(copy);
             return copy;
+        }
+
+        // U9 world glyph: URP Unlit, alpha clip at 0.5 (no blending, HUD_SPEC 14.1 World effects), opaque-cutout queue.
+        private static Material GlyphMaterial()
+        {
+            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");
+            if (unlit == null) throw new InvalidOperationException("Missing shader: Universal Render Pipeline/Unlit");
+            string path = Root + "/SkillFx glyph.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(unlit);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.shader = unlit;
+            material.color = Color.white;
+            material.SetFloat("_Surface", 0);
+            material.SetFloat("_AlphaClip", 1);
+            material.SetFloat("_Cutoff", .5f);
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.SetOverrideTag("RenderType", "TransparentCutout");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         private static Material RingMaterial()

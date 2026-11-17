@@ -71,9 +71,10 @@ namespace PingTheKiller.Client.Killer
 
         // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.
         // switchInProgress: an unopened Exit with switch progress (Firewall block's only target, GDD v2 3).
-        public static string SkillState(byte skillId, bool switchInProgress, float? cooldown)
+        public static string SkillState(byte skillId, bool switchInProgress, float? cooldown, bool stunned = false)
         {
             if (skillId == SkillIds.PacketAfterimage) return Passive;
+            if (stunned) return "Stunned"; // M4: the server refuses every press while the Killer is Stunned
             if (skillId == SkillIds.FirewallBlock && !switchInProgress) return NeedsSwitch;
             if (cooldown.HasValue && cooldown.Value > 0) return "Cooldown " + (int)Math.Ceiling(cooldown.Value) + " s";
             return Ready;

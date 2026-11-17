@@ -80,7 +80,7 @@ One family with Hangul coverage and tabular figures: Pretendard (Latin fallback 
 | `bg` | `#101113` | screen background |
 | `panel` | `#1A1C1F` | panels; world-tag fills |
 | `line` | `#2C2F33` | dividers and secondary-button borders (decorative; the label identifies the button) |
-| `text` | `#E8E6E1` | text, primary button fill, neutral world markers |
+| `text` | `#E8E6E1` | text, primary button fill, neutral world markers (incl. every Killer-view skill signature and the White noise static, §14.6) |
 | `muted` | `#9A9890` | secondary text, disabled text, past/inactive markers, **text-field and meter outlines** |
 | `signal` | `#FFB020` | transmitting now: Signal state; in the Killer view, Signal Survivor outlines, markers and edge indicators |
 | `danger` | `#E5484D` | Killer-caused threat to a Survivor (threat noise, Lagging bar, Exit locked by the Killer); on the Killer HUD only the Traffic-overload slow bar. **Non-text only** (bars, segments, rings, noise mask) |
@@ -261,7 +261,7 @@ Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 
 |---|---|---|
 | Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue in the second Lagging stage (30 s).` |
 | Normal | `CaptureCount ≥ 2` | **(11/08, Q1)** names the captures the client saw: `Disconnected: caught 3 times.`, or after a first stage ran out `Disconnected: caught 2 times, no Lagging stage left.` When the client did not see the whole match (first snapshot not Normal with `CaptureCount` 0) or its count disagrees with the server's: `Disconnected: caught with no Lagging stage left.` (was `caught a third time.`, wrong after an escalation) |
-| anything else, a collapse clock running | — | `Disconnected: the collapse reached you.` |
+| anything else, a collapse clock running | — | `Disconnected: the shutdown reached you.` |
 | anything else | — | none (the meter keeps `Watching until the match ends.`) |
 
 **(U6c-wire)** Rules v2 has no execution: the two `Executed: …` lines are gone. A Survivor is eliminated by the third capture, by the second Lagging stage running out (`SecondLaggingTimeoutSeconds` 30 s), or by the collapse clock. The Lagging meter's full scale follows the stage: 60 s on the first capture, 30 s on the second; from `CaptureCount` 2 the tag reads `Next capture eliminates` (11/08, Q1; it read `Captured twice`).
@@ -319,9 +319,14 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
 
 ### 4.5 Own status: Lagging, Escaped, Eliminated
 - **Lagging:** meter rows 3–4.
-  - Frame-stutter treatment (GDD §3.3): the world camera image is presented at 8 Hz (each frame held 125 ms) and blended with the previous frame at 30 %. HUD and audio stay at full rate. No shake, no flash.
-  - Reduced-motion alternative: no frame hold, only the 30 % previous-frame blend, and no extra border (so it never competes with the level-3 edge noise). Until a settings screen exists, it is the launch option `-ptk-reduce-stutter`; a settings toggle is required before any Store build (§11 Q12).
-  - **(10/30) Build:** the world camera renders into an off-screen texture; at each 8 Hz slot (every frame when reduced) the newest presented frame is kept and the one before it is drawn on top at 30 % opacity, both under the HUD. It runs exactly while the own `Status = Lagging`.
+  - ~~Frame-stutter treatment (GDD §3.3): the world camera image is presented at 8 Hz (each frame held 125 ms) and blended with the previous frame at 30 %. HUD and audio stay at full rate. No shake, no flash.~~
+  - **(11/17, U8) Capture impact + Lagging look, replacing the frame stutter** (players read the 8 Hz hold as real lag). The world always renders at full frame rate.
+    - **Hit-stop:** at the swipe's contact (0.27 s after the own capture, §4.10) the world view (character poses, the Killer model, the camera follow) holds for 100 ms, then eases back to real time over 150 ms (no jump). Input, networking, audio and the HUD keep running; `Time.timeScale` is not used.
+    - **Glitch burst** (0.4 s, from the capture): from the contact: a Killer-red (`danger`) flash, 20 % at its start, fading out over 150 ms (one flash per capture, well under 3 per second), and three horizontal scanline tear bars (`danger` / neutral grey tints) that jump every 50 ms and slide back to 0 as the burst fades.
+    - **Steady look**, exactly while the own `Status = Lagging`, faded in over 250 ms: a dark veil (20 %), a dark vignette (60 % at the corners) and faint scanlines (one dark line in three, 16 %). The meter is still the one indicator of the state (rows 3–4); the look carries no text.
+    - All three are UI layers under every screen and the HUD; nothing touches the world camera.
+  - Reduced-motion alternative **(11/17, U8)**: no burst, no tear and no flash; the steady look only (the hit-stop stays: it is a 100 ms hold, not motion). The Reduced motion setting (§12.5) or the launch option `-ptk-reduce-stutter` turns it on.
+  - ~~**(10/30) Build:** the world camera renders into an off-screen texture; at each 8 Hz slot (every frame when reduced) the newest presented frame is kept and the one before it is drawn on top at 30 % opacity, both under the HUD. It runs exactly while the own `Status = Lagging`.~~ Removed by U8 (11/17).
   - The skill is disabled (§4.8), and edge markers show Normal Survivors (§4.6).
 - **Escaped:** lasts until `S2C_GameResult`, which normally arrives in the same tick. The meter shows row 2.
 - **Eliminated:** plays the sound `eliminated` (falling tone, 600 ms). The meter is replaced by a spectate block of the same size.
@@ -386,8 +391,18 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - A Survivor's `Status` Normal → Lagging: a short hit flinch blending into a knock-down, then the crawl while Lagging. The crawl's rate follows the measured speed, so a still Lagging Survivor holds the last crawl pose. Lagging → Normal: getting up (2.7 s), then locomotion.
   - → Eliminated: the fall-back death once; the body keeps its last pose for 6 s after the fall began, then despawns. A Survivor first seen already Eliminated is not drawn.
   - `Hacking` set and speed about 0: the button-pushing loop. `CaptureCount` ≥ 1 and Normal: the injured idle/limp when still or slow.
-  - The Killer model swipes once per capture (`Status` Normal → Lagging, or Normal → Eliminated; 1.2 s), and only if the model is drawn at that moment. The swipe is on the upper body; the legs keep their locomotion.
+  - The Killer model swipes once per capture (`Status` Normal → Lagging, or Normal → Eliminated; ~~1.2 s~~ **(11/17, U8 a2) 1.15 s, keys chosen from every imported frame: a fast 0.15 s wind-up from the cocked arm, the strike reaching contact 0.27 s after the capture, the strike pose held 0.12 s, then a slow follow-through (0.4x)**), and only if the model is drawn at that moment. The swipe is on the upper body; the legs keep their locomotion.
+  - **(11/17, U8) Capture impact:** at every capture of a drawn Survivor (any Survivor, Survivor view), a 0.6 s Killer-red burst of streaks and fragments at chest height (1 m) over its position, starting on the swipe's contact (0.27 s after the capture). The Killer client plays the same burst, at first-person sizes (capped at 0.04 m per particle), at the tracker instance of its own confirmed capture on the view kick's strike (§6.3; never at a position it does not receive). Pooled at match start. Reduced motion does not remove it (it is not camera motion).
   - No other cue is added: the motion never reveals anything the HUD does not already show.
+- **(11/17, U10) Interaction motions and holo props (Survivor client only).** Built on the U4j rules above: driven only by received fields, and an interaction plays only while the character is Normal, upright and still (measured speed < 0.3 m/s), except Restore, which also plays while the rescuer follows a crawling ally (measured speed < 1.5 m/s; the feet are then free, the lean and the link stay).
+  - **Hack** (`Flags.Hacking`, own and mates): the button-pushing loop plus a two-hand IK pose. Both hands type on a floating panel 1.4 m high and 0.5 m in front, on alternating 0.17 s beats; the head looks at the panel. The prop is a translucent `ally` key-grid panel (0.9 × 0.5 m, wide and high enough to show past the shoulders of the own character from the camera behind; tilted toward the eyes, double-sided so the camera behind sees it). It pulses +7 % on each beat, and a thin stream of six small `ally` packet squares flows from the terminal top into it. *(S1: the old one-hand press was lowered by IK to the 0.72 m terminal top, at hip height, so from the camera behind the character it read as standing idle.)*
+  - **Restore** (`Flags.Rescuing`, the §4.4 source): the hips drop 0.36 m, the torso leans 30° over the nearest Lagging Survivor within 2.1 m, and both hands reach down to it. The prop is an `ally` link line from the hands to the ally, with packets travelling down it.
+  - **Exit switch hold** (own `S2C_SelfState.ActionKind = 1` only; other Survivors' holds are not exposed per player, so mates show none): the right palm on the switch at 1.15 m, the body leaning in, and packets streaming from the palm into the switch.
+  - **Killer jam** (Killer model, Survivor view): one two-hand slam (0.7 s) when a terminal within 2.0 m of the drawn model turns `Regressing` (the end of a kick, a flag Survivors receive and the HUD tags). A `danger` glitch burst of squares appears at the terminal top on the impact. Nothing plays while the model is not drawn. The kick hold itself is not exposed to Survivors, so the slam is not repeated during it.
+  - **Colours and shapes:** `ally` (Survivor-team information, Survivor clients only) and `danger` (Killer-caused), one meaning each. Shapes are panels, lines and squares, never rings (rings belong to the §14.1 skill effects).
+  - **Killer view:** no interaction pose and no prop, for any instance. §6.3 rule 1 forbids reading `Hacking` and `Rescuing`, and the Killer client builds no Survivor character from an entry. The Killer's own kick has no first-person effect (§6.0: no body or hands).
+  - **Pooling:** each character builds its props once, on first use (root, panel, link, 6 packets, 10 burst squares). After that they are only moved and toggled.
+- **(11/17, U10) Locomotion speeds.** One speed-driven blend, shared by both views: idle below 0.49 m/s, walk from 0.5 to 1.6 m/s, run at 4.0 m/s (`SurvivorSpeed`: a moving Survivor runs), and the same run sped up for the Killer (4.6 m/s, and 6.9 m/s with Overclock). Each child's rate is its speed ÷ the clip's own ground speed, so the planted foot moves at the travel speed (±10 %). The injured blend keeps the limp up to 1.6 m/s, then blends into the same run at 4.0 m/s. The Killer view still reads only `Status` and the matched speed.
 
 ---
 
@@ -397,7 +412,7 @@ Esc / Start replaces the prompt row with a 672×152 u block (same anchor; it gro
 - Line 3 (S `muted`), when applicable. **(Q6, GDD v2)** The third capture eliminates (`EliminatingCaptureCount` 3), so the v1 line `Captured once: the next capture eliminates you.` is no longer true after one capture. While `Status = Normal`: `CaptureCount = 1` → `Captured once: the next capture leaves 30 s for a rescue.`; `CaptureCount ≥ 2` → **(11/10)** `Next capture eliminates you.` (count-free: `CaptureCount` counts Lagging stages, so a first stage that runs out reaches 2 without a second capture; it read `Captured twice: the next capture eliminates you.`); otherwise no line.
 - Then `Resume` (primary, focused), `Settings` (opens §12) and `Leave match`, three 160×40 u buttons in one row, gap 8: 160 × 3 + 16 = 496 ≤ 648 u. The row is pinned 12 u above the block's bottom edge, so it does not move when line 3 is absent.
 - Height with padding 12: 12 + 23 + 4 + 18 + 4 + 18 + 8 + 40 + 12 = 139 ≤ 152.
-- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync ring stay as they are.
+- While the menu is open the prompt row and the hold row (§13.3) stay hidden; the meter cluster, the objective row, the result line (§14.1a) and the sync lock bar stay as they are.
 
 Opening the menu sends `C2S_Interact{Active = 0}` (only after a sent press) and one zero `C2S_MoveInput`, and it releases the cursor; while it is open there is no mouse look and no W A S D, E, Q or Space. Closing it captures the cursor again (when the window has focus). The match keeps running.
 
@@ -430,7 +445,7 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and 
 | # | Block | Source | Content | Size |
 |---|---|---|---|---|
 | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
-| 6.1p | Prompt | §13.3 | interact prompt (kick, hatch close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+| 6.1p | Prompt | §13.3 | interact prompt (jam, Emergency port close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
 | 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1/3` (M, the Survivor format, §4.3); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
 | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
 | 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `Needs an Exit switch in progress` (FirewallBlock while no unopened exit has switch progress, disabled) | 320×72 |
@@ -513,7 +528,7 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
    - The Killer's own capture (`CaptureConfirm`, §6.5) gives a 0.22 s first-person lunge: vertical FOV −4° and the eye 0.12 m forward, easing out. None with reduced motion (`-ptk-reduce-stutter`, later the settings toggle).
 
 ### 6.4 Execution guidance — removed in v2
-**(U6c-wire)** GDD v2 has no execution and protocol v0.4 has no `ExecutionGraceLeft`. The 6.1p prompt slot now shows the §13.3 Killer interact prompt (kick, hatch close), and the hold block while holding.
+**(U6c-wire)** GDD v2 has no execution and protocol v0.4 has no `ExecutionGraceLeft`. The 6.1p prompt slot now shows the §13.3 Killer interact prompt (jam, Emergency port close), and the hold block while holding.
 
 ### 6.5 Killer sounds
 | Cue | Trigger (all observable in the Killer view) |
@@ -725,7 +740,7 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 - **FOV is the horizontal angle at a 16:9 reference** (§6.0 convention). The rig converts it to Unity's vertical FOV, so other aspect ratios stay Hor+. The 60° lower bound is a horizontal angle, so today's Survivor (vertical 50° = 79.2° horizontal) and Killer (90°) defaults are inside their ranges.
 - **Mouse sensitivity** multiplies `RoleCamera.Sensitivity` (0.12° per count) for both axes. **Invert Y** flips only the pitch sign. Both roles.
-- **Reduced motion** is the Lagging stutter's reduced mode (§4.5): a new world frame every frame, still blended 30 %. `-ptk-reduce-stutter` still forces it on whatever the setting says.
+- **Reduced motion** is the Lagging look's reduced mode (§4.5, **(11/17, U8)**: the steady look only, no burst, tear or flash; also no Killer view kick or shake). `-ptk-reduce-stutter` still forces it on whatever the setting says.
 - **Master volume** sets `AudioListener.volume`.
 - A stored value that is missing, NaN or out of range loads as that setting's default; the others are kept. Setters clamp.
 - Every control applies at once; `Done` (primary, 320×48) and Esc outside a match save. `Reset to defaults` (secondary) restores all six. The values are also saved when the app quits.
@@ -739,50 +754,47 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 Sources are the protocol v0.4 fields from the U6a brief. The widgets live in `Client/Assets/Scripts/UI/RulesV2/` and read only plain view models (`RulesV2Views.cs`), so the wiring copies packet fields in. Style is in `Resources/RulesV2.uss`. All global rules in §0 apply: logical units, spacing scale, radius 0, S/M/L type, palette meanings, `danger` never on text.
 
-**New fixed terms** (added to the SLOP §8 vocabulary): Sync check, Great / Good / Fail, Powered, No power, switch, Hatch, Collapse, Regressing, Overloaded, kick (verb, Killer).
+**New fixed terms** (added to the SLOP §8 vocabulary): Sync lock, Great / Good / Fail, Powered, No power, switch, Emergency port, Shutdown, Rolling back, Overloaded, jam (verb, Killer). **(11/17, IP)** renamed from Sync check, Hatch, Collapse, Regressing and kick, which matched another game's terms.
 
 ### 13.1 Placement
 - **Survivor:** one bottom-center stack sits directly on the cluster (§4.0). Its bottom edge is at 96 u (the cluster top), and every child keeps an 8 u gap below it. From top to bottom:
-  1. the sync check ring (13.2), only during a check;
+  1. the sync lock bar (13.2), only during a check;
   2. the prompt row: the §4.3/§4.4 prompts or the 13.3 hold row, 672×40;
   3. the **objective row** (672×48), shown once any exit is Powered or Open, or a collapse clock runs.
-  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 144 + 8 = 352 u. The ring only shows while hacking, which is in act 1, when the objective row is normally hidden; then the ring spans 152–296 u from the bottom, so its top edge is at 604 u of 900 at 720p (67.1 %) and 784 u of 1080 at 1080p (72.6 %). That is at or below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the ring sits 56 u higher and may overlap the feet; that case is rare and accepted.
+  With every child shown, the stack's top is at 96 + 48 + 8 + 40 + 8 + 80 + 8 = 288 u **(11/17, IP: the bar is 80 u tall, the old ring 144 u)**. The bar only shows while hacking, which is in act 1, when the objective row is normally hidden; then the bar spans 152–232 u from the bottom, so its top edge is at 668 u of 900 at 720p (74.2 %) and 856 u of 1080 at 1080p (79.3 %). That is below the feet at default pitch (67 %, §4.10), so it never covers the body. If a check arrives while the objective row shows (hacking after power), the bar sits 56 u higher, its top edge at 620 u (68.9 % at 720p), still below the feet.
 - **v2 info block:** line 3 of the info block (§4.7, `Exit …`) is removed in v2. The objective row replaces it. Line 1 stays the match time and line 2 stays `Terminals 1/5`.
 - **Killer:** two blocks go into the 6.1 cluster between the prompt slot and the info block. In order: the hold block (13.3, in the 6.1p prompt slot) and the collapse block (13.5). Exits stay on world markers (13.4), never in a panel (SLOP §8).
 
-### 13.2 Sync check ring (Survivor)
-Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived.
-- **Shape (144×144 u):**
-  - `panel` disc with a 1 u `line` edge.
-  - Track: 10 u `line` at radius 56, clearly darker than the zone.
-  - Good zone: 10 u `text` over the full band width, from `ZoneStart` to `ZoneStart + ZoneSize`.
-  - Great part: **22 u** `text`, the first `GreatSize` of the zone, standing 6 u out of the band on both sides. It differs from Good by shape; no glow, and no `signal` (amber means visible to the Killer).
-  - Needle **(U6c-wire a2)**: the moving hand, 3 u `text` from radius 30 (inside the band) to radius 80 (8 u past the disc edge, inside the 8 u stack gap), on a 7 u `bg` keyline. At 50 u it is more than twice as long as the Great head is thick.
-  - A 2 u `panel` cut separates the Great part from the Good part, so the zone reads as two blocks, not one tapered arrow.
-  - At 720p (scale 0.8) the default zone (0.12) is an arc ≈ 34 px long and 8 px thick; the great part (0.035) is ≈ 10 px long and 18 px thick.
-  - Angles: fraction 0 is 12 o'clock; the needle turns clockwise; `needle = clamp01(Elapsed / Duration)`.
-- **Centre:**
-  - While waiting: the key glyph, S `muted`: `Space`, or `A` on a gamepad.
+### 13.2 Sync lock bar (Survivor) **(11/17, IP)**
+Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, GreatSize}`, `S2C_SyncResult {CheckId, Result}`; `Elapsed` is local time since the check arrived. The wire, the judge and the timing are unchanged; only the drawing changed from a ring with a needle to a horizontal bar, so it no longer copies another game's well-known timing-check presentation.
+- **Shape (320×80 u):**
+  - `panel` fill with a 1 u `line` edge.
+  - Track area x 16–304 u, y 8–44 u: a waveform in `line` (2 u). A pulse travels left to right as a bump in that wave (3 u `text` near the pulse), with a 4 u `text` crest bar on an 8 u `bg` keyline.
+  - Lock window from `ZoneStart` to `ZoneStart + ZoneSize`: the Good part is a `muted` block the height of the track; the Great part (the first `GreatSize` of the window, exactly as the judge reads it) is a `text` block 6 u taller on both sides. A 2 u `panel` cut separates them. No glow, no `signal` amber (amber means visible to the Killer).
+  - Pulse x = `16 + clamp01(Elapsed / Duration) × 288` u: the same `SyncCheckMath.NeedleFraction` the ring used. The pulse is at the window centre exactly when the old needle was in the middle of the zone.
+  - At 720p (scale 0.8) the default zone (0.12) is ≈ 28 px wide and 29 px tall; the Great part (0.035) is ≈ 8 px wide and 39 px tall.
+- **Label row (y 52–80 u):**
+  - While waiting: `Sync lock · Space`, or `· A` on a gamepad, S `muted`.
   - After the result: `Great` / `Good` / `Fail`, M 600 `text`.
 - **Press:**
   - Space or gamepad A calls `SyncCheckState.TryPress()`. This raises `Press(CheckId)` once per check, and the owner sends `C2S_SyncPress`.
-  - The needle freezes where it was pressed.
+  - The pulse freezes where it was pressed.
   - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
-- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the ring hides until a new `CheckId` arrives.
+- **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the bar hides until a new `CheckId` arrives.
 - **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the needle is drawn in the great part is Great (U6f).
-- **No flashing:** one change only, the centre word, with no colour flash and no shake.
+- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the pulse is drawn in the great part is Great (U6f).
+- **No flashing:** one change only, the label, with no colour flash and no shake.
 - **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
-- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The ring clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
+- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The bar clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
 
-### 13.3 Hold action (Survivor exit switch, Killer kick and hatch close)
+### 13.3 Hold action (Survivor exit switch, Killer jam and Emergency port close)
 Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0–1, and the percentage is `floor(progress × 100)`, so the row never shows 100 % before the server finishes.
 
 | Kind | Role | Text | Block |
 |---|---|---|---|
 | 1 switch | Survivor | `Opening the Exit · 62% — you are Signal` (M) | prompt row 672×40, 656×4 bar `text` |
-| 2 kick | Killer | `Kicking the Terminal · 55%` (M 600) + `Hold [E] · moving cancels the kick` (S `muted`) | 320×72: padding 8/7; 23 + 4 + 4 bar + 4 + 18 |
-| 3 hatch close | Killer | `Closing the Hatch · 70%` + `Hold [E] · releasing cancels` | same |
+| 2 jam | Killer | `Jamming the Terminal · 55%` (M 600) + `Hold [E] · moving cancels the jam` (S `muted`) | 320×72: padding 8/7; 23 + 4 + 4 bar + 4 + 18 |
+| 3 Emergency port close | Killer | `Closing the Emergency port · 70%` + `Hold [E] · releasing cancels` | same |
 
 `ActionKind = 0` hides the row or block.
 
@@ -790,11 +802,11 @@ Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0
 
 | Role | Condition (first match wins) | Line 1 | Line 2 (Killer, S `muted`) |
 |---|---|---|---|
-| Survivor | `HatchVisible` and within `HatchRadius` 1.5 m | `Press [E] to escape through the Hatch` | — |
+| Survivor | `HatchVisible` and within `HatchRadius` 1.5 m | `Press [E] to escape through the Emergency port` | — |
 | Survivor | nearest exit switch within `ExitSwitchRadius` 1.5 m, exit Powered, not Open, not Locked | `Hold [E] to open Exit 1 · 62% — you will be Signal` | — |
 | Survivor | the same switch while Locked | `Exit 1 is Locked 3 s by the Killer` (`muted`; seconds from the own FirewallBlock knowledge, else `Exit 1 is Locked by the Killer`) | — |
-| Killer | `HatchVisible` and within `HatchRadius` | `Hold [E] to close the Hatch` | `Stand still · starts the collapse` |
-| Killer | an unfinished terminal within `TerminalRadius` 1.5 m (Killer `Progress` is 0/100 only, N9) | `Hold [E] to kick Terminal 3` | `Stand still · hacked Terminals only` |
+| Killer | `HatchVisible` and within `HatchRadius` | `Hold [E] to close the Emergency port` | `Stand still · starts the shutdown` |
+| Killer | an unfinished terminal within `TerminalRadius` 1.5 m (Killer `Progress` is 0/100 only, N9) | `Hold [E] to jam Terminal 3` | `Stand still · hacked Terminals only` |
 
 Every Killer line is at most 38 characters and fits the 302 u inner width at S. The server decides every action; the prompt is guidance.
 
@@ -820,20 +832,20 @@ Source: `WorldState` exits `{Id, Flags (Powered 1, Open 2, Locked 4), SwitchProg
 
 Off-screen exits get no indicator. Every tag is clamped inside the 24 u screen inset.
 
-### 13.5 Collapse clock
+### 13.5 Shutdown clock
 Source: `WorldState.CollapseLeft` (global) and `SelfState.CollapseLeft` (personal); −1 means not running. The format is `m:ss` of `ceil`.
 - **Survivor cell** (272×46, the third cell of the objective row):
-  - Line 1: a 4×18 bar, then `Collapse 1:52` (M 600 `text`) showing the global clock.
+  - Line 1: a 4×18 bar, then `Shutdown 1:52` (M 600 `text`) showing the global clock.
   - Line 2 (S `text`), only when the personal `m:ss` differs from the global one: `Lagging: 2× faster · you 0:48` while the own `Status = Lagging`, otherwise `You 0:48`.
-- **Killer block** (320×32): the bar and `Collapse 1:52`. There is no personal clock.
+- **Killer block** (320×32): the bar and `Shutdown 1:52`. There is no personal clock.
 - **Urgent:** the clock that eliminates the viewer is checked. That is the personal clock when it runs, otherwise the global one. When it shows `0:30` or less, only the bar colour changes: `muted` → `danger` for Survivors, `muted` → `text` for the Killer (the Killer HUD keeps `danger` for the overload slow). The text keeps its colour, nothing flashes, and nothing animates.
 - **Sound** (wiring): `collapse_start` once (exit opened or hatch closed) and one tone at 30 s.
 
 ### 13.6 Terminal flags
 Source: `TerminalState.Flags` (Regressing 1, Overloaded 2).
-- **Regressing** (both roles) replaces the terminal's world tag:
-  - Survivor: `Terminal 3 · 40% · Regressing`, with a 2 u `danger` left bar. **(U6c-wire a2)** Survivors have no other terminal tag, so this one is drawn by the Survivor HUD's own v2 marker layer: above the terminal's 1.5 m point, only while that point is on screen (no edge indicator), clamped out of the cluster and stack keep-out.
-  - Killer: `Terminal 3 · Regressing`, with no percentage (N9) and a 2 u `text` left bar.
+- **Rolling back** (both roles; the terminal's `Regressing` flag) replaces the terminal's world tag:
+  - Survivor: `Terminal 3 · 40% · Rolling back`, with a 2 u `danger` left bar. **(U6c-wire a2)** Survivors have no other terminal tag, so this one is drawn by the Survivor HUD's own v2 marker layer: above the terminal's 1.5 m point, only while that point is on screen (no edge indicator), clamped out of the cluster and stack keep-out.
+  - Killer: `Terminal 3 · Rolling back`, with no percentage (N9) and a 2 u `text` left bar.
 - **Overloaded** (Killer alert, shown while the flag is set, about 2 s):
   - On screen: a 16 u filled `signal` square at the terminal (1.5 m), drawn through walls, with a 1 u `bg` keyline.
   - Off screen: the same square at the §6.2 edge-indicator position (`EdgePlacement.Place`, Killer slide rule, cluster keep-out including the v2 blocks), with an 8 u `signal` pointer toward the terminal.
@@ -849,7 +861,7 @@ Source: `S2C_GameResult {WinnerRole, Reason, EscapedIds, EliminatedIds}`, lobby 
 | 1 | Headline | `Survivors win` / `Killer wins` (from `WinnerRole`) | L 600 [8] |
 | 2 | Own outcome | `You escaped.` / `You were eliminated.` / Killer: `You eliminated 4 of 7 Survivors.` | M [8] |
 | 3 | Rule | `3 of 7 escaped · Survivors win when half or more escape (4 of 7)` | S `muted` [4] |
-| 4 | Reason | AllResolved `Every Survivor escaped or was eliminated.` · AllSurvivorsDown `Every Survivor was eliminated before anyone escaped.` · TimeUp `Time ran out. Survivors still inside were eliminated.` · Collapse `The collapse eliminated the Survivors still inside.` | S `muted` [24] |
+| 4 | Reason | AllResolved `Every Survivor escaped or was eliminated.` · AllSurvivorsDown `Every Survivor was eliminated before anyone escaped.` · TimeUp `Time ran out. Survivors still inside were eliminated.` · Collapse `The shutdown eliminated the Survivors still inside.` | S `muted` [24] |
 | 5 | Rows | One row per starting Survivor, in slot order, 560×32 [4]: name (M, ellipsized at 24 characters, ` (you)` on the own row) on the left; `Escaped` (M `text`) or `Eliminated` (M `muted`) on the right. The own row has a 4 u `text` bar inside its left edge and a 600-weight name. | [32] |
 
 At 720p this is 48 + 34 + 8 + 23 + 8 + 18 + 4 + 18 + 24 + 7 × 36 + 32 + 48 = 523 u ≤ 900. There is no colour per outcome (no ally/danger), because both roles see the same list. The winner is the server's; `ResultV2Copy.Consistent` checks it against `escaped × 2 ≥ starting` in development only.
@@ -903,7 +915,7 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
   - no bar and `muted` text: a reason line (14.3).
 - **Time:** shown for **2.5 s** (reason lines 2.0 s), then removed in one frame. Numbers in the line are the skill's static duration, not a countdown. The live countdowns stay where they are: the meter (§4.1), the active arc (§4.8) and the objective row (§13.4).
 - **One line at a time, never stacked (SLOP §5).** Priority: affected (`danger` first) > caster > ally > reason. A new line replaces the shown one when its priority is equal or higher. A lower one is dropped, not queued.
-- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 144 + 8 = 400 u. While hacking (ring shown, objective row normally hidden), a line lifts the ring by 48 u. The ring top is then 344 u from the bottom, at 61.8 % of the 720p height, over the feet (67 %, §4.10). This happens only while a line shows during a sync check (≤ 2.5 s), and it is accepted like the §13.1 case.
+- **Stack geometry:** with every child shown, the stack top is 96 + 48 + 8 + 40 + 8 + 40 + 8 + 80 + 8 = 336 u. While hacking (bar shown, objective row normally hidden), a line lifts the bar by 48 u. The bar top is then 280 u from the bottom, at 68.9 % of the 720p height, still below the feet (67 %, §4.10) **(11/17, IP)**. This happens only while a line shows during a sync lock (≤ 2.5 s).
 - Hidden while the play menu is open (§5); its timer keeps running.
 
 **Result line, Killer.** The §6.1c effect line (320×32, S, with the 4×18 u bar slot) carries the Killer's lines.
@@ -957,6 +969,8 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
 - Reason lines and refused presses make no sound, because no state changed.
 
 ### 14.2 Per-skill feedback
+**(11/17, U9)** The World column's Hovl one-shots and procedural rings are replaced by the per-skill signatures of §14.6. Viewers, anchors, tints and lines below are unchanged unless §14.6 says otherwise.
+
 Copy in `code` is final. `N` = a nickname (ellipsized at 12 characters); `E` = the exit number (`Id + 1`).
 
 #### 14.2.1 Ping scanner (Killer 0)
@@ -1119,3 +1133,130 @@ The clips were chosen by name, length and envelope (most of the energy early). N
 - **Tests** drive the rules type: per skill and viewer, decoy safety, the `0, 0` rule and durations. They also count pool instances after warm-up.
 - The Killer world layer keeps its §6.3 path unchanged; `SkillFx` adds nothing to blips.
 - **§12.5 Reduced motion** now also covers skill effects (14.1). The note under the toggle (S `muted`, at most 2 lines in 576 u) becomes: `Lagging shows every frame instead of holding the picture at 8 Hz. Skill effects show as still rings.`
+
+### 14.6 Skill signatures and glyphs (U9, 11/17)
+Playtest (11/17): "even when a skill is used, it is hard to tell which skill it was". Several §14.2 effects were similar Hovl marker rings in similar colours.
+
+**Rule.** Every skill has its own **shape** and its own **motion**; any two skills therefore differ in at least two of shape, motion and colour. Colour is **not** used to tell skills apart: it keeps its §0.4 meaning (SLOP V7, palette max 4 + neutrals; the brief's cyan / blue / yellow / green / grey suggestions were not adopted). All signatures are generated geometry: unlit wire lines (0.045–0.07 m wide, two crossed quads per segment, double-sided), one palette colour, depth-tested, no texture, no glow, no alpha blend.
+
+| Skill | Shape | Motion | Colour (viewer) | Time |
+|---|---|---|---|---|
+| Ping scanner (K0) | three vertical bands, 0.5–0.85 m above the ground (a band reads in first person; a flat ground ring did not) | **pulse**: Killer — staggered 0.15 s, each sweeps 2 → 16 m in 0.7 s around the own point; scanned Survivor — each closes 3 → 0.35 m onto its own feet | `text` (Killer), `signal` (scanned) | 1.0 s |
+| Overclock (K1) | ten short speed streaks around the first-person camera | **rush past**: 14 m/s toward and past the camera, following the own camera | `text` (Killer only) | the effect (3 s) |
+| Packet afterimage (K2) | — (passive; the §6.3 marker that lingers 1 s is unchanged) | linger | — | — |
+| Firewall block (K3) | a hex-grid barrier wall (cylinder r = 1.5 m, 2 m high, the switch hold radius) + ground ring, at the static switch point | **rise + one blink**: rises in 0.2 s, one 0.1 s blink at 0.72 s | `text` (Killer), `danger` (Survivors) | 1.0 s |
+| Dummy packet (S0) | a dashed wire double of a character (capsule r 0.5 × 1.8 m, 0.035 m lines; hidden while the camera is within 1 m of it, the §4.10 short-boom rule) | **pop-in**: back-ease overshoot to full size in 0.22 s, shrinks out over the last 0.12 s | `signal` | 1.2 s |
+| Stealth relay (S1) | a wire dome over the 5 m relay area (12 meridians, 3 parallels, ground ring) | **envelop**: grows in 0.15 s, turns 20°/s | `ally` | the effect (2 s) |
+| Traffic overload (S2) | ten jagged spikes from the caster's chest, 1.0 m | **burst**: out in 0.1 s, jitters between two jagged frames at 12 Hz | `signal` | 0.8 s |
+| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the restored point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
+| White noise (S4) | thirty filled static squares (0.12–0.3 m) in a 1.5 m-radius volume, 0.2–1.7 m high | **flicker**: each square blinks on a random 14 Hz pattern, about half on | **`text`** (was `signal`: the fake Signals are elsewhere on the map; nothing transmits at the caster) | 1.0 s |
+
+**Glyph.** The skill's §8 icon floats above its world effect: a 0.6 m camera-facing quad, 1.9 m above the effect point, rising 0.15 m over 1.0 s (ease-out), lowered when needed so its top stays 24 u inside the top screen edge, in the effect's colour, alpha-clipped (no blend), depth-tested. It is rasterized at warm-up from the same primitives the skill block draws (`SkillGlyph`), so the HUD and the world always match. No glyph above the Killer's own first-person point (Ping scanner, Overclock): the 14.1b flash covers those.
+
+**14.1b Own-cast flash (new element).** When the own effect arrives (the caster's record with its start cue), the skill's glyph (32 u, `text`, 1 u lines) shows for **0.6 s** in a 48 × 48 u `panel` block (1 u `line` border, padding 8; no name: the skill block it touches already names the skill), bottom-aligned with the skill block: **Survivor** — left of the bottom cluster, 8 u outside its border (outside the §13.1 stack; feet at 67 % stay clear, §4.10); **Killer** — right of the bottom-left cluster, 8 u gap. It rises 4 u into place in 0.1 s; with Reduced motion it is still. Removed in one frame. Not shown for the Overclock Recovering cue, the Stealth relay count line, ally or affected records.
+
+**Safety (unchanged rules, restated).** A signature and its glyph are drawn only for a record that already has a §14.2 world effect for this viewer, and only at `SkillFeedback.VisualPoint` (the effect point, the own point, or the static switch point) — or, for Overclock, at the Killer's own camera. The Killer client never receives Survivor skills (14.0), so it never draws their signatures or glyphs; the Killer-bound Traffic overload draws nothing.
+
+**Reduced motion.** Each signature shows still at its final pose for its time (Ping scanner for the scanned Survivor: three still rings at 0.45 / 0.75 / 1.05 m); the Killer's Ping sweep and the Overclock streaks are off; the glyph does not rise.
+
+**Pooling.** At warm-up: 2 rigs per shape (1 for the streaks), 4 glyph quads, 9 glyph textures (64 px), all meshes and materials; every rig and glyph is drawn once, tiny, in front of the camera for 2 frames so its pipeline state exists before the first cast. Nothing is created per effect.
+
+## 15. Shutters and rails (11/17, Q5)
+
+Sources: protocol v0.7 (Q5a S0):
+- `WorldChaseProps.Shutters` (10) and `.Rails` (8): static boxes;
+- `S2C_WorldState.Shutters`: one `ShutterState` byte per shutter, the same for every recipient;
+- `PlayerState.Chase`: `Pulling 1, Vaulting 2, Breaking 4, Stunned 8`;
+- `S2C_SelfState.ActionKind`: `Pull 4, Vault 5, Break 6`.
+
+The server decides every outcome. The client only shows the state it received and never predicts a pull, vault, stun or break. Code: `World/ChaseProps*.cs`, `World/ChaseActionPose.cs`, `Audio/ChasePropAudio.cs`, `Audio/ChasePropCues.cs`, `UI/ChasePropCopy.cs`, `Editor/Setup/ChasePropSetup.cs`.
+
+**New fixed terms** (added to the SLOP §8 vocabulary): Shutter, Rail, pull (verb), vault (verb), force (verb, Killer), Stunned.
+
+### 15.1 Visuals
+- **Where:** each prop stands at its Shared box centre, turned onto the box's long axis. The client places nothing on its own. Both roles draw the props as world geometry; the Killer sees them like any other prop.
+- **Art:**
+  - `ChasePropSetup` builds one prefab per box into `Art/ChaseProps/` and the catalog `Resources/ChaseProps.asset`. It is a sibling of the WorldArt setup and never touches `WorldArt`.
+  - Each piece records its box. A catalog built for other boxes is never drawn; the same shapes are then built from primitives (`ChasePropShapes` is the one definition for both paths).
+  - Toon materials in the WorldArt palette (`Shutter` 92/96/101, `Steel` 66/70/77, night graded). No emission, no glow (SLOP V3), no colliders.
+- **Shutter**, spanning the alley gap:
+  - frame (always): a guide post against each wall and the roll housing overhead (bottom at 2.6 m), thin and out of the way;
+  - `Up`: only the light bottom lip of the rolled panel shows under the housing;
+  - `Down`: a slatted steel panel 1.2 m high with light top and bottom bars, the same from both sides. On an Up → Down change after the first snapshot, the panel drops out of the housing in 0.12 s (at once under Reduced motion);
+  - `Broken` (a2): wrecked, in the light `Edge` grey: one bent half leaning on the left post (about 1.1 m high, below the Killer eye), a second half on the ground across the gap, a scrap on the right post and a torn strip hanging askew under the housing. It reads as wrecked at 6 m, not as a rolled-up Up.
+- **Rail:** 3 m long and 1.0 m high: two 0.12 m posts and a top and a mid tube in the light `Edge` grey (a2: thicker and lighter, so a rail reads as vaultable beside the non-vaultable fences).
+  - The vault point is marked by a 0.6 m light band on the top tube and a flat light plate (0.8 × 0.35 m) on each side.
+  - The marker colour is `#D6D4CC`: a neutral readability cue like the hatch rim, never a role colour.
+- **Sight:** the panel (1.2 m) and the rail (1.0 m) are below the Killer eye (1.7 m) and the Survivor camera, like the existing low obstacles. The housing is overhead. Tags and markers are screen overlays, so the props do not hide them.
+- **Late join or reconnect:** the first `WorldState` sets every shutter look at once, with no drop and no sound.
+
+### 15.2 Prompts
+Same rows and rules as 13.3. The ranges are the server's (`GameConstants`): measured to the shutter box, and to the rail's vault point (its centre). The nearest target in its own range wins.
+
+| Role | Condition | Line 1 | Line 2 (Killer, S `muted`) |
+|---|---|---|---|
+| Survivor | `Up` shutter within 1.5 m | `Press [E] to pull the Shutter down — you will be Signal` | — |
+| Survivor | `Down` shutter within 1.0 m | `Press [E] to vault the Shutter — you will be Signal` | — |
+| Survivor | rail vault point within 1.0 m | `Press [E] to vault the Rail — you will be Signal` | — |
+| Killer | `Down` shutter within 1.5 m | `Hold [E] to force the Shutter` | `Stand still · 2 s breaks it` |
+| Killer | rail vault point within 1.0 m | `Press [E] to vault the Rail` | `Takes 1.6 s · you cannot move` |
+
+- **Order:**
+  - A Shutter or Rail prompt only fills an **empty** prompt slot, or one that shows a muted reason line. Every existing prompt (rescue, hack, hatch, switch, kick, banner) keeps the slot.
+  - The props stand away from terminals, exits and spawns, so the two rarely meet.
+  - The Survivor prompt needs `Status = Normal`, a captured cursor and no banner.
+  - The Killer prompt is hidden while stunned and while the play menu is open.
+- **During an action** (`SelfState.ActionKind`):
+  - Survivor `Pull`: the row reads `Pulling the Shutter — you are Signal`. Survivor `Vault`: `Vaulting — you are Signal`. There is no bar, because these actions last 0.3–1.0 s.
+  - Killer `Break`: the 13.3 hold block reads `Forcing the Shutter · 55%` and `Hold [E] · moving cancels`, with the bar.
+  - Killer `Vault`: `Vaulting the Rail` and `You cannot move until you land`, with the bar.
+  - Between SelfState packets the progress advances locally at the server's rate, as for the 13.3 holds.
+- Every Killer line is at most 38 characters.
+
+### 15.3 Animation (Survivor client: the Survivors and the line-of-sight Killer model)
+- A procedural overlay on top of the Animator pose (`ChasePoseRig`, applied in `LateUpdate`), driven only by `PlayerState.Chase`.
+- A pose starts at the snapshot that first carries its flag, and is timed to the server durations.
+- The parallel unit U8 owns the Motion controller, so no controller state is added.
+
+| Flag | Pose | Length |
+|---|---|---|
+| Pulling | both arms reach up and pull down | 0.3 s |
+| Vaulting | a hop with tucked legs and a forward lean; the server moves the body across | Survivor: 0.8 s rail, 1.0 s shutter. Killer: 1.6 s rail |
+| Breaking | the right arm hammers twice a second, the upper body leaning in | while held (2.0 s to break) |
+| Stunned | a stagger: leaning back, head down, arms out, swaying at 1.4 Hz (no sway under Reduced motion) | 2.0 s |
+
+- If flags ever combine, the precedence is Stunned > Breaking > Vaulting > Pulling.
+- The capsule fallback gets only the hop and a whole-body lean.
+- The Killer client draws no bodies (6.0), so it shows no poses.
+
+### 15.4 Stun feedback
+- **Survivors**, while the Killer model is drawn:
+  - a halo ring over its head, 1.1 m across, tinted `danger` (the Killer colour), turned to face the camera (a flat ring is edge-on from the Survivor camera and was invisible in a1);
+  - unless Reduced motion is on, the Hovl `Marker 5 Circle` particles are added inside it, with the low-emission marker material and the glow children off;
+  - under Reduced motion, the still ring alone;
+  - it lasts while `Stunned` is set, at most 2.0 + 0.2 s.
+- **The Killer player:**
+  - a 0.25 s view impulse: the vertical FOV narrows by up to 5° and eases back;
+  - the 6.1c effect line reads `Stunned` while the flag is set, at most 2.2 s. The line has no bar;
+  - Reduced motion removes the impulse; the line stays.
+
+### 15.5 Sounds
+The cues are procedural (`ChasePropSynth`: fixed seeds, the V2CueSynth reference level) and positional (3D, linear roll-off from 2 m). None plays on the first snapshot.
+
+| Cue | When | Where | Range |
+|---|---|---|---|
+| `ShutterSlam`, 0.7 s: a sheet-metal knock, a ringing plate and a slat rattle | a shutter goes Up → Down | the shutter centre, for every recipient | 30 m |
+| `ShutterCrunch`, 0.45 s: bending-metal bursts over a falling groan | a shutter becomes Broken | the shutter centre, for every recipient | 30 m |
+| `VaultThud`, 0.16 s: a soft low step | an entry the viewer receives starts Vaulting | that entry | 14 m |
+
+- Vault edges are matched by position (within 1.5 m), not by Id.
+- The Killer's stream carries `Chase = 0` on Survivor entries. So the Killer gets no Survivor vault thud; it hears the shutter slam and crunch like everyone else.
+
+### 15.6 Safety
+- Nothing here reveals a Silent Survivor:
+  - Shutter states are public.
+  - A Survivor who pulls or vaults is forced Signal by the server during the action and for 1 s after, so its entry is already in the Killer's stream.
+  - The Killer client still shows no pose for it: those entries carry `Chase = 0`, and the Killer client draws no bodies.
+- The slam and crunch are heard by everyone in range. That is the design: a pull is a loud action.
+- The stun burst is drawn only over the Killer model, which a Survivor sees only with a clear line (4.10). There is no through-wall stun cue.
+- The client sends nothing new: E is the existing `C2S_Interact`.

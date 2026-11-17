@@ -32,14 +32,14 @@
 .root .v2-killer-stack { position: absolute; left: 24px; width: 320px; flex-direction: column; }
 .root .v2-killer-stack > * { margin-bottom: 8px; flex-shrink: 0; }
 
-/* 13.2 sync check ring: 144x144 u; the centre word sits inside the needle's inner radius (40 u). */
-.root .v2-sync { width: 144px; height: 144px; }
-.root .unity-label.v2-sync-centre {
-    position: absolute; left: 0; top: 0; width: 144px; height: 144px;
+/* 13.2 sync lock bar (11/17, IP): 320x80 u; the label row starts at 52 u, under the Great block. */
+.root .v2-lock { width: 320px; height: 80px; }
+.root .unity-label.v2-lock-label {
+    position: absolute; left: 0; top: 52px; width: 320px; height: 28px;
     font-size: 14px; color: #9A9890; -unity-text-align: middle-center;
 }
-.root.s-floor .unity-label.v2-sync-centre { font-size: 15px; }
-.root .unity-label.v2-sync-centre.v2-sync-result { font-size: 18px; color: #E8E6E1; -unity-font-style: bold; }
+.root.s-floor .unity-label.v2-lock-label { font-size: 15px; }
+.root .unity-label.v2-lock-label.v2-lock-result { font-size: 18px; color: #E8E6E1; -unity-font-style: bold; }
 
 /* 13.3 hold action: Survivor prompt row 672x40 (like 4.3), Killer block 320x72. */
 .root .v2-hold {

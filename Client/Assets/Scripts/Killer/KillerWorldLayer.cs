@@ -88,13 +88,24 @@ namespace PingTheKiller.Client.Killer
             scene.Accept(state, now);
             last = state;
             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
-            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) { kick.Play(); Captures++; }
+            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) { kick.Play(); Captures++; captureHandle = item.Handle; }
             cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
             cueRules.OnSignalCount(scene.Blips.Count, now);
         }
 
         // Captures confirmed by the tracker this match (dev staging of the knocked-down shot).
         public int Captures { get; private set; }
+        private int captureHandle = -1;
+
+        // U8: the ground position of the tracker instance of the last CaptureConfirm (the capture impact effect). Only an
+        // instance the tracker built from received entries, so a masked (Silent) Survivor never has one.
+        public bool CapturePoint(out Vector3 position)
+        {
+            position = default;
+            if (scene == null || captureHandle < 0) return false;
+            foreach (BlipView view in scene.Views) if (view.Handle == captureHandle) { position = view.Position; return true; }
+            return false;
+        }
 
         // The own cooldown reached 0 (the SelfState clock's ready edge, once per cooldown).
         public void OnSkillReady() => cueRules.OnSkillReady();

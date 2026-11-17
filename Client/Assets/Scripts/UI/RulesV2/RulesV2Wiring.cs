@@ -233,9 +233,9 @@ namespace PingTheKiller.Client.UI.RulesV2
 
     public static class InteractCopy
     {
-        public const string HatchEscape = "Press [E] to escape through the Hatch";
-        public const string HatchClose = "Hold [E] to close the Hatch";
-        public const string HatchCloseHint = "Stand still · starts the collapse";
+        public const string HatchEscape = "Press [E] to escape through the Emergency port";
+        public const string HatchClose = "Hold [E] to close the Emergency port";
+        public const string HatchCloseHint = "Stand still · starts the shutdown";
         public const string KickHint = "Stand still · hacked Terminals only";
 
         // Called every frame while in reach: memoized per exit / terminal, so an unchanged prompt is the same string.
@@ -261,7 +261,7 @@ namespace PingTheKiller.Client.UI.RulesV2
         {
             int slot = 4 + (terminalId & 15);
             if (Memo.Hit(slot, terminalId, out string text)) return text;
-            return Memo.Put(slot, terminalId, "Hold [E] to kick " + TerminalFlagCopy.Name(terminalId));
+            return Memo.Put(slot, terminalId, "Hold [E] to jam " + TerminalFlagCopy.Name(terminalId));
         }
 
         // Survivor, Normal: the hatch first (it ends the match for this Survivor at once), then the nearest switch in reach.

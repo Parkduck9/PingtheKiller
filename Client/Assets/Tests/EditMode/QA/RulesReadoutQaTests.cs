@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.UI.RulesV2;
@@ -227,12 +228,24 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheDevLogOnlyEverPrintsTheLocalPlayersPosition()
         {
+            // U8 (11/17): the Survivor -ptk-chase seek reads exactly one other coordinate before the local-player guard, the
+            // Killer-role entry, into killerEntry. killerEntry is only the Chase seek target and never reaches a Debug.Log;
+            // the chase log drops its to= part while seeking.
             string code = QaSource.StripComments(QaPaths.ReadScript("Dev/DevCapture.cs"));
             string squashed = Squash(code);
             int guard = squashed.IndexOf("if(player.Id!=localId)continue;", StringComparison.Ordinal);
             Assert.That(guard, Is.GreaterThanOrEqualTo(0), "OnWorld skips every player but the local one");
+            const string killerRead = "if(player.Role==(byte)Role.Killer){killerEntry=newVector3(player.X,0,player.Z);killerEntryKnown=true;continue;}";
+            int killer = squashed.IndexOf(killerRead, StringComparison.Ordinal);
+            Assert.That(killer, Is.GreaterThanOrEqualTo(0).And.LessThan(guard), "the Killer-role entry is read just before the guard");
             int firstPositionRead = squashed.IndexOf("player.X", StringComparison.Ordinal);
-            Assert.That(firstPositionRead, Is.GreaterThan(guard), "no player coordinate is read before the local-player guard");
+            Assert.That(firstPositionRead, Is.EqualTo(killer + killerRead.IndexOf("player.X", StringComparison.Ordinal)), "the only coordinate read before the guard is the Killer entry's");
+            Assert.That(squashed.IndexOf("player.X", firstPositionRead + 1, StringComparison.Ordinal), Is.GreaterThan(guard), "no other coordinate before the guard");
+            Assert.That(Regex.Matches(squashed, @"killerEntry(?!Known)").Count, Is.EqualTo(3), "declared, assigned, and passed to Chase only");
+            Assert.That(squashed, Does.Contain("returnChase(killerEntryKnown,killerEntry,outyaw);"));
+            foreach (Match log in Regex.Matches(squashed, @"Debug\.Log\((?:[^;])*;"))
+                Assert.That(log.Value, Does.Not.Contain("killerEntry"), "a dev log never prints the Killer entry");
+            Assert.That(squashed, Does.Contain("(seek?string.Empty:\"to=\"+Stamp(goal.x)"), "the seek target is not logged");
         }
 
         private static string Squash(string source)

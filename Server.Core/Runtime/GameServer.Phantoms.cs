@@ -103,9 +103,18 @@ namespace PingTheKiller.ServerCore
         }
 
         // GDD §4: a fake Signal at the caster's current position for 3 s, whether or not the caster is Signal.
+        // A caster in the middle of a vault is over the prop: the phantom starts on the nearer standable end instead.
         private void CastDummy(Player caster)
         {
-            StartBurst(AddPhantom(true, _now, _now + SkillIds.DummyPacketSeconds, caster.X, caster.Z), _now);
+            float x = caster.X, z = caster.Z;
+            if (caster.ChaseKind == (byte)ActionKind.Vault && !Map.CanStand(x, z))
+            {
+                double t = (_now - caster.ChaseStart) / Math.Max(TimeEpsilon, caster.ChaseEnd - caster.ChaseStart);
+                bool from = t < 0.5 && Map.CanStand(caster.ChaseFromX, caster.ChaseFromZ);
+                x = from ? caster.ChaseFromX : caster.ChaseToX;
+                z = from ? caster.ChaseFromZ : caster.ChaseToZ;
+            }
+            StartBurst(AddPhantom(true, _now, _now + SkillIds.DummyPacketSeconds, x, z), _now);
         }
 
         // GDD §4: five fake Signals around the map for 1.5 s. Spawns are staggered over 0-0.5 s and all expire together.

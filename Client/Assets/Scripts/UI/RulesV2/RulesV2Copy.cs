@@ -62,8 +62,8 @@ namespace PingTheKiller.Client.UI.RulesV2
             switch (view.Kind)
             {
                 case HoldKind.ExitSwitch: return "Opening the Exit · " + percent + " — you are Signal";
-                case HoldKind.KickTerminal: return "Kicking the Terminal · " + percent;
-                case HoldKind.CloseHatch: return "Closing the Hatch · " + percent;
+                case HoldKind.KickTerminal: return "Jamming the Terminal · " + percent;
+                case HoldKind.CloseHatch: return "Closing the Emergency port · " + percent;
                 default: return string.Empty;
             }
         }
@@ -73,7 +73,7 @@ namespace PingTheKiller.Client.UI.RulesV2
         {
             switch (kind)
             {
-                case HoldKind.KickTerminal: return "Hold " + interactGlyph + " · moving cancels the kick";
+                case HoldKind.KickTerminal: return "Hold " + interactGlyph + " · moving cancels the jam";
                 case HoldKind.CloseHatch: return "Hold " + interactGlyph + " · releasing cancels";
                 default: return string.Empty;
             }
@@ -143,7 +143,7 @@ namespace PingTheKiller.Client.UI.RulesV2
         public static bool Differs(in CollapseView view)
             => view.PersonalLeft >= 0 && view.GlobalLeft >= 0 && Clock(view.PersonalLeft) != Clock(view.GlobalLeft);
 
-        public static string Main(in CollapseView view) => "Collapse " + Clock(view.GlobalLeft >= 0 ? view.GlobalLeft : view.PersonalLeft);
+        public static string Main(in CollapseView view) => "Shutdown " + Clock(view.GlobalLeft >= 0 ? view.GlobalLeft : view.PersonalLeft);
 
         // The shown whole seconds of both clocks and the Lagging flag, packed for TextMemo.
         public static long Key(in CollapseView view)
@@ -169,8 +169,8 @@ namespace PingTheKiller.Client.UI.RulesV2
         // Regressing tag: Survivors see the percentage, the Killer does not (HUD_SPEC 6.2, 11.1 N9).
         public static string Regressing(in TerminalFlagsView terminal, Role viewer)
             => viewer == Role.Survivor
-                ? Name(terminal.Id) + " · " + HoldCopy.Percent(terminal.Progress01).ToString(CultureInfo.InvariantCulture) + "% · Regressing"
-                : Name(terminal.Id) + " · Regressing";
+                ? Name(terminal.Id) + " · " + HoldCopy.Percent(terminal.Progress01).ToString(CultureInfo.InvariantCulture) + "% · Rolling back"
+                : Name(terminal.Id) + " · Rolling back";
 
         public static string Overloaded(in TerminalFlagsView terminal, float metres)
             => Name(terminal.Id) + " overloaded · " + Mathf.RoundToInt(Mathf.Max(0, metres)).ToString(CultureInfo.InvariantCulture) + " m";
@@ -203,7 +203,7 @@ namespace PingTheKiller.Client.UI.RulesV2
             {
                 case ResultReasonV2.AllSurvivorsDown: return "Every Survivor was eliminated before anyone escaped.";
                 case ResultReasonV2.TimeUp: return "Time ran out. Survivors still inside were eliminated.";
-                case ResultReasonV2.Collapse: return "The collapse eliminated the Survivors still inside.";
+                case ResultReasonV2.Collapse: return "The shutdown eliminated the Survivors still inside.";
                 default: return "Every Survivor escaped or was eliminated.";
             }
         }

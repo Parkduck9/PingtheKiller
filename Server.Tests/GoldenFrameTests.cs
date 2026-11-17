@@ -30,14 +30,16 @@ public sealed class GoldenFrameTests
             {
                 Tick = 0x12345678, TimeLeft = 1f, ThreatLevel = 3, TerminalsRequired = 2,
                 Terminals = new() { new() { Id = 7, X = 2f, Z = -1f, Progress = 100 } },
-                Players = new() { new() { Id = -2, Role = 1, Status = 3, X = 1f, Z = -0f, Yaw = -2f, Flags = 31, StatusTimer = 0.5f, CaptureCount = 2 } }
+                Players = new() { new() { Id = -2, Role = 1, Status = 3, X = 1f, Z = -0f, Yaw = -2f, Flags = 31, StatusTimer = 0.5f, CaptureCount = 2, Chase = 15 } },
+                Shutters = new() { 0, 1, 2 } // v0.7
             },
             new byte[]
             {
-                55, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 3, 2, 0, 0, 0x80, 0xBF, 0, 0, 1,
+                60, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 3, 2, 0, 0, 0x80, 0xBF, 0, 0, 1,
                 7, 0, 0, 0, 0x40, 0, 0, 0x80, 0xBF, 100, 0, 1,
                 0xFE, 0xFF, 0xFF, 0xFF, 1, 3, 0, 0, 0x80, 0x3F, 0, 0, 0, 0x80, 0, 0, 0, 0xC0, 31,
-                0, 0, 0, 0x3F, 2
+                0, 0, 0, 0x3F, 2, 15,
+                3, 0, 1, 2
             }
         };
         yield return new object[]

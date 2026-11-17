@@ -47,6 +47,8 @@ namespace PingTheKiller.ServerCore
                     player.DirX = player.DirZ = 0;
                     continue;
                 }
+                // GDD v2 section 8: a pull, vault or stun ignores the move input (moving cancels a break hold instead).
+                if (player.InChaseAction || Stunned(player)) continue;
                 float speed = SpeedAt(player, start);
                 if (speed <= 0) continue;
                 var position = Map.Move(player.X, player.Z, player.DirX * speed * dt, player.DirZ * speed * dt);

@@ -25,9 +25,31 @@ namespace PingTheKiller.Client.World
         public const float HitSeconds = .3f;
         // Imported clip lengths (CharacterMotionTests checks them against the assets).
         public const float KnockedDownSeconds = 2.133f, GettingUpSeconds = 2.7f, DeathSeconds = 2.6f;
-        // The Killer swipe is trimmed on import to the wind-up and strike of the Mixamo take (SwipeFromSeconds onward,
-        // SwipeSeconds long), so the upper-body override ends SwipeSeconds after the capture.
-        public const float SwipeFromSeconds = .45f, SwipeSeconds = 1.2f;
+        // U8: the Killer swipe is trimmed on import to the Mixamo take from SwipeFromSeconds for SwipeClipSeconds (40
+        // frames). It is not played at rate 1: SwipeClipTime maps the real seconds since the capture onto the clip.
+        // Keys chosen from every imported frame (docs/qa/U8-screens/a2/swipe-frames.png, right-hand speed in
+        // docs/qa/U8-runs/a2-swipe-frames.log): the arm is cocked high from clip 0.40 s, the cock ends at 0.90 s, the hand
+        // peaks at 9.5 m/s over 0.90-1.03 s, the strike pose is at 1.03 s, the follow-through settles by 1.33 s.
+        // On screen: a fast 0.15 s wind-up (0.40 -> 0.90), the strike reaching contact at SwipeContactSeconds (0.27 s),
+        // the strike pose held SwipeHoldSeconds, then a slow follow-through (0.4x) to SwipeSeconds.
+        public const float SwipeFromSeconds = .3f, SwipeClipSeconds = 1.3333f;
+        public static readonly float[] SwipeRealKeys = { 0, .15f, .27f, .39f, 1.15f };
+        public static readonly float[] SwipeClipKeys = { .4f, .9f, 1.0333f, 1.0333f, 1.3333f };
+        public const float SwipeStrikeAt = .27f, SwipeContactSeconds = .27f, SwipeHoldSeconds = .12f, SwipeSeconds = 1.15f;
+
+        // The swipe clip time (seconds) shown `elapsed` real seconds after the capture; clamped to the clip.
+        public static float SwipeClipTime(double elapsed)
+        {
+            if (elapsed <= 0) return SwipeClipKeys[0];
+            for (int i = 1; i < SwipeRealKeys.Length; i++)
+            {
+                if (elapsed > SwipeRealKeys[i]) continue;
+                float span = SwipeRealKeys[i] - SwipeRealKeys[i - 1];
+                float x = span <= 0 ? 1 : (float)(elapsed - SwipeRealKeys[i - 1]) / span;
+                return SwipeClipKeys[i - 1] + (SwipeClipKeys[i] - SwipeClipKeys[i - 1]) * x;
+            }
+            return SwipeClipKeys[SwipeClipKeys.Length - 1];
+        }
         // An eliminated body stays on the ground this long after the fall started, then despawns (Survivor view).
         public const float DeathShownSeconds = 6;
         // "Speed about 0": below this measured speed a hacking Survivor plays ButtonPushing.
@@ -191,6 +213,8 @@ namespace PingTheKiller.Client.World
 
         public bool Active(double now) => now >= startedAt && now - startedAt < Length;
         public double Elapsed(double now) => now - startedAt;
+        // U8: the clip time to show now (MotionTiming.SwipeClipTime of the elapsed real time).
+        public float ClipTime(double now) => MotionTiming.SwipeClipTime(now - startedAt);
 
         // The upper-body layer weight: 0.08 s in, 0.2 s out.
         public float Weight(double now)
@@ -290,6 +314,9 @@ namespace PingTheKiller.Client.World
             return true;
         }
 
+        // U10: set when an InteractionMotion drives this character's hands (CharacterViews); MotionReach then stays off.
+        public bool InteractionDriven { get; set; }
+
         // The right-hand reach while ButtonPushing (0..1), eased in and out over ButtonReachIn.
         public float Reach => reach != null ? reach.Weight : 0;
 
@@ -333,9 +360,11 @@ namespace PingTheKiller.Client.World
                 shown = true; shownPose = pose;
             }
             float weight = Attack.Weight(now);
-            if (weight > 0 && !attackShown)
+            if (weight > 0)
             {
-                animator.PlayInFixedTime(SwipeHash, 1, (float)Math.Max(0, Attack.Elapsed(now)));
+                // U8: the Swipe state has speed 0 (MotionSetup); its time is set every frame from the timing map, so the
+                // wind-up, the slowed strike and the strike-pose hold play on the presentation clock.
+                animator.Play(SwipeHash, 1, Attack.ClipTime(now) / MotionTiming.SwipeClipSeconds);
                 attackShown = true;
             }
             else if (weight <= 0 && attackShown)
@@ -346,7 +375,8 @@ namespace PingTheKiller.Client.World
             animator.SetLayerWeight(1, weight);
             if (reach != null)
             {
-                float target = pose == MotionPose.Working ? 1 : 0;
+                // U10: with the interaction rig (InteractionDriven) the hack is two-handed on a holo panel, not this press.
+                float target = pose == MotionPose.Working && !InteractionDriven ? 1 : 0;
                 if (double.IsNegativeInfinity(reachAt) && pose == MotionPose.Working && double.IsNegativeInfinity(Tracker.PoseSince)) reach.Weight = 1; // first seen hacking
                 else if (!double.IsNegativeInfinity(reachAt))
                     reach.Weight = Mathf.MoveTowards(reach.Weight, target, (float)(Math.Max(0, now - reachAt) / MotionTiming.ButtonReachIn));

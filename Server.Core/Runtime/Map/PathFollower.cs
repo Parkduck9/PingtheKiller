@@ -12,6 +12,17 @@ namespace PingTheKiller.ServerCore.Map
         private double _plannedAt = double.NegativeInfinity, _progressAt;
         private bool _active;
         internal int Replans { get; private set; }
+        // GDD v2 section 8: extra metres a rail vault costs this follower; negative never vaults (phantoms).
+        internal float VaultCostMeters = -1;
+        // The waypoint the follower aims at after the last Direction call (false when there is none).
+        internal bool TryNextWaypoint(out float x, out float z)
+        {
+            x = z = 0;
+            if (!_active || _next >= _path.Count) return false;
+            x = _path[_next].X;
+            z = _path[_next].Z;
+            return true;
+        }
         internal void Pause() { _active = false; }
 
         internal void Direction(NavGrid nav, float x, float z, float tx, float tz, float speed, double time,
@@ -23,7 +34,7 @@ namespace PingTheKiller.ServerCore.Map
             bool stuck = _active && time - _progressAt >= 1.5;
             if (!_active || DistanceSquared(tx, tz, _goalX, _goalZ) > 4 || time - _plannedAt >= 1 || stuck)
             {
-                nav.FindPath(x, z, tx, tz, _path);
+                nav.FindPath(x, z, tx, tz, _path, VaultCostMeters);
                 _next = 1; _goalX = tx; _goalZ = tz; _plannedAt = time; Replans++;
                 if (stuck) { _anchorX = x; _anchorZ = z; _progressAt = time; }
             }

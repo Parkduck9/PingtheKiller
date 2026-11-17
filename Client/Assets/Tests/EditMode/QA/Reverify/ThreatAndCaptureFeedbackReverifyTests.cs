@@ -150,7 +150,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
             // Case 2 (GDD v2, no execution): Lagging -> Eliminated with time left is the collapse while it runs, else unknown
             var reason2 = CaptureWatch.Infer(PlayerStatus.Lagging, 0.25f, 1, true);
             Assert.That(reason2, Is.EqualTo(EliminationReason.Collapse));
-            Assert.That(CaptureWatch.ReasonText(reason2), Is.EqualTo("Disconnected: the collapse reached you."));
+            Assert.That(CaptureWatch.ReasonText(reason2), Is.EqualTo("Disconnected: the shutdown reached you."));
 
             var reason2Fresh = CaptureWatch.Infer(PlayerStatus.Lagging, 58.0f, 1);
             Assert.That(reason2Fresh, Is.EqualTo(EliminationReason.None));

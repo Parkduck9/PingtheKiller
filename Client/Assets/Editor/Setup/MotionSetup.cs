@@ -105,7 +105,7 @@ namespace PingTheKiller.Editor.Setup
             if (entry.State == MotionStates.Swipe && !A1)
             {
                 first = Mathf.Round(MotionTiming.SwipeFromSeconds * MixamoFps);
-                last = first + Mathf.Round(MotionTiming.SwipeSeconds * MixamoFps);
+                last = first + Mathf.Round(MotionTiming.SwipeClipSeconds * MixamoFps);
             }
             bool same = importer.clipAnimations != null && importer.clipAnimations.Length == 1 && clip.name == file
                 && clip.loopTime == entry.Loop && !clip.loopPose && clip.lockRootRotation && clip.keepOriginalOrientation
@@ -154,22 +154,28 @@ namespace PingTheKiller.Editor.Setup
 
             AnimationClip idle = Shared("Idle"), walk = Shared("Walk"), run = Shared("Run");
             AnimatorStateMachine body = controller.layers[0].stateMachine;
+            // U10: speed-driven idle -> walk -> run. Each child's time scale = its threshold speed / the clip's own ground
+            // speed (LocomotionBlend), so the feet do not slide; a Survivor at 4.0 m/s is fully in the run (it played the
+            // walk up to 4.0 before), the Killer at 4.6 / 6.9 (Overclock) runs faster. There is no Survivor speed above 4.0,
+            // so no sprint clip is needed.
             AnimatorState locomotion = State(body, MotionStates.Locomotion, Tree(controller, "Idle Walk Run", new[]
             {
-                new ChildMotion { motion = idle, threshold = .49f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = .5f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
-                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
+                new ChildMotion { motion = idle, threshold = LocomotionBlend.IdleBelow, timeScale = 1 },
+                new ChildMotion { motion = walk, threshold = LocomotionBlend.WalkFrom, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkFrom, LocomotionBlend.WalkNatural) },
+                new ChildMotion { motion = walk, threshold = LocomotionBlend.WalkSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkSpeed, LocomotionBlend.WalkNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.RunSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.RunSpeed, LocomotionBlend.RunNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.FastSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.FastSpeed, LocomotionBlend.RunNatural) }
             }), 1);
-            // Injured (survivor view only): the limp when still or slow; the normal walk/run cycle at full speed.
+            // Injured (survivor view only): the limp when still or slow, then the same run at full speed (U10: a sped-up
+            // limp read wrong at 4.0 m/s).
+            AnimationClip injuredWalk = LoadClip("InjuredWalk");
             State(body, MotionStates.Injured, Tree(controller, "Injured", new[]
             {
-                new ChildMotion { motion = LoadClip("InjuredIdle"), threshold = .49f, timeScale = 1 },
-                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = .5f, timeScale = 1 },
-                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = 2f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 2.5f, timeScale = 1 },
-                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
-                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
+                new ChildMotion { motion = LoadClip("InjuredIdle"), threshold = LocomotionBlend.IdleBelow, timeScale = 1 },
+                new ChildMotion { motion = injuredWalk, threshold = LocomotionBlend.WalkFrom, timeScale = LocomotionBlend.Rate(LocomotionBlend.WalkFrom, LocomotionBlend.InjuredWalkNatural) },
+                new ChildMotion { motion = injuredWalk, threshold = LocomotionBlend.InjuredLimpSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.InjuredLimpSpeed, LocomotionBlend.InjuredWalkNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.RunSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.RunSpeed, LocomotionBlend.RunNatural) },
+                new ChildMotion { motion = run, threshold = LocomotionBlend.FastSpeed, timeScale = LocomotionBlend.Rate(LocomotionBlend.FastSpeed, LocomotionBlend.RunNatural) }
             }), 1);
             // Lagging states run under CharacterInstance's 0.55 Lagging time scale; the speed undoes it so the knock-down
             // takes its real length (the 8 Hz stepping stays).
@@ -188,7 +194,7 @@ namespace PingTheKiller.Editor.Setup
             if (body.defaultState != locomotion) body.defaultState = locomotion;
 
             AnimatorControllerLayer[] layers = controller.layers;
-            // The base layer's IK pass runs MotionReach (the ButtonPushing hand on the terminal).
+            // The base layer's IK pass runs MotionReach and the U10 InteractionRig (hack panel, restore, switch, jam).
             if (!layers[0].iKPass) { layers[0].iKPass = true; controller.layers = layers; layers = controller.layers; }
             if (layers.Length < 2)
             {
@@ -204,7 +210,7 @@ namespace PingTheKiller.Editor.Setup
             AnimatorStateMachine upper = controller.layers[1].stateMachine;
             AnimatorState empty = State(upper, MotionStates.Empty, null, 1);
             empty.writeDefaultValues = false;
-            State(upper, MotionStates.Swipe, LoadClip("KillerSwipe"), 1);
+            State(upper, MotionStates.Swipe, LoadClip("KillerSwipe"), 0); // U8: CharacterMotion.Drive sets its time every frame
             RemoveState(upper, "Punch"); // attempt 1 alternated a punch; the swipe alone is used now
             if (upper.defaultState != empty) upper.defaultState = empty;
             EditorUtility.SetDirty(controller);
@@ -470,6 +476,56 @@ namespace PingTheKiller.Editor.Setup
         {
             int code = 0;
             try { string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U4j-screens"; Sheets(folder); Shots(folder); }
+            catch (Exception error) { Debug.LogException(error); code = 1; }
+            EditorApplication.Exit(code);
+        }
+
+        // U8 QA (-executeMethod PingTheKiller.Editor.Setup.MotionSetup.SwipeFrames): every imported frame of the Killer
+        // swipe (1/30 s apart), 5 x 8 tiles of 256x240, row-major from frame 0, plus the right hand's position and speed per
+        // frame in the log, so the swipe keys (MotionTiming.SwipeRealKeys / SwipeClipKeys) are chosen from frames.
+        public static void SwipeFrames()
+        {
+            int code = 0;
+            try
+            {
+                string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U8-screens/a2";
+                CharacterArt art = AssetDatabase.LoadAssetAtPath<CharacterArt>("Assets/Resources/CharacterArt.asset");
+                AnimationClip clip = LoadClip("KillerSwipe");
+                int frames = Mathf.RoundToInt(clip.length * MixamoFps) + 1;
+                const int columns = 5, tileW = 256, tileH = 240;
+                int rows = (frames + columns - 1) / columns;
+                var log = new StringBuilder("[MotionSetup] swipe frames length=" + clip.length.ToString("0.000", CultureInfo.InvariantCulture) + "\n");
+                using (var stage = new Stage(tileW, tileH))
+                {
+                    var actor = new Actor(art.KillerPrefab, stage.Root.transform, Vector3.zero, 0);
+                    var sheet = new Texture2D(columns * tileW, rows * tileH, TextureFormat.RGB24, false);
+                    sheet.SetPixels(new Color[sheet.width * sheet.height]);
+                    Vector3 last = Vector3.zero;
+                    for (int k = 0; k < frames; k++)
+                    {
+                        actor.Pose(MotionStates.Swipe, 0);
+                        actor.Animator.Play(MotionStates.Swipe, 1, Mathf.Min(k / MixamoFps / clip.length, .999f));
+                        actor.Animator.Update(0);
+                        Vector3 hand = actor.Animator.GetBoneTransform(HumanBodyBones.RightHand).position;
+                        float speed = k == 0 ? 0 : (hand - last).magnitude * MixamoFps;
+                        last = hand;
+                        log.Append("frame ").Append(k).Append(" t=").Append((k / MixamoFps).ToString("0.000", CultureInfo.InvariantCulture))
+                            .Append(" hand=").Append(hand.x.ToString("0.00", CultureInfo.InvariantCulture)).Append(',').Append(hand.y.ToString("0.00", CultureInfo.InvariantCulture))
+                            .Append(',').Append(hand.z.ToString("0.00", CultureInfo.InvariantCulture)).Append(" speed=").Append(speed.ToString("0.00", CultureInfo.InvariantCulture)).Append("\n");
+                        actor.Bake();
+                        Texture2D tile = stage.Render(new Vector3(2.4f, 1.5f, 1.6f), new Vector3(0, .9f, -.2f));
+                        sheet.SetPixels((k % columns) * tileW, (rows - 1 - k / columns) * tileH, tileW, tileH, tile.GetPixels());
+                        UnityEngine.Object.DestroyImmediate(tile);
+                    }
+                    actor.Unbake();
+                    sheet.Apply();
+                    Directory.CreateDirectory(folder);
+                    File.WriteAllBytes(Path.GetFullPath(Path.Combine(folder, "swipe-frames.png")), sheet.EncodeToPNG());
+                    UnityEngine.Object.DestroyImmediate(sheet);
+                    UnityEngine.Object.DestroyImmediate(actor.Root);
+                }
+                Debug.Log(log.ToString());
+            }
             catch (Exception error) { Debug.LogException(error); code = 1; }
             EditorApplication.Exit(code);
         }

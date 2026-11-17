@@ -1,0 +1,54 @@
+{
+  "total": 100,
+  "gatesPassed": true,
+  "items": [
+    {
+      "id": "H1",
+      "score": 25,
+      "max": 25,
+      "gate": true,
+      "passed": true,
+      "evidence": "10000/10000 ordered timestamps; zero disconnects; seed=20794; chunks=1..1500 bytes; final Ping/Pong barrier passed."
+    },
+    {
+      "id": "H2",
+      "score": 20,
+      "max": 20,
+      "gate": false,
+      "passed": true,
+      "evidence": "2 humans \u002B 6 bots, 60.00 s; client0: n=1201, arrival p99=63.239 ms, observed tick-period p99=63.239 ms; client1: n=1201, arrival p99=63.243 ms, observed tick-period p99=63.243 ms; Tick strictly increasing, gaps \u003C=2. Tick period is inferred from TCP reception, not server CPU duration."
+    },
+    {
+      "id": "H3",
+      "score": 20,
+      "max": 20,
+      "gate": true,
+      "passed": true,
+      "evidence": "3.1 s Silent capture: 69 raw killer frames/63 worlds (\u002B0 unknown-Id frames); 63 killer worlds joined by Tick with survivor ground truth (0 skipped, no survivor-stream tick); 174 killer-view survivor entries attributed by tick\u002Bposition (epsilon 0.05 m): 0 unexplained, 0 to stopped survivor 3, 174 to other survivors, 0 ambiguous; X=49.47116/Z=3.3936017 byte occurrences=0; killer 1 in 83 survivor worlds judged by line of sight (entry legal only when clear, exact fields, X/Z within 0.05 m of its own position at that tick): 0 legal line-of-sight killer entries, 83 blocked-and-absent, 0 ambiguous within 0.05 m of a wall (not judged), 0 undecided (without own entry; a survivor tick the killer never received fails), 0 clear-and-absent, 0 spectator worlds without the entry; every survivor tick joined a killer tick (survivor 3 1276..1358 (83); killer 1276..1358 (83); Silent from tick 1296); moving baseline: tick=1276 Signal entry attributed to survivor 3 by tick\u002Bposition (0.000 m)."
+    },
+    {
+      "id": "H4",
+      "score": 15,
+      "max": 15,
+      "gate": true,
+      "passed": true,
+      "evidence": "Length=0: disconnected/control pong OK; Length=1: disconnected/control pong OK; Length=-1: disconnected/control pong OK; Length=2147483647: disconnected/control pong OK; Length=16385: disconnected/control pong OK; unknown ID: disconnected/control pong OK; NaN, direction=forward: 27 worlds, max=0.0000 m/s, role=0, NaN input sent, socket retained, control pong OK; 100,100, direction=forward: 27 worlds, max=4.0000 m/s, role=0, 20 inputs in 0.965 s, socket retained, control pong OK; 500/s, direction=forward: 26 worlds, max=3.9999 m/s, role=0, 500 inputs in 0.964 s, achieved rate=518.8/s, socket retained, control pong OK"
+    },
+    {
+      "id": "H5",
+      "score": 10,
+      "max": 10,
+      "gate": false,
+      "passed": true,
+      "evidence": "Socket dropped; token rejoined in 46.9 ms; same PlayerId=3, position=(54.640915,3.8178656), role/status/capture count preserved."
+    },
+    {
+      "id": "H6",
+      "score": 10,
+      "max": 10,
+      "gate": false,
+      "passed": true,
+      "evidence": "setup: 3 humans, 0 bots, killer(host) id=1, A id=3, B id=4; TerminalsRequired=3 of 5; sight: B stands behind a wall at (48.0,1.5), line of sight to the killer at (34.0,43.5) blocked by 3.12 m; A at (44.0,1.5) Blocked; terminal 1@(58,27) co-hacked by A\u002BB: progress 0,1,2,3,..,98,99,100 (101 values) in 25.01 s; terminal 4@(41,44) co-hacked by A\u002BB: progress 0,1,2,3,..,98,99,100 (101 values) in 24.99 s; terminal 3@(19,49) co-hacked by A\u002BB: progress 0,1,2,3,..,98,99,100 (101 values) in 25.00 s; exits Powered (not open) seen by killer, A and B; A sync checks 6, presses 6, great/good/fail 0/6/0; B sync checks 6, presses 6, great/good/fail 0/6/0; switch 1: B held it 15.0 s (progress 0,1,2,3,..,98,99,100); exit 1@(76,76) Open seen by killer, A and B; collapse 120.0 s; capture: B 58.8 m away and still; killer reached A in 7.2 s; survivor view A Lagging, CaptureCount=1, StatusTimer=60.0 s; killer held contact 3 s (62 A frames, 1.13..1.13 m) with A still Lagging (no execution); B Normal/0; killer then left and stands still at (20.5,39.9), 8.7 m from A; rescue: B within 0.6 m of A, A Normal with CaptureCount=1 after 2.25 s, killer still 8.7 m away; escape: B (id=4) Escaped 1.99 m from the open exit; the match went on with A Normal; escape: A (id=3) walked to the exit (last own state 1.99 m from it, status=2) before the GameResult; GameResult x1 per human (1 s drain), identical: winner=Survivor, reason=AllResolved, escaped=[3,4], eliminated=[]; LobbyState followed (evidence only): killer=yes,A=yes,B=yes; leak scan: 392 distinct killer X/Z values vs 9767 survivor-bound frames (1526739 bytes, any alignment): 0 excess, 5668 exact match(es) with legitimate fields; 0 unknown-Id frames raw-scanned, 0 matches; killer entry judged by line of sight in 8862 survivor WorldStates: 2823 legal line-of-sight killer entries, 5565 blocked-and-absent, 20 ambiguous within 0.05 m of a wall (not judged), 0 undecided (without own entry; a survivor tick the killer never received fails), 0 clear-and-absent, 454 spectator worlds without the entry; every survivor tick joined a killer tick (killer 1465..5895 (4431); A 1465..5895 (4431); B 1465..5895 (4431); last WorldState tick before GameResult 5895 in every stream); --expect-los: 2823 legal visible entries and 5565 blocked-and-absent ticks observed; total 222.9 s."
+    }
+  ]
+}

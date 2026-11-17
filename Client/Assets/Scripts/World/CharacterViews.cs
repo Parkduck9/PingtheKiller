@@ -17,19 +17,27 @@ namespace PingTheKiller.Client.World
             public CharacterInstance Art;
             public Renderer Head;
             public CharacterMotion Motion;
+            // U10: the jam slam (Survivor view) and its glitch burst.
+            public InteractionMotion Interaction;
+            public HoloPropFx Props;
+            public readonly JamTracker Jam = new JamTracker();
+            public int BurstFor;
         }
         private sealed class Avatar
         {
             public GameObject Root;
             public CharacterInstance Art;
             public Color Tint;
-            public byte Status, Flags, CaptureCount;
+            public byte Status, Flags, CaptureCount, Chase;
             public CharacterMotion Motion;
             // This frame's sampled pose, and the eased draw-only offset that keeps it out of other bodies (VisualSeparation).
             public Vector3 Position;
             public float Yaw, Alpha;
             public Vector2 Offset;
             public bool Lagging;
+            // U10: the interaction layer (hack, exit switch, restore) and its pooled holo props.
+            public InteractionMotion Interaction;
+            public HoloPropFx Props;
         }
 
         // The Killer model's key among the separation bodies (Survivor ids are positive).
@@ -56,6 +64,18 @@ namespace PingTheKiller.Client.World
         private Vector2[] separation = new Vector2[10]; // 8 players + the Killer model, grown if ever needed
         private bool killerShown;
         private Vector3 killerGround;
+        // U10: the newest snapshot's terminals (for the hack stream source and the jam), and the own hold action.
+        private float[] terminalX = new float[8], terminalZ = new float[8];
+        private bool[] terminalRegressing = new bool[8];
+        private int terminalCount;
+        private bool terminalsFresh;
+        private byte ownAction;
+
+        // U8: a capture (Normal -> Lagging / Eliminated) of a Survivor that is drawn this frame, at its ground position.
+        // ClientApp plays the pooled CaptureImpactFx there. Survivor view only (full state, HUD_SPEC 0.1); the Killer client
+        // builds no character here, so it never raises this.
+        public static event System.Action<Vector3> Impact;
+        public int Impacts { get; private set; }
 
         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
         public float KillerAlpha { get; private set; }
@@ -90,7 +110,8 @@ namespace PingTheKiller.Client.World
                 GameObject model = Object.Instantiate(art.KillerPrefab, transform);
                 model.name = "Killer (line of sight)";
                 CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor); // U4j: locomotion + the attack layer
-                var instance = new KillerModel { Root = model, Art = new CharacterInstance(model), Head = model.transform.Find("Killer visor")?.GetComponent<Renderer>(), Motion = motion };
+                var instance = new KillerModel { Root = model, Art = new CharacterInstance(model), Head = model.transform.Find("Killer visor")?.GetComponent<Renderer>(), Motion = motion,
+                    Interaction = AttachInteraction(model, motion), Props = new HoloPropFx(transform) };
                 model.SetActive(false);
                 return instance;
             }
@@ -107,7 +128,8 @@ namespace PingTheKiller.Client.World
             return new KillerModel
             {
                 Root = root, Art = new CharacterInstance(root), Head = visor.GetComponent<Renderer>(),
-                Motion = new CharacterMotion(null, MotionView.Survivor) // capsule: attacks counted, not animated
+                Motion = new CharacterMotion(null, MotionView.Survivor), // capsule: attacks counted, not animated
+                Interaction = new InteractionMotion(null), Props = new HoloPropFx(transform)
             };
         }
 
@@ -130,12 +152,19 @@ namespace PingTheKiller.Client.World
                 if (seen && now - startedAt >= MotionPreview.StartSeconds && !attack.Active(now) && attack.Count == 0)
                     attack.Trigger(now, true);
             }
-            if (!seen) return;
+            // U10: a terminal next to the drawn model turning Regressing is the end of this Killer's kick: one slam.
+            if (terminalsFresh)
+            {
+                killerModel.Jam.Observe(now, terminalCount, terminalX, terminalZ, terminalRegressing, seen, position.x, position.z);
+                terminalsFresh = false;
+            }
+            if (!seen) { killerModel.Props.Hide(now); return; }
             // The Killer model stays where its entry puts it (a pinned separation body): Survivors near it step aside instead.
             killerShown = true; killerGround = new Vector3(position.x, 0, position.z);
             killerModel.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, yaw, 0));
             killerModel.Motion.Observe(now, (byte)PlayerStatus.Normal, 0, 0, killerModel.Art.Speed);
             killerModel.Motion.Drive(now);
+            RenderJam(now);
             killerModel.Art.Animate(new Vector3(position.x, 0, position.z), now, false, false);
             killerModel.Motion.Ground();
             Camera camera = Camera.main;
@@ -145,8 +174,44 @@ namespace PingTheKiller.Client.World
             KillerVisorAlpha = killerModel.Head != null ? killerModel.Head.sharedMaterial.color.a : alpha;
         }
 
+        // U10 (Survivor view): the slam on the Killer model and its `danger` burst at the impact.
+        private void RenderJam(double now)
+        {
+            JamTracker jam = killerModel.Jam;
+            bool active = jam.Active(now) && jam.Terminal >= 0 && jam.Terminal < terminalCount;
+            Vector3 top = active ? new Vector3(terminalX[jam.Terminal], InteractionTiming.JamTop, terminalZ[jam.Terminal]) : Vector3.zero;
+            killerModel.Interaction.Update(now, active ? InteractionKind.Jam : InteractionKind.None, top, active ? jam.Elapsed(now) : 0);
+            if (active && killerModel.BurstFor != jam.Count && jam.Elapsed(now) >= InteractionTiming.JamSeconds * InteractionTiming.JamImpact)
+            {
+                killerModel.BurstFor = jam.Count;
+                killerModel.Props.Burst(top, now);
+            }
+            else killerModel.Props.Hide(now);
+        }
+
+        private static InteractionMotion AttachInteraction(GameObject model, CharacterMotion motion)
+        {
+            if (!motion.Drives) return new InteractionMotion(null);
+            motion.InteractionDriven = true;
+            return InteractionMotion.Attach(model.GetComponentInChildren<Animator>(true));
+        }
+
+        // U10: the own S2C_SelfState.ActionKind (the exit switch hold is own-only knowledge).
+        public void SetOwnAction(byte kind) => ownAction = kind;
+
         public void Accept(S2C_WorldState state)
         {
+            if (state.Terminals != null)
+            {
+                terminalCount = state.Terminals.Count;
+                if (terminalX.Length < terminalCount) { terminalX = new float[terminalCount]; terminalZ = new float[terminalCount]; terminalRegressing = new bool[terminalCount]; }
+                for (int i = 0; i < terminalCount; i++)
+                {
+                    TerminalState t = state.Terminals[i];
+                    terminalX[i] = t.X; terminalZ[i] = t.Z; terminalRegressing[i] = (t.Flags & (byte)TerminalFlags.Regressing) != 0;
+                }
+                terminalsFresh = true;
+            }
             foreach (PlayerState player in state.Players)
             {
                 if (role == Role.Survivor && player.Role == (byte)Role.Killer) continue;
@@ -155,7 +220,7 @@ namespace PingTheKiller.Client.World
                 {
                     // Status is the latest authoritative value; it is not interpolated. So are the flags and the capture
                     // count the motion reads (Survivor view: full state, U4j).
-                    known.Status = player.Status; known.Flags = player.Flags; known.CaptureCount = player.CaptureCount;
+                    known.Status = player.Status; known.Flags = player.Flags; known.CaptureCount = player.CaptureCount; known.Chase = player.Chase;
                     continue;
                 }
                 Color tint = player.Role == (byte)Role.Killer ? Killer : Survivor;
@@ -164,7 +229,8 @@ namespace PingTheKiller.Client.World
                     GameObject model = Object.Instantiate(art.SurvivorPrefab, transform);
                     model.name = "Player " + player.Id;
                     CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor); // U4j: before CharacterInstance binds it
-                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Motion = motion };
+                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Chase = player.Chase, Motion = motion,
+                        Interaction = AttachInteraction(model, motion), Props = new HoloPropFx(transform) };
                     model.SetActive(false);
                     avatars.Add(player.Id, imported);
                     continue;
@@ -177,8 +243,8 @@ namespace PingTheKiller.Client.World
                 GameObject visor = FallbackPart("Visor", PrimitiveType.Cube, CharacterLook.VisorScale, CharacterLook.Visor);
                 visor.transform.SetParent(root.transform, false);
                 visor.transform.localPosition = CharacterLook.VisorOffset;
-                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount,
-                    Motion = new CharacterMotion(null, MotionView.Survivor) }; // capsule: tracked, not animated
+                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Chase = player.Chase,
+                    Motion = new CharacterMotion(null, MotionView.Survivor), Interaction = new InteractionMotion(null), Props = new HoloPropFx(transform) }; // capsule: tracked, not animated
                 root.SetActive(false);
                 avatars.Add(player.Id, avatar);
             }
@@ -215,7 +281,8 @@ namespace PingTheKiller.Client.World
                     || (avatar.Motion.Drives && avatar.Motion.Tracker.Pose == MotionPose.Death && avatar.Motion.Tracker.DeathShown(now)));
                 bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha) && body;
                 avatar.Root.SetActive(visible);
-                if (!visible) { avatar.Offset = Vector2.zero; continue; }
+                if (!visible) { avatar.Offset = Vector2.zero; avatar.Interaction.Reset(); avatar.Props.Hide(now); continue; }
+                if (avatar.Motion.Tracker.CaptureEdge) { Impacts++; Impact?.Invoke(new Vector3(position.x, 0, position.z)); }
                 avatar.Position = position; avatar.Yaw = yaw; avatar.Alpha = alpha; avatar.Lagging = status == (byte)PlayerStatus.Lagging;
                 // The own avatar is pinned: the camera follows it, so only the other body steps aside.
                 bodies.Add(new SeparationBody(entry.Key, position.x, position.z, own));
@@ -240,6 +307,7 @@ namespace PingTheKiller.Client.World
                 Color color = !own && avatar.Status == (byte)PlayerStatus.Lagging ? Signal : avatar.Tint;
                 bool lagging = avatar.Lagging;
                 avatar.Motion.Drive(now);
+                RenderInteraction(avatar, own, bodies[i].Id, now);
                 avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false);
                 avatar.Motion.Ground();
                 // The knock-down / crawl clips replace the old Lagging lean; the capsule fallback keeps it.
@@ -249,6 +317,59 @@ namespace PingTheKiller.Client.World
             }
         }
 
+        // U10 (Survivor view, full state): the interaction pose and props of one drawn Survivor, from its received flags
+        // (Hacking, Rescuing), the own exit switch hold and static or received positions. HUD_SPEC 4.10 (11/17, U10).
+        private void RenderInteraction(Avatar avatar, bool own, int id, double now)
+        {
+            InteractionKind kind = InteractionMap.Resolve(MotionView.Survivor, avatar.Status, avatar.Flags, avatar.Motion.Tracker.Pose, avatar.Art.Speed, own, own ? ownAction : (byte)0, avatar.Chase);
+            Vector3 at = avatar.Root.transform.position, target = at + avatar.Root.transform.forward, source = target;
+            switch (kind)
+            {
+                case InteractionKind.Hack:
+                {
+                    int t = InteractionMap.Nearest(at.x, at.z, terminalX, terminalZ, terminalCount, GameConstants.TerminalRadius + .6f);
+                    if (t >= 0) source = target = new Vector3(terminalX[t], 0, terminalZ[t]);
+                    break;
+                }
+                case InteractionKind.Restore:
+                {
+                    float best = (GameConstants.RescueRadius + .6f) * (GameConstants.RescueRadius + .6f);
+                    for (int k = 0; k < drawn.Count; k++)
+                    {
+                        Avatar mate = drawn[k];
+                        if (mate == avatar || mate.Status != (byte)PlayerStatus.Lagging) continue;
+                        Vector3 p = mate.Root.transform.position;
+                        float sq = (p.x - at.x) * (p.x - at.x) + (p.z - at.z) * (p.z - at.z);
+                        if (sq <= best) { best = sq; target = p; }
+                    }
+                    break;
+                }
+                case InteractionKind.Switch:
+                {
+                    var switches = SharedMap.Map.ExitSwitches;
+                    float best = float.MaxValue;
+                    for (int k = 0; k < switches.Count; k++)
+                    {
+                        float sq = (switches[k].X - at.x) * (switches[k].X - at.x) + (switches[k].Z - at.z) * (switches[k].Z - at.z);
+                        if (sq < best) { best = sq; target = new Vector3(switches[k].X, 0, switches[k].Z); }
+                    }
+                    break;
+                }
+            }
+            double clock = now + (id & 7) * .37; // beats and streams are not in lockstep across characters
+            avatar.Interaction.Update(now, kind, target, clock);
+            avatar.Props.Show(avatar.Interaction.Kind, avatar.Interaction.Weight, avatar.Root.transform, source, target, clock, now);
+        }
+
+        public InteractionKind InteractionOf(int id) => avatars.TryGetValue(id, out Avatar avatar) ? avatar.Interaction.Kind : InteractionKind.None;
+        public HoloPropFx PropsOf(int id) => avatars.TryGetValue(id, out Avatar avatar) ? avatar.Props : null;
+        public HoloPropFx KillerProps => killerModel?.Props;
+        public int KillerJams => killerModel?.Jam.Count ?? 0;
+
+        // Tests / dev capture (U10): a Survivor character's tracked pose and measured speed.
+        public MotionPose PoseOf(int id) => avatars.TryGetValue(id, out Avatar avatar) ? avatar.Motion.Tracker.Pose : MotionPose.Locomotion;
+        public float SpeedOf(int id) => avatars.TryGetValue(id, out Avatar avatar) ? avatar.Art.Speed : 0;
+
         // Dev capture / tests: the Killer model's attacks so far and whether one plays now.
         public int KillerAttacks => killerModel?.Motion.Attack.Count ?? 0;
         public bool KillerAttacking(double now) => killerModel != null && killerModel.Motion.Attack.Active(now);
@@ -257,7 +378,8 @@ namespace PingTheKiller.Client.World
         {
             killerModel?.Art.Dispose();
             killerModel?.Motion.Dispose();
-            foreach (Avatar avatar in avatars.Values) { avatar.Art.Dispose(); avatar.Motion.Dispose(); }
+            killerModel?.Props.Dispose();
+            foreach (Avatar avatar in avatars.Values) { avatar.Art.Dispose(); avatar.Motion.Dispose(); avatar.Props.Dispose(); }
         }
 
         private GameObject FallbackPart(string label, PrimitiveType type, Vector3 scale, Color color, bool transparent = false)
