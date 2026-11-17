@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
 
 namespace PingTheKiller.Client.Killer
 {
@@ -78,6 +80,38 @@ namespace PingTheKiller.Client.Killer
 
         // R1 (11/17) 6.1b: the attack prompt while a visible blip is within AttackPromptRange metres, else null.
         public static string Attack(float nearestBlip, bool pad) => nearestBlip <= AttackPromptRange ? (pad ? AttackPromptPad : AttackPrompt) : null;
+
+        // INTEG-R minors: the swing is stopped by a wall or a Down Shutter (server SwingBlocked). The same two checks from what the
+        // client knows: the FixedMap walls and the WorldState shutter bytes. No new protocol data.
+        public static bool SwingClear(FixedMap map, S2C_WorldState world, float ax, float az, float bx, float bz)
+        {
+            if (map != null && map.SegmentBlocked(ax, az, bx, bz)) return false;
+            if (world?.Shutters == null) return true;
+            var shutters = WorldChaseProps.Shutters;
+            for (int i = 0; i < shutters.Count && i < world.Shutters.Count; i++)
+            {
+                if (world.Shutters[i] != (byte)ShutterState.Down) continue;
+                if (SegmentHitsBox(ax, az, bx, bz, shutters[i].MinX, shutters[i].MinZ, shutters[i].MaxX, shutters[i].MaxZ)) return false;
+            }
+            return true;
+        }
+
+        // Slab test of a segment against a closed box (same rule as the server's box test; a shutter is not a map wall).
+        private static bool SegmentHitsBox(float ax, float az, float bx, float bz, float minX, float minZ, float maxX, float maxZ)
+        {
+            float t0 = 0, t1 = 1, dx = bx - ax, dz = bz - az;
+            return Slab(ax, dx, minX, maxX, ref t0, ref t1) && Slab(az, dz, minZ, maxZ, ref t0, ref t1);
+        }
+
+        private static bool Slab(float start, float delta, float min, float max, ref float t0, ref float t1)
+        {
+            if (Math.Abs(delta) < 1e-6f) return start >= min && start <= max;
+            float a = (min - start) / delta, b = (max - start) / delta;
+            if (a > b) { float t = a; a = b; b = t; }
+            if (a > t0) t0 = a;
+            if (b < t1) t1 = b;
+            return t0 <= t1;
+        }
 
         public static string Distance(float metres) => (int)Math.Round(Math.Max(0, metres), MidpointRounding.AwayFromZero) + " m";
         public static string LaggingDistance(float metres) => Lagging + " " + Dot + " " + Distance(metres);

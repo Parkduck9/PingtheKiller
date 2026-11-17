@@ -317,6 +317,8 @@ public sealed class RttProbeTests
         }
         while (server.RttStateForTests(playerId).Samples < echoes) await Task.Delay(5, timeout.Token);
         var measured = server.RttStateForTests(playerId).Seconds;
-        Assert.True(measured > 0 && measured < .05, $"loopback RTT {measured:R} s");
+        // Positive, server-timed and small. The bound is wall-clock on a loaded machine (a parallel build or Unity run once gave 0.057 s
+        // against .05), so it is 0.25 s: still far below a stale or client-supplied timestamp, which would be seconds.
+        Assert.True(measured > 0 && measured < .25, $"loopback RTT {measured:R} s");
     }
 }

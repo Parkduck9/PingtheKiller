@@ -334,7 +334,7 @@ Rescue progress comes from the server, own-only: for a Lagging Survivor it is th
 
 Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_LobbyState`).
 
-**(11/17, R3) Getting up.** A Survivor who is restored (E-hold or Emergency restore) gets up for 1.5 s: the server holds speed at 0 (MoveInput direction ignored, look yaw kept), refuses E and the skill (`NotNormal`), and the existing 2 s protection covers it; `PlayerFlags.GettingUp (32)` goes to Survivor recipients only (never the Killer: a flag that decoys lack would reveal real Survivors). The rescued player's prompt row shows `Getting up…` (ahead of every other prompt, no error sound). The Survivor view plays the Mixamo `GettingUp` clip from the flag, sped up from 2.7 s to 1.5 s. The Killer view shows no get-up.
+**(11/17, R3) Getting up.** A Survivor who is rescued (E-hold or Emergency restore) gets up for 1.5 s: the server holds speed at 0 (MoveInput direction ignored, look yaw kept), refuses E and the skill (`NotNormal`), and the existing 2 s protection covers it; `PlayerFlags.GettingUp (32)` goes to Survivor recipients only (never the Killer: a flag that decoys lack would reveal real Survivors). The rescued player's prompt row shows `Getting up…` (ahead of every other prompt, no error sound). The Survivor view plays the Mixamo `GettingUp` clip from the flag, sped up from 2.7 s to 1.5 s. The Killer view shows no get-up.
 
 **(11/17, R3) Explicit rescue.** The rescue is no longer automatic. A Normal Survivor must hold E within 1.5 m of a Lagging Survivor for 3 s (`RescueTimeSeconds`); releasing E or leaving range resets the count. The server owns it: `Flags.Rescuing` and `ActionKind.Rescue (7)` with `ActionProgress` are set only while E is held in range. **E priority** (one E, one action): rescue, then chase prop, then exit switch, then terminal. While a Lagging Survivor is in reach, E never starts a chase prop, switch or hack. Bots hold E next to a Lagging Survivor. Emergency restore is unchanged. Vocabulary **(INTEG-R)**: one term, SLOP §8 `Rescue` (noun and verb: `Hold [E] to rescue`, `Rescuing`, `Being rescued — stay close`, `rescues you`). Only the skill keeps its name, `Emergency restore`, and its own feedback lines (§14.2.8).
 
@@ -910,7 +910,7 @@ One packet, `S2C_SkillEffect {CasterId, SkillId, X, Z, Duration}`, sent as in `S
 | Dummy packet (S0), Stealth relay (S1), White noise (S4) | every Survivor; never the Killer | caster | the caster's position | 3 / 2 / 1.5 |
 | Traffic overload (S2) | every Survivor | caster | the caster's position | 2 |
 | Traffic overload (S2) | the Killer | **0** | **0, 0** | 2 |
-| Emergency restore (S3) | every Survivor | caster | the restored Survivor's position | 0 |
+| Emergency restore (S3) | every Survivor | caster | the rescued Survivor's position | 0 |
 
 **Resolution rules (normative):**
 - **Killer client.** It acts on an effect only when `CasterId` = own id (own skill), or when `CasterId = 0` and `SkillId = TrafficOverload`. It ignores everything else. A Survivor skill never reaches the Killer; if one did, this rule would drop it, so no Killer-side output can depend on a decoy skill.
@@ -1088,7 +1088,7 @@ The server forces every active Survivor within 12 m of the Killer Signal for 2.5
 - The Killer uses only `CasterId = 0`, `SkillId` and `Duration`.
 
 #### 14.2.8 Emergency restore (Survivor 3)
-The restored Survivor (the "target") is derived. It is the Survivor in the WorldState before the effect who:
+The rescued Survivor (the "target") is derived. It is the Survivor in the WorldState before the effect who:
 - is not the caster;
 - has `Status = Lagging`;
 - is nearest to `X, Z`, within 0.5 m.
@@ -1097,9 +1097,9 @@ With no match, the target is unnamed (`a Survivor`).
 
 | Viewer | World | Line | Sound |
 |---|---|---|---|
-| Caster | Hovl `Marker 4 Pillar`, `ally`, at `X, Z`, 1.5 m, 1.0 s | `Restored N · no longer Lagging` (`ally` bar) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_Start_2.wav`, −9 dB, 2D, cut at 1.0 s |
-| Affected: own status Lagging → Normal, and own position within 0.5 m of `X, Z` | The same one-shot | `N restored you · no longer Lagging` (`ally` bar). The meter's `Protected` tag follows from `InvulnerableLeft`. | The same clip, −6 dB, 2D, cut at 1.0 s |
-| Ally Survivors | The same one-shot, if in view | `N restored N` (`ally` bar), e.g. `Mina restored Rio` | The same clip, positional at `X, Z`, −15 dB at 2 m, range 20 m |
+| Caster | Hovl `Marker 4 Pillar`, `ally`, at `X, Z`, 1.5 m, 1.0 s | `Rescued N · no longer Lagging` (`ally` bar) | `Z_Bonus/SFX_SCIFI_ENERGY_Anime_Weapon_Charge_Start_2.wav`, −9 dB, 2D, cut at 1.0 s |
+| Affected: own status Lagging → Normal, and own position within 0.5 m of `X, Z` | The same one-shot | `N rescued you · no longer Lagging` (`ally` bar). The meter's `Protected` tag follows from `InvulnerableLeft`. | The same clip, −6 dB, 2D, cut at 1.0 s |
+| Ally Survivors | The same one-shot, if in view | `N rescued N` (`ally` bar), e.g. `Mina rescued Rio` | The same clip, positional at `X, Z`, −15 dB at 2 m, range 20 m |
 | Killer | Nothing (not sent). The Lagging instance turns Normal or leaves the view by the §6.3 rules. | — | — |
 
 `Duration = 0`, so the caster's active arc does not show (§4.8). The line and the one-shot use their own times.
@@ -1185,7 +1185,7 @@ Playtest (11/17): "even when a skill is used, it is hard to tell which skill it 
 | Dummy packet (S0) | a dashed wire double of a character (capsule r 0.5 × 1.8 m, 0.035 m lines; hidden while the camera is within 1 m of it, the §4.10 short-boom rule) | **pop-in**: back-ease overshoot to full size in 0.22 s, shrinks out over the last 0.12 s | `signal` | 1.2 s |
 | Stealth relay (S1) | a wire dome over the 5 m relay area (12 meridians, 3 parallels, ground ring) | **envelop**: grows in 0.15 s, turns 20°/s | `ally` | the effect (2 s) |
 | Traffic overload (S2) | ten jagged spikes from the caster's chest, 1.0 m | **burst**: out in 0.1 s, jitters between two jagged frames at 12 Hz | `signal` | 0.8 s |
-| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the restored point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
+| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the rescued point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
 | White noise (S4) | thirty filled static squares (0.12–0.3 m) in a 1.5 m-radius volume, 0.2–1.7 m high | **flicker**: each square blinks on a random 14 Hz pattern, about half on | **`text`** (was `signal`: the fake Signals are elsewhere on the map; nothing transmits at the caster) | 1.0 s |
 
 **Glyph.** The skill's §8 icon floats above its world effect: a 0.6 m camera-facing quad, 1.9 m above the effect point, rising 0.15 m over 1.0 s (ease-out), lowered when needed so its top stays 24 u inside the top screen edge, in the effect's colour, alpha-clipped (no blend), depth-tested. It is rasterized at warm-up from the same primitives the skill block draws (`SkillGlyph`), so the HUD and the world always match. No glyph above the Killer's own first-person point (Ping scanner, Overclock): the 14.1b flash covers those.

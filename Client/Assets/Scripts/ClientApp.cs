@@ -452,7 +452,10 @@ namespace PingTheKiller.Client
             // Both roles: Esc / Start backs out of Settings first (focus returns to the play menu), otherwise opens or closes
             // the play menu; gamepad B on the open menu is Resume.
             Gamepad gamepad = Gamepad.current;
-            bool back = (keyboard != null && keyboard.escapeKey.wasPressedThisFrame) || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
+            bool escKey = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+            // INTEG-R minors: Esc on the intro card dismisses the card alone; it never opens the menu that press.
+            if (Application.isFocused && !screens.SettingsOpen && intro.ConsumeEscape(now, menuGate.Open, escKey)) escKey = false;
+            bool back = escKey || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
             bool cancel = gamepad != null && gamepad.buttonEast.wasPressedThisFrame && (screens.SettingsOpen || menuGate.Open);
             if (back || cancel)
             {

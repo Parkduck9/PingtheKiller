@@ -314,15 +314,15 @@ namespace PingTheKiller.Client.Tests
         {
             Mate[] before = { Peer(Mina, 20, 20), Peer(Rio, 20.3f, 20, PlayerStatus.Lagging) };
             FxRecord caster = SkillFeedback.ForSurvivor(Frame(mates: before), Own, SkillIds.EmergencyRestore, 20.3f, 20, 0);
-            Assert.That(caster.Line.Text, Is.EqualTo("Restored Rio · no longer Lagging"));
+            Assert.That(caster.Line.Text, Is.EqualTo("Rescued Rio · no longer Lagging"));
             Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Pillar)); Assert.That(caster.Visual.Seconds, Is.EqualTo(1f));
             FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: before), Mina, SkillIds.EmergencyRestore, 20.3f, 20, 0);
-            Assert.That(ally.Line.Text, Is.EqualTo("Mina restored Rio"));
+            Assert.That(ally.Line.Text, Is.EqualTo("Mina rescued Rio"));
             FxRecord self = SkillFeedback.ForSurvivor(Frame(PlayerStatus.Lagging, 20.1f, 20, mates: Peer(Mina, 21, 20)), Mina, SkillIds.EmergencyRestore, 20.1f, 20, 0);
             Assert.That(self.Viewer, Is.EqualTo(FxViewer.Affected));
-            Assert.That(self.Line.Text, Is.EqualTo("Mina restored you · no longer Lagging"));
+            Assert.That(self.Line.Text, Is.EqualTo("Mina rescued you · no longer Lagging"));
             FxRecord unmatched = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.EmergencyRestore, 5, 5, 0);
-            Assert.That(unmatched.Line.Text, Is.EqualTo("Restored a Survivor · no longer Lagging"));
+            Assert.That(unmatched.Line.Text, Is.EqualTo("Rescued a Survivor · no longer Lagging"));
         }
 
         [Test]

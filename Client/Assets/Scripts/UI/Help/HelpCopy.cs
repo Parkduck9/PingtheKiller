@@ -33,9 +33,10 @@ namespace PingTheKiller.Client.UI
         public const string HowToPlay = "How to play";
         public const string SurvivorTab = "Survivor", KillerTab = "Killer", Back = "Back";
 
+        // INTEG-R minors: each legend breaks on purpose after the Hold E item so no line is a lone item (no orphan `Esc Menu`).
         // --- Controls legends (one per role, shared by the intro card and the How to play page) ---
-        public const string SurvivorControls = "WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu";
-        public const string KillerControls = "WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu";
+        public const string SurvivorControls = "WASD Move · Hold E Hack / Rescue / Exit switch / Shutter\nWhile hacking: WASD routes packets · Q Skill · Esc Menu";
+        public const string KillerControls = "WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch\nQ Skill · Esc Menu";
         public static string Controls(Role role) => role == Role.Killer ? KillerControls : SurvivorControls;
 
         // --- Intro card ---

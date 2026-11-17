@@ -245,7 +245,35 @@ namespace PingTheKiller.Client.Tests
             Assert.That(card.Goal, Is.EqualTo("Survivor " + Dot + " Hack 3 terminals, then hold an exit switch and escape."));
             Assert.That(card.SkillLine, Is.EqualTo("Emergency restore [Q] " + Dot + " Cooldown 15 s"));
             Assert.That(card.Effect, Is.EqualTo(PlayMenuCopy.SurvivorEffect(SkillIds.EmergencyRestore)));
-            Assert.That(card.Controls, Is.EqualTo("WASD Move · Hold E Hack / Rescue / Exit switch / Shutter · While hacking: WASD routes packets · Q Skill · Esc Menu"));
+            Assert.That(card.Controls, Is.EqualTo("WASD Move · Hold E Hack / Rescue / Exit switch / Shutter\nWhile hacking: WASD routes packets · Q Skill · Esc Menu"));
+        }
+
+        [Test]
+        public void NoLineOfEitherControlsLegendIsALoneItem()
+        {
+            foreach (string legend in new[] { HelpCopy.SurvivorControls, HelpCopy.KillerControls })
+                foreach (string line in legend.Split('\n'))
+                {
+                    Assert.That(line.Split(new[] { " · " }, System.StringSplitOptions.None).Length, Is.GreaterThanOrEqualTo(2), "lone item: " + line);
+                    Assert.That(line.Length, Is.LessThanOrEqualTo(87), "each explicit line fits one S line");
+                }
+            Assert.That(HelpCopy.KillerControls.Split('\n')[1], Does.Contain("Esc Menu").And.Contain("Q Skill"));
+            Assert.That(HelpCopy.SurvivorControls.Split('\n')[1], Does.Contain("Esc Menu").And.Contain("Q Skill"));
+        }
+
+        [Test]
+        public void EscOnTheIntroCardDismissesItAloneAndItNeverReturns()
+        {
+            var card = new IntroCardState();
+            card.Begin(Role.Killer, SkillIds.Overclock, 10);
+            Assert.That(card.ConsumeEscape(11, false, false), Is.False, "no key, no change");
+            Assert.That(card.Visible(11, false), Is.True);
+            Assert.That(card.ConsumeEscape(11, false, true), Is.True, "the press is consumed, so the menu does not open");
+            Assert.That(card.Visible(11, false), Is.False);
+            Assert.That(card.Visible(12, false), Is.False, "the menu closing within 7 s does not bring it back");
+            Assert.That(card.ConsumeEscape(12, false, true), Is.False, "a later Esc is the menu's");
+            card.Begin(Role.Survivor, SkillIds.EmergencyRestore, 20);
+            Assert.That(card.ConsumeEscape(30, false, true), Is.False, "an expired card does not consume Esc");
         }
 
         [Test]
@@ -256,7 +284,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(card.Goal, Is.EqualTo("Killer " + Dot + " Capture every Survivor before they escape."));
             Assert.That(card.SkillLine, Is.EqualTo("Overclock [Q] " + Dot + " Cooldown 12 s"));
             Assert.That(card.Effect, Is.EqualTo(PlayMenuCopy.KillerEffect(SkillIds.Overclock)));
-            Assert.That(card.Controls, Is.EqualTo("WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch · Q Skill · Esc Menu"));
+            Assert.That(card.Controls, Is.EqualTo("WASD Move · Left click Attack · Hold E Kick terminal / Break shutter / Close hatch\nQ Skill · Esc Menu"));
             card.Begin(Role.Killer, SkillIds.PacketTrace, 5);
             Assert.That(card.SkillLine, Is.EqualTo("Packet trace [Q] " + Dot + " Cooldown 12 s"), "R1: Packet trace is active, with a key and the cooldown");
         }

@@ -80,7 +80,8 @@ public sealed class ProtocolV08Tests
     [Fact]
     public void TheNewValuesAreTheClampEdges()
     {
-        // One past each new maximum is rejected (ActionKind 7, PlayerFlags 63, ChaseFlags 31, TerminalFlags 7, Direction 3).
+        // ActionKind 8 and RouteDirection 4 (one past their maxima) are rejected here; PlayerFlags 63, ChaseFlags 31 and TerminalFlags 7 must
+        // round-trip. Their rejections one past (64, 32, 8) are asserted in ProtocolV02Tests and QaU6aProtocolTests.
         byte[] self = PacketCodec.Encode(new S2C_SelfState { ActionKind = 7 });
         self[6 + 24] = 8;
         Assert.Throws<PacketFormatException>(() => PacketCodec.Decode(self[4], self.AsSpan(6)));

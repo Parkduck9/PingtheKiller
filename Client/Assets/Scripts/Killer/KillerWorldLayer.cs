@@ -164,6 +164,20 @@ namespace PingTheKiller.Client.Killer
             return best;
         }
 
+        // INTEG-R minors: as NearestNormalBlip, but a blip behind a wall or a Down Shutter does not count (the swing would miss).
+        public float NearestSwingableBlip(Vector3 eye)
+        {
+            float best = float.PositiveInfinity;
+            if (scene == null) return best;
+            foreach (BlipView view in scene.Views)
+            {
+                if (view.Status != BlipStatus.Normal) continue;
+                float d = new Vector2(view.Position.x - eye.x, view.Position.z - eye.z).magnitude;
+                if (d < best && KillerHudCopy.SwingClear(SharedMap.Map, last, eye.x, eye.z, view.Position.x, view.Position.z)) best = d;
+            }
+            return best;
+        }
+
         // The nearest rendered instance, or the nearest one behind a wall (dev killer-look only).
         public bool NearestBlip(Vector3 from, bool occludedOnly, out Vector3 position)
         {
@@ -247,7 +261,7 @@ namespace PingTheKiller.Client.Killer
             InteractPrompt interact = last == null ? default
                 : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
             // R1 (11/17) 6.1b: with nothing to hold in reach, a visible blip within 3 m shows the attack prompt.
-            if (string.IsNullOrEmpty(interact.Text)) interact.Text = KillerHudCopy.Attack(NearestNormalBlip(eye), PadPrompt);
+            if (string.IsNullOrEmpty(interact.Text)) interact.Text = KillerHudCopy.Attack(NearestSwingableBlip(eye), PadPrompt);
             hud.SetPrompt(interact, V2Wire.Hold(self));
             hud.SetCollapse(V2Wire.KillerCollapse(last != null ? last.CollapseLeft : -1, self.Available ? self.CollapseLeft : -1));
         }

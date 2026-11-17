@@ -4,6 +4,7 @@ using PingTheKiller.Client.Audio;
 using PingTheKiller.Client.Killer;
 using PingTheKiller.Client.UI;
 using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
 using PingTheKiller.Shared.Game;
 using PingTheKiller.Shared.Packets;
 
@@ -48,6 +49,25 @@ namespace PingTheKiller.Client.QA.Tests
         }
 
         // ---- prompt -----------------------------------------------------------------------------------------------------
+
+        [Test]
+        public void ADownShutterOrAWallBetweenTheKillerAndABlipMakesTheSwingUnclear()
+        {
+            // Shutter 1 spans x 67.85-68.15, z 56-59 (WorldChaseProps). The swing line crosses it at z 57.5.
+            var world = new S2C_WorldState();
+            for (int i = 0; i < WorldChaseProps.ShutterCount; i++) world.Shutters.Add((byte)ShutterState.Up);
+            Assert.That(KillerHudCopy.SwingClear(null, world, 66.5f, 57.5f, 69.5f, 57.5f), Is.True, "Up: the swing passes");
+            world.Shutters[1] = (byte)ShutterState.Down;
+            Assert.That(KillerHudCopy.SwingClear(null, world, 66.5f, 57.5f, 69.5f, 57.5f), Is.False, "Down: the swing is stopped");
+            Assert.That(KillerHudCopy.SwingClear(null, world, 66.5f, 60f, 69.5f, 60f), Is.True, "a line beside it is clear");
+            world.Shutters[1] = (byte)ShutterState.Broken;
+            Assert.That(KillerHudCopy.SwingClear(null, world, 66.5f, 57.5f, 69.5f, 57.5f), Is.True, "Broken: open again");
+            // A wall: the line through the middle of the first wall box is blocked, the same line with no map is clear.
+            Wall wall = SharedMap.Map.Walls[0];
+            float cx = (wall.MinX + wall.MaxX) * .5f, cz = (wall.MinZ + wall.MaxZ) * .5f;
+            Assert.That(KillerHudCopy.SwingClear(SharedMap.Map, world, cx - 5f, cz, cx + 5f, cz), Is.False, "wall");
+            Assert.That(KillerHudCopy.SwingClear(null, null, cx - 5f, cz, cx + 5f, cz), Is.True, "no map and no world: clear");
+        }
 
         [Test]
         public void TheAttackPromptShowsWithinThreeMetresOfAVisibleBlip()

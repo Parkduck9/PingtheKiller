@@ -327,14 +327,14 @@ namespace PingTheKiller.Client.UI
                     r.Visual = Hovl(FxPrefab.Pillar, FxTint.Ally, FxAnchor.Effect, x, z, 1.5f, 1f);
                     bool self = !own && f.Own.Status == PlayerStatus.Lagging && Within(f.Own.X, f.Own.Z, x, z, RestoreMatchRange);
                     string target = Name(f.Names, RestoreTarget(f.Mates, casterId, x, z));
-                    if (own) { r.Line = Line("Restored " + target + " " + Dot + " no longer Lagging", LineTone.Ally, CasterPriority); r.Sound = Cue(FxClip.Restore, -9, 1f, FxTier.Skill); }
+                    if (own) { r.Line = Line("Rescued " + target + " " + Dot + " no longer Lagging", LineTone.Ally, CasterPriority); r.Sound = Cue(FxClip.Restore, -9, 1f, FxTier.Skill); }
                     else if (self)
                     {
                         r.Viewer = FxViewer.Affected;
-                        r.Line = Line(Capital(caster) + " restored you " + Dot + " no longer Lagging", LineTone.Ally, AffectedPriority);
+                        r.Line = Line(Capital(caster) + " rescued you " + Dot + " no longer Lagging", LineTone.Ally, AffectedPriority);
                         r.Sound = Cue(FxClip.Restore, -6, 1f, FxTier.Skill);
                     }
-                    else { r.Line = Line(Capital(caster) + " restored " + target, LineTone.Ally, AllyPriority); r.Sound = Positional(FxClip.Restore, -15, 20, 0, x, z); }
+                    else { r.Line = Line(Capital(caster) + " rescued " + target, LineTone.Ally, AllyPriority); r.Sound = Positional(FxClip.Restore, -15, 20, 0, x, z); }
                     return r;
                 }
                 case SkillIds.WhiteNoise:

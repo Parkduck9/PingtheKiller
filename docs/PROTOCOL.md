@@ -67,7 +67,7 @@ for display only; the server never uses their client-supplied timestamps for jud
 Exactly two payload bytes: `byte SkillId` (the requested id, echoed) and `byte Reason` (`SkillRejectReason`):
 1 `NotInMatch`, 2 `NotYourSkill` (another id, or out of range), 3 `NotNormal` (Lagging, Eliminated or Escaped),
 4 `Cooldown`, 5 `NoTarget` (Ping scanner without an active Survivor; Emergency restore without a Lagging ally in
-radius), 6 `NoSwitchInProgress` (Firewall block), 7 `Passive` (Packet afterimage), 8 `Sandbox`. 0 and values above 8,
+radius), 6 `NoSwitchInProgress` (Firewall block when it has no target: no unopened exit has switch progress and no unfinished terminal has progress; R1 made a terminal a valid target, so the name is historical), 7 `Passive` (defined, never sent since R1: Packet trace replaced the passive Packet afterimage), 8 `Sandbox`. 0 and values above 8,
 and short or trailing payloads, are rejected (`PacketFormatException`).
 The server sends one to the caster only, for every refused `C2S_UseSkill`, at most one per player per tick (a use in
 the same tick also counts as the answer). Bots receive none. Each reason is derivable from the caster's own stream.

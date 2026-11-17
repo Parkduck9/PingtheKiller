@@ -10,8 +10,8 @@ namespace PingTheKiller.Shared.Game
         NotNormal = 3,          // the caster is Lagging, Eliminated or Escaped
         Cooldown = 4,           // the server cooldown has not ended (TimeEpsilon edge included)
         NoTarget = 5,           // Ping scanner: no active Survivor; Emergency restore: no Lagging ally in radius
-        NoSwitchInProgress = 6, // Firewall block: no unopened exit has switch progress
-        Passive = 7,            // Packet afterimage cannot be activated
+        NoSwitchInProgress = 6, // Firewall block: no unopened exit has switch progress and no unfinished terminal has progress
+        Passive = 7,            // defined, never sent since R1 (Packet trace is active)
         Sandbox = 8             // the dev sandbox has no skills
     }
 
