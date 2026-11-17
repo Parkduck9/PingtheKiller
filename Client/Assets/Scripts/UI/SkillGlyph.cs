@@ -44,8 +44,15 @@ namespace PingTheKiller.Client.UI
             t[Key(true, SkillIds.PingScanner)] = new[] { Arc(6, 26, 7, -80, -10), Arc(6, 26, 13, -80, -10), Arc(6, 26, 19, -80, -10), Dot(6, 26, 1.5f), Dot(27, 5, 2) };
             // Two right chevrons followed by a vertical stop bar.
             t[Key(true, SkillIds.Overclock)] = new[] { Line(5, 8, 12, 16, 5, 24), Line(13, 8, 20, 16, 13, 24), Line(26, 7, 26, 25) };
-            // A solid dot with two hollow dots trailing behind.
-            t[Key(true, SkillIds.PacketAfterimage)] = new[] { Dot(24, 16, 4), Arc(14, 16, 3, 0, 360), Arc(6, 16, 2.5f, 0, 360) };
+            // R1 (11/17) Packet trace: a centre dot inside a dashed ring, short rays bursting out of it.
+            var trace = new List<Prim> { Dot(16, 16, 2.5f) };
+            for (int i = 0; i < 6; i++) trace.Add(Arc(16, 16, 8, i * 60 + 10, i * 60 + 40));
+            for (int i = 0; i < 4; i++)
+            {
+                float a = (45 + 90 * i) * Mathf.Deg2Rad, c = Mathf.Cos(a), s = Mathf.Sin(a);
+                trace.Add(Line(16 + 11 * c, 16 + 11 * s, 16 + 15 * c, 16 + 15 * s));
+            }
+            t[Key(true, SkillIds.PacketTrace)] = trace.ToArray();
             // A ring with a horizontal bar through it.
             t[Key(true, SkillIds.FirewallBlock)] = new[] { Arc(16, 16, 10, 0, 360), Line(2, 16, 30, 16) };
             // Survivor: a dashed-outline dot.

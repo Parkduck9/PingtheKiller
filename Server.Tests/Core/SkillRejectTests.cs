@@ -188,16 +188,6 @@ public sealed class SkillRejectTests
     }
 
     [Fact]
-    public void PassiveForPacketAfterimage()
-    {
-        using var m = RulesMatch.Start(1, SkillIds.PacketAfterimage);
-        Clear(Everyone(m).ToArray());
-        Use(m.Killer, SkillIds.PacketAfterimage);
-        m.Tick();
-        AssertRejected(m, m.Killer, SkillIds.PacketAfterimage, SkillRejectReason.Passive);
-    }
-
-    [Fact]
     public void SandboxRejectsEveryPressWithSandboxOncePerTick()
     {
         using var f = new CoreFixture(sandbox: true);
@@ -293,7 +283,7 @@ public sealed class SkillRejectTests
     [Theory]
     [InlineData(SkillIds.FirewallBlock)]
     [InlineData(SkillIds.PingScanner)]
-    [InlineData(SkillIds.PacketAfterimage)]
+    [InlineData(SkillIds.PacketTrace)]
     public void KillerAnswersDoNotDependOnASilentSurvivorsPosition(byte skill)
     {
         var answers = new List<string>();
@@ -315,8 +305,9 @@ public sealed class SkillRejectTests
             answers.Add(rejection != null ? Convert.ToHexString(PacketCodec.Encode(rejection)) : effect ? "effect" : "none");
         }
         Assert.All(answers, a => Assert.Equal(answers[0], a));
-        // Ping scanner finds a Silent Survivor anywhere; Firewall block and the passive skill are refused everywhere.
-        Assert.Equal(skill == SkillIds.PingScanner, answers[0] == "effect");
+        // Ping scanner finds a Silent Survivor anywhere and Packet trace always fires (R1); Firewall block is refused
+        // everywhere (no switch or terminal progress).
+        Assert.Equal(skill == SkillIds.PingScanner || skill == SkillIds.PacketTrace, answers[0] == "effect");
         Assert.NotEqual("none", answers[0]);
     }
 

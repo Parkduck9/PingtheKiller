@@ -46,6 +46,9 @@ namespace PingTheKiller.Client.Killer
         public float KillerZ { get; private set; }
         public IReadOnlyList<Blip> Blips => tracker.Blips;
         public IReadOnlyList<BlipEvent> Events => tracker.Events;
+        // R1 (11/17) a2: see BlipTracker.NormalVanishedNear.
+        public bool NormalVanishedNear => tracker.NormalVanishedNear;
+        public Vector3 VanishedPoint => new Vector3(tracker.VanishedX, 0, tracker.VanishedZ);
         public IReadOnlyList<BlipView> Views => views;
         // The sound model's occlusion input: the held wall-ray result of the last frame.
         public readonly Func<int, bool> IsOccluded;

@@ -236,7 +236,7 @@ internal sealed class DirectRig : IDisposable
     internal uint Seq = 1;
     internal DirectRig(int seed = 5, bool start = true)
     {
-        Server = new GameServer(new ServerOptions { IsOffline = true, Seed = seed });
+        Server = new GameServer(new ServerOptions { IsOffline = true, Seed = seed }) { ContactSwingForTests = true };
         Server.AddConnection(K);
         K.Push(new C2S_Join { Nickname = "K" });
         Server.Tick(0.05f);

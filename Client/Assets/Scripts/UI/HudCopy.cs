@@ -16,7 +16,7 @@ namespace PingTheKiller.Client.UI
             var table = new string[SkillIds.KillerSkillCount];
             table[SkillIds.PingScanner] = "Ping Scanner";
             table[SkillIds.Overclock] = "Overclock";
-            table[SkillIds.PacketAfterimage] = "Packet Afterimage";
+            table[SkillIds.PacketTrace] = "Packet Trace";
             table[SkillIds.FirewallBlock] = "Firewall Block";
             return table;
         }
@@ -38,10 +38,8 @@ namespace PingTheKiller.Client.UI
             return skillId < table.Length ? table[skillId] : "Skill " + skillId;
         }
 
-        public static bool IsPassive(Role role, byte skillId) => role == Role.Killer && skillId == SkillIds.PacketAfterimage;
-
-        public static string SkillLine(Role role, byte skillId)
-            => (IsPassive(role, skillId) ? "Passive · " : "Q · ") + SkillName(role, skillId);
+        // R1 (11/17): Packet trace became active, so every skill is pressed with Q.
+        public static string SkillLine(Role role, byte skillId) => "Q · " + SkillName(role, skillId);
 
         // Empty while Normal: the HUD adds nothing for the default state.
         public static string StatusLine(PlayerStatus status, float timer)

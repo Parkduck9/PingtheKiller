@@ -29,8 +29,6 @@ internal static class KillerTruth
     internal static PlayerState? Entry(GameServer server, S2C_WorldState world, int id) =>
         Index(server, world, id) is int i ? world.Players[i] : null;
     internal static bool Has(GameServer server, S2C_WorldState world, int id) => Index(server, world, id) != null;
-    internal static bool IsAfterimage(GameServer server, S2C_WorldState world, int id) =>
-        Index(server, world, id) is int i && server.KillerViewSources[i].Afterimage;
     internal static List<PlayerState> Phantoms(GameServer server, S2C_WorldState world)
     {
         var sources = server.KillerViewSources;
@@ -135,7 +133,6 @@ internal sealed class RulesMatch : IDisposable
     }
     internal PlayerState? KillerSees(Peer survivor) => KillerTruth.Entry(F.Server, Killer.Last<S2C_WorldState>(), survivor.Id);
     internal PlayerState? KillerEntry(S2C_WorldState world, int id) => KillerTruth.Entry(F.Server, world, id);
-    internal bool KillerSeesAfterimage(Peer survivor) => KillerTruth.IsAfterimage(F.Server, Killer.Last<S2C_WorldState>(), survivor.Id);
     internal List<PlayerState> KillerPhantoms() => KillerTruth.Phantoms(F.Server, Killer.Last<S2C_WorldState>());
     internal PlayerState Truth(Peer survivor) => Entry(Survivors[0].Last<S2C_WorldState>(), survivor.Id)!.Value;
 

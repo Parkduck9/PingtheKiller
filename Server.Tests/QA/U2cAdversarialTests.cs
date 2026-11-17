@@ -1192,7 +1192,7 @@ public sealed class U2cAdversarialTests
             {
                 if (pk is not S2C_WorldState w) continue;
                 KillerViewAsserts.AssertAnonymous(w, m.K.Id, "sandbox tick " + t);
-                Assert.All(m.Server.KillerViewSources, s => { Assert.False(s.Phantom); Assert.False(s.Afterimage); });
+                Assert.All(m.Server.KillerViewSources, s => Assert.False(s.Phantom));
                 Assert.All(w.Terminals, x => Assert.Equal(0, x.Progress));
                 if (w.Players.Count > 2) { multi++; orders.Add(string.Join(",", m.Server.KillerViewSources.Select(s => s.Label))); }
             }

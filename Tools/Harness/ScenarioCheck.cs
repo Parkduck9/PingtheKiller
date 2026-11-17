@@ -35,7 +35,7 @@ public sealed class Actor : IAsyncDisposable
     private long worlds, results;
     private Exception? failure;
     private Task pump = Task.CompletedTask;
-    private int sequence;
+    private int sequence, attackSequence;
     private int syncChecks, syncPresses, syncGreat, syncGood, syncFail;
 
     private Actor(string name, WireClient wire, S2C_JoinResult identity, TimeSpan timeout)
@@ -192,10 +192,13 @@ public sealed class Actor : IAsyncDisposable
         }
     }
 
-    public Task MoveAsync(Vector2 direction, CancellationToken ct) => Wire.SendAsync(new C2S_MoveInput
+    public Task MoveAsync(Vector2 direction, CancellationToken ct, float yaw = 0) => Wire.SendAsync(new C2S_MoveInput
     {
-        DirX = direction.X, DirZ = direction.Y, Seq = (uint)Interlocked.Increment(ref sequence)
+        DirX = direction.X, DirZ = direction.Y, Yaw = yaw, Seq = (uint)Interlocked.Increment(ref sequence)
     }, ct);
+
+    // R1 (11/17): a Killer swing; the server aims with the latest MoveInput.Yaw.
+    public Task AttackAsync(CancellationToken ct) => Wire.SendAsync(new C2S_Attack { Seq = (uint)Interlocked.Increment(ref attackSequence) }, ct);
 
     public Task InteractAsync(bool active, CancellationToken ct) => Wire.SendAsync(new C2S_Interact { Active = (byte)(active ? 1 : 0) }, ct);
 
@@ -604,8 +607,25 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         await WalkAsync(Killer, "killer to A", path!, 0.3f, ct, () => Captured(A.Latest));
         // U2b: the capturing contact never executes (leave-and-re-enter). Stop and stay in contact.
         await Killer.MoveAsync(Vector2.Zero, ct);
+        // R1 (11/17): proximity no longer captures; the killer faces A (A's own stream gives A's position) and swings, at
+        // most once per recovery, until A leaves Normal.
+        int swings = 0;
+        var swinging = Stopwatch.StartNew();
+        while (!Captured(A.Latest))
+        {
+            Check.Require(swinging.Elapsed < TimeSpan.FromSeconds(10), $"A captured not observed after {swings} swings in 10 s; killer at {Position(Killer.LatestSelf)}, A at {Position(A.LatestSelf)}.");
+            var toA = Position(A.LatestSelf) - Position(Killer.LatestSelf);
+            float yaw = toA.LengthSquared() < 1e-8f ? 0 : MathF.Atan2(toA.X, toA.Y) * 180 / MathF.PI;
+            await Killer.MoveAsync(Vector2.Zero, ct, yaw);
+            await Killer.AttackAsync(ct);
+            swings++;
+            var wait = Stopwatch.StartNew();
+            long seenSwing = 0;
+            while (!Captured(A.Latest) && wait.Elapsed < TimeSpan.FromSeconds(GameConstants.SwingWindUpSeconds + GameConstants.SwingMissRecoverySeconds + 0.3))
+                (_, seenSwing) = await A.NextWorldAsync(seenSwing, ct);
+        }
         if (!Captured(A.Latest))
-            await UntilAsync(A, Captured, options.Timeout, "A captured after the killer reached it (stand-still contact)", ct);
+            await UntilAsync(A, Captured, options.Timeout, "A captured after the killer swung", ct);
         double reached = clock.Elapsed.TotalSeconds;
         var lagging = A.Self(await UntilAsync(A, world => Entry(world, A.Id)?.Status == (byte)PlayerStatus.Lagging, options.Timeout,
             "A Lagging in survivor view", ct, world => Executed(world, A.Id)));
@@ -666,7 +686,7 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
             ?? throw new CheckFailure($"B is missing from A's WorldState: {Describe(A.Latest)}.");
         Check.Require(bState.Status == (byte)PlayerStatus.Normal && bState.CaptureCount == 0,
             $"B was touched: status={bState.Status}, CaptureCount={bState.CaptureCount}.");
-        evidence.Add($"capture: B {separation:F1} m away and still; killer reached A in {reached:F1} s; survivor view A Lagging, CaptureCount=1, " +
+        evidence.Add($"capture: B {separation:F1} m away and still; killer reached A and swung {swings}x in {reached:F1} s; survivor view A Lagging, CaptureCount=1, " +
             $"StatusTimer={lagging.StatusTimer:F1} s; killer held contact {HoldContact.TotalSeconds:F0} s ({held} A frames, {nearest:F2}..{farthest:F2} m) with A still Lagging (no execution); B Normal/0; killer then left and stands still at ({killerPos.X:F1},{killerPos.Y:F1}), " +
             $"{Vector2.Distance(killerPos, aPos):F1} m from A");
     }

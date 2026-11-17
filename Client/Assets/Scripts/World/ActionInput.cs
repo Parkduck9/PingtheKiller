@@ -28,13 +28,31 @@ namespace PingTheKiller.Client.World
 
     public static class SkillInput
     {
-        // Q on press only. Passive skills are never sent; a player that is not Normal cannot use a skill (GDD 3.3).
+        // Q on press only; a player that is not Normal cannot use a skill (GDD 3.3). R1 (11/17): no skill is passive.
         public static bool TryCreate(bool pressed, Role role, byte skillId, PlayerStatus status, out C2S_UseSkill packet)
         {
             packet = null;
-            if (!pressed || HudCopy.IsPassive(role, skillId) || status != PlayerStatus.Normal) return false;
+            if (!pressed || status != PlayerStatus.Normal) return false;
             packet = new C2S_UseSkill { SkillId = skillId };
             return true;
         }
+    }
+
+    // R1 (11/17): the Killer's attack (left mouse button or gamepad right trigger) on press only; Survivors never send
+    // it. Seq rises by one per sent press for the life of the link (the server drops a Seq it has already seen).
+    public sealed class AttackInput
+    {
+        public uint Seq { get; private set; }
+
+        public bool TryCreate(bool pressed, Role role, out C2S_Attack packet)
+        {
+            packet = null;
+            if (!pressed || role != Role.Killer) return false;
+            packet = new C2S_Attack { Seq = ++Seq };
+            return true;
+        }
+
+        // New link: the server forgets the last Seq on (re)join, so counting may start over.
+        public void Reset() => Seq = 0;
     }
 }

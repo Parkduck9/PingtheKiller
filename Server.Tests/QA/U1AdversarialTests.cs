@@ -438,6 +438,7 @@ public sealed class U1AdversarialTests
             parts.Add(Le32(i + 1));                              // PlayerId = i + 1
             parts.Add(new byte[] { 1, 0, (byte)('a' + i % 26) }); // Nickname length 1, one ASCII char
             parts.Add(new[] { (byte)(i == 7 ? 1 : 0), (byte)(i == 0 ? 1 : 0) }); // IsBot, IsHost
+            parts.Add(new byte[] { 0xFF });                      // R1 SkillChoice: none
         }
         return Concat(parts.ToArray());
     }

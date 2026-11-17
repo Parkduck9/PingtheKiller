@@ -1,0 +1,341 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.123 seconds
+- Finished resetting the current domain, in  0.003 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 1.015200 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\lobby.png
+[offline server] match start players=4 killer=1 matchSeed=-605859427
+[fx] warm ms=24.1 objects=124 meshes=12 materials=21 glyphs=9
+[DEV] match 1 start role=Survivor skill=3
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=0.01 local status=Normal timer=0.00 hud="" pos=52.00,1.50
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\play-1s.png
+[DEV] t=1.03 local position 52.00,1.50 moved=0.00 m
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\survivor-3p.png
+[DEV] t=2.01 chase terminal from=52.00,1.50 to=10.00,25.00 yaw=273.37
+[DEV] t=3.01 chase terminal from=48.36,1.71 to=10.00,25.00 yaw=273.37
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\play-4s.png
+[DEV] t=4.03 chase terminal from=44.29,1.95 to=10.00,25.00 yaw=273.37
+[DEV] t=4.45 killer model shown
+[DEV] t=4.96 event killer-in-sight.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\killer-in-sight.png
+[DEV] t=5.00 local position 42.41,4.26 moved=9.98 m
+[DEV] t=5.03 chase killer from=42.40,4.38 yaw=355.58
+[DEV] t=6.04 chase killer from=42.09,8.40 yaw=355.58
+[DEV] t=7.05 chase killer from=41.79,12.41 yaw=355.68
+[offline server] terminal 5 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=7.57 event skillfx-survivor-k3-ally-720p.png
+[fx] killer skill=3 viewer=Ally line="Terminal 6 · Locked · 8 s" visual=HexWall sound=FirewallSurvivor (positional) reduced=False
+[net] SkillEffect skill=3 (survivor HUD)
+[fx] first cast HexWall frame ms=6.1 (average before 6.3)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\skillfx-survivor-k3-ally-720p.png
+[DEV] t=8.05 chase terminal from=41.52,16.40 to=10.00,25.00 yaw=338.79
+[DEV] t=8.10 event chase-prompt.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\chase-prompt.png
+[DEV] t=8.20 event killer-fade.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\killer-fade.png
+[DEV] t=8.36 killer model hidden
+[DEV] t=9.05 chase terminal from=40.07,20.15 to=10.00,25.00 yaw=338.73
+[DEV] t=9.25 threat visual level=1
+[DEV] t=9.56 event threat-1.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\threat-1.png
+[DEV] t=10.00 threat visual level=0
+[DEV] t=10.06 chase terminal from=37.06,21.87 to=10.00,25.00 yaw=273.06
+[DEV] t=11.07 chase terminal from=33.03,22.08 to=10.00,25.00 yaw=273.06
+[DEV] t=12.07 chase terminal from=29.02,22.30 to=10.00,25.00 yaw=273.06
+[DEV] t=13.08 chase terminal from=25.01,22.51 to=10.00,25.00 yaw=273.06
+[DEV] t=14.08 chase terminal from=21.01,22.73 to=10.00,25.00 yaw=273.06
+[DEV] t=15.08 chase terminal from=17.02,22.94 to=10.00,25.00 yaw=273.06
+[DEV] t=16.08 chase terminal from=13.02,23.16 to=10.00,25.00 yaw=284.67
+[offline server] skill player=2 role=Survivor id=1
+[DEV] t=16.16 event skillfx-survivor-s1-ally-720p.png
+[fx] survivor skill=1 viewer=Ally line="" visual=Dome sound=None reduced=False
+[net] SkillEffect skill=1 (survivor HUD)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\skillfx-survivor-s1-ally-720p.png
+[DEV] t=17.09 chase terminal from=12.85,23.32 to=58.00,27.00 yaw=90.22
+[DEV] t=18.09 chase terminal from=16.86,23.31 to=58.00,27.00 yaw=90.22
+[offline server] kick terminal 5
+[DEV] t=19.09 chase terminal from=20.88,23.29 to=58.00,27.00 yaw=90.22
+[DEV] t=20.10 chase terminal from=24.91,23.28 to=58.00,27.00 yaw=90.22
+[DEV] t=21.10 chase terminal from=28.92,23.26 to=58.00,27.00 yaw=90.22
+[DEV] t=22.11 chase terminal from=32.40,24.54 to=58.00,27.00 yaw=38.48
+[DEV] t=22.15 threat visual level=1
+[DEV] t=23.11 chase terminal from=34.90,27.67 to=58.00,27.00 yaw=51.39
+[DEV] t=23.30 killer model shown
+[DEV] t=23.66 threat visual level=2
+[DEV] t=23.96 event threat-2.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\threat-2.png
+[DEV] t=24.11 chase killer from=35.72,26.09 yaw=179.13
+[DEV] t=24.46 threat visual level=3
+[DEV] t=24.66 event threat-3.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\threat-3.png
+[DEV] t=24.96 killer wind-up seen #1
+[DEV] t=24.96 event r1-survivor-windup.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\r1-survivor-windup.png
+[DEV] t=25.11 chase killer from=37.56,22.91 yaw=151.34
+[offline server] status player=4 Lagging reason=capture
+[offline server] swing player=1 result=hit target=4
+[client] captured: banner + burst + hit-stop
+[DEV] t=25.15 local status=Lagging timer=60.00 hud="Lagging · 60 s" pos=37.85,22.45
+[fx] capture impact scheduled (dev log, no position)
+[client] Lagging look on (steady look + capture burst, full frame rate)
+[DEV] t=25.26 event u8-capture-a-windup.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\u8-capture-a-windup.png
+[DEV] t=25.46 event u8-capture-0-hit.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\u8-capture-0-hit.png
+[DEV] t=25.61 event u8-capture-1-burst.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\u8-capture-1-burst.png
+[DEV] t=25.76 event capture-banner.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\capture-banner.png
+[DEV] t=26.15 local status=Lagging timer=59.00 hud="Lagging · 59 s" pos=37.85,22.45
+[DEV] t=26.16 event lagging.png
+[perf] capture frame times (own capture) before: n=160 mean=6.3 max=24.2 ms; after: n=149 mean=6.7 max=30.3 ms; spikes>33ms=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\lagging.png
+[DEV] t=26.26 event u8-capture-2-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\u8-capture-2-after.png
+[DEV] t=27.16 local status=Lagging timer=58.00 hud="Lagging · 58 s" pos=37.85,22.45
+[DEV] t=27.16 threat visual level=2
+[DEV] t=28.15 local status=Lagging timer=57.00 hud="Lagging · 57 s" pos=37.85,22.45
+[DEV] t=28.45 threat visual level=1
+[DEV] t=28.46 event lagging-stutter.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\lagging-stutter.png
+[DEV] t=29.15 local status=Lagging timer=56.00 hud="Lagging · 56 s" pos=37.85,22.45
+[DEV] t=29.76 threat visual level=0
+[DEV] t=30.15 local status=Lagging timer=55.00 hud="Lagging · 55 s" pos=37.85,22.45
+[DEV] t=31.16 local status=Lagging timer=54.00 hud="Lagging · 54 s" pos=37.85,22.45
+[DEV] t=31.16 selfstate #33 skillCooldown=0.00 rescue=0.02 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=32.16 local status=Lagging timer=53.00 hud="Lagging · 53 s" pos=37.85,22.45
+[DEV] t=32.16 selfstate #34 skillCooldown=0.00 rescue=0.35 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=32.16 killer model hidden
+[DEV] t=32.16 rescue progress=0.35 invulnerable=0.00
+[DEV] t=32.16 event survivor-rescue.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\survivor-rescue.png
+[DEV] t=33.16 local status=Lagging timer=52.00 hud="Lagging · 52 s" pos=37.85,22.45
+[DEV] t=33.16 selfstate #35 skillCooldown=0.00 rescue=0.68 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] status player=4 Normal reason=rescue
+[audio] v2 cue Rescue
+[DEV] t=34.10 local status=Normal timer=0.00 hud="" pos=37.85,22.45
+[DEV] t=34.10 selfstate #36 skillCooldown=0.00 rescue=0.00 invulnerable=2.00 collapse=-1.00 action=None:0.00
+[DEV] t=34.10 chase terminal from=37.85,22.45 to=58.00,27.00 yaw=22.27
+[DEV] t=35.11 selfstate #37 skillCooldown=0.00 rescue=0.00 invulnerable=1.00 collapse=-1.00 action=None:0.00
+[DEV] t=35.11 chase terminal from=39.22,25.80 to=58.00,27.00 yaw=22.27
+[DEV] t=36.11 chase terminal from=40.83,29.48 to=58.00,27.00 yaw=35.80
+[DEV] t=37.12 chase terminal from=44.24,30.74 to=58.00,27.00 yaw=89.96
+[DEV] t=38.13 chase terminal from=48.26,30.75 to=58.00,27.00 yaw=89.96
+[DEV] t=39.14 chase terminal from=52.29,30.75 to=58.00,27.00 yaw=104.26
+[DEV] t=40.14 chase terminal from=55.71,28.82 to=58.00,27.00 yaw=128.50
+[DEV] t=41.15 chase terminal from=57.13,30.51 to=64.50,74.00 yaw=6.63
+[DEV] t=42.16 chase terminal from=57.60,34.51 to=64.50,74.00 yaw=6.63
+[DEV] t=42.50 killer model shown
+[DEV] t=43.16 chase killer from=55.19,35.41 yaw=250.18
+[DEV] t=43.20 threat visual level=1
+[DEV] t=43.91 threat visual level=2
+[offline server] skill player=2 role=Survivor id=1
+[DEV] t=44.16 chase killer from=51.42,34.05 yaw=249.37
+[DEV] t=44.36 terminals 0:0 1:0 2:0 3:0 4:1 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=44.36 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\hacking.png
+[DEV] t=44.65 threat visual level=3
+[DEV] t=44.81 terminals 0:0 1:0 2:0 3:0 4:2 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=45.11 terminals 0:0 1:1 2:0 3:0 4:2 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=45.11 killer wind-up seen #2
+[DEV] t=45.11 event r1-survivor-windup-2.png
+[DEV] t=45.17 chase killer from=47.69,32.56 yaw=247.30
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\r1-survivor-windup-2.png
+[offline server] status player=4 Lagging reason=capture
+[offline server] swing player=1 result=hit target=4
+[client] captured: banner + burst + hit-stop
+[DEV] t=45.31 local status=Lagging timer=30.00 hud="Lagging · 30 s" pos=46.83,32.19
+[fx] capture impact scheduled (dev log, no position)
+[client] Lagging look on (steady look + capture burst, full frame rate)
+[DEV] t=46.31 local status=Lagging timer=29.00 hud="Lagging · 29 s" pos=46.83,32.19
+[perf] capture frame times (own capture) before: n=156 mean=6.4 max=30.3 ms; after: n=163 mean=6.1 max=12.1 ms; spikes>33ms=0
+[offline server] skill player=3 role=Survivor id=2
+[DEV] t=46.41 event skillfx-survivor-s2-ally-720p.png
+[fx] survivor skill=2 viewer=Ally line="Bot 3 slowed the Killer · 2 s" visual=Spikes sound=Overload (positional) reduced=False
+[net] SkillEffect skill=2 (survivor HUD)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\skillfx-survivor-s2-ally-720p.png
+[DEV] t=47.31 terminals 0:0 1:1 2:0 3:0 4:3 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=47.31 local status=Lagging timer=28.00 hud="Lagging · 28 s" pos=46.83,32.19
+[DEV] t=47.76 terminals 0:0 1:1 2:0 3:0 4:4 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=48.20 terminals 0:0 1:1 2:0 3:0 4:5 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=48.31 local status=Lagging timer=27.00 hud="Lagging · 27 s" pos=46.83,32.19
+[DEV] t=49.30 local status=Lagging timer=26.00 hud="Lagging · 26 s" pos=46.83,32.19
+[DEV] t=50.30 local status=Lagging timer=25.00 hud="Lagging · 25 s" pos=46.83,32.19
+[DEV] t=50.46 threat visual level=2
+[DEV] t=51.00 terminals 0:0 1:1 2:0 3:0 4:6 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=51.30 local status=Lagging timer=24.00 hud="Lagging · 24 s" pos=46.83,32.19
+[DEV] t=51.51 killer model hidden
+[DEV] t=52.30 local status=Lagging timer=23.00 hud="Lagging · 23 s" pos=46.83,32.19
+[DEV] t=53.30 local status=Lagging timer=22.00 hud="Lagging · 22 s" pos=46.83,32.19
+[offline server] kick terminal 1
+[DEV] t=53.75 terminals 0:0 1:0 2:0 3:0 4:6 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=54.30 local status=Lagging timer=21.00 hud="Lagging · 21 s" pos=46.83,32.19
+[DEV] t=55.30 local status=Lagging timer=20.00 hud="Lagging · 20 s" pos=46.83,32.19
+[DEV] t=56.31 local status=Lagging timer=19.00 hud="Lagging · 19 s" pos=46.83,32.19
+[DEV] t=57.30 local status=Lagging timer=18.00 hud="Lagging · 18 s" pos=46.83,32.19
+[DEV] t=58.25 killer model shown
+[DEV] t=58.30 local status=Lagging timer=17.00 hud="Lagging · 17 s" pos=46.83,32.19
+[offline server] skill player=2 role=Survivor id=1
+[DEV] t=59.11 threat visual level=3
+[DEV] t=59.30 local status=Lagging timer=16.00 hud="Lagging · 16 s" pos=46.83,32.19
+[DEV] t=60.30 local status=Lagging timer=15.00 hud="Lagging · 15 s" pos=46.83,32.19
+[DEV] t=61.30 local status=Lagging timer=14.00 hud="Lagging · 14 s" pos=46.83,32.19
+[DEV] t=62.30 local status=Lagging timer=13.00 hud="Lagging · 13 s" pos=46.83,32.19
+[DEV] t=62.45 threat visual level=2
+[DEV] t=63.30 local status=Lagging timer=12.00 hud="Lagging · 12 s" pos=46.83,32.19
+[DEV] t=63.80 threat visual level=1
+[DEV] t=64.20 killer wind-up seen #3
+[DEV] t=64.20 event r1-survivor-windup-3.png
+[DEV] t=64.30 local status=Lagging timer=11.00 hud="Lagging · 11 s" pos=46.83,32.19
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\r1-survivor-windup-3.png
+[offline server] swing player=1 result=miss
+[DEV] t=65.30 local status=Lagging timer=10.00 hud="Lagging · 10 s" pos=46.83,32.19
+[DEV] t=66.30 local status=Lagging timer=9.00 hud="Lagging · 9 s" pos=46.83,32.19
+[DEV] t=67.30 local status=Lagging timer=8.00 hud="Lagging · 8 s" pos=46.83,32.19
+[DEV] t=67.35 threat visual level=0
+[DEV] t=68.30 local status=Lagging timer=7.00 hud="Lagging · 7 s" pos=46.83,32.19
+[DEV] t=69.30 local status=Lagging timer=6.00 hud="Lagging · 6 s" pos=46.83,32.19
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=70.30 local status=Lagging timer=5.00 hud="Lagging · 5 s" pos=46.83,32.19
+[DEV] t=71.30 local status=Lagging timer=4.00 hud="Lagging · 4 s" pos=46.83,32.19
+[DEV] t=72.30 local status=Lagging timer=3.00 hud="Lagging · 3 s" pos=46.83,32.19
+[DEV] t=73.30 local status=Lagging timer=2.00 hud="Lagging · 2 s" pos=46.83,32.19
+[DEV] t=74.30 local status=Lagging timer=1.00 hud="Lagging · 1 s" pos=46.83,32.19
+[offline server] status player=4 Eliminated reason=timeout
+[client] eliminated, reason=TimedOut ("Disconnected: no rescue in the second Lagging stage (30 s).")
+[DEV] t=75.30 local status=Eliminated timer=0.00 hud="Eliminated. Watching until the match ends." pos=46.83,32.19
+[DEV] t=75.30 killer model hidden
+[DEV] t=76.30 event eliminated-reason.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\eliminated-reason.png
+[DEV] t=81.06 terminals 0:0 1:0 2:0 3:0 4:7 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=81.30 terminals 0:0 1:0 2:0 3:0 4:8 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[offline server] skill player=2 role=Survivor id=1
+[DEV] t=89.65 terminals 0:0 1:0 2:0 3:0 4:9 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=90.10 terminals 0:0 1:0 2:0 3:0 4:10 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=90.55 terminals 0:0 1:0 2:0 3:0 4:11 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=90.90 terminals 0:0 1:0 2:0 3:0 4:12 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=91.35 terminals 0:0 1:0 2:0 3:0 4:13 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=91.80 terminals 0:0 1:0 2:0 3:0 4:14 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=92.25 terminals 0:0 1:0 2:0 3:0 4:15 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=93.10 terminals 0:0 1:0 2:0 3:0 4:16 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=93.55 terminals 0:0 1:0 2:0 3:0 4:17 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=101.85 terminals 0:0 1:0 2:0 3:0 4:18 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=102.10 terminals 0:0 1:0 2:0 3:0 4:19 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=102.35 terminals 0:0 1:0 2:0 3:0 4:20 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=102.60 terminals 0:0 1:0 2:0 3:0 4:21 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=102.85 terminals 0:0 1:0 2:0 3:0 4:22 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=103.10 terminals 0:0 1:0 2:0 3:0 4:23 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=103.40 terminals 0:0 1:0 2:0 3:0 4:24 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=105.45 terminals 0:0 1:0 2:0 3:0 4:25 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] skill player=2 role=Survivor id=1
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[offline server] skill player=2 role=Survivor id=1
+[DEV] t=133.61 terminals 0:0 1:0 2:0 3:0 4:26 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=133.86 terminals 0:0 1:0 2:0 3:0 4:27 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=134.10 terminals 0:0 1:0 2:0 3:0 4:28 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=134.35 terminals 0:0 1:0 2:0 3:0 4:29 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=134.61 terminals 0:0 1:0 2:0 3:0 4:30 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=135.85 terminals 0:0 1:0 2:0 3:0 4:31 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=136.30 terminals 0:0 1:0 2:0 3:0 4:32 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=136.76 terminals 0:0 1:0 2:0 3:0 4:33 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=137.10 terminals 0:0 1:0 2:0 3:0 4:34 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=137.35 terminals 0:0 1:0 2:0 3:0 4:35 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=145.70 terminals 0:0 1:0 2:0 3:0 4:36 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=146.16 terminals 0:0 1:0 2:0 3:0 4:37 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=147.00 terminals 0:0 1:0 2:0 3:0 4:38 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=147.45 terminals 0:0 1:0 2:0 3:0 4:39 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=147.90 terminals 0:0 1:0 2:0 3:0 4:40 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=148.36 terminals 0:0 1:0 2:0 3:0 4:41 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] sync player=3 check=1 result=Good rtt=0
+[DEV] t=148.60 terminals 0:0 1:0 2:0 3:0 4:42 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=149.00 terminals 0:0 1:0 2:0 3:0 4:43 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=149.45 terminals 0:0 1:0 2:0 3:0 4:44 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[offline server] skill player=2 role=Survivor id=1
+[offline server] skill player=3 role=Survivor id=2
+[DEV] t=157.91 terminals 0:0 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] rail 7 vault by player=3 role=Survivor
+[audio] chase cue VaultThud at 57.4, 20.9
+[offline server] rail 7 vault by player=3 role=Survivor
+[audio] chase cue VaultThud at 57.1, 20.8
+[offline server] skill player=3 role=Survivor id=2
+[offline server] shutter 4 pull by player=3
+[offline server] shutter 4 down by player=3 stun=none
+[audio] chase cue ShutterSlam at 47.5, 14.0
+[offline server] swing player=1 result=miss
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=177.35 terminals 0:1 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=177.80 terminals 0:2 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=178.25 terminals 0:3 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] shutter 4 broken by player=1
+[audio] chase cue ShutterCrunch at 47.5, 14.0
+[DEV] t=178.71 terminals 0:4 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=179.15 terminals 0:5 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[offline server] rail 5 vault by player=3 role=Survivor
+[audio] chase cue VaultThud at 37.4, 26.2
+[DEV] t=182.05 event chase-vault-seen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\survivor\chase-vault-seen.png
+[offline server] terminal 4 locked seconds=8
+[offline server] skill player=1 role=Killer id=3
+[DEV] t=189.70 terminals 0:6 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=191.85 terminals 0:7 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=192.31 terminals 0:8 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=192.75 terminals 0:9 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=195.20 terminals 0:10 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=195.65 terminals 0:11 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=196.10 terminals 0:12 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] t=196.55 terminals 0:13 1:0 2:0 3:0 4:45 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[DEV] quit after 200 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

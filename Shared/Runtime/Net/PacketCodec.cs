@@ -50,6 +50,8 @@ namespace PingTheKiller.Shared.Net
                 case PacketId.S2C_RttProbe: packet = S2C_RttProbe.Read(ref reader); break;
                 case PacketId.C2S_RttEcho: packet = C2S_RttEcho.Read(ref reader); break;
                 case PacketId.S2C_SkillRejected: packet = S2C_SkillRejected.Read(ref reader); break;
+                case PacketId.C2S_Attack: packet = C2S_Attack.Read(ref reader); break;
+                case PacketId.C2S_ChooseSkill: packet = C2S_ChooseSkill.Read(ref reader); break;
                 default: throw new PacketFormatException("Unknown packet ID.");
             }
             reader.EnsureEnd();

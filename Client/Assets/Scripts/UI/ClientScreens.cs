@@ -33,6 +33,12 @@ namespace PingTheKiller.Client.UI
         private Button join, cancel, offline, minus, plus, start, back, resultLeave;
         private Label botCount, roleChoice;
         private readonly Button[] roleButtons = new Button[3];
+        // R1 (11/17) lobby skill picker: every Killer skill, every Survivor skill (index = role offset + id), then Random.
+        private VisualElement skills;
+        private Label skillChosen;
+        private readonly VisualElement[] skillGroups = new VisualElement[2];
+        private readonly Button[] skillButtons = new Button[SkillIds.KillerSkillCount + SkillIds.SurvivorSkillCount];
+        private Button randomSkill;
         private SettingsScreen settingsScreen;
         private Button openSettings;
         private PanelSettings panel;
@@ -42,6 +48,8 @@ namespace PingTheKiller.Client.UI
         public event Action Leave;
         public event Action<int> ChangeBots;
         public event Action<byte> ChangeRole;
+        // R1 (11/17): the picked lobby skill choice (SkillIds.Choice, or SkillIds.NoChoice for random).
+        public event Action<byte> ChooseSkill;
         public event Action StartMatch;
         public event Action BackToLobby;
         public string Address { get => address.value; set => address.value = value; }
@@ -154,6 +162,7 @@ namespace PingTheKiller.Client.UI
         private void BuildLobby()
         {
             lobby = Box(root, "screen");
+            lobby.AddToClassList("lobby-wide");
             lobbyTitle = Text(lobby, "Lobby", "title");
             var columns = Box(lobby, "columns");
             var roster = Box(columns, "roster");
@@ -164,6 +173,7 @@ namespace PingTheKiller.Client.UI
                 slots[i] = Text(slotRows[i], "Empty", "slot-name");
             }
             var controls = Box(columns, "controls");
+            controls.AddToClassList("with-skills");
             controlsTitle = Text(controls, "Host controls", "section");
             var botActions = Box(controls, "row");
             botCount = Text(botActions, "Bots: 0");
@@ -173,11 +183,61 @@ namespace PingTheKiller.Client.UI
             roleButtons[0] = Action(controls, "Survivor", () => ChangeRole?.Invoke((byte)RoleChoice.Survivor));
             roleButtons[1] = Action(controls, "Killer", () => ChangeRole?.Invoke((byte)RoleChoice.Killer));
             roleButtons[2] = Action(controls, "Random", () => ChangeRole?.Invoke((byte)RoleChoice.Random));
+            BuildSkillPicker(columns);
             lobbyMessage = Text(lobby, string.Empty, "message");
             var actions = Box(lobby, "row");
             start = Action(actions, "Start", () => StartMatch?.Invoke(), true);
             Action(actions, "Leave", () => Leave?.Invoke());
         }
+        // R1 (11/17) HUD_SPEC 12.4: the third lobby column. One row per skill: the name button, its effect line beside it.
+        private void BuildSkillPicker(VisualElement columns)
+        {
+            skills = Box(columns, "skills");
+            Text(skills, LobbyCopy.PickerTitle, "section");
+            skillChosen = Text(skills, string.Empty, "note");
+            skillChosen.AddToClassList("pick-chosen");
+            int index = 0;
+            for (int g = 0; g < 2; g++)
+            {
+                Role role = g == 0 ? Role.Killer : Role.Survivor;
+                skillGroups[g] = Box(skills, "pick-group");
+                Text(skillGroups[g], LobbyCopy.GroupTitle(role), "pick-title");
+                int count = role == Role.Killer ? SkillIds.KillerSkillCount : SkillIds.SurvivorSkillCount;
+                for (byte id = 0; id < count; id++)
+                {
+                    VisualElement row = Box(skillGroups[g], "pick-row");
+                    byte choice = SkillIds.Choice(role, id);
+                    skillButtons[index] = Action(row, LobbyCopy.SkillName(role, id), () => ChooseSkill?.Invoke(choice));
+                    skillButtons[index].AddToClassList("pick");
+                    Text(row, LobbyCopy.PickerEffect(role, id), "pick-effect");
+                    index++;
+                }
+            }
+            randomSkill = Action(skills, LobbyCopy.RandomSkill, () => ChooseSkill?.Invoke(SkillIds.NoChoice));
+            randomSkill.AddToClassList("pick");
+        }
+
+        // The picker for the own slot's choice and the host role choice.
+        private void SetSkillPicker(byte choice, byte hostRoleChoice, bool host)
+        {
+            skillChosen.text = LobbyCopy.Chosen(choice);
+            Show(skillGroups[0], LobbyCopy.ShowsRole(Role.Killer, hostRoleChoice, host));
+            Show(skillGroups[1], LobbyCopy.ShowsRole(Role.Survivor, hostRoleChoice, host));
+            int index = 0;
+            for (int g = 0; g < 2; g++)
+            {
+                Role role = g == 0 ? Role.Killer : Role.Survivor;
+                int count = role == Role.Killer ? SkillIds.KillerSkillCount : SkillIds.SurvivorSkillCount;
+                for (byte id = 0; id < count; id++) skillButtons[index++].EnableInClassList("chosen", choice == SkillIds.Choice(role, id));
+            }
+            randomSkill.EnableInClassList("chosen", choice == SkillIds.NoChoice);
+        }
+
+        // Dev and tests: the picker as shown (group visibility, the chosen line) and a scripted pick.
+        public bool SkillGroupShown(Role role) => skillGroups[role == Role.Killer ? 0 : 1].style.display != DisplayStyle.None;
+        public string SkillChosenText => skillChosen.text;
+        public void PickSkill(byte choice) => ChooseSkill?.Invoke(choice);
+
         // HUD_SPEC 13.7: the rules v2 result body; 7.5 Back to lobby and 7.6 Leave go into its Actions.
         private void BuildResult(Font font)
         {
@@ -226,7 +286,7 @@ namespace PingTheKiller.Client.UI
             bool isOffline = state.IsOffline != 0;
             lobbyTitle.text = LobbyCopy.Title(isOffline);
             controlsTitle.text = isOffline ? "Match setup" : "Host controls";
-            int bots = 0, humans = 0; bool host = false;
+            int bots = 0, humans = 0; bool host = false; byte ownChoice = SkillIds.NoChoice;
             Slot[] ordered = LobbyCopy.DisplayOrder(state.Slots); // row numbers are display positions
             for (int i = 0; i < slots.Length; i++)
             {
@@ -236,6 +296,7 @@ namespace PingTheKiller.Client.UI
                 if (!occupied) continue;
                 if (slot.IsBot != 0) bots++; else humans++;
                 if (slot.PlayerId == localId && slot.IsHost != 0) host = true;
+                if (slot.PlayerId == localId) ownChoice = slot.SkillChoice;
             }
             botCount.text = "Bots: " + bots;
             minus.SetEnabled(host && bots > Math.Max(0, 2 - humans));
@@ -246,6 +307,7 @@ namespace PingTheKiller.Client.UI
                 roleButtons[i].SetEnabled(host);
                 roleButtons[i].EnableInClassList("chosen", state.HostRoleChoice == (i == 2 ? 255 : i));
             }
+            SetSkillPicker(ownChoice, state.HostRoleChoice, host);
             start.SetEnabled(host && bots + humans >= 2);
             lobbyMessage.text = host ? (bots + humans >= 2 ? "Choose a role, then start the match." : "Add a bot or wait for another player.") : "Waiting for the host to start.";
             if (entering) { if (start.enabledSelf) start.Focus(); else lobby.Query<Button>().ToList().Find(button => button.enabledSelf)?.Focus(); }

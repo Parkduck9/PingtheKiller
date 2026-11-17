@@ -23,6 +23,9 @@ namespace PingTheKiller.Shared.Packets
         S2C_SyncResult = 0x0013,
         S2C_RttProbe = 0x0014,
         C2S_RttEcho = 0x0015,
-        S2C_SkillRejected = 0x0016
+        S2C_SkillRejected = 0x0016,
+        // R1 (11/17): the Killer swing and the lobby skill choice.
+        C2S_Attack = 0x0017,
+        C2S_ChooseSkill = 0x0018
     }
 }

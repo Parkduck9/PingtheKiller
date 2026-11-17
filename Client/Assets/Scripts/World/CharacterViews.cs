@@ -69,6 +69,10 @@ namespace PingTheKiller.Client.World
         private bool[] terminalRegressing = new bool[8];
         private int terminalCount;
         private bool terminalsFresh;
+        // R1 (11/17): the Killer entry's ChaseFlags.Swinging at the last WorldState, and a rise not yet played.
+        private bool killerSwinging, killerSwingEdge;
+        // Swings whose wind-up the Survivor client started on the drawn Killer model (dev shots and tests).
+        public int KillerSwings { get; private set; }
         private byte ownAction;
 
         // U8: a capture (Normal -> Lagging / Eliminated) of a Survivor that is drawn this frame, at its ground position.
@@ -137,6 +141,8 @@ namespace PingTheKiller.Client.World
         // own Survivor is spectating.
         // U4j: a capture seen this frame (any Survivor's Normal -> Lagging / Normal -> Eliminated) plays the swipe (1.2 s,
         // upper body) on the Killer model, only if the model is drawn now (HUD_SPEC 4.10: line of sight).
+        // R1 (11/17): the swipe starts on the Killer entry's Swinging rise (the server wind-up, 0.2 s before the hit check),
+        // so Survivors see it wind up; a capture then plays nothing new while that swipe runs (no double swing).
         private void RenderKiller(double now, SnapshotBuffer snapshots, bool captured)
         {
             KillerAlpha = 0; KillerVisorAlpha = 0; killerShown = false;
@@ -145,7 +151,12 @@ namespace PingTheKiller.Client.World
                 && KillerDrawable(avatars.TryGetValue(localId, out Avatar self) ? self.Status : (byte)PlayerStatus.Normal);
             if (killerModel.Root.activeSelf != seen) killerModel.Root.SetActive(seen);
             AttackTracker attack = killerModel.Motion.Attack;
-            if (captured) attack.Trigger(now, seen);
+            if (killerSwingEdge)
+            {
+                killerSwingEdge = false;
+                if (attack.Trigger(now, seen)) KillerSwings++;
+            }
+            else if (captured && !attack.Active(now)) attack.Trigger(now, seen);
             if (MotionPreview.Active == MotionPreviewClip.Swipe)
             {
                 // Dev preview: one attack per showing of the (injected) Killer model, from StartSeconds on.
@@ -212,6 +223,11 @@ namespace PingTheKiller.Client.World
                 }
                 terminalsFresh = true;
             }
+            bool swinging = false;
+            foreach (PlayerState player in state.Players)
+                if (player.Role == (byte)Role.Killer) swinging = (player.Chase & (byte)ChaseFlags.Swinging) != 0;
+            if (role == Role.Survivor && swinging && !killerSwinging) killerSwingEdge = true;
+            killerSwinging = swinging; // an absent Killer entry (out of sight) counts as not swinging
             foreach (PlayerState player in state.Players)
             {
                 if (role == Role.Survivor && player.Role == (byte)Role.Killer) continue;

@@ -20,14 +20,13 @@ public sealed class IndistinguishabilityTests
         // escaped or was eliminated mid-match (GDD v2: the match goes on). Phantoms do none of these.
         internal bool Phantom, Lagging, Truncated, Excluded;
         internal readonly List<(float X, float Z)> Live = new();
-        internal int Tail;
         internal float SpawnNearest;
     }
 
     private static List<Track> Record(int seed)
     {
         var tracks = new List<Track>();
-        using var r = new KillerMatchRecorder(seed, SkillIds.PacketAfterimage);
+        using var r = new KillerMatchRecorder(seed, SkillIds.PacketTrace);
         var open = new Dictionary<(bool, int), Track>();
         r.Run(packets =>
         {
@@ -56,8 +55,7 @@ public sealed class IndistinguishabilityTests
                 if (entry.Status == (byte)PlayerStatus.Lagging) track.Lagging = true;
                 if (!sources[i].Phantom && truth.FirstOrDefault(p => p.Id == sources[i].Label) is var t && (t.Exposed || t.Rescuing || t.Switching))
                     track.Excluded = true;
-                if (sources[i].Afterimage) track.Tail++;
-                else { track.Tail = 0; track.Live.Add((entry.X, entry.Z)); }
+                track.Live.Add((entry.X, entry.Z));
             }
             foreach (var key in open.Keys.Where(k => !present.Contains(k)).ToList())
             {
@@ -120,7 +118,6 @@ public sealed class IndistinguishabilityTests
         {
             ("speed m/s (median step)", t => Median(Enumerable.Range(1, t.Live.Count - 1).Select(k => Math.Round((double)Step(t, k) * GameConstants.TickRate, 3)).ToList()), true),
             ("still-away steps before the final frame", t => Enumerable.Range(1, t.Live.Count - 2).Count(k => StillAway(t, k)), true),
-            ("afterimage tail ticks", t => t.Tail, true),
             ("mean speed m/s", t => Enumerable.Range(1, t.Live.Count - 1).Average(k => Step(t, k)) * GameConstants.TickRate, false),
             ("still-away fraction of all steps", t => Enumerable.Range(1, t.Live.Count - 1).Count(k => StillAway(t, k)) / (double)(t.Live.Count - 1), false),
             ("lifetime s", t => t.Live.Count / (double)GameConstants.TickRate, false),
@@ -141,9 +138,6 @@ public sealed class IndistinguishabilityTests
         }
         _output.WriteLine(failures.Count == 0 ? "GATE PASS" : "GATE FAIL: " + string.Join(", ", failures));
         Assert.True(phantoms.Count >= 100 && reals.Count >= 100, $"{phantoms.Count} phantom / {reals.Count} real tracks");
-        // With Packet Afterimage every complete track, phantom or real, ends in a full 20-tick tail (no cap cuts it).
-        Assert.Equal(20.0, phantoms.Average(t => t.Tail));
-        Assert.Equal(20.0, reals.Average(t => t.Tail));
         Assert.True(failures.Count == 0, "KS gate failed: " + string.Join(", ", failures));
     }
 

@@ -1,0 +1,771 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/r1-killer/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  5.740 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 1.209900 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\lobby.png
+[offline server] match start players=4 killer=4 matchSeed=548448488
+[fx] warm ms=26.9 objects=124 meshes=12 materials=21 glyphs=9
+[DEV] match 1 start role=Killer skill=1
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 required=4 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/4"
+[net] SelfState received (first of the match)
+[DEV] t=0.02 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=0.04 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\play-1s.png
+[DEV] t=1.03 local position 34.00,43.50 moved=0.00 m
+[DEV] t=2.00 chase terminal from=34.00,43.50 to=10.00,25.00 yaw=211.76
+[DEV] t=3.00 chase terminal from=31.66,39.85 to=10.00,25.00 yaw=213.91
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\play-4s.png
+[DEV] t=4.03 chase terminal from=27.27,38.95 to=10.00,25.00 yaw=265.73
+[DEV] t=5.00 local position 22.81,38.61 moved=12.21 m
+[DEV] t=5.03 chase terminal from=22.67,38.60 to=10.00,25.00 yaw=265.73
+[DEV] t=6.04 chase terminal from=18.08,38.26 to=10.00,25.00 yaw=265.73
+[DEV] t=7.05 chase terminal from=13.44,37.91 to=10.00,25.00 yaw=265.73
+[DEV] t=7.63 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=7.63 blips tracked max=1
+[DEV] t=7.63 event killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\killer-offscreen.png
+[DEV] t=7.67 blips tracked max=2
+[DEV] t=7.72 blips tracked max=3
+[DEV] t=8.05 chase blip from=11.47,37.64 to=45.68,1.84 yaw=89.11
+[DEV] t=8.13 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=9.05 chase blip from=16.08,37.73 to=49.60,2.74 yaw=89.53
+[offline server] skill player=3 role=Survivor id=4
+[DEV] t=9.12 blips inView=0 occluded=3 edges=2 tracked=5
+[DEV] t=9.12 blips tracked max=5
+[DEV] t=9.21 blips tracked max=6
+[DEV] t=9.21 event killer-crowd.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\killer-crowd.png
+[DEV] t=9.37 blips tracked max=7
+[DEV] t=9.38 event killer-inview.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\killer-inview.png
+[DEV] t=9.42 blips tracked max=8
+[DEV] t=9.62 blips inView=1 occluded=1 edges=6 tracked=8
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=10.06 chase blip from=18.15,40.59 to=18.75,49.31 yaw=3.95
+[DEV] t=10.27 blips inView=1 occluded=1 edges=6 tracked=10
+[DEV] t=10.27 blips tracked max=10
+[DEV] t=10.37 blips tracked max=11
+[DEV] t=10.77 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=11.06 chase blip from=16.91,42.20 to=10.00,25.60 yaw=230.73
+[DEV] t=11.36 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=11.47 event killer-occluded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\killer-occluded.png
+[DEV] t=11.87 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=12.07 chase blip from=17.28,38.92 to=54.00,6.86 yaw=140.96
+[DEV] t=12.37 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=13.07 chase blip from=19.20,34.85 to=54.00,6.86 yaw=165.77
+[DEV] t=14.08 chase blip from=20.34,30.37 to=54.15,8.35 yaw=165.77
+[DEV] t=15.08 chase blip from=22.55,26.37 to=54.51,12.36 yaw=145.26
+[DEV] t=15.46 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=15.97 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=16.09 chase blip from=25.56,23.17 to=54.00,6.86 yaw=95.71
+[DEV] t=16.47 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=17.10 chase blip from=30.17,22.71 to=54.00,6.86 yaw=95.71
+[DEV] t=18.10 chase blip from=34.76,22.25 to=54.00,6.85 yaw=95.71
+[DEV] t=18.12 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=19.06 blips inView=0 occluded=3 edges=0 tracked=3
+[DEV] t=19.11 chase blip from=39.32,21.52 to=54.97,17.64 yaw=106.00
+[DEV] t=19.57 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=20.07 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=20.11 chase blip from=40.75,17.38 to=55.89,21.49 yaw=166.70
+[DEV] t=20.65 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=21.12 chase blip from=43.93,14.70 to=54.00,6.85 yaw=104.75
+[DEV] t=21.16 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=21.66 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=22.12 chase terminal from=42.59,15.18 to=10.00,25.00 yaw=287.08
+[DEV] t=23.13 chase terminal from=40.27,18.64 to=10.00,25.00 yaw=344.21
+[DEV] t=23.57 blips inView=0 occluded=0 edges=1 tracked=1
+[offline server] skill player=3 role=Survivor id=4
+[DEV] t=24.13 chase blip from=39.96,23.15 to=57.55,25.83 yaw=9.66
+[DEV] t=24.32 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=24.82 blips inView=0 occluded=1 edges=5 tracked=6
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=25.14 chase blip from=40.73,27.71 to=57.55,25.83 yaw=9.66
+[DEV] t=25.32 blips inView=0 occluded=2 edges=6 tracked=11
+[DEV] t=25.42 blips tracked max=13
+[DEV] t=25.82 blips inView=0 occluded=0 edges=6 tracked=8
+[DEV] t=26.14 chase blip from=43.05,30.72 to=57.55,25.83 yaw=89.82
+[DEV] t=26.33 blips inView=0 occluded=2 edges=6 tracked=8
+[DEV] t=26.83 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=27.15 chase blip from=47.70,30.73 to=54.00,6.86 yaw=89.82
+[DEV] t=28.12 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=28.15 chase blip from=52.31,30.75 to=57.55,25.63 yaw=104.30
+[DEV] t=28.62 blips inView=2 occluded=0 edges=0 tracked=2
+[DEV] t=29.13 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=29.15 chase blip from=55.18,27.61 to=57.51,21.71 yaw=158.45
+[offline server] rail 7 vault by player=3 role=Survivor
+[DEV] t=29.97 blips inView=2 occluded=0 edges=0 tracked=2
+[DEV] t=30.16 chase blip from=56.14,23.23 to=57.50,19.30 yaw=194.34
+[DEV] t=30.42 attack press (scripted, blip 2.97 m)
+[DEV] t=30.42 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=30.46 swing Started
+[DEV] t=30.46 event r1-killer-windup.png
+[DEV] t=30.47 blips inView=3 occluded=0 edges=0 tracked=3
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\r1-killer-windup.png
+[offline server] status player=3 Lagging reason=capture
+[offline server] swing player=4 result=hit target=3
+[client] swing hit
+[DEV] t=30.67 swing Hit
+[DEV] t=30.67 event r1-killer-hit.png
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=30.67 killer prompt=""
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\r1-killer-hit.png
+[DEV] t=30.87 event u8-killer-capture-1-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-1-strike.png
+[DEV] t=31.16 blips inView=2 occluded=1 edges=0 tracked=3
+[DEV] t=31.16 chase blip from=55.62,20.96 to=55.97,18.79 yaw=192.35
+[DEV] t=31.17 event u8-killer-capture-1-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-1-after.png
+[DEV] t=31.66 blips inView=1 occluded=1 edges=1 tracked=3
+[perf] capture frame times (killer capture) before: n=161 mean=6.2 max=24.2 ms; after: n=154 mean=6.5 max=24.2 ms; spikes>33ms=0
+[DEV] t=32.16 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=32.17 chase blip from=56.54,17.69 to=56.28,18.06 yaw=325.02
+[DEV] t=33.02 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=33.17 chase blip from=56.18,18.34 to=56.21,18.06 yaw=174.31
+[DEV] t=33.52 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=34.17 chase blip from=56.12,17.77 to=56.36,17.98 yaw=48.91
+[DEV] t=34.57 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=35.18 chase blip from=56.55,18.01 to=56.21,18.09 yaw=282.41
+[DEV] t=35.32 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=36.18 chase blip from=56.13,18.28 to=56.17,17.98 yaw=172.25
+[DEV] t=36.57 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=37.08 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=37.18 chase blip from=56.04,17.78 to=56.30,17.97 yaw=52.58
+[DEV] t=37.83 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=38.19 chase blip from=56.58,17.92 to=56.33,18.01 yaw=291.08
+[DEV] t=38.33 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=38.84 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=39.19 chase blip from=56.16,18.16 to=56.20,17.87 yaw=173.06
+[DEV] t=39.62 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=40.12 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=40.20 chase blip from=56.08,17.62 to=56.35,17.79 yaw=56.35
+[DEV] t=40.62 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=41.12 blips inView=1 occluded=0 edges=6 tracked=6
+[DEV] t=41.20 chase blip from=56.56,17.77 to=56.28,17.87 yaw=288.86
+[DEV] t=41.63 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=42.21 chase blip from=56.11,18.06 to=56.15,17.76 yaw=172.31
+[DEV] t=42.22 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=42.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=43.21 chase blip from=55.99,17.55 to=56.29,17.69 yaw=64.87
+[DEV] t=43.95 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=44.21 chase blip from=56.52,17.60 to=56.25,17.79 yaw=305.40
+[DEV] t=44.46 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=45.22 chase blip from=56.22,18.06 to=56.17,17.72 yaw=188.67
+[DEV] t=45.23 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=45.74 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=46.23 chase blip from=56.01,17.56 to=56.30,17.69 yaw=66.17
+[DEV] t=46.24 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=46.74 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=47.23 chase blip from=56.54,17.59 to=56.26,17.76 yaw=301.28
+[DEV] t=47.39 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=47.89 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=48.24 chase blip from=56.23,17.96 to=56.18,17.66 yaw=189.10
+[DEV] t=49.06 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=49.24 chase blip from=55.93,17.49 to=56.22,17.63 yaw=65.17
+[DEV] t=49.57 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=50.24 chase blip from=56.43,17.51 to=56.15,17.72 yaw=306.18
+[DEV] t=50.82 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=51.24 chase blip from=56.11,17.95 to=56.08,17.64 yaw=185.00
+[DEV] t=51.32 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=52.11 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=52.25 chase blip from=55.93,17.42 to=56.23,17.53 yaw=68.57
+[DEV] t=52.61 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=53.11 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=53.25 chase blip from=56.47,17.47 to=56.17,17.65 yaw=300.91
+[DEV] t=53.83 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=54.26 chase blip from=56.17,17.88 to=56.13,17.56 yaw=186.04
+[DEV] t=54.33 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=55.12 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=55.26 chase blip from=55.89,17.37 to=56.19,17.53 yaw=61.75
+[DEV] t=55.62 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=56.27 chase blip from=56.40,17.48 to=56.13,17.66 yaw=305.03
+[DEV] t=56.40 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=56.90 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=57.27 chase blip from=56.07,17.90 to=55.98,17.62 yaw=199.08
+[DEV] t=57.68 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=58.18 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=58.28 chase blip from=55.77,17.44 to=56.09,17.58 yaw=66.51
+[DEV] t=58.96 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=59.28 chase blip from=56.30,17.51 to=56.09,17.67 yaw=307.32
+[DEV] t=59.46 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=59.97 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=60.29 chase blip from=56.00,17.87 to=55.97,17.63 yaw=187.15
+[DEV] t=60.71 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=61.21 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=61.29 chase blip from=55.80,17.48 to=56.11,17.55 yaw=77.11
+[DEV] t=61.71 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=62.29 chase blip from=56.27,17.42 to=56.05,17.65 yaw=316.59
+[DEV] t=62.84 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=63.29 chase blip from=56.15,17.93 to=55.98,17.63 yaw=210.37
+[DEV] t=63.35 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=64.16 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=64.30 chase blip from=55.69,17.63 to=56.00,17.54 yaw=107.15
+[DEV] t=64.66 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=65.30 chase blip from=55.99,17.37 to=56.07,17.66 yaw=15.62
+[DEV] t=65.81 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=66.30 chase blip from=56.26,17.76 to=55.95,17.74 yaw=264.84
+[DEV] t=66.35 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=66.86 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=67.30 chase blip from=55.77,17.87 to=55.95,17.61 yaw=146.58
+[DEV] t=67.36 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=68.09 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=68.31 chase blip from=55.85,17.41 to=56.06,17.63 yaw=43.40
+[DEV] t=68.59 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=69.28 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=69.31 chase blip from=56.22,17.59 to=55.94,17.76 yaw=301.41
+[DEV] t=69.86 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=70.31 chase blip from=56.22,17.78 to=55.87,17.71 yaw=259.19
+[DEV] t=70.37 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=70.87 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=71.32 chase blip from=55.58,17.85 to=55.84,17.62 yaw=133.02
+[DEV] t=71.63 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=72.13 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=72.32 chase blip from=55.93,17.39 to=55.93,17.73 yaw=0.12
+[DEV] t=72.97 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=73.33 chase blip from=56.13,17.98 to=55.85,17.76 yaw=232.30
+[DEV] t=73.47 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=74.15 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=74.33 chase blip from=55.52,17.95 to=55.76,17.71 yaw=134.65
+[DEV] t=74.65 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=75.15 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=75.33 chase blip from=55.63,17.50 to=55.86,17.71 yaw=47.53
+[DEV] t=75.66 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=76.34 chase blip from=56.07,17.75 to=55.75,17.88 yaw=292.11
+[DEV] t=76.36 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=76.91 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] sync player=1 check=1 result=Good rtt=0
+[DEV] t=77.34 chase blip from=55.79,18.17 to=55.66,17.91 yaw=207.84
+[DEV] t=77.67 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=78.18 blips inView=1 occluded=1 edges=2 tracked=3
+[DEV] t=78.35 chase blip from=55.34,17.88 to=55.73,17.90 yaw=88.19
+[DEV] t=78.68 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=79.18 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=79.35 chase blip from=55.98,17.66 to=55.83,17.97 yaw=333.30
+[DEV] t=79.86 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=80.35 chase blip from=55.97,18.20 to=55.73,17.99 yaw=229.71
+[DEV] t=80.36 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=80.86 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=81.36 chase blip from=55.43,18.09 to=55.79,17.96 yaw=110.34
+[DEV] t=81.63 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=82.13 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=82.36 chase blip from=55.80,17.72 to=55.90,18.01 yaw=19.57
+[DEV] t=82.64 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=83.36 chase blip from=56.12,18.08 to=55.76,18.09 yaw=272.03
+[DEV] t=83.46 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=83.96 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=84.37 chase blip from=55.46,18.32 to=55.72,18.04 yaw=136.83
+[DEV] t=84.47 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=85.37 chase blip from=55.57,17.83 to=55.80,18.04 yaw=48.65
+[DEV] t=85.57 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=86.16 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=86.41 chase blip from=55.97,18.23 to=55.76,18.07 yaw=231.58
+[DEV] t=87.41 chase blip from=55.58,18.11 to=55.84,17.95 yaw=120.97
+[DEV] t=87.77 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=88.42 chase blip from=55.83,17.78 to=55.85,18.05 yaw=3.26
+[DEV] t=88.57 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=89.08 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=89.42 chase blip from=55.64,18.43 to=55.67,18.05 yaw=176.62
+[DEV] t=89.73 blips inView=0 occluded=0 edges=1 tracked=1
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] t=90.42 chase blip from=55.43,17.88 to=55.73,18.09 yaw=54.54
+[DEV] t=90.52 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] stage player=3 count=2 reason=timeout
+[DEV] t=91.43 chase blip from=55.98,17.99 to=55.74,18.15 yaw=303.34
+[DEV] t=91.91 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=92.42 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=92.44 chase blip from=55.37,18.38 to=55.55,18.13 yaw=143.56
+[DEV] t=93.17 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=93.44 chase blip from=55.47,17.97 to=55.67,18.16 yaw=46.42
+[DEV] t=93.69 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=94.44 chase blip from=55.95,18.19 to=55.63,18.28 yaw=285.36
+[DEV] t=94.52 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=95.02 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=95.46 chase blip from=55.45,18.48 to=55.51,18.27 yaw=165.69
+[DEV] t=95.53 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=96.46 chase blip from=55.31,17.97 to=55.60,18.24 yaw=47.14
+[DEV] t=96.82 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=97.33 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=97.47 chase blip from=55.82,18.35 to=55.57,18.38 yaw=275.95
+[DEV] t=98.27 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=98.48 chase blip from=55.38,18.53 to=55.55,18.32 yaw=141.17
+[DEV] t=98.82 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=99.32 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=99.49 chase blip from=55.34,18.07 to=55.62,18.26 yaw=54.92
+[DEV] t=100.42 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=100.50 chase blip from=55.70,18.56 to=55.51,18.35 yaw=222.81
+[DEV] t=100.93 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=101.43 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=101.50 chase blip from=55.13,18.51 to=55.44,18.41 yaw=107.91
+[DEV] t=101.93 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=102.44 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=102.51 chase blip from=55.46,18.21 to=55.37,18.65 yaw=348.82
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=103.18 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=103.52 chase blip from=55.39,18.92 to=55.26,18.72 yaw=213.02
+[DEV] t=103.68 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=104.19 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=104.53 chase blip from=55.11,18.52 to=55.28,18.77 yaw=35.39
+[DEV] t=104.71 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=105.21 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=105.54 chase blip from=55.27,19.13 to=55.15,18.87 yaw=204.97
+[DEV] t=105.98 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] skill player=1 role=Survivor id=2
+[DEV] t=106.43 event skillfx-killer-s2-killer-720p.png
+[fx] survivor skill=2 viewer=Killer line="" visual=None sound=OverloadSlowed reduced=False
+[net] SkillEffect skill=2 (killer HUD)
+[DEV] t=106.49 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=106.55 chase blip from=54.92,18.95 to=55.28,18.84 yaw=106.26
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\skillfx-killer-s2-killer-720p.png
+[DEV] t=106.99 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=107.49 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=107.55 chase blip from=55.36,18.53 to=55.35,18.70 yaw=355.21
+[DEV] t=107.99 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=108.55 chase blip from=55.10,18.77 to=55.27,18.76 yaw=92.64
+[DEV] t=109.42 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=109.56 chase blip from=55.40,18.68 to=55.25,18.96 yaw=331.43
+[DEV] t=109.92 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=110.55 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=110.56 chase blip from=55.25,19.20 to=55.11,18.97 yaw=210.92
+[DEV] t=111.05 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=111.56 chase blip from=55.00,18.84 to=55.24,18.99 yaw=58.41
+[DEV] t=111.56 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=112.18 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=112.56 chase blip from=55.44,19.05 to=55.16,19.20 yaw=299.21
+[DEV] t=112.68 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=113.44 blips inView=1 occluded=0 edges=3 tracked=3
+[DEV] t=113.57 chase blip from=55.00,19.37 to=55.11,19.10 yaw=157.71
+[DEV] t=113.95 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=114.58 chase blip from=55.04,18.97 to=55.16,19.19 yaw=29.01
+[DEV] t=114.75 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=115.26 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=115.58 chase blip from=55.31,19.39 to=55.07,19.40 yaw=273.22
+[DEV] t=116.02 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=116.52 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=116.59 chase blip from=54.84,19.46 to=55.12,19.35 yaw=111.11
+[DEV] t=117.33 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=117.59 chase blip from=55.30,19.34 to=55.05,19.49 yaw=302.20
+[DEV] t=117.83 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=118.54 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=118.59 chase blip from=55.03,19.60 to=55.05,19.38 yaw=175.83
+[DEV] t=119.04 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=119.54 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=119.60 chase blip from=54.96,19.30 to=55.16,19.45 yaw=52.95
+[DEV] t=120.05 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=120.55 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=120.61 chase blip from=55.35,19.56 to=55.11,19.62 yaw=283.11
+[offline server] status player=3 Eliminated reason=timeout
+[DEV] t=121.05 blips inView=1 occluded=0 edges=5 tracked=6
+[DEV] t=121.61 chase blip from=54.91,15.88 to=54.88,8.23 yaw=180.26
+[DEV] t=121.71 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=122.22 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=122.61 chase blip from=54.46,17.30 to=40.52,18.55 yaw=199.17
+[DEV] t=122.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=123.22 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=123.61 chase blip from=51.01,15.29 to=38.56,21.52 yaw=269.74
+[offline server] sync player=2 check=2 result=Good rtt=0
+[DEV] t=124.37 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=124.62 chase blip from=46.37,15.27 to=34.54,21.77 yaw=269.74
+[DEV] t=125.62 chase blip from=41.79,15.39 to=30.55,22.02 yaw=299.00
+[DEV] t=125.82 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=126.56 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=126.62 chase blip from=40.09,19.53 to=41.02,42.68 yaw=2.32
+[DEV] t=127.63 chase blip from=40.22,24.14 to=41.02,42.68 yaw=2.48
+[DEV] t=128.16 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=128.63 chase blip from=39.02,26.02 to=28.11,22.18 yaw=231.64
+[DEV] t=128.67 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=129.63 chase blip from=35.01,24.05 to=24.12,22.43 yaw=261.54
+[DEV] t=130.12 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=130.64 chase blip from=30.42,23.45 to=20.10,22.69 yaw=265.76
+[offline server] skill player=1 role=Survivor id=2
+[DEV] t=131.64 chase blip from=27.36,23.27 to=16.08,22.94 yaw=268.32
+[DEV] t=131.82 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=132.65 chase blip from=25.05,23.23 to=12.07,23.20 yaw=269.84
+[DEV] t=133.02 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=133.65 chase terminal from=21.17,23.24 to=10.00,25.00 yaw=270.06
+[DEV] t=133.97 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=134.47 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=134.65 chase blip from=21.98,23.24 to=44.58,39.55 yaw=89.96
+[DEV] t=134.97 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=135.48 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=135.66 chase blip from=21.11,23.25 to=10.93,24.12 yaw=270.02
+[DEV] t=136.22 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=136.67 chase blip from=16.49,23.25 to=10.93,24.12 yaw=270.02
+[DEV] t=136.72 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=137.22 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=137.67 chase blip from=11.88,23.39 to=9.28,27.55 yaw=287.79
+[DEV] t=137.73 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=137.90 killer prompt="Hold [E] to jam Terminal 1"
+[DEV] t=138.23 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=138.52 killer prompt=""
+[DEV] t=138.67 chase blip from=9.49,27.13 to=7.55,31.16 yaw=334.28
+[DEV] t=139.68 chase blip from=7.48,31.30 to=5.80,34.79 yaw=334.32
+[DEV] t=140.68 chase blip from=5.61,35.53 to=4.81,38.59 yaw=345.46
+[DEV] t=140.82 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=140.93 attack press (scripted, blip 3.00 m)
+[DEV] t=140.93 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=140.96 swing Started
+[DEV] t=141.11 killer prompt=""
+[offline server] swing player=4 result=miss
+[audio] v2 cue SwingMiss
+[client] swing missed
+[DEV] t=141.51 swing Missed
+[DEV] t=141.51 event r1-killer-miss.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\r1-killer-miss.png
+[DEV] t=141.69 chase blip from=5.04,38.62 to=4.70,42.61 yaw=355.05
+[DEV] t=142.70 chase blip from=4.86,42.35 to=4.97,46.61 yaw=1.53
+[DEV] t=143.02 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=143.70 chase blip from=5.21,46.96 to=5.68,50.57 yaw=7.36
+[offline server] rail 1 vault by player=1 role=Survivor
+[DEV] t=144.42 attack press (scripted, blip 3.00 m)
+[DEV] t=144.42 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=144.47 swing Started
+[offline server] status player=1 Lagging reason=capture
+[offline server] swing player=4 result=hit target=1
+[client] swing hit
+[DEV] t=144.66 swing Hit
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=144.67 killer prompt=""
+[DEV] t=144.71 chase blip from=5.85,51.20 to=6.15,53.20 yaw=8.37
+[DEV] t=144.87 event u8-killer-capture-2-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-2-strike.png
+[DEV] t=145.17 event u8-killer-capture-2-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-2-after.png
+[perf] capture frame times (killer capture) before: n=166 mean=6.1 max=6.6 ms; after: n=159 mean=6.3 max=25.1 ms; spikes>33ms=0
+[DEV] t=145.71 chase blip from=6.06,52.90 to=6.19,54.19 yaw=5.78
+[DEV] t=145.76 killer prompt="Press [E] to vault the Rail"
+[DEV] t=145.82 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=145.96 killer prompt=""
+[DEV] t=146.37 killer prompt="Press [E] to vault the Rail"
+[DEV] t=146.47 killer prompt=""
+[DEV] t=146.71 chase blip from=6.20,54.30 to=6.19,54.21 yaw=184.35
+[DEV] t=146.76 killer prompt="Press [E] to vault the Rail"
+[DEV] t=146.86 killer prompt=""
+[DEV] t=147.19 killer prompt="Press [E] to vault the Rail"
+[DEV] t=147.24 killer prompt=""
+[DEV] t=147.50 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=147.60 killer prompt="Press [E] to vault the Rail"
+[DEV] t=147.66 killer prompt=""
+[DEV] t=147.72 chase blip from=6.08,54.30 to=5.90,54.22 yaw=244.91
+[DEV] t=148.00 killer prompt="Press [E] to vault the Rail"
+[DEV] t=148.00 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=148.04 killer prompt=""
+[DEV] t=148.73 chase blip from=5.44,53.89 to=5.70,54.12 yaw=49.09
+[DEV] t=149.73 chase blip from=5.60,54.37 to=5.45,54.14 yaw=213.67
+[DEV] t=150.73 chase blip from=5.43,53.89 to=5.36,54.19 yaw=346.61
+[DEV] t=151.74 chase blip from=4.99,54.36 to=5.17,54.13 yaw=142.90
+[DEV] t=152.74 chase blip from=5.37,54.13 to=5.09,54.28 yaw=298.82
+[DEV] t=153.74 chase blip from=4.72,54.17 to=5.01,54.18 yaw=87.30
+[DEV] t=154.75 chase blip from=5.14,54.43 to=4.87,54.30 yaw=244.06
+[DEV] t=155.61 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=155.76 chase blip from=4.72,54.07 to=4.90,54.32 yaw=36.70
+[DEV] t=156.11 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=156.62 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=156.76 chase blip from=4.81,54.64 to=4.72,54.37 yaw=198.57
+[DEV] t=157.76 chase blip from=4.83,54.12 to=4.77,54.42 yaw=349.53
+[DEV] t=158.76 chase blip from=4.46,54.64 to=4.60,54.38 yaw=150.62
+[DEV] t=159.71 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=159.77 chase blip from=4.84,54.29 to=4.62,54.49 yaw=312.70
+[DEV] t=160.77 chase blip from=4.31,54.52 to=4.59,54.42 yaw=108.62
+[DEV] t=161.78 chase blip from=4.78,54.56 to=4.49,54.56 yaw=269.09
+[DEV] t=161.92 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=162.42 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=162.79 chase blip from=4.25,54.36 to=4.50,54.49 yaw=62.98
+[DEV] t=163.19 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=163.69 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=163.79 chase blip from=4.65,54.64 to=4.38,54.52 yaw=245.91
+[DEV] t=164.79 chase blip from=4.13,54.35 to=4.40,54.49 yaw=60.93
+[DEV] t=165.08 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=165.58 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=165.80 chase blip from=4.77,54.61 to=4.44,54.52 yaw=254.42
+[DEV] t=166.51 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=166.80 chase blip from=4.12,54.47 to=4.48,54.40 yaw=101.68
+[DEV] t=167.14 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=167.65 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=167.80 chase blip from=4.67,54.14 to=4.44,54.43 yaw=321.48
+[DEV] t=168.80 chase blip from=4.28,54.67 to=4.32,54.39 yaw=172.64
+[DEV] t=169.81 chase blip from=4.17,54.10 to=4.41,54.39 yaw=38.97
+[DEV] t=170.63 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=170.82 chase blip from=4.72,54.39 to=4.33,54.41 yaw=272.82
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=171.14 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=171.64 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=171.82 chase blip from=4.08,54.54 to=4.27,54.23 yaw=148.63
+[DEV] t=172.17 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=172.67 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=172.82 chase blip from=4.19,53.97 to=4.33,54.30 yaw=22.97
+[DEV] t=173.83 chase blip from=4.58,54.47 to=4.26,54.36 yaw=252.00
+[DEV] t=174.03 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=174.54 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=174.83 chase blip from=3.97,54.36 to=4.24,54.16 yaw=126.84
+[DEV] t=175.31 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=175.82 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=175.83 chase blip from=4.27,53.93 to=4.33,54.24 yaw=10.66
+[DEV] t=176.48 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=176.84 chase blip from=4.40,54.51 to=4.19,54.26 yaw=219.29
+[DEV] t=176.98 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=177.85 chase blip from=3.94,54.17 to=4.25,54.12 yaw=100.53
+[DEV] t=178.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=178.85 chase blip from=4.40,53.96 to=4.25,54.24 yaw=332.34
+[DEV] t=179.86 chase blip from=4.32,54.47 to=4.19,54.19 yaw=205.53
+[DEV] t=180.36 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=180.86 chase blip from=3.96,54.08 to=4.26,54.07 yaw=92.36
+[DEV] t=180.86 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=181.37 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=181.86 chase blip from=4.44,53.94 to=4.20,54.13 yaw=308.78
+[DEV] t=181.87 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=182.37 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=182.87 chase blip from=4.15,54.31 to=4.13,54.03 yaw=185.65
+[DEV] t=182.89 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=183.39 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=183.88 chase blip from=4.08,53.85 to=4.19,54.07 yaw=26.80
+[DEV] t=184.12 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=184.65 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=184.88 chase blip from=4.32,54.14 to=4.04,54.13 yaw=267.79
+[DEV] t=185.15 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=185.86 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=185.88 chase blip from=3.85,54.25 to=4.02,54.03 yaw=141.25
+[DEV] t=186.39 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=186.89 chase blip from=4.19,53.86 to=4.19,54.11 yaw=358.78
+[DEV] t=187.11 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=187.63 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=187.70 attack press (scripted, blip 2.97 m)
+[DEV] t=187.70 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=187.72 swing Started
+[DEV] t=187.89 chase blip from=4.38,54.04 to=4.05,54.08 yaw=276.79
+[offline server] swing player=4 result=miss
+[DEV] t=188.13 blips inView=0 occluded=0 edges=2 tracked=2
+[audio] v2 cue SwingMiss
+[client] swing missed
+[DEV] t=188.26 swing Missed
+[offline server] rail 1 vault by player=2 role=Survivor
+[DEV] t=188.65 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=188.89 chase blip from=4.24,54.02 to=4.00,53.99 yaw=263.15
+[DEV] t=188.91 attack press (scripted, blip 2.87 m)
+[client] swing wind-up
+[DEV] t=188.92 swing Started
+[DEV] t=188.97 killer prompt=""
+[offline server] swing player=4 result=miss
+[DEV] t=189.15 blips inView=0 occluded=0 edges=2 tracked=2
+[audio] v2 cue SwingMiss
+[client] swing missed
+[DEV] t=189.46 swing Missed
+[DEV] t=189.71 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=189.90 chase blip from=3.88,53.59 to=4.01,53.66 yaw=60.73
+[DEV] t=190.24 blips inView=1 occluded=0 edges=1 tracked=2
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=190.28 attack press (scripted, blip 2.99 m)
+[DEV] t=190.28 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=190.32 swing Started
+[offline server] rail 1 vault by player=2 role=Survivor
+[offline server] swing player=4 result=miss
+[DEV] t=190.74 blips inView=0 occluded=0 edges=6 tracked=7
+[DEV] t=190.78 killer prompt=""
+[audio] v2 cue SwingMiss
+[client] swing missed
+[DEV] t=190.86 swing Missed
+[DEV] t=190.91 chase blip from=3.70,53.65 to=3.87,53.67 yaw=85.41
+[DEV] t=191.25 blips inView=1 occluded=0 edges=6 tracked=7
+[DEV] t=191.75 blips inView=3 occluded=0 edges=6 tracked=7
+[DEV] t=191.91 chase blip from=3.69,53.48 to=3.79,53.68 yaw=26.77
+[DEV] t=192.25 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=192.75 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=192.91 chase blip from=3.92,53.87 to=3.67,53.70 yaw=237.41
+[DEV] t=193.40 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=193.91 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=193.92 chase blip from=3.49,53.45 to=3.74,53.56 yaw=67.89
+[DEV] t=194.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=194.92 chase blip from=4.01,53.56 to=3.71,53.66 yaw=289.17
+[DEV] t=195.10 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=195.63 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=195.93 chase blip from=3.62,53.77 to=3.63,53.54 yaw=178.39
+[DEV] t=196.13 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=196.55 attack press (scripted, blip 2.98 m)
+[DEV] t=196.55 killer prompt="Click  Attack"
+[client] swing wind-up
+[DEV] t=196.57 swing Started
+[offline server] swing player=4 result=miss
+[DEV] t=196.93 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=196.94 chase blip from=3.48,53.57 to=3.52,53.46 yaw=160.10
+[audio] v2 cue SwingMiss
+[client] swing missed
+[DEV] t=197.12 swing Missed
+[DEV] t=197.43 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=197.75 attack press (scripted, blip 0.76 m)
+[client] swing wind-up
+[DEV] t=197.77 swing Started
+[DEV] t=197.94 chase blip from=3.38,53.64 to=3.54,53.41 yaw=144.42
+[DEV] t=197.94 blips inView=1 occluded=0 edges=2 tracked=2
+[offline server] status player=2 Lagging reason=capture
+[offline server] swing player=4 result=hit target=2
+[client] swing hit
+[DEV] t=197.97 swing Hit
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=197.97 killer prompt=""
+[DEV] t=198.17 event u8-killer-capture-3-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-3-strike.png
+[DEV] t=198.44 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=198.47 event u8-killer-capture-3-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r1-killer\docs\qa\R1-killer\killer\u8-killer-capture-3-after.png
+[DEV] t=198.94 chase blip from=4.73,53.10 to=4.31,53.20 yaw=283.25
+[DEV] t=198.95 blips inView=0 occluded=0 edges=2 tracked=2
+[perf] capture frame times (killer capture) before: n=164 mean=6.1 max=12.3 ms; after: n=156 mean=6.4 max=28.5 ms; spikes>33ms=0
+[DEV] t=199.63 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=199.95 chase blip from=4.33,52.76 to=4.26,53.04 yaw=346.32
+[DEV] t=200.18 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=200.90 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=200.95 chase blip from=4.09,53.29 to=4.35,53.05 yaw=133.16
+[DEV] t=201.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=201.95 chase blip from=4.53,52.96 to=4.28,52.99 yaw=275.30
+[DEV] t=202.15 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=202.65 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=202.95 chase blip from=3.96,53.13 to=4.27,53.09 yaw=96.92
+[DEV] t=203.38 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=203.91 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=203.96 chase blip from=4.45,53.15 to=4.24,53.01 yaw=237.08
+[DEV] t=204.41 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] stage player=1 count=2 reason=timeout
+[DEV] t=204.97 chase blip from=3.95,52.99 to=4.17,53.23 yaw=43.90
+[DEV] t=205.04 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=205.55 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=205.97 chase blip from=4.40,53.42 to=4.22,53.20 yaw=219.40
+[DEV] t=206.27 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=206.78 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=206.97 chase blip from=4.10,53.10 to=4.14,53.35 yaw=7.95
+[DEV] t=207.46 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=207.98 chase blip from=4.16,53.63 to=4.22,53.28 yaw=169.69
+[DEV] t=208.01 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=208.72 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=208.98 chase blip from=4.29,52.98 to=4.14,53.20 yaw=324.74
+[DEV] t=209.23 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=209.94 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=209.98 chase blip from=4.02,53.49 to=4.28,53.24 yaw=133.31
+[DEV] t=210.45 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=210.98 chase blip from=4.34,52.99 to=4.14,53.15 yaw=307.95
+[DEV] t=211.16 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=211.71 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=211.99 chase blip from=3.87,53.19 to=4.18,53.33 yaw=65.72
+[DEV] t=212.21 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=212.82 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=212.99 chase blip from=4.54,53.44 to=4.20,53.27 yaw=242.64
+[DEV] t=213.34 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=213.99 chase blip from=3.92,53.34 to=4.19,53.42 yaw=72.80
+[DEV] t=214.03 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=214.53 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=214.99 chase blip from=4.41,53.35 to=4.15,53.28 yaw=255.27
+[DEV] t=215.22 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=215.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=216.00 chase blip from=3.87,53.44 to=4.15,53.40 yaw=97.86
+[DEV] t=216.39 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=216.90 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=217.00 chase blip from=4.34,53.22 to=4.05,53.27 yaw=280.78
+[DEV] t=217.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=217.99 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=218.01 chase blip from=3.85,53.52 to=4.11,53.37 yaw=120.80
+[DEV] t=218.49 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=219.01 chase blip from=4.20,53.07 to=4.00,53.32 yaw=320.62
+[DEV] t=219.17 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=219.67 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=220.01 chase blip from=3.99,53.65 to=4.11,53.37 yaw=157.21
+[DEV] t=220.35 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=220.85 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=221.02 chase blip from=3.99,53.07 to=3.98,53.37 yaw=358.04
+[DEV] t=221.53 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=222.03 chase blip from=4.19,53.62 to=4.09,53.35 yaw=199.04
+[DEV] t=222.03 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=222.70 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=223.03 chase blip from=3.81,53.22 to=4.00,53.44 yaw=40.40
+[DEV] t=223.21 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=223.89 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=224.04 chase blip from=4.29,53.47 to=4.04,53.32 yaw=239.46
+[DEV] t=224.39 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=225.04 chase blip from=3.76,53.41 to=4.03,53.45 yaw=80.60
+[DEV] t=225.06 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=225.57 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=226.04 chase blip from=4.27,53.30 to=3.99,53.33 yaw=276.17
+[DEV] t=226.24 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=226.75 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=227.04 chase blip from=3.77,53.54 to=4.04,53.44 yaw=110.60
+[DEV] t=227.43 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=227.93 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=228.05 chase blip from=4.18,53.17 to=3.95,53.36 yaw=310.11
+[DEV] t=228.61 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=229.05 chase blip from=3.88,53.64 to=4.05,53.40 yaw=145.13
+[DEV] t=229.11 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=229.79 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=230.05 chase blip from=4.05,53.10 to=3.93,53.36 yaw=335.40
+[DEV] t=230.29 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=230.98 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=231.06 chase blip from=4.01,53.66 to=4.04,53.37 yaw=172.91
+[DEV] t=231.48 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=232.06 chase blip from=3.89,53.10 to=3.92,53.41 yaw=7.20
+[DEV] t=232.16 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=232.67 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=233.06 chase blip from=4.13,53.62 to=4.03,53.34 yaw=199.75
+[DEV] t=233.35 blips inView=1 occluded=0 edges=2 tracked=2
+[DEV] t=233.86 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=234.07 chase blip from=3.71,53.08 to=3.93,53.43 yaw=32.27
+[DEV] t=234.57 blips inView=1 occluded=0 edges=2 tracked=2
+[offline server] status player=1 Eliminated reason=timeout
+[offline server] hatch open x=66 z=38.5
+[DEV] t=235.07 chase blip from=5.03,52.19 to=7.97,47.84 yaw=145.90
+[DEV] t=235.07 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=236.07 chase blip from=7.42,48.23 to=8.11,46.85 yaw=153.47
+[DEV] t=236.26 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=237.07 chase blip from=8.22,46.52 to=8.10,46.49 yaw=258.83
+[DEV] t=238.08 chase blip from=7.58,46.50 to=7.90,46.48 yaw=94.44
+[DEV] t=239.09 chase blip from=8.08,46.53 to=7.77,46.29 yaw=232.70
+[DEV] t=240.00 killer look Nearest yaw=273.50 from=7.82,46.28 blip=7.56,46.30
+[DEV] t=240.50 killer look Nearest yaw=336.86 from=7.65,46.05 blip=7.35,46.75
+[DEV] t=240.63 blips inView=1 occluded=0 edges=1 tracked=1
+[DEV] t=241.01 killer look Nearest yaw=336.86 from=7.65,46.05 blip=7.16,47.21
+[DEV] t=241.13 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=241.51 killer look Nearest yaw=336.86 from=7.65,46.05 blip=6.96,47.67
+[DEV] t=242.01 killer look Nearest yaw=336.86 from=7.65,46.05 blip=6.76,48.13
+[DEV] t=242.52 killer look Nearest yaw=336.86 from=7.65,46.05 blip=6.56,48.60
+[DEV] quit after 245 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

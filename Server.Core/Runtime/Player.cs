@@ -60,7 +60,7 @@ namespace PingTheKiller.ServerCore
         internal double RttProbeSentAt, RttNextProbeAt;
         internal double ExposedUntil, StealthUntil;
         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
-        // Effective Signal for the current tick and the last position the killer saw (Packet Afterimage).
+        // Effective Signal for the current tick and the last position the killer saw.
         internal bool Visible;
         internal double LastVisibleAt = double.NegativeInfinity;
         internal float VisibleX, VisibleZ, VisibleYaw;
@@ -95,6 +95,19 @@ namespace PingTheKiller.ServerCore
         internal int BreakShutter = -1;
         internal double BreakHeld;
         internal double StunnedUntil = double.NegativeInfinity, ChaseSignalUntil = double.NegativeInfinity;
+        // R1 (11/17) Killer swing (GameServer.Combat): attack sequence and throttle, the pending press, the phase
+        // (0 none, 1 wind-up, 2 recovery) with its instants and result, and the swing log throttle.
+        internal uint AttackSeq;
+        internal bool HasAttackSeq, AttackRequested, SwingHit;
+        internal readonly System.Collections.Generic.Queue<double> AttackTimes = new System.Collections.Generic.Queue<double>();
+        internal byte SwingPhase;
+        internal double SwingStart, SwingHitAt, SwingEnd;
+        internal double SwingLoggedAt = double.NegativeInfinity;
+        internal int SwingsUnlogged;
+        // R1 (11/17): the lobby skill choice (SkillIds.Choice encoding), kept across matches while this human stays.
+        internal byte SkillChoice = SkillIds.NoChoice;
+        // R1 (11/17) a2: accepted lobby choice instants of the last second (GameServer.MaxSkillChoicesPerSecond).
+        internal readonly System.Collections.Generic.Queue<double> ChoiceTimes = new System.Collections.Generic.Queue<double>();
 
         internal bool InChaseAction => ChaseKind != 0;
 
@@ -106,6 +119,14 @@ namespace PingTheKiller.ServerCore
             ChaseOnRail = false;
             BreakHeld = 0;
             StunnedUntil = ChaseSignalUntil = double.NegativeInfinity;
+        }
+
+        internal void ResetSwing()
+        {
+            HasAttackSeq = AttackRequested = SwingHit = false;
+            AttackSeq = 0;
+            AttackTimes.Clear();
+            SwingPhase = 0;
         }
 
         internal void ResetBotPlan()
@@ -142,6 +163,7 @@ namespace PingTheKiller.ServerCore
             HasSeq = false;
             Seq = 0;
             InputTimes.Clear();
+            ResetSwing();
             ResetChase();
             SelfSent = null;
             ResetBotPlan();

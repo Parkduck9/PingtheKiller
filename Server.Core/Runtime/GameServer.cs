@@ -373,6 +373,8 @@ namespace PingTheKiller.ServerCore
                 return;
             }
             if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId, receivedAt); return; }
+            if (packet is C2S_Attack attack) { if (_matchStarted) ApplyAttack(player, attack.Seq); return; }
+            if (packet is C2S_ChooseSkill choose) { if (!_matchStarted) ChooseSkill(player, choose.SkillId); return; }
             if (!_matchStarted && player.IsHost)
             {
                 if (packet is C2S_SetBots bots)

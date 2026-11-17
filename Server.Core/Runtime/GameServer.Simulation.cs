@@ -65,9 +65,10 @@ namespace PingTheKiller.ServerCore
                     : GameConstants.SurvivorSpeed;
             float speed = GameConstants.KillerSpeed;
             if (start < player.OverclockUntil - TimeEpsilon) speed *= SkillIds.OverclockSpeedMultiplier;
-            else if (start < player.RecoveryUntil - TimeEpsilon) return 0;
+            // R1 (11/17): the Overclock tail is 0.3 s at 60 % speed (it was a 1 s freeze).
+            else if (start < player.RecoveryUntil - TimeEpsilon) speed *= SkillIds.OverclockRecoverySpeedMultiplier;
             if (start < player.SlowedUntil - TimeEpsilon) speed *= SkillIds.TrafficOverloadKillerSpeedMultiplier;
-            return speed;
+            return speed * SwingSpeedMultiplier(player, start);
         }
 
         private static float DistanceSquared(float x, float z, float tx, float tz)

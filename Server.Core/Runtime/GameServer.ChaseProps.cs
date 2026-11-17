@@ -70,7 +70,7 @@ namespace PingTheKiller.ServerCore
             {
                 if (player.Status != PlayerStatus.Normal || player.Rescuing) return;
             }
-            else if (Stunned(player)) return;
+            else if (Stunned(player) || Swinging(player)) return;
             var shutters = WorldChaseProps.Shutters;
             var rails = WorldChaseProps.Rails;
             int pick = -1;
@@ -243,7 +243,7 @@ namespace PingTheKiller.ServerCore
         {
             var killer = _killer;
             if (killer == null) return;
-            if (!killer.Interacting || killer.InputHeld(_now) || Stunned(killer) || killer.InChaseAction)
+            if (!killer.Interacting || killer.InputHeld(_now) || Stunned(killer) || killer.InChaseAction || Swinging(killer))
             {
                 killer.BreakShutter = -1;
                 killer.BreakHeld = 0;
@@ -293,6 +293,8 @@ namespace PingTheKiller.ServerCore
             if (player.ChaseKind == (byte)ActionKind.Vault) flags |= ChaseFlags.Vaulting;
             if (player.BreakShutter >= 0) flags |= ChaseFlags.Breaking;
             if (Stunned(player)) flags |= ChaseFlags.Stunned;
+            // R1 (11/17): wind-up and recovery of a Killer swing.
+            if (Swinging(player)) flags |= ChaseFlags.Swinging;
             return (byte)flags;
         }
 

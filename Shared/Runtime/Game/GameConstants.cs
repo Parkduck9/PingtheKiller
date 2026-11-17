@@ -9,7 +9,23 @@ namespace PingTheKiller.Shared.Game
         public const float KillerSpeed = 4.6f;
         public const float LaggingSpeedMultiplier = 0.25f;
         public const float SignalHoldSeconds = 0.15f;
+        // Pre-R1 automatic capture radius. R1 (11/17): captures come only from a Killer swing (Swing* below); this value
+        // still sizes the bots' safety margins and the Killer client's capture-confirm fallback.
         public const float CaptureRadius = 1.2f;
+        // R1 (11/17) Killer swing (server-authoritative, C2S_Attack): a 0.2 s wind-up at half speed, then one hit check
+        // (Normal, non-invulnerable Survivors within SwingRange in 2D, within SwingHalfAngleDegrees of the look yaw, in
+        // line of sight; the nearest is captured), then a recovery: SwingHitRecoverySeconds at 0 % after a hit,
+        // SwingMissRecoverySeconds at SwingMissSpeedMultiplier after a miss. No new swing until the recovery ends.
+        // R1 balance (BalanceSweep): brief 2.2 m / 35 deg / 1.0 s at 40 % moved to 2.6 m / 40 deg / 0.8 s at 48 % (all within +-20 %).
+        public const float SwingWindUpSeconds = 0.2f;
+        public const float SwingWindUpSpeedMultiplier = 0.5f;
+        public const float SwingRange = 2.6f;
+        public const float SwingHalfAngleDegrees = 40f;
+        public const float SwingHitRecoverySeconds = 0.6f;
+        public const float SwingMissRecoverySeconds = 0.8f;
+        public const float SwingMissSpeedMultiplier = 0.48f;
+        // Accepted C2S_Attack packets per player per second; more are dropped.
+        public const int MaxAttacksPerSecond = 5;
         public const float RescueRadius = 1.5f;
         public const float RescueTimeSeconds = 3.0f;
         // GDD v2 §4: Lagging after the first capture lasts 60 s, after the second 30 s; the third capture eliminates.

@@ -106,4 +106,24 @@ namespace PingTheKiller.Shared.Packets
         public void Write(PacketWriter w) => w.WriteUInt32(CheckId);
         public static C2S_SyncPress Read(ref PacketReader r) => new C2S_SyncPress { CheckId = r.ReadUInt32() };
     }
+
+    // R1 (11/17): starts a Killer swing. Seq is this connection's attack sequence (separate from MoveInput.Seq); the
+    // server aims with the latest MoveInput.Yaw and drops a Seq that is not newer than the last one it accepted.
+    public sealed class C2S_Attack : IPacket
+    {
+        public uint Seq;
+        public PacketId Id => PacketId.C2S_Attack;
+        public void Write(PacketWriter w) => w.WriteUInt32(Seq);
+        public static C2S_Attack Read(ref PacketReader r) => new C2S_Attack { Seq = r.ReadUInt32() };
+    }
+
+    // R1 (11/17): the lobby skill choice. SkillId is a role-qualified choice (SkillIds.Choice): 0..4 a Survivor skill,
+    // 0x80..0x83 a Killer skill, 0xFF no choice (random). Any other value is a wire-format violation.
+    public sealed class C2S_ChooseSkill : IPacket
+    {
+        public byte SkillId = SkillIds.NoChoice;
+        public PacketId Id => PacketId.C2S_ChooseSkill;
+        public void Write(PacketWriter w) => w.WriteByte(SkillId);
+        public static C2S_ChooseSkill Read(ref PacketReader r) => new C2S_ChooseSkill { SkillId = SkillIds.ReadChoice(ref r) };
+    }
 }

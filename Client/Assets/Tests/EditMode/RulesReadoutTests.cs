@@ -17,7 +17,7 @@ namespace PingTheKiller.Client.Tests
         {
             Assert.That(HudCopy.SkillName(Role.Killer, SkillIds.PingScanner), Is.EqualTo("Ping Scanner"));
             Assert.That(HudCopy.SkillName(Role.Killer, SkillIds.Overclock), Is.EqualTo("Overclock"));
-            Assert.That(HudCopy.SkillName(Role.Killer, SkillIds.PacketAfterimage), Is.EqualTo("Packet Afterimage"));
+            Assert.That(HudCopy.SkillName(Role.Killer, SkillIds.PacketTrace), Is.EqualTo("Packet Trace"));
             Assert.That(HudCopy.SkillName(Role.Killer, SkillIds.FirewallBlock), Is.EqualTo("Firewall Block"));
             Assert.That(HudCopy.SkillName(Role.Survivor, SkillIds.DummyPacket), Is.EqualTo("Dummy Packet"));
             Assert.That(HudCopy.SkillName(Role.Survivor, SkillIds.StealthRelay), Is.EqualTo("Stealth Relay"));
@@ -29,12 +29,13 @@ namespace PingTheKiller.Client.Tests
         }
 
         [Test]
-        public void OnlyTheSharedPassiveIdIsPassive()
+        public void NoSkillIsPassiveSinceR1()
         {
+            // R1 (11/17): the passive Packet afterimage became the active Packet trace; every skill line says Q.
             for (byte id = 0; id < SkillIds.KillerSkillCount; id++)
-                Assert.That(HudCopy.IsPassive(Role.Killer, id), Is.EqualTo(id == SkillIds.PacketAfterimage), "killer " + id);
+                Assert.That(HudCopy.SkillLine(Role.Killer, id), Does.StartWith("Q "), "killer " + id);
             for (byte id = 0; id < SkillIds.SurvivorSkillCount; id++)
-                Assert.That(HudCopy.IsPassive(Role.Survivor, id), Is.False, "survivor " + id);
+                Assert.That(HudCopy.SkillLine(Role.Survivor, id), Does.StartWith("Q "), "survivor " + id);
         }
 
         private static Slot Bot(int id) => new Slot { PlayerId = id, Nickname = "Bot " + id, IsBot = 1 };

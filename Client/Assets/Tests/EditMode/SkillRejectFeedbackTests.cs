@@ -42,9 +42,10 @@ namespace PingTheKiller.Client.Tests
             Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.Overclock, SkillRejectReason.Cooldown, PlayerStatus.Normal), Is.EqualTo("Not used · still on cooldown"));
             Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.PingScanner, SkillRejectReason.NoTarget, PlayerStatus.Normal), Is.EqualTo("Not used · no Survivor to scan"));
             Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.FirewallBlock, SkillRejectReason.NoSwitchInProgress, PlayerStatus.Normal),
-                Is.EqualTo("No Exit switch in progress").And.EqualTo(SkillFeedback.NoSwitchReason));
-            Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.PacketAfterimage, SkillRejectReason.Passive, PlayerStatus.Normal),
-                Is.EqualTo("Packet afterimage is passive.").And.EqualTo(SkillFeedback.PassiveReason));
+                Is.EqualTo("Not used · nothing to lock").And.EqualTo(SkillFeedback.NoSwitchReason));
+            // R1 (11/17): no skill is passive; a Passive reason (never sent now) reads as the generic refusal.
+            Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.PacketTrace, SkillRejectReason.Passive, PlayerStatus.Normal),
+                Is.EqualTo(SkillFeedback.KillerRefused));
             // A reason that does not fit the role, or an unknown value, falls back to the generic line.
             Assert.That(SkillFeedback.RejectionLine(Role.Survivor, SkillIds.DummyPacket, SkillRejectReason.NoSwitchInProgress, PlayerStatus.Normal), Is.EqualTo(SkillFeedback.SurvivorRefused));
             Assert.That(SkillFeedback.RejectionLine(Role.Killer, SkillIds.Overclock, SkillRejectReason.NotNormal, PlayerStatus.Normal), Is.EqualTo(SkillFeedback.KillerRefused));
@@ -72,10 +73,6 @@ namespace PingTheKiller.Client.Tests
         {
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.EmergencyRestore, PlayerStatus.Normal, 0, false, out _),
                 Is.EqualTo(SkillFeedback.RejectionLine(Role.Survivor, SkillIds.EmergencyRestore, SkillRejectReason.NoTarget, PlayerStatus.Normal)));
-            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.FirewallBlock, PlayerStatus.Normal, 0, false, out _),
-                Is.EqualTo(SkillFeedback.RejectionLine(Role.Killer, SkillIds.FirewallBlock, SkillRejectReason.NoSwitchInProgress, PlayerStatus.Normal)));
-            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.PacketAfterimage, PlayerStatus.Normal, 0, true, out _),
-                Is.EqualTo(SkillFeedback.RejectionLine(Role.Killer, SkillIds.PacketAfterimage, SkillRejectReason.Passive, PlayerStatus.Normal)));
             Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Lagging, 0, true, out _),
                 Is.EqualTo(SkillFeedback.RejectionLine(Role.Survivor, SkillIds.DummyPacket, SkillRejectReason.NotNormal, PlayerStatus.Lagging)));
         }

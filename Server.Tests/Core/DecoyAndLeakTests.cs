@@ -78,7 +78,7 @@ public sealed class DecoyAndLeakTests
 
     private sealed class SweepStats
     {
-        internal int KillerFrames, SurvivorFrames, AbsentChecks, DecoyEntries, AfterimageEntries, Coincidences;
+        internal int KillerFrames, SurvivorFrames, AbsentChecks, DecoyEntries, Coincidences;
         // U2e: survivor frames with the legal line-of-sight killer entry and frames where it is blocked.
         internal int SightFrames, BlockedFrames;
         internal readonly HashSet<byte> KillerSkills = new(), SurvivorEffects = new(), KillerEffects = new();
@@ -96,7 +96,6 @@ public sealed class DecoyAndLeakTests
         Assert.True(stats.KillerFrames > 20000 && stats.SurvivorFrames > 20000, $"{stats.KillerFrames}/{stats.SurvivorFrames}");
         Assert.True(stats.AbsentChecks > 20000, "absent checks " + stats.AbsentChecks);
         Assert.True(stats.DecoyEntries > 100, "decoy entries " + stats.DecoyEntries);
-        Assert.True(stats.AfterimageEntries > 20, "afterimage entries " + stats.AfterimageEntries);
         Assert.True(stats.Coincidences * 20 < stats.SurvivorFrames, "coincidences " + stats.Coincidences);
         Assert.True(stats.BlockedFrames > 5000 && stats.SightFrames > 1000, $"blocked {stats.BlockedFrames} / sight {stats.SightFrames}");
         Assert.Equal(new byte[] { 0, 1, 2, 3 }, stats.KillerSkills.OrderBy(x => x));
@@ -282,8 +281,7 @@ public sealed class DecoyAndLeakTests
                 Assert.True(Same(entry.X, t.X) && Same(entry.Z, t.Z) && entry.Status == t.Status, $"tick {tick}: visible entry {entry.Id} not at its true position");
                 continue;
             }
-            Assert.True(sources[i].Afterimage, $"tick {tick}: entry {sources[i].Label} shown although neither Signal nor afterimage");
-            stats.AfterimageEntries++;
+            Assert.Fail($"tick {tick}: entry {sources[i].Label} shown although not Signal (R1: no afterimage skill)");
         }
         var sanitized = new S2C_WorldState { Tick = kWorld.Tick, TimeLeft = kWorld.TimeLeft, CollapseLeft = kWorld.CollapseLeft, Players = leftover };
         byte[] killerBytes = PacketCodec.Encode(sanitized);

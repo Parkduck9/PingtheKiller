@@ -19,6 +19,8 @@ namespace PingTheKiller.ServerCore
         private bool[] _regressing = Array.Empty<bool>();
         private double[] _overloadedUntil = Array.Empty<double>();
         private int[] _hackers = Array.Empty<int>();
+        // R1 (11/17): Firewall block on a terminal (no hacking until then).
+        private double[] _terminalLockedUntil = Array.Empty<double>();
         private uint _nextCheckId;
         // Float progress is summed per tick; this absorbs the rounding of float dt times the co-hack rate.
         private const double ProgressEpsilon = 0.0001;
@@ -32,6 +34,42 @@ namespace PingTheKiller.ServerCore
             _overloadedUntil = new double[_terminals.Length];
             for (int i = 0; i < _overloadedUntil.Length; i++) _overloadedUntil[i] = double.NegativeInfinity;
             _hackers = new int[_terminals.Length];
+            _terminalLockedUntil = new double[_terminals.Length];
+            for (int i = 0; i < _terminalLockedUntil.Length; i++) _terminalLockedUntil[i] = double.NegativeInfinity;
+        }
+
+        private bool TerminalLocked(int i) => Active(_terminalLockedUntil[i]);
+
+        // R1 (11/17) a2: a terminal cannot be locked again until FirewallTerminalRelockSeconds after its lock ended (another
+        // terminal can), so an 8 s lock on a 12 s cooldown cannot hold the last terminal until the clock runs out.
+        public const double FirewallTerminalRelockSeconds = 20;
+
+        private bool TerminalRelockable(int i) => _now >= _terminalLockedUntil[i] + FirewallTerminalRelockSeconds - TimeEpsilon;
+
+        // R1 (11/17) Firewall block without an Exit switch in progress: the unfinished, relockable terminal with the most
+        // progress (above 0; ties: lower index), or -1.
+        private int FirewallTerminalTarget()
+        {
+            int target = -1;
+            for (int i = 0; i < _terminals.Length; i++)
+                if (!TerminalDone(i) && TerminalRelockable(i) && _progress[i] > TimeEpsilon &&
+                    (target < 0 || _progress[i] > _progress[target] + TimeEpsilon))
+                    target = i;
+            return target;
+        }
+
+        // Hackers on it stop at once (the hack pass skips a locked terminal; a pending sync check is cancelled there).
+        private void LockTerminal(int i)
+        {
+            _terminalLockedUntil[i] = _now + SkillIds.FirewallTerminalSeconds;
+            foreach (var player in _players)
+                if (player.HackTerminal == i)
+                {
+                    player.Hacking = false;
+                    player.HackTerminal = -1;
+                    CancelSyncCheck(player);
+                }
+            WriteLog($"terminal {i} locked seconds={SkillIds.FirewallTerminalSeconds}");
         }
 
         private bool TerminalDone(int i) => _terminals[i].Progress >= 100;
@@ -57,7 +95,8 @@ namespace PingTheKiller.ServerCore
                     float distance = DistanceSquared(player.X, player.Z, _terminals[i].X, _terminals[i].Z);
                     if (distance < best) { best = distance; nearest = i; }
                 }
-                if (nearest < 0) continue;
+                // R1 (11/17): a locked terminal takes no hack (the nearest terminal decides, so no other one is picked).
+                if (nearest < 0 || TerminalLocked(nearest)) continue;
                 player.Hacking = true;
                 player.HackTerminal = nearest;
                 _hackers[nearest]++;
@@ -106,6 +145,8 @@ namespace PingTheKiller.ServerCore
             // Regression stops when a survivor starts hacking, so the killer would learn of a hidden hacker: survivors only.
             if (!killer && _regressing[i]) flags |= TerminalFlags.Regressing;
             if (Active(_overloadedUntil[i])) flags |= TerminalFlags.Overloaded;
+            // R1 (11/17): both roles see a Firewall lock (the Killer on its terminal marker).
+            if (TerminalLocked(i)) flags |= TerminalFlags.Locked;
             return (byte)flags;
         }
 
@@ -115,7 +156,7 @@ namespace PingTheKiller.ServerCore
             var killer = _killer;
             if (killer == null) return;
             // GDD v2 section 8: a stun, a vault or a shutter break takes Interact before the hatch and the kick.
-            if (!killer.Interacting || killer.InputHeld(_now) || ChaseFrozen(killer))
+            if (!killer.Interacting || killer.InputHeld(_now) || ChaseFrozen(killer) || Swinging(killer))
             {
                 killer.KickHeld = killer.HatchHeld = 0;
                 killer.KickTerminal = -1;

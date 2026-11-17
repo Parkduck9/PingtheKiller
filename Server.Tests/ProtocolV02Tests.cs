@@ -19,12 +19,12 @@ public sealed class ProtocolV02Tests
         yield return new object[] { world, 22, new byte[] { 0, 1 } }; // Player.Role
         yield return new object[] { world, 23, new byte[] { 0, 1, 2, 3 } }; // Player.Status
         yield return new object[] { world, 36, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
-        yield return new object[] { world, 42, Enumerable.Range(0, 16).Select(i => (byte)i).ToArray() }; // v0.7 Chase flags
+        yield return new object[] { world, 42, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // v0.7 Chase flags (R1: Swinging = 16)
         var shutters = new S2C_WorldState { Shutters = new() { 0 } };
         yield return new object[] { shutters, 19, new byte[] { 0, 1, 2 } }; // v0.7 ShutterState (count at 18)
         var terminals = new S2C_WorldState { Terminals = new() { new TerminalState() } };
         yield return new object[] { terminals, 26, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // Progress
-        yield return new object[] { terminals, 27, new byte[] { 0, 1, 2, 3 } }; // Terminal flags
+        yield return new object[] { terminals, 27, Enumerable.Range(0, 8).Select(i => (byte)i).ToArray() }; // Terminal flags (R1: Locked = 4)
         var exits = new S2C_WorldState { Exits = new() { new ExitState() } };
         yield return new object[] { exits, 24, Enumerable.Range(0, 8).Select(i => (byte)i).ToArray() }; // Exit flags
         yield return new object[] { exits, 25, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // SwitchProgress
@@ -38,6 +38,8 @@ public sealed class ProtocolV02Tests
         yield return new object[] { new C2S_Interact(), 0, new byte[] { 0, 1 } };
         yield return new object[] { new C2S_SetBots(), 0, new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 } };
         yield return new object[] { new C2S_SetRole(), 0, new byte[] { 0, 1, 255 } };
+        // R1 (11/17): Survivor 0-4, Killer 0x80-0x83, none 0xFF.
+        yield return new object[] { new C2S_ChooseSkill(), 0, new byte[] { 0, 1, 2, 3, 4, 0x80, 0x81, 0x82, 0x83, 0xFF } };
     }
 
     [Theory]
@@ -74,7 +76,7 @@ public sealed class ProtocolV02Tests
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
         int count = Enum.GetValues<PacketId>().Length;
-        Assert.Equal(22, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015); v0.6 S2C_SkillRejected (0x0016).
+        Assert.Equal(24, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015); v0.6 S2C_SkillRejected (0x0016); R1 C2S_Attack, C2S_ChooseSkill (0x0017-0x0018).
         Assert.Equal(count, packets.Length);
         Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
     }

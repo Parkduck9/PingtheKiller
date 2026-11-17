@@ -63,6 +63,8 @@ internal sealed class QaFixture : IDisposable
             IsOffline = true, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
             MatchSeedForTests = matchSeed
         });
+        // R1 (11/17): the pre-R1 scenarios capture by contact; the test hook swings for the human Killer (GameServer.Combat).
+        Server.ContactSwingForTests = true;
         Transport = new InMemoryTransport();
         Transport.ConnectionAccepted += Server.AddConnection;
         Transport.Start();
