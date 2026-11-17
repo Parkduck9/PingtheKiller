@@ -68,7 +68,8 @@ namespace PingTheKiller.ServerCore
         {
             if (player.Role == Role.Survivor)
             {
-                if (player.Status != PlayerStatus.Normal || player.Rescuing) return;
+                // E priority: a Lagging ally in reach takes the press (rescue) before any shutter or rail.
+                if (player.Status != PlayerStatus.Normal || player.Rescuing || NearestLaggingAlly(player) != null) return;
             }
             else if (Stunned(player)) return;
             var shutters = WorldChaseProps.Shutters;

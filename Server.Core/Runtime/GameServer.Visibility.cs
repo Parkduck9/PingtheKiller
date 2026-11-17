@@ -139,6 +139,7 @@ namespace PingTheKiller.ServerCore
                 if (player.Status == PlayerStatus.Normal && Active(player.StealthUntil)) flags |= PlayerFlags.Stealthed;
                 if (player.Hacking) flags |= PlayerFlags.Hacking;
                 if (player.Rescuing) flags |= PlayerFlags.Rescuing;
+                if (GettingUp(player)) flags |= PlayerFlags.GettingUp;
                 _survivorView.Add(new PlayerState
                 {
                     Id = player.Id, Role = (byte)Role.Survivor, Status = (byte)player.Status,
@@ -191,15 +192,7 @@ namespace PingTheKiller.ServerCore
             if (player.Status == PlayerStatus.Lagging) state.RescueProgress = RescueFraction(player);
             else if (player.Rescuing)
             {
-                Player target = null;
-                float best = float.MaxValue;
-                foreach (var ally in _players)
-                {
-                    if (ally == player || ally.Role != Role.Survivor || ally.Status != PlayerStatus.Lagging ||
-                        !Within(player, ally.X, ally.Z, GameConstants.RescueRadius)) continue;
-                    float distance = DistanceSquared(player.X, player.Z, ally.X, ally.Z);
-                    if (distance < best) { best = distance; target = ally; }
-                }
+                Player target = NearestLaggingAlly(player);
                 if (target != null) state.RescueProgress = RescueFraction(target);
             }
             if (player.Status == PlayerStatus.Normal) state.InvulnerableLeft = (float)Math.Max(0, player.InvulnerableUntil - _now);
@@ -238,6 +231,7 @@ namespace PingTheKiller.ServerCore
             : kind == (byte)ActionKind.Kick ? 1 / GameConstants.KickHoldSeconds
             : kind == (byte)ActionKind.HatchClose ? 1 / GameConstants.HatchCloseSeconds
             : kind == (byte)ActionKind.Pull ? 1 / GameConstants.ShutterPullSeconds
+            : kind == (byte)ActionKind.Rescue ? 1 / GameConstants.RescueTimeSeconds
             : kind == (byte)ActionKind.Break ? 1 / GameConstants.ShutterBreakSeconds : 0;
 
         // v0.4 SelfState: the own collapse clock and the own hold action (exit switch, kick or hatch close).
@@ -263,6 +257,14 @@ namespace PingTheKiller.ServerCore
             }
             if (player.Role == Role.Survivor)
             {
+                if (player.Rescuing)
+                {
+                    // R3: the rescuer's own hold action; the progress is the ally's restore fraction.
+                    var ally = NearestLaggingAlly(player);
+                    state.ActionKind = (byte)ActionKind.Rescue;
+                    state.ActionProgress = ally == null ? 0 : RescueFraction(ally);
+                    return;
+                }
                 if (player.SwitchExit < 0) return;
                 state.ActionKind = (byte)ActionKind.Switch;
                 state.ActionProgress = (float)Math.Min(1, _switchSeconds[player.SwitchExit] / GameConstants.ExitSwitchSeconds);

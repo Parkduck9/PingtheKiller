@@ -331,9 +331,14 @@ public sealed class SkillTests
         Use(a, SkillIds.DummyPacket); // Lagging cannot use skills
         m.Tick();
         Assert.Empty(a.All<S2C_SkillEffect>());
+        b.Send(new C2S_Interact { Active = 1 }); // R3: hold E to restore
         m.WalkTo(b, 6.4f, 26, GameConstants.SurvivorSpeed);
         m.Tick(60);
         Assert.Equal((byte)PlayerStatus.Normal, m.Truth(a).Status);
+        Use(a, SkillIds.DummyPacket); // R3: refused while getting up (1.5 s)
+        m.Tick();
+        Assert.Empty(a.All<S2C_SkillEffect>());
+        m.Tick(30);
         Use(a, SkillIds.DummyPacket);
         m.Tick();
         Assert.Single(a.All<S2C_SkillEffect>());

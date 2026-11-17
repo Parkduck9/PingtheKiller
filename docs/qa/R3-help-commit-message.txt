@@ -1,0 +1,32 @@
+R3-help: explicit rescue, Lagging ally markers, intro card, How to play, hints
+
+Server (authoritative)
+- Rescue is now an explicit E-hold: a Normal Survivor holding E within 1.5 m of a
+  Lagging Survivor for 3 s restores them; release or leaving range resets the count.
+  The automatic proximity rescue is removed.
+- ActionKind.Rescue (7) with ActionProgress is reported to the rescuer; the wire
+  reader clamps to 7. Killer masking is unchanged (Silent Survivors stay omitted).
+- E priority is rescue, then chase prop, then exit switch, then terminal, in one
+  place (GameServer.Rules.cs) and in HUD_SPEC 4.4.
+- S5: a restored Survivor gets up for 1.5 s (speed 0, no E, no skill, yaw still read, inside the 2 s
+  protection). PlayerFlags.GettingUp = 32 goes to Survivor recipients only, never the Killer view.
+- Bots hold Interact whenever a Lagging ally is in reach. Emergency restore is
+  unchanged. BalanceSweep 18/18, 1v7 Survivor win rate 48-50 % with the get-up (before 53-63 %).
+
+Client
+- Getting up: `Getting up…` line, Mixamo GettingUp clip driven by the flag at 1.5 s.
+- Rescue prompts (approach, hold E, restoring + progress bar), downed-player line
+  with nearest ally distance, banner text for the E-hold.
+- Distance tag and edge arrow for every Lagging ally (MarkerLayer, EdgeSpread).
+- 7 s intro card (any key dismisses, Reduced motion respected, keeps the
+  character's feet clear) replaces the Killer's 3 s block.
+- How to play screen under Offline with Survivor and Killer pages.
+- First-time hints, once per match each.
+- PlayMenuCopy.KillerEffect added; skill block untouched.
+
+Tests and docs
+- ExplicitRescueTests (7), HelpTests (about 30); existing rescue scenarios, harness
+  scenario and the Harness.Tests fake server now hold E.
+- HUD_SPEC sections 1.7, 3, 4.3a, 4.4, 4.5, 4.6 marked (11/17, R3).
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>

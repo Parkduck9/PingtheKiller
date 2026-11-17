@@ -678,10 +678,13 @@ internal sealed class ScenarioRun(Options options) : IAsyncDisposable
         var path = planner.PathTo(bPos, aPos, new[] { new Circle(killerPos, KillerKeepOut) });
         Check.Require(path != null, $"No path for B from {bPos} to A at {aPos} avoiding the killer.");
         await WalkAsync(B, "B to A", path!, Reach, ct);
+        // R3: the rescue is an explicit E-hold (3 s) within 1.5 m; standing next to A does nothing.
+        await B.InteractAsync(true, ct);
         var clock = Stopwatch.StartNew();
         await UntilAsync(A, world => Entry(world, A.Id) is { Status: (byte)PlayerStatus.Normal, CaptureCount: 1 },
-            TimeSpan.FromSeconds(GameConstants.RescueTimeSeconds + 5), "A rescued (Normal, CaptureCount 1) while B stays within 1.0 m", ct,
+            TimeSpan.FromSeconds(GameConstants.RescueTimeSeconds + 5), "A rescued (Normal, CaptureCount 1) while B holds E within 1.0 m", ct,
             world => Executed(world, A.Id));
+        await B.InteractAsync(false, ct);
         double contact = clock.Elapsed.TotalSeconds;
         var bState = Entry(A.Latest, B.Id);
         Check.Require(bState is { Status: (byte)PlayerStatus.Normal, CaptureCount: 0 }, $"B changed during rescue: {Describe(A.Latest)}.");

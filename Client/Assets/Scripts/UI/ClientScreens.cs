@@ -34,7 +34,8 @@ namespace PingTheKiller.Client.UI
         private Label botCount, roleChoice;
         private readonly Button[] roleButtons = new Button[3];
         private SettingsScreen settingsScreen;
-        private Button openSettings;
+        private HowToPlayScreen howTo;
+        private Button openSettings, openHowTo;
         private PanelSettings panel;
         private Vector2Int scaledFor;
         public event Action<string> Join;
@@ -50,6 +51,10 @@ namespace PingTheKiller.Client.UI
         // U7a: the player's options, loaded from PlayerPrefs; the Settings screen edits them.
         public GameSettings Options { get; private set; }
         public bool SettingsOpen => settingsScreen != null && settingsScreen.Visible;
+        public bool HowToOpen => howTo != null && howTo.Visible;
+        public HowToPlayScreen HowTo => howTo;
+        // 11/17 R3 (HUD_SPEC 3): the match intro card, both roles, bottom-center over the match.
+        public IntroCard Intro { get; private set; }
         public KillerHud Killer { get; private set; }
         public SurvivorHud Survivor { get; private set; }
         public VisualElement StutterBack { get; private set; }
@@ -79,6 +84,7 @@ namespace PingTheKiller.Client.UI
             root.AddToClassList("root");
             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
             root.styleSheets.Add(Resources.Load<StyleSheet>("RulesV2"));
+            root.styleSheets.Add(Resources.Load<StyleSheet>("HelpUI"));
             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
             root.style.unityFontDefinition = FontDefinition.FromFont(font);
             // Lagging stutter layers (HUD_SPEC 4.5): the held world image, behind every screen and the HUD.
@@ -88,6 +94,8 @@ namespace PingTheKiller.Client.UI
             Options = GameSettings.Load(new PlayerPrefsStore());
             settingsScreen = new SettingsScreen(root, Options, () => Playing);
             settingsScreen.Closed += SettingsClosed;
+            howTo = new HowToPlayScreen(root, font);
+            howTo.Closed += HowToClosed;
             Killer.OpenSettings += ShowSettings;
             Survivor.Menu.OpenSettings += ShowSettings;
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
@@ -104,6 +112,7 @@ namespace PingTheKiller.Client.UI
             root?.EnableInClassList("s-floor", SmallSize(panel.scale) > SmallText + .01f);
             Killer?.SetScale(panel.scale);
             Survivor?.SetScale(panel.scale);
+            Intro?.SetScale(panel.scale);
         }
         private void Update() => ApplyScale();
 
@@ -148,6 +157,8 @@ namespace PingTheKiller.Client.UI
             cancel = Action(actions, "Cancel connection", () => Leave?.Invoke());
             offline = Action(menu, "Offline", () => Offline?.Invoke());
             Text(menu, "Play against bots on this PC. No network needed.", "note");
+            openHowTo = Action(menu, HelpCopy.HowToPlay, ShowHowTo);
+            openHowTo.AddToClassList("set-open");
             openSettings = Action(menu, SettingsCopy.Title, ShowSettings);
             openSettings.AddToClassList("set-open");
         }
@@ -195,10 +206,13 @@ namespace PingTheKiller.Client.UI
             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
             Survivor = new SurvivorHud(play, font);
             Killer = new KillerHud(play, font);
+            Intro = new IntroCard(font); // after both HUDs: drawn over them
+            play.Add(Intro);
         }
         private void Phase(VisualElement visible)
         {
             settingsScreen?.Hide();
+            howTo?.Hide();
             Show(menu, visible == menu);
             Show(lobby, visible == lobby);
             Show(result, visible == result);
@@ -214,7 +228,7 @@ namespace PingTheKiller.Client.UI
         }
         public void SetConnecting(bool value)
         {
-            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value); openSettings.SetEnabled(!value);
+            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value); openSettings.SetEnabled(!value); openHowTo.SetEnabled(!value);
             Show(cancel, value);
             if (value) { message.text = "Connecting to " + address.value + "…"; cancel.Focus(); }
         }
@@ -267,6 +281,16 @@ namespace PingTheKiller.Client.UI
             settingsScreen.Show();
         }
         public void CloseSettings() => settingsScreen.Close();
+        // 11/17 R3 (HUD_SPEC 1.7): the How to play screen replaces the main menu; Back or Esc returns to it.
+        public void ShowHowTo() => ShowHowTo(Role.Survivor);
+        public void ShowHowTo(Role page)
+        {
+            if (HowToOpen || Playing) return;
+            Show(menu, false);
+            howTo.Show(page);
+        }
+        public void CloseHowTo() => howTo.Close();
+        private void HowToClosed() { Show(menu, true); openHowTo.Focus(); }
         private void SettingsClosed()
         {
             if (Playing) { OpenPlayMenu(Killer, Survivor)?.FocusSettings(); return; }

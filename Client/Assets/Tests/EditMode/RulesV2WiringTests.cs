@@ -494,7 +494,7 @@ namespace PingTheKiller.Client.Tests
         public void ClientAppDrawsTheSurvivorTerminalFlagsEveryFrameFromTheLastWorldState()
         {
             string app = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "ClientApp.cs")).Replace("\r\n", "\n");
-            Assert.That(app, Does.Contain("UpdateSurvivorHud(now);\n                screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);"));
+            Assert.That(app, Does.Contain("UpdateSurvivorHud(now, introOn);\n                screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);"));
         }
 
         // ---- attempt 2: the capture banner names the stage's seconds ------------------------------------------------------

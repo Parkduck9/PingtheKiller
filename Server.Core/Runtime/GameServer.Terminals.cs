@@ -45,7 +45,7 @@ namespace PingTheKiller.ServerCore
                 player.HackTerminal = -1;
                 player.SwitchExit = -1;
                 if (player.Role != Role.Survivor || player.Status != PlayerStatus.Normal || !player.Interacting ||
-                    player.InChaseAction) continue;
+                    player.InChaseAction || player.Rescuing) continue;
                 // An exit switch in reach takes the hold before any terminal.
                 player.SwitchExit = SwitchInReach(player);
                 if (player.SwitchExit >= 0) continue;

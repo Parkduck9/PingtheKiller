@@ -41,6 +41,8 @@ namespace PingTheKiller.Client.UI
             for (int i = 0; i < bands.Length; i++) { bands[i] = Box(root, "sband"); Show(bands[i], false); }
             V2Markers = new V2MarkerLayer(font);
             root.Add(V2Markers);
+            AllyLayer = new MarkerLayer(font); // R3 (HUD_SPEC 4.6): the Lagging-ally tags and edge arrows, under the stack and cluster
+            root.Add(AllyLayer);
             stack = Box(root, "v2-survivor-stack");
             SyncRing = new SyncLockBar(Sync.State, font);
             stack.Add(SyncRing);
@@ -143,6 +145,35 @@ namespace PingTheKiller.Client.UI
         public V2MarkerLayer V2Markers { get; }
         public int RegressingShown { get; private set; }
 
+        // R3 (11/17, HUD_SPEC 4.6): a tag or edge arrow for every Lagging ally. The layer is a MarkerLayer (the Killer HUD's
+        // marker infrastructure); AllyMarkers does the placement.
+        public MarkerLayer AllyLayer { get; }
+        public AllyMarkers Allies { get; } = new AllyMarkers();
+        // The intro card's height while it shows above the cluster (0 = hidden): it takes the prompt row's slot and the keep-out.
+        public float IntroHeight { get; set; }
+
+        public void DrawAllyMarkers(float ownX, float ownZ, System.Collections.Generic.IReadOnlyList<Mate> mates, System.Func<int, string> names, World.ViewPose pose)
+        {
+            Vector2 screen = new Vector2(AllyLayer.layout.width, AllyLayer.layout.height);
+            if (float.IsNaN(screen.x) || screen.x <= 0 || float.IsNaN(screen.y) || screen.y <= 0)
+                screen = new Vector2(Screen.width, Screen.height) / Mathf.Max(.01f, scale);
+            DrawAllyMarkers(ownX, ownZ, mates, names, pose, screen);
+        }
+
+        public void DrawAllyMarkers(float ownX, float ownZ, System.Collections.Generic.IReadOnlyList<Mate> mates, System.Func<int, string> names, World.ViewPose pose, Vector2 screen)
+        {
+            Rect cluster = ClusterRect(screen);
+            Allies.Build(ownX, ownZ, mates, names, pose, screen, cluster);
+            Allies.Draw(AllyLayer, EdgePlacement.SafeRect(screen, false), EdgePlacement.KeepOut(cluster));
+        }
+
+        public void ClearAllyMarkers()
+        {
+            Allies.Build(0, 0, null, null, default, new Vector2(1920, 1080), default);
+            AllyLayer.Clear(MarkerLayer.Static); AllyLayer.Clear(MarkerLayer.Signals);
+            AllyLayer.Commit(MarkerLayer.Static); AllyLayer.Commit(MarkerLayer.Signals);
+        }
+
         public const float TerminalPointHeight = 1.5f;
 
         // Every frame: a Regressing tag above each Regressing terminal whose 1.5 m point is on screen, kept out of the cluster
@@ -178,7 +209,7 @@ namespace PingTheKiller.Client.UI
 
         public void Begin(byte skillId)
         {
-            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
+            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0; IntroHeight = 0; ClearAllyMarkers();
             menuSkill = skillId; Menu.SetOpen(false); Menu.SetNote(null);
             SetText(skillName, SurvivorReadout.SkillName(skillId));
             Show(prompt, false);
@@ -398,6 +429,7 @@ namespace PingTheKiller.Client.UI
         {
             float height = Height;
             if (MenuOpen) height += PlayMenu.RowHeight + Gap;
+            else if (IntroHeight > 0) height += IntroHeight + Gap;
             else if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
@@ -420,6 +452,7 @@ namespace PingTheKiller.Client.UI
             ring.Scale = scale; ring.MarkDirtyRepaint();
             CastFlash.SetScale(scale);
             V2Markers.Scale = scale;
+            AllyLayer.Scale = scale;
             SyncRing.Scale = scale;
         }
     }

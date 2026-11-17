@@ -308,7 +308,7 @@ namespace PingTheKiller.Client.World
                 bool lagging = avatar.Lagging;
                 avatar.Motion.Drive(now);
                 RenderInteraction(avatar, own, bodies[i].Id, now);
-                avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false);
+                avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false, true, avatar.Motion.PoseRate);
                 avatar.Motion.Ground();
                 // The knock-down / crawl clips replace the old Lagging lean; the capsule fallback keeps it.
                 avatar.Root.transform.rotation *= Quaternion.Euler(lagging && !avatar.Motion.Drives ? 12 : 0, 0, 0);

@@ -48,6 +48,9 @@ namespace PingTheKiller.Client
         // U4e Survivor feedback: threat visuals (HUD_SPEC 4.2), capture banner, elimination reason, cues and the stutter (4.5).
         private readonly ThreatVisual threatVisual = new ThreatVisual();
         private readonly CaptureWatch capture = new CaptureWatch();
+        // 11/17 R3 onboarding: the 7 s intro card (any key dismisses it) and the once-per-match first-time hints.
+        private readonly IntroCardState intro = new IntroCardState();
+        private readonly HintTracker hints = new HintTracker();
         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
         private LaggingStutter stutter;
         // U8 capture feel (HUD_SPEC 4.5, 4.10): the pooled impact burst, the presentation hit-stop and the dev frame-time log.
@@ -236,6 +239,7 @@ namespace PingTheKiller.Client
                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; ResetMenu();
                     selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
+                    intro.Begin(role, skillId, LinkClock.Now); hints.Reset();
                     skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
                     impactFx.Warm(SkillFxArt.Load()?.Ring); impactFx.Clear(); hitStop.Reset(); killerCaptures = 0; killerImpactUntil = 0; // U8: pool built before any capture
                     impactFx.FirstPerson = role == Role.Killer; // U8: small first-person sizes on the Killer client
@@ -259,6 +263,7 @@ namespace PingTheKiller.Client
                         if (implied > state.ThreatLevel) state.ThreatLevel = implied;
                     }
                     world.Accept(state, received.Time);
+                    intro.SetTerminals(state.TerminalsRequired);
                     killerLayer?.Accept(state, received.Time);
                     if (killerLayer != null && killerLayer.Captures != killerCaptures)
                     {
@@ -284,7 +289,8 @@ namespace PingTheKiller.Client
                         {
                             Status = localStatus, X = player.X, Z = player.Z, StatusTimer = player.StatusTimer, CaptureCount = player.CaptureCount,
                             Signal = (flags & (byte)PlayerFlags.Signal) != 0, Hacking = (flags & (byte)PlayerFlags.Hacking) != 0,
-                            Rescuing = (flags & (byte)PlayerFlags.Rescuing) != 0, Stealthed = (flags & (byte)PlayerFlags.Stealthed) != 0
+                            Rescuing = (flags & (byte)PlayerFlags.Rescuing) != 0, Stealthed = (flags & (byte)PlayerFlags.Stealthed) != 0,
+                            GettingUp = (flags & (byte)PlayerFlags.GettingUp) != 0
                         };
                         hackingTerminal = null;
                         if (own.Hacking)
@@ -346,6 +352,7 @@ namespace PingTheKiller.Client
         {
             bool wasPlaying = playing;
             playing = false; joinDeadline = 0; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
+            intro.End(); screens.Intro.Set(intro, false); screens.Survivor.ClearAllyMarkers();
             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false); v2Audio.End();
             skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0; impactFx.Clear();
             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
@@ -450,6 +457,11 @@ namespace PingTheKiller.Client
             {
                 releasedCursor = false; rig.SetCursor(true);
             }
+            // 11/17 R3 (HUD_SPEC 3): the intro card lasts HelpCopy.IntroSeconds and ends at once on any key.
+            bool introOn = intro.Visible(now, menuGate.Open);
+            if (introOn && keyboard != null && Application.isFocused && keyboard.anyKey.wasPressedThisFrame) { intro.Dismiss(); introOn = false; }
+            screens.Intro.Set(intro, introOn);
+            screens.Survivor.IntroHeight = survivor && introOn ? SurvivorIntroHeight : 0;
             bool active = menuGate.Active(Application.isFocused, releasedCursor);
             bool presses = menuGate.Presses(active, Time.frameCount); // press edges skip the frame a Submit closed the menu
             rig.Look(active);
@@ -511,8 +523,11 @@ namespace PingTheKiller.Client
             if (survivor)
             {
                 stutter.SetActive(own.Status == PlayerStatus.Lagging);
-                UpdateSurvivorHud(now);
+                UpdateSurvivorHud(now, introOn);
                 screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);
+                // HUD_SPEC 4.6 (R3): a tag or edge arrow for every Lagging ally, while Normal.
+                if (own.Status == PlayerStatus.Normal) screens.Survivor.DrawAllyMarkers(own.X, own.Z, mates, NameOf, rig.Pose);
+                else screens.Survivor.ClearAllyMarkers();
                 dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
             }
             else if (killerLayer != null && located)
@@ -520,6 +535,10 @@ namespace PingTheKiller.Client
                 killerLayer.Render(rig.Pose, now, dt, menuGate.Open);
                 if (now < killerImpactUntil && killerLayer.CapturePoint(out Vector3 struck)) { killerImpactUntil = 0; PlayImpact(struck); }
                 chase.ApplyKillerHud(screens.Killer, position, menuGate.Open, now); // HUD_SPEC 15.2 / 15.4
+                // R3: the first time a tracked blip is within 6 m, in an empty prompt slot.
+                bool near = killerLayer.NearestBlip(position, false, out Vector3 blip) && new Vector2(blip.x - position.x, blip.z - position.z).magnitude <= SurvivorReadout.ApproachRange;
+                string hint = hints.Killer(now, introOn, near);
+                if (hint != null && screens.Killer.PromptFree) screens.Killer.SetPrompt(new InteractPrompt { Text = hint }, default);
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
@@ -660,7 +679,8 @@ namespace PingTheKiller.Client
             return null;
         }
         // HUD_SPEC 4.0-4.9 and 13, every frame from the last snapshot, the SelfState clock and the effect timing.
-        private void UpdateSurvivorHud(double now)
+        public const float SurvivorIntroHeight = 134; // IntroCard, HUD_SPEC 3
+        private void UpdateSurvivorHud(double now, bool introOn)
         {
             if (lastWorld == null) return;
             SurvivorHud hud = screens.Survivor;
@@ -684,8 +704,28 @@ namespace PingTheKiller.Client
             // HUD_SPEC 15.2: the Shutter / Rail action line, or their prompt in an empty slot.
             if (chase != null)
                 ChasePropsLayer.SurvivorPrompt(ref prompt, ref hold, chase.ChaseAction, own.Status == PlayerStatus.Normal, releasedCursor || capture.BannerVisible(now), own.X, own.Z, chase.Shutters);
+            // R3: the intro card takes the prompt row's slot; afterwards the first-time hints use an empty slot.
+            if (introOn) prompt = default;
+            else if (string.IsNullOrEmpty(prompt.Text) && !releasedCursor)
+            {
+                string hint = hints.Survivor(now, false, own.Status == PlayerStatus.Normal, TerminalNear(), LaggingMateName(), own.Signal);
+                if (hint != null && hold.Kind == HoldKind.None) prompt = new PromptState { Text = hint };
+            }
             hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
+        }
+        // R3 hints: an unfinished terminal within 6 m of the own Survivor, and the first Lagging ally's prompt name (null = none).
+        private bool TerminalNear()
+        {
+            if (lastWorld?.Terminals == null) return false;
+            foreach (TerminalState terminal in lastWorld.Terminals)
+                if (terminal.Progress < 100 && new Vector2(terminal.X - own.X, terminal.Z - own.Z).magnitude <= SurvivorReadout.ApproachRange) return true;
+            return false;
+        }
+        private string LaggingMateName()
+        {
+            foreach (Mate mate in mates) if (mate.Status == PlayerStatus.Lagging) return SurvivorReadout.Ellipsize(NameOf(mate.Id));
+            return null;
         }
         private void OnApplicationFocus(bool focused)
         {
@@ -716,6 +756,7 @@ namespace PingTheKiller.Client
         {
             Release();
             playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; ResetMenu(); selfState.Reset(); screens.Survivor.Sync.Reset();
+            intro.End(); screens.Intro.Set(intro, false); screens.Survivor.ClearAllyMarkers();
             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
             skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0; impactFx?.Clear();
             DestroyWorld();

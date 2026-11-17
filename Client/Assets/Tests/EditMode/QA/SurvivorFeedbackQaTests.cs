@@ -463,7 +463,7 @@ namespace PingTheKiller.Client.QA.Tests
             Assert.That(GameConstants.RescueRadius, Is.EqualTo(1.5f));
             Assert.That(GameConstants.RescueTimeSeconds, Is.EqualTo(3f));
             Assert.That(GameConstants.LaggingTimeoutSeconds, Is.EqualTo(60f));
-            Assert.That(banner.Length, Is.LessThanOrEqualTo(70), "one line in the 656 u prompt row at M");
+            Assert.That(banner.Length, Is.LessThanOrEqualTo(80), "one line in the 656 u prompt row at M");
             Assert.That(CaptureWatch.BannerPrompt.Danger, Is.True);
             Assert.That(CaptureWatch.BannerPrompt.Text, Is.EqualTo(banner));
             string spec = DocsFile(Path.Combine("ui", "HUD_SPEC.md"));

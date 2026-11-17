@@ -25,6 +25,8 @@ namespace PingTheKiller.Client.World
         public const float HitSeconds = .3f;
         // Imported clip lengths (CharacterMotionTests checks them against the assets).
         public const float KnockedDownSeconds = 2.133f, GettingUpSeconds = 2.7f, DeathSeconds = 2.6f;
+        // R3: the server holds a rescued Survivor still for GameConstants.GetUpSeconds (flag GettingUp); the 2.7 s clip is played faster to fit.
+        public const float GetUpSeconds = GameConstants.GetUpSeconds;
         // U8: the Killer swipe is trimmed on import to the Mixamo take from SwipeFromSeconds for SwipeClipSeconds (40
         // frames). It is not played at rate 1: SwipeClipTime maps the real seconds since the capture onto the clip.
         // Keys chosen from every imported frame (docs/qa/U8-screens/a2/swipe-frames.png, right-hand speed in
@@ -105,7 +107,7 @@ namespace PingTheKiller.Client.World
     // The trigger logic for one character, from state the viewing client already has. Plain C# (no Unity types).
     //
     // Survivor view (full state): Normal -> Lagging = Hit, KnockedDown, then Crawl while Lagging (the Crawl state's rate
-    // follows the speed, so a still Survivor holds the last crawl pose); Lagging -> Normal = GettingUp, then locomotion;
+    // follows the speed, so a still Survivor holds the last crawl pose); the GettingUp flag (R3, 1.5 s after a rescue) = GettingUp, then locomotion;
     // Eliminated = Death once, the last pose held until DeathShownSeconds (then the body despawns); Hacking and still =
     // ButtonPushing; CaptureCount >= 1 = the injured locomotion.
     //
@@ -117,7 +119,8 @@ namespace PingTheKiller.Client.World
     public sealed class MotionTracker
     {
         public readonly MotionView View;
-        private bool known, fell, rose, died;
+        private bool known, fell, died, gettingUp;
+        private double gettingUpSince = double.NegativeInfinity;
         private byte status;
         private double changedAt = double.NegativeInfinity;
         public MotionPose Pose { get; private set; }
@@ -131,7 +134,7 @@ namespace PingTheKiller.Client.World
 
         public void Reset()
         {
-            known = fell = rose = died = false; status = 0; changedAt = double.NegativeInfinity;
+            known = fell = died = gettingUp = false; status = 0; changedAt = double.NegativeInfinity; gettingUpSince = double.NegativeInfinity;
             Pose = MotionPose.Locomotion; PoseSince = double.NegativeInfinity; CaptureEdge = false;
         }
 
@@ -154,10 +157,13 @@ namespace PingTheKiller.Client.World
                 bool wasNormal = status == (byte)PlayerStatus.Normal;
                 CaptureEdge = wasNormal && (newStatus == (byte)PlayerStatus.Lagging || newStatus == (byte)PlayerStatus.Eliminated);
                 fell = wasNormal && newStatus == (byte)PlayerStatus.Lagging;
-                rose = View == MotionView.Survivor && status == (byte)PlayerStatus.Lagging && newStatus == (byte)PlayerStatus.Normal;
                 died = newStatus == (byte)PlayerStatus.Eliminated;
                 status = newStatus; changedAt = now;
             }
+            // R3: the get-up is the server's flag (Survivor view only: Killer entries carry no flags), 1.5 s long.
+            bool up = View == MotionView.Survivor && status == (byte)PlayerStatus.Normal && (flags & (byte)PlayerFlags.GettingUp) != 0;
+            if (up && !gettingUp) gettingUpSince = now;
+            gettingUp = up;
             MotionPose next = Resolve(now, flags, captureCount, speed, out double since);
             if (next != Pose) { Pose = next; PoseSince = since; }
             return Pose;
@@ -178,7 +184,7 @@ namespace PingTheKiller.Client.World
                     since = died ? changedAt : double.NegativeInfinity;
                     return MotionPose.Death;
                 default:
-                    if (rose && elapsed < MotionTiming.GettingUpSeconds) { since = changedAt; return MotionPose.GettingUp; }
+                    if (gettingUp) { since = gettingUpSince; return MotionPose.GettingUp; }
                     if (View == MotionView.Survivor && status == (byte)PlayerStatus.Normal)
                     {
                         if ((flags & (byte)PlayerFlags.Hacking) != 0 && speed < MotionTiming.StillSpeed) return MotionPose.Working;
@@ -385,7 +391,10 @@ namespace PingTheKiller.Client.World
         }
 
         // Clip seconds per real second for a pose (the state speeds MotionSetup writes cancel the Lagging rate).
-        private static float Rate(MotionPose pose) => 1;
+        private static float Rate(MotionPose pose) => pose == MotionPose.GettingUp ? MotionTiming.GettingUpSeconds / MotionTiming.GetUpSeconds : 1;
+
+        // R3: how fast the current pose's clip runs against real time (the get-up clip is sped up to 1.5 s).
+        public float PoseRate => Rate(Tracker.Pose);
 
         private static float Fade(MotionPose from, MotionPose to)
         {
@@ -534,7 +543,9 @@ namespace PingTheKiller.Client.World
                 case MotionPreviewClip.Crawl:
                     status = (byte)(after ? PlayerStatus.Lagging : PlayerStatus.Normal); break;
                 case MotionPreviewClip.GetUp:
-                    status = (byte)(after ? PlayerStatus.Normal : PlayerStatus.Lagging); break;
+                    status = (byte)(after ? PlayerStatus.Normal : PlayerStatus.Lagging);
+                    if (after && t < StartSeconds + MotionTiming.GetUpSeconds) flags |= (byte)PlayerFlags.GettingUp;
+                    break;
                 case MotionPreviewClip.Death:
                     status = (byte)(after ? PlayerStatus.Eliminated : PlayerStatus.Normal); break;
                 case MotionPreviewClip.Button:
@@ -553,7 +564,7 @@ namespace PingTheKiller.Client.World
                 case MotionPreviewClip.Hit: return new[] { StartSeconds + MotionTiming.HitSeconds * .6 };
                 case MotionPreviewClip.KnockDown: return new[] { StartSeconds + MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds * .45 };
                 case MotionPreviewClip.Crawl: return new[] { StartSeconds + MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds + 1.5 };
-                case MotionPreviewClip.GetUp: return new[] { StartSeconds + MotionTiming.GettingUpSeconds * .45 };
+                case MotionPreviewClip.GetUp: return new[] { StartSeconds + MotionTiming.GetUpSeconds * .45 };
                 case MotionPreviewClip.Death: return new[] { StartSeconds + MotionTiming.DeathSeconds * .5, StartSeconds + MotionTiming.DeathSeconds + 1 };
                 case MotionPreviewClip.Button:
                 case MotionPreviewClip.Injured: return new[] { StartSeconds + 1.2 };

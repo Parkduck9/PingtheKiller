@@ -968,7 +968,7 @@ public sealed class U2cAdversarialTests
         for (int i = 0; i < 10; i++) s.Tick();                                                  // no execution grace (GDD v2 §4)
         s.Tick(() => r.Place(r.K, 14.5f, 10));                                                  // killer steps away (>3 m)
         for (int i = 0; i < 10; i++) s.Tick();
-        s.Tick(() => r.Place(r.S[0], 11.2f, 10));                                               // S0 arrives: rescue starts
+        s.Tick(() => { r.Place(r.S[0], 11.2f, 10); r.Interact(r.S[0], true); });                // S0 arrives and holds E: rescue starts
         for (int i = 0; i < 25; i++) s.Tick();
         s.Tick(() => r.Place(r.S[0], 20f, 10));                                                 // rescuer leaves: rescue stops, resets
         for (int i = 0; i < 10; i++) s.Tick();
