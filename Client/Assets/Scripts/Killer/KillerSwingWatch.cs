@@ -3,7 +3,7 @@ using PingTheKiller.Shared.Game;
 namespace PingTheKiller.Client.Killer
 {
     // LateHit: the swing was already shown as Missed, but the own flag's length says it hit (an eliminating hit on a
-    // Survivor this client never saw). Counted, logged; nothing more is shown.
+    // Survivor this client never saw). Counted; ClientApp corrects the line to Hit and plays the kick (11/18, M1).
     public enum SwingEvent : byte { None, Started, Hit, Missed, LateHit }
 
     // R1 (11/17): the own swing as the Killer client sees it. Pure (no UnityEngine).

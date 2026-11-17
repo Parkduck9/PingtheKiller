@@ -453,9 +453,11 @@ namespace PingTheKiller.Client
             // the play menu; gamepad B on the open menu is Resume.
             Gamepad gamepad = Gamepad.current;
             bool escKey = keyboard != null && keyboard.escapeKey.wasPressedThisFrame;
+            bool startKey = gamepad != null && gamepad.startButton.wasPressedThisFrame;
             // INTEG-R minors: Esc on the intro card dismisses the card alone; it never opens the menu that press.
-            if (Application.isFocused && !screens.SettingsOpen && intro.ConsumeEscape(now, menuGate.Open, escKey)) escKey = false;
-            bool back = escKey || (gamepad != null && gamepad.startButton.wasPressedThisFrame);
+            // (11/18, M1) The gamepad Start does the same.
+            if (Application.isFocused && !screens.SettingsOpen && intro.ConsumeBack(now, menuGate.Open, escKey, startKey)) { escKey = false; startKey = false; }
+            bool back = escKey || startKey;
             bool cancel = gamepad != null && gamepad.buttonEast.wasPressedThisFrame && (screens.SettingsOpen || menuGate.Open);
             if (back || cancel)
             {
@@ -470,7 +472,7 @@ namespace PingTheKiller.Client
             // 11/17 R3 (HUD_SPEC 3): the intro card lasts HelpCopy.IntroSeconds and ends at once on Esc, Enter, Space or a click
             // (INTEG-R: movement keys no longer end it).
             bool introOn = intro.Visible(now, menuGate.Open);
-            if (introOn && Application.isFocused && IntroDismissPressed(keyboard)) { intro.Dismiss(); introOn = false; }
+            if (introOn && Application.isFocused && IntroDismissPressed(keyboard, gamepad)) { intro.Dismiss(); introOn = false; }
             screens.Intro.Set(intro, introOn);
             screens.Survivor.IntroHeight = survivor && introOn ? SurvivorIntroHeight : 0;
             bool active = menuGate.Active(Application.isFocused, releasedCursor);
@@ -632,10 +634,19 @@ namespace PingTheKiller.Client
                 Debug.Log("[client] swing hit (eliminating, entry gone)");
                 killerLayer?.PlayUnseenHit();
                 if (killerLayer != null) PlayImpact(killerLayer.VanishedPoint);
+                killerLayer?.Fx.OnHit(time);
                 dev?.OnSwing(SwingEvent.Hit, true);
             }
             else if (swing == SwingEvent.Missed) OnSwingMissed(time);
-            else if (swing == SwingEvent.LateHit) Debug.Log("[client] swing hit (late: an unseen Survivor, shown as missed)");
+            else if (swing == SwingEvent.LateHit)
+            {
+                // (11/18, M1) The flag's length says hit after `Missed` was shown (a hit on a Survivor never seen): the line is
+                // corrected and the kick plays; no impact (no blip position is known).
+                Debug.Log("[client] swing hit (late: an unseen Survivor)");
+                killerLayer?.PlayUnseenHit();
+                killerLayer?.Fx.OnHit(time);
+                dev?.OnSwing(SwingEvent.Hit, true);
+            }
         }
 
         private void OnSwingMissed(double now)
@@ -794,13 +805,14 @@ namespace PingTheKiller.Client
             hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
         }
-        private static bool IntroDismissPressed(Keyboard keyboard)
+        private static bool IntroDismissPressed(Keyboard keyboard, Gamepad gamepad)
         {
             Mouse mouse = Mouse.current;
             bool click = mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame);
-            if (keyboard == null) return click;
+            bool pad = gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame);
+            if (keyboard == null) return click || pad;
             return IntroCardState.DismissInput(keyboard.escapeKey.wasPressedThisFrame,
-                keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame, keyboard.spaceKey.wasPressedThisFrame, click);
+                keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame, keyboard.spaceKey.wasPressedThisFrame, click, pad);
         }
 
         // R3 hints: an unfinished terminal within 6 m of the own Survivor, and the first Lagging ally's prompt name (null = none).

@@ -155,8 +155,10 @@ namespace PingTheKiller.Client.Killer
         {
             float best = float.PositiveInfinity;
             if (scene == null) return best;
-            foreach (BlipView view in scene.Views)
+            IReadOnlyList<BlipView> views = scene.Views; // indexed: no per-frame enumerator box
+            for (int i = 0; i < views.Count; i++)
             {
+                BlipView view = views[i];
                 if (view.Status != BlipStatus.Normal) continue;
                 float d = new Vector2(view.Position.x - eye.x, view.Position.z - eye.z).magnitude;
                 if (d < best) best = d;
@@ -169,8 +171,10 @@ namespace PingTheKiller.Client.Killer
         {
             float best = float.PositiveInfinity;
             if (scene == null) return best;
-            foreach (BlipView view in scene.Views)
+            IReadOnlyList<BlipView> views = scene.Views;
+            for (int i = 0; i < views.Count; i++)
             {
+                BlipView view = views[i];
                 if (view.Status != BlipStatus.Normal) continue;
                 float d = new Vector2(view.Position.x - eye.x, view.Position.z - eye.z).magnitude;
                 if (d < best && KillerHudCopy.SwingClear(SharedMap.Map, last, eye.x, eye.z, view.Position.x, view.Position.z)) best = d;
