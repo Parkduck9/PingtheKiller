@@ -207,7 +207,7 @@ namespace PingTheKiller.Client.Tests
         // ---- the Killer model's attack and the first-person kick -----------------------------------------------------
 
         [Test]
-        public void TheKillerModelSwipesOnlyWhileDrawnAndTheOverrideEndsWithin1_2Seconds()
+        public void TheKillerModelSwipesOnlyWhileDrawnAndTheOverrideEndsWithin1_3Seconds()
         {
             var attack = new AttackTracker();
             Assert.That(attack.Trigger(1, false), Is.False, "not drawn: the Survivor sees nothing");
@@ -215,9 +215,9 @@ namespace PingTheKiller.Client.Tests
             Assert.That(attack.Trigger(2, true), Is.True);
             Assert.That(attack.Active(2.5), Is.True);
             Assert.That(attack.Weight(2.5), Is.EqualTo(1));
-            Assert.That(MotionTiming.SwipeSeconds, Is.LessThanOrEqualTo(1.2f), "the upper-body override ends within 1.2 s of the capture");
-            Assert.That(attack.Active(2 + 1.2 + .001), Is.False);
-            Assert.That(attack.Weight(2 + 1.2 + .001), Is.Zero);
+            Assert.That(MotionTiming.SwipeSeconds, Is.InRange(.9f, 1.3f), "U8: the visible swing lasts 0.9-1.3 s");
+            Assert.That(attack.Active(2 + MotionTiming.SwipeSeconds + .001), Is.False);
+            Assert.That(attack.Weight(2 + MotionTiming.SwipeSeconds + .001), Is.Zero);
             attack.Trigger(10, true);
             Assert.That(attack.Count, Is.EqualTo(2));
             Assert.That(Array.Exists(MotionLibrary.Clips, x => x.File == "KillerPunch"), Is.False, "the swipe only (no punch)");
@@ -250,18 +250,35 @@ namespace PingTheKiller.Client.Tests
         [Test]
         public void TheKickIsShortAndReturnsToZero()
         {
-            Assert.That(KillerAttackKick.Seconds, Is.LessThanOrEqualTo(.25f));
+            // U8: a wind-up (pull back, wider FOV), then the strike lunge and a small trauma shake, all within 0.4 s.
+            double peak = KillerAttackKick.WindUpSeconds + KillerAttackKick.StrikePeak;
+            Assert.That(KillerAttackKick.Seconds, Is.LessThanOrEqualTo(.4f));
+            Assert.That(KillerAttackKick.WindUpSeconds, Is.InRange(.04f, .1f), "a short wind-up feel");
             Assert.That(KillerAttackKick.Envelope(-.01), Is.Zero);
-            Assert.That(KillerAttackKick.Envelope(KillerAttackKick.Seconds * .2), Is.EqualTo(1).Within(1e-4));
+            Assert.That(KillerAttackKick.Envelope(KillerAttackKick.WindUpSeconds * .5), Is.Zero, "no lunge during the wind-up");
+            KillerAttackKick.Offset(KillerAttackKick.WindUpSeconds * .99, false, out float windFov, out float windPush);
+            Assert.That(windFov, Is.GreaterThan(0), "wind-up widens the view");
+            Assert.That(windPush, Is.LessThan(0), "wind-up pulls the eye back");
+            Assert.That(KillerAttackKick.Envelope(peak), Is.EqualTo(1).Within(1e-4));
             Assert.That(KillerAttackKick.Envelope(KillerAttackKick.Seconds), Is.Zero);
+            Assert.That(KillerAttackKick.TraumaAt(KillerAttackKick.Seconds), Is.Zero, "the shake ends with the kick");
+            Assert.That(KillerAttackKick.TraumaAt(KillerAttackKick.WindUpSeconds), Is.EqualTo(KillerAttackKick.Trauma).Within(1e-4));
+            for (double t = 0; t < .5; t += .01)
+            {
+                KillerAttackKick.Shake(t, false, out float right, out float up, out float roll);
+                Assert.That(Mathf.Abs(right), Is.LessThanOrEqualTo(KillerAttackKick.ShakeMetres * .25f + 1e-6f), "small: trauma .5 squared");
+                Assert.That(Mathf.Abs(roll), Is.LessThanOrEqualTo(KillerAttackKick.ShakeRoll * .25f + 1e-6f));
+                KillerAttackKick.Shake(t, true, out right, out up, out roll);
+                Assert.That(right == 0 && up == 0 && roll == 0, Is.True, "reduced motion: no shake");
+            }
             float previous = 1;
-            for (double t = KillerAttackKick.Seconds * .2; t < KillerAttackKick.Seconds; t += .005)
+            for (double t = peak; t < KillerAttackKick.Seconds; t += .005)
             {
                 float e = KillerAttackKick.Envelope(t);
                 Assert.That(e, Is.LessThanOrEqualTo(previous + 1e-6f));
                 previous = e;
             }
-            KillerAttackKick.Offset(KillerAttackKick.Seconds * .2, false, out float fov, out float push);
+            KillerAttackKick.Offset(peak, false, out float fov, out float push);
             Assert.That(fov, Is.EqualTo(-KillerAttackKick.FovDegrees).Within(1e-4));
             Assert.That(push, Is.EqualTo(KillerAttackKick.PushMetres).Within(1e-4));
         }
@@ -308,7 +325,7 @@ namespace PingTheKiller.Client.Tests
                 if (entry.File == "KillerSwipe")
                 {
                     Assert.That(settings.firstFrame, Is.EqualTo(Mathf.Round(MotionTiming.SwipeFromSeconds * 30)), path + ": trimmed to the wind-up and strike");
-                    Assert.That(settings.lastFrame - settings.firstFrame, Is.EqualTo(MotionTiming.SwipeSeconds * 30).Within(.01f), path);
+                    Assert.That(settings.lastFrame - settings.firstFrame, Is.EqualTo(Mathf.Round(MotionTiming.SwipeClipSeconds * 30)).Within(.01f), path);
                 }
                 AnimationClip clip = ClipOf(entry.File);
                 Assert.That(clip, Is.Not.Null, path);
@@ -324,7 +341,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(ClipOf("KnockedDown").length, Is.EqualTo(MotionTiming.KnockedDownSeconds).Within(.02f));
             Assert.That(ClipOf("GettingUp").length, Is.EqualTo(MotionTiming.GettingUpSeconds).Within(.02f));
             Assert.That(ClipOf("FallingBackDeath").length, Is.EqualTo(MotionTiming.DeathSeconds).Within(.02f));
-            Assert.That(ClipOf("KillerSwipe").length, Is.EqualTo(MotionTiming.SwipeSeconds).Within(.02f));
+            Assert.That(ClipOf("KillerSwipe").length, Is.EqualTo(MotionTiming.SwipeClipSeconds).Within(.02f));
             Assert.That(ClipOf("HitReaction").length, Is.GreaterThan(MotionTiming.HitSeconds));
         }
 
@@ -357,6 +374,7 @@ namespace PingTheKiller.Client.Tests
             Assert.That(controller.layers[1].avatarMask.GetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftLeg), Is.False, "legs keep their locomotion");
             Assert.That(controller.layers[1].avatarMask.GetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm), Is.True);
             Assert.That(Find(controller, 1, MotionStates.Swipe), Is.Not.Null);
+            Assert.That(Find(controller, 1, MotionStates.Swipe).speed, Is.Zero, "U8: the driver sets the swipe time every frame");
             Assert.That(Find(controller, 1, "Punch"), Is.Null, "the swipe only");
             Assert.That(controller.layers[1].defaultWeight, Is.Zero);
         }
@@ -513,9 +531,9 @@ namespace PingTheKiller.Client.Tests
                 var kick = host.AddComponent<KillerAttackKick>();
                 kick.Play(10);
                 // The rig does not place the camera on these frames: the base must not drift.
-                kick.Apply(camera, 10 + KillerAttackKick.Seconds * .2);
+                kick.Apply(camera, 10 + KillerAttackKick.WindUpSeconds + KillerAttackKick.StrikePeak);
                 Assert.That(camera.fieldOfView, Is.EqualTo(58 - KillerAttackKick.FovDegrees).Within(1e-3));
-                kick.Apply(camera, 10 + KillerAttackKick.Seconds * .2);
+                kick.Apply(camera, 10 + KillerAttackKick.WindUpSeconds + KillerAttackKick.StrikePeak);
                 Assert.That(camera.fieldOfView, Is.EqualTo(58 - KillerAttackKick.FovDegrees).Within(1e-3), "no accumulation");
                 kick.Apply(camera, 10 + KillerAttackKick.Seconds + .01);
                 Assert.That(camera.fieldOfView, Is.EqualTo(58).Within(1e-4), "restored after the kick");

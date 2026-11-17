@@ -1,0 +1,28 @@
+U8-hitfeel: capture impact, hit-stop and Lagging look replace the 8 Hz stutter
+
+The capture moment read as lag: LaggingStutter deliberately held the world at
+8 Hz for the whole Lagging status. The world now always renders at full rate.
+
+- LaggingStutter is now a UI-layer Lagging look: a 100 ms presentation hit-stop
+  on the own capture (world render time and camera follow only; input, network,
+  audio, HUD and Time.timeScale untouched), a 0.4 s glitch burst (Killer-red
+  flash, scanline tear bars) and a steady veil + vignette + scanlines while
+  Lagging. Reduced motion / -ptk-reduce-stutter: steady look only.
+- Capture impact: new pooled CaptureImpactFx (Killer-red streaks and fragments,
+  0.6 s, chest height) at every drawn Survivor's capture on Survivor clients and
+  at the tracker instance of the Killer's own CaptureConfirm. Built at match
+  start; no capture effect existed before. First-person sizes on the Killer
+  client (capped at 0.04 of the view, pulled 0.4 m toward the eye). Flash 20 %,
+  tear bars danger + neutral.
+- Killer swipe: keys chosen from every imported frame (MotionSetup.SwipeFrames):
+  0.15 s wind-up from the cocked arm, contact 0.27 s after the capture, 0.12 s
+  strike-pose hold, slow follow-through, 1.15 s in all. Swipe state speed 0.
+  The impact, flash, burst and hit-stop start at the contact; the presentation
+  clock eases back over 0.15 s after the stop.
+- KillerAttackKick: 70 ms wind-up (pull back, wider FOV), strike lunge, and a
+  small trauma shake; follows the Reduced motion setting.
+- Dev: -ptk-chase on a Survivor seeks the Killer entry (never logged; the
+  dev-log audit test now states that rule), U8 capture shots, and a frame-time
+  log for 1 s around a capture. The impact log is dev-only, without position.
+- HUD_SPEC 4.5, 4.10 and 12.5 updated (11/17, U8). StutterClock removed; tests
+  that encoded the 8 Hz hold replaced.

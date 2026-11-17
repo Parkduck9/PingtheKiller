@@ -105,7 +105,7 @@ namespace PingTheKiller.Editor.Setup
             if (entry.State == MotionStates.Swipe && !A1)
             {
                 first = Mathf.Round(MotionTiming.SwipeFromSeconds * MixamoFps);
-                last = first + Mathf.Round(MotionTiming.SwipeSeconds * MixamoFps);
+                last = first + Mathf.Round(MotionTiming.SwipeClipSeconds * MixamoFps);
             }
             bool same = importer.clipAnimations != null && importer.clipAnimations.Length == 1 && clip.name == file
                 && clip.loopTime == entry.Loop && !clip.loopPose && clip.lockRootRotation && clip.keepOriginalOrientation
@@ -204,7 +204,7 @@ namespace PingTheKiller.Editor.Setup
             AnimatorStateMachine upper = controller.layers[1].stateMachine;
             AnimatorState empty = State(upper, MotionStates.Empty, null, 1);
             empty.writeDefaultValues = false;
-            State(upper, MotionStates.Swipe, LoadClip("KillerSwipe"), 1);
+            State(upper, MotionStates.Swipe, LoadClip("KillerSwipe"), 0); // U8: CharacterMotion.Drive sets its time every frame
             RemoveState(upper, "Punch"); // attempt 1 alternated a punch; the swipe alone is used now
             if (upper.defaultState != empty) upper.defaultState = empty;
             EditorUtility.SetDirty(controller);
@@ -470,6 +470,56 @@ namespace PingTheKiller.Editor.Setup
         {
             int code = 0;
             try { string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U4j-screens"; Sheets(folder); Shots(folder); }
+            catch (Exception error) { Debug.LogException(error); code = 1; }
+            EditorApplication.Exit(code);
+        }
+
+        // U8 QA (-executeMethod PingTheKiller.Editor.Setup.MotionSetup.SwipeFrames): every imported frame of the Killer
+        // swipe (1/30 s apart), 5 x 8 tiles of 256x240, row-major from frame 0, plus the right hand's position and speed per
+        // frame in the log, so the swipe keys (MotionTiming.SwipeRealKeys / SwipeClipKeys) are chosen from frames.
+        public static void SwipeFrames()
+        {
+            int code = 0;
+            try
+            {
+                string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U8-screens/a2";
+                CharacterArt art = AssetDatabase.LoadAssetAtPath<CharacterArt>("Assets/Resources/CharacterArt.asset");
+                AnimationClip clip = LoadClip("KillerSwipe");
+                int frames = Mathf.RoundToInt(clip.length * MixamoFps) + 1;
+                const int columns = 5, tileW = 256, tileH = 240;
+                int rows = (frames + columns - 1) / columns;
+                var log = new StringBuilder("[MotionSetup] swipe frames length=" + clip.length.ToString("0.000", CultureInfo.InvariantCulture) + "\n");
+                using (var stage = new Stage(tileW, tileH))
+                {
+                    var actor = new Actor(art.KillerPrefab, stage.Root.transform, Vector3.zero, 0);
+                    var sheet = new Texture2D(columns * tileW, rows * tileH, TextureFormat.RGB24, false);
+                    sheet.SetPixels(new Color[sheet.width * sheet.height]);
+                    Vector3 last = Vector3.zero;
+                    for (int k = 0; k < frames; k++)
+                    {
+                        actor.Pose(MotionStates.Swipe, 0);
+                        actor.Animator.Play(MotionStates.Swipe, 1, Mathf.Min(k / MixamoFps / clip.length, .999f));
+                        actor.Animator.Update(0);
+                        Vector3 hand = actor.Animator.GetBoneTransform(HumanBodyBones.RightHand).position;
+                        float speed = k == 0 ? 0 : (hand - last).magnitude * MixamoFps;
+                        last = hand;
+                        log.Append("frame ").Append(k).Append(" t=").Append((k / MixamoFps).ToString("0.000", CultureInfo.InvariantCulture))
+                            .Append(" hand=").Append(hand.x.ToString("0.00", CultureInfo.InvariantCulture)).Append(',').Append(hand.y.ToString("0.00", CultureInfo.InvariantCulture))
+                            .Append(',').Append(hand.z.ToString("0.00", CultureInfo.InvariantCulture)).Append(" speed=").Append(speed.ToString("0.00", CultureInfo.InvariantCulture)).Append("\n");
+                        actor.Bake();
+                        Texture2D tile = stage.Render(new Vector3(2.4f, 1.5f, 1.6f), new Vector3(0, .9f, -.2f));
+                        sheet.SetPixels((k % columns) * tileW, (rows - 1 - k / columns) * tileH, tileW, tileH, tile.GetPixels());
+                        UnityEngine.Object.DestroyImmediate(tile);
+                    }
+                    actor.Unbake();
+                    sheet.Apply();
+                    Directory.CreateDirectory(folder);
+                    File.WriteAllBytes(Path.GetFullPath(Path.Combine(folder, "swipe-frames.png")), sheet.EncodeToPNG());
+                    UnityEngine.Object.DestroyImmediate(sheet);
+                    UnityEngine.Object.DestroyImmediate(actor.Root);
+                }
+                Debug.Log(log.ToString());
+            }
             catch (Exception error) { Debug.LogException(error); code = 1; }
             EditorApplication.Exit(code);
         }

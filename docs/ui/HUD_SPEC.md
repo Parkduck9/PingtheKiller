@@ -319,9 +319,14 @@ Names = lobby `Slot.Nickname` for that `PlayerId` (stored from the last `S2C_Lob
 
 ### 4.5 Own status: Lagging, Escaped, Eliminated
 - **Lagging:** meter rows 3–4.
-  - Frame-stutter treatment (GDD §3.3): the world camera image is presented at 8 Hz (each frame held 125 ms) and blended with the previous frame at 30 %. HUD and audio stay at full rate. No shake, no flash.
-  - Reduced-motion alternative: no frame hold, only the 30 % previous-frame blend, and no extra border (so it never competes with the level-3 edge noise). Until a settings screen exists, it is the launch option `-ptk-reduce-stutter`; a settings toggle is required before any Store build (§11 Q12).
-  - **(10/30) Build:** the world camera renders into an off-screen texture; at each 8 Hz slot (every frame when reduced) the newest presented frame is kept and the one before it is drawn on top at 30 % opacity, both under the HUD. It runs exactly while the own `Status = Lagging`.
+  - ~~Frame-stutter treatment (GDD §3.3): the world camera image is presented at 8 Hz (each frame held 125 ms) and blended with the previous frame at 30 %. HUD and audio stay at full rate. No shake, no flash.~~
+  - **(11/17, U8) Capture impact + Lagging look, replacing the frame stutter** (players read the 8 Hz hold as real lag). The world always renders at full frame rate.
+    - **Hit-stop:** at the swipe's contact (0.27 s after the own capture, §4.10) the world view (character poses, the Killer model, the camera follow) holds for 100 ms, then eases back to real time over 150 ms (no jump). Input, networking, audio and the HUD keep running; `Time.timeScale` is not used.
+    - **Glitch burst** (0.4 s, from the capture): from the contact: a Killer-red (`danger`) flash, 20 % at its start, fading out over 150 ms (one flash per capture, well under 3 per second), and three horizontal scanline tear bars (`danger` / neutral grey tints) that jump every 50 ms and slide back to 0 as the burst fades.
+    - **Steady look**, exactly while the own `Status = Lagging`, faded in over 250 ms: a dark veil (20 %), a dark vignette (60 % at the corners) and faint scanlines (one dark line in three, 16 %). The meter is still the one indicator of the state (rows 3–4); the look carries no text.
+    - All three are UI layers under every screen and the HUD; nothing touches the world camera.
+  - Reduced-motion alternative **(11/17, U8)**: no burst, no tear and no flash; the steady look only (the hit-stop stays: it is a 100 ms hold, not motion). The Reduced motion setting (§12.5) or the launch option `-ptk-reduce-stutter` turns it on.
+  - ~~**(10/30) Build:** the world camera renders into an off-screen texture; at each 8 Hz slot (every frame when reduced) the newest presented frame is kept and the one before it is drawn on top at 30 % opacity, both under the HUD. It runs exactly while the own `Status = Lagging`.~~ Removed by U8 (11/17).
   - The skill is disabled (§4.8), and edge markers show Normal Survivors (§4.6).
 - **Escaped:** lasts until `S2C_GameResult`, which normally arrives in the same tick. The meter shows row 2.
 - **Eliminated:** plays the sound `eliminated` (falling tone, 600 ms). The meter is replaced by a spectate block of the same size.
@@ -386,7 +391,8 @@ Sources: own `PlayerState.{X, Z, Yaw}`; static `FixedMap.Walls`; input. Everythi
   - A Survivor's `Status` Normal → Lagging: a short hit flinch blending into a knock-down, then the crawl while Lagging. The crawl's rate follows the measured speed, so a still Lagging Survivor holds the last crawl pose. Lagging → Normal: getting up (2.7 s), then locomotion.
   - → Eliminated: the fall-back death once; the body keeps its last pose for 6 s after the fall began, then despawns. A Survivor first seen already Eliminated is not drawn.
   - `Hacking` set and speed about 0: the button-pushing loop. `CaptureCount` ≥ 1 and Normal: the injured idle/limp when still or slow.
-  - The Killer model swipes once per capture (`Status` Normal → Lagging, or Normal → Eliminated; 1.2 s), and only if the model is drawn at that moment. The swipe is on the upper body; the legs keep their locomotion.
+  - The Killer model swipes once per capture (`Status` Normal → Lagging, or Normal → Eliminated; ~~1.2 s~~ **(11/17, U8 a2) 1.15 s, keys chosen from every imported frame: a fast 0.15 s wind-up from the cocked arm, the strike reaching contact 0.27 s after the capture, the strike pose held 0.12 s, then a slow follow-through (0.4x)**), and only if the model is drawn at that moment. The swipe is on the upper body; the legs keep their locomotion.
+  - **(11/17, U8) Capture impact:** at every capture of a drawn Survivor (any Survivor, Survivor view), a 0.6 s Killer-red burst of streaks and fragments at chest height (1 m) over its position, starting on the swipe's contact (0.27 s after the capture). The Killer client plays the same burst, at first-person sizes (capped at 0.04 m per particle), at the tracker instance of its own confirmed capture on the view kick's strike (§6.3; never at a position it does not receive). Pooled at match start. Reduced motion does not remove it (it is not camera motion).
   - No other cue is added: the motion never reveals anything the HUD does not already show.
 
 ---
@@ -725,7 +731,7 @@ One panel, 640 u wide, 24 u from the top-left (top-right over a match), `panel` 
 
 - **FOV is the horizontal angle at a 16:9 reference** (§6.0 convention). The rig converts it to Unity's vertical FOV, so other aspect ratios stay Hor+. The 60° lower bound is a horizontal angle, so today's Survivor (vertical 50° = 79.2° horizontal) and Killer (90°) defaults are inside their ranges.
 - **Mouse sensitivity** multiplies `RoleCamera.Sensitivity` (0.12° per count) for both axes. **Invert Y** flips only the pitch sign. Both roles.
-- **Reduced motion** is the Lagging stutter's reduced mode (§4.5): a new world frame every frame, still blended 30 %. `-ptk-reduce-stutter` still forces it on whatever the setting says.
+- **Reduced motion** is the Lagging look's reduced mode (§4.5, **(11/17, U8)**: the steady look only, no burst, tear or flash; also no Killer view kick or shake). `-ptk-reduce-stutter` still forces it on whatever the setting says.
 - **Master volume** sets `AudioListener.volume`.
 - A stored value that is missing, NaN or out of range loads as that setting's default; the others are kept. Setters clamp.
 - Every control applies at once; `Done` (primary, 320×48) and Esc outside a match save. `Reset to defaults` (secondary) restores all six. The values are also saved when the app quits.

@@ -245,7 +245,7 @@ namespace PingTheKiller.Client.Tests
                 stutter.SetReducedOption(true);
                 Assert.That(stutter.Reduced, Is.True, "the player's setting");
                 stutter.SetReducedOption(false);
-                Assert.That(stutter.Reduced, Is.False, "turning it off again restores the 8 Hz hold");
+                Assert.That(stutter.Reduced, Is.False, "turning it off again restores the capture burst");
                 stutter.Initialize(cameraObject.GetComponent<Camera>(), new VisualElement(), new VisualElement(), true);
                 Assert.That(stutter.Reduced, Is.True, "-ptk-reduce-stutter forces it on");
                 stutter.SetReducedOption(false);
