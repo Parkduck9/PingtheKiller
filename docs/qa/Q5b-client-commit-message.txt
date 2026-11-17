@@ -1,0 +1,27 @@
+Q5b-client: shutters and vault rails in the Unity client
+
+- Props: ChasePropSetup (a sibling of WorldArtSetup; it never touches
+  WorldArt) builds one prefab per WorldChaseProps box into Art/ChaseProps
+  and the Resources/ChaseProps catalog. ChasePropsView places them at the
+  Shared box centres for both roles. If the catalog does not match the
+  boxes, it builds the same ChasePropShapes from primitives.
+- Shutter looks follow the WorldState shutter bytes: Up, Down (a 1.2 m
+  slatted panel that drops in 0.12 s) and Broken (torn halves lying flat).
+  Rails are 3 m x 1.0 m, with a light vault-point marker.
+- Prompts: Survivors get pull and vault; the Killer gets force and rail
+  vault. Ranges are the server's, and a prompt only fills an empty slot.
+  Action rows cover Pull and Vault; the Killer hold block covers Break and
+  Vault (UI/ChasePropCopy).
+- Poses: a procedural overlay from PlayerState.Chase, timed to the server
+  durations: pull, a hop vault, a hammering break, and a stun stagger.
+- Stun: a Hovl circle burst tinted danger over the drawn Killer model
+  (a still ring under Reduced motion). The Killer gets a 0.25 s FOV
+  impulse and the `Stunned` effect line.
+- Sounds: procedural, positional ShutterSlam, ShutterCrunch and VaultThud.
+  None plays on the first snapshot.
+- HUD_SPEC section 15. EditMode tests in ChasePropsTests. The
+  SurvivorFeedback QA audit now lists ChasePropsLayer as a Killer-entry
+  reader (Chase flags only).
+- ChasePropShot: editor captures into docs/qa/Q5b-screens.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

@@ -19,6 +19,9 @@ public sealed class ProtocolV02Tests
         yield return new object[] { world, 22, new byte[] { 0, 1 } }; // Player.Role
         yield return new object[] { world, 23, new byte[] { 0, 1, 2, 3 } }; // Player.Status
         yield return new object[] { world, 36, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
+        yield return new object[] { world, 42, Enumerable.Range(0, 16).Select(i => (byte)i).ToArray() }; // v0.7 Chase flags
+        var shutters = new S2C_WorldState { Shutters = new() { 0 } };
+        yield return new object[] { shutters, 19, new byte[] { 0, 1, 2 } }; // v0.7 ShutterState (count at 18)
         var terminals = new S2C_WorldState { Terminals = new() { new TerminalState() } };
         yield return new object[] { terminals, 26, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // Progress
         yield return new object[] { terminals, 27, new byte[] { 0, 1, 2, 3 } }; // Terminal flags
@@ -27,7 +30,7 @@ public sealed class ProtocolV02Tests
         yield return new object[] { exits, 25, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // SwitchProgress
         yield return new object[] { new S2C_GameResult(), 0, new byte[] { 0, 1 } }; // WinnerRole
         yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2, 3 } }; // Reason
-        yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3 } }; // ActionKind
+        yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3, 4, 5, 6 } }; // ActionKind (v0.7: 4-6)
         yield return new object[] { new S2C_SyncResult(), 4, new byte[] { 0, 1, 2 } }; // Result
         yield return new object[] { new S2C_SkillRejected(), 1, Enumerable.Range(1, 8).Select(i => (byte)i).ToArray() }; // v0.6 Reason
         yield return new object[] { new S2C_LobbyState(), 1, new byte[] { 0, 1, 255 } }; // HostRoleChoice

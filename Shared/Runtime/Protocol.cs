@@ -16,5 +16,7 @@ namespace PingTheKiller.Shared
         // v0.4: S2C_GameResult.EliminatedIds and S2C_WorldState exits.
         public const int MaxEliminatedIds = 8;
         public const int MaxExits = 2;
+        // v0.7: S2C_WorldState shutter states (WorldChaseProps.ShutterCount).
+        public const int MaxShutters = 10;
     }
 }

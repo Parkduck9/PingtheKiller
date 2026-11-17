@@ -39,6 +39,8 @@ namespace PingTheKiller.Shared.Packets
         public float HatchZ;
         public List<TerminalState> Terminals = new List<TerminalState>();
         public List<PlayerState> Players = new List<PlayerState>();
+        // v0.7: one ShutterState byte per shutter, indexed by WorldChaseProps.Shutters id; public to every recipient.
+        public List<byte> Shutters = new List<byte>();
         public PacketId Id => PacketId.S2C_WorldState;
 
         public void Write(PacketWriter w)
@@ -49,8 +51,13 @@ namespace PingTheKiller.Shared.Packets
                 throw new PacketFormatException("Terminals cannot be null.");
             if (Exits == null)
                 throw new PacketFormatException("Exits cannot be null.");
+            if (Shutters == null)
+                throw new PacketFormatException("Shutters cannot be null.");
             if (HatchVisible > 1)
                 throw new PacketFormatException("HatchVisible must be 0 or 1.");
+            for (int i = 0; i < Shutters.Count; i++)
+                if (Shutters[i] > (byte)ShutterState.Broken)
+                    throw new PacketFormatException("Undefined shutter state.");
             w.WriteUInt32(Tick);
             w.WriteSingle(TimeLeft);
             w.WriteByte(ThreatLevel);
@@ -71,6 +78,9 @@ namespace PingTheKiller.Shared.Packets
             w.WriteCount(Players.Count, Protocol.MaxWorldEntries);
             for (int i = 0; i < Players.Count; i++)
                 Players[i].Write(w);
+            w.WriteCount(Shutters.Count, Protocol.MaxShutters);
+            for (int i = 0; i < Shutters.Count; i++)
+                w.WriteByte(Shutters[i]);
         }
 
         public static S2C_WorldState Read(ref PacketReader r)
@@ -98,6 +108,10 @@ namespace PingTheKiller.Shared.Packets
             packet.Players = new List<PlayerState>(count);
             for (int i = 0; i < count; i++)
                 packet.Players.Add(PlayerState.Read(ref r));
+            int shutters = r.ReadCount(Protocol.MaxShutters);
+            packet.Shutters = new List<byte>(shutters);
+            for (int i = 0; i < shutters; i++)
+                packet.Shutters.Add(GameWireValues.ReadShutterState(ref r));
             return packet;
         }
     }
@@ -280,7 +294,8 @@ namespace PingTheKiller.Shared.Packets
         public float ExecutionGraceLeft;
         // v0.4: the own collapse clock (a survivor's personal one, the global one for the killer); -1 when not running.
         public float CollapseLeft = -1;
-        // v0.4: 0..1 progress of the own hold action named by ActionKind (exit switch, kick or hatch close).
+        // v0.4: 0..1 progress of the own hold action named by ActionKind (exit switch, kick or hatch close;
+        // v0.7 also a shutter pull, a vault or a shutter break).
         public float ActionProgress;
         public byte ActionKind;
         public PacketId Id => PacketId.S2C_SelfState;

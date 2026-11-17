@@ -14,7 +14,8 @@ namespace PingTheKiller.Shared.Game
     public enum ExitFlags : byte { None = 0, Powered = 1, Open = 2, Locked = 4 }
     public enum SyncResult : byte { Fail = 0, Good = 1, Great = 2 }
     // S2C_SelfState.ActionKind: the own hold action in progress.
-    public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3 }
+    // v0.7 (GDD v2 section 8): Pull, Vault (shutter or rail) and Break (Killer on a shutter).
+    public enum ActionKind : byte { None = 0, Switch = 1, Kick = 2, HatchClose = 3, Pull = 4, Vault = 5, Break = 6 }
     [Flags]
     public enum PlayerFlags : byte { None = 0, Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16 }
 
@@ -26,7 +27,10 @@ namespace PingTheKiller.Shared.Game
         internal static byte ReadTerminalFlags(ref PacketReader r) => r.ReadByte((byte)(TerminalFlags.Regressing | TerminalFlags.Overloaded));
         internal static byte ReadExitFlags(ref PacketReader r) => r.ReadByte((byte)(ExitFlags.Powered | ExitFlags.Open | ExitFlags.Locked));
         internal static byte ReadSyncResult(ref PacketReader r) => r.ReadByte((byte)SyncResult.Great);
-        internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.HatchClose);
+        internal static byte ReadActionKind(ref PacketReader r) => r.ReadByte((byte)ActionKind.Break);
+        internal static byte ReadChaseFlags(ref PacketReader r) => r.ReadByte(
+            (byte)(ChaseFlags.Pulling | ChaseFlags.Vaulting | ChaseFlags.Breaking | ChaseFlags.Stunned));
+        internal static byte ReadShutterState(ref PacketReader r) => r.ReadByte((byte)ShutterState.Broken);
         internal static byte ReadFlags(ref PacketReader r) => r.ReadByte(
             (byte)(PlayerFlags.Signal | PlayerFlags.Afterimage | PlayerFlags.Stealthed | PlayerFlags.Hacking | PlayerFlags.Rescuing));
 
@@ -50,6 +54,8 @@ namespace PingTheKiller.Shared.Game
         public byte Flags;
         public float StatusTimer;
         public byte CaptureCount;
+        // v0.7: ChaseFlags (Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8); values above 15 are rejected.
+        public byte Chase;
 
         public void Write(PacketWriter w)
         {
@@ -62,13 +68,14 @@ namespace PingTheKiller.Shared.Game
             w.WriteByte(Flags);
             w.WriteSingle(StatusTimer);
             w.WriteByte(CaptureCount);
+            w.WriteByte(Chase);
         }
 
         public static PlayerState Read(ref PacketReader r) => new PlayerState
         {
             Id = r.ReadInt32(), Role = GameWireValues.ReadRole(ref r), Status = GameWireValues.ReadStatus(ref r),
             X = r.ReadSingle(), Z = r.ReadSingle(), Yaw = r.ReadSingle(), Flags = GameWireValues.ReadFlags(ref r),
-            StatusTimer = r.ReadSingle(), CaptureCount = r.ReadByte()
+            StatusTimer = r.ReadSingle(), CaptureCount = r.ReadByte(), Chase = GameWireValues.ReadChaseFlags(ref r)
         };
     }
 

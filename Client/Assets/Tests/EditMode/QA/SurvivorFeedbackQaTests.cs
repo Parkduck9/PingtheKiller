@@ -161,7 +161,9 @@ namespace PingTheKiller.Client.QA.Tests
             }
             // CharacterViews/SnapshotBuffer: the Survivor model; ClientApp: own-entry lookup (Killer client by Role); KillerScene: the
             // Killer client's own entry; DevCapture: dev only (FakeKiller takes the list as a parameter). Any new file here is a new Killer-entry consumer.
-            Assert.That(readers.ToArray(), Is.EquivalentTo(new[] { "ClientApp.cs", "DevCapture.cs", "KillerScene.cs", "SnapshotBuffer.cs", "CharacterViews.cs" }), "found: " + string.Join(",", readers));
+            // ChasePropsLayer (Q5b): the Killer entry's Chase flags only (Stunned: the own stun line on the Killer client; the pose and
+            // burst on the drawn Killer model on a Survivor client). It never places anything from the entry: the burst follows the model.
+            Assert.That(readers.ToArray(), Is.EquivalentTo(new[] { "ClientApp.cs", "DevCapture.cs", "KillerScene.cs", "SnapshotBuffer.cs", "CharacterViews.cs", "ChasePropsLayer.cs" }), "found: " + string.Join(",", readers));
         }
 
         [Test]

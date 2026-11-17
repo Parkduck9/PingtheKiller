@@ -29,6 +29,7 @@ namespace PingTheKiller.Client
         private RoleCamera rig;
         private WorldView world;
         private KillerWorldLayer killerLayer;
+        private ChasePropsLayer chase; // HUD_SPEC 15 (Q5): Shutters and Rails
         private ThreatAudio threat;
         private RulesV2Audio v2Audio;
         private DevCapture dev;
@@ -240,6 +241,7 @@ namespace PingTheKiller.Client
                     impactFx.FirstPerson = role == Role.Killer; // U8: small first-person sizes on the Killer client
                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
+                    chase = map.AddComponent<ChasePropsLayer>(); chase.Initialize(playerId, role, skillFx.Reduced);
                     rig.Begin(role); screens.ShowPlay(role, skillId);
                     if (role == Role.Killer)
                     {
@@ -265,6 +267,7 @@ namespace PingTheKiller.Client
                         killerImpactUntil = LinkClock.Now + .3; // played once the tracker instance is in the rendered views
                         frameLog?.Mark(Time.realtimeSinceStartupAsDouble, "killer capture");
                     }
+                    chase.Accept(state, received.Time);
                     lastWorld = state;
                     v2Audio.OnWorld(state, received.Time);
                     foreach (PlayerState player in state.Players)
@@ -305,6 +308,7 @@ namespace PingTheKiller.Client
                     if (!playing) break;
                     selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
                     v2Audio.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
+                    chase?.OnSelf(self.ActionKind, self.ActionProgress, received.Time);
                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
                     dev?.OnSelfState(self, selfState.Received);
                     break;
@@ -494,6 +498,8 @@ namespace PingTheKiller.Client
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
             SkillFeedbackFrame(now, position);
+            if (!survivor) rig.KillerFovOffset += chase.Stun.FovOffset(now, skillFx.Reduced); // HUD_SPEC 15.4 stun impulse
+            chase.Frame(now);
             // TODO: client-side prediction for the local camera (it renders 100 ms in the past).
             // U8 hit-stop: the world view (and every Animator it advances) and the camera follow hold the capture frame;
             // input, snapshots, audio and the HUD keep the real clock.
@@ -512,6 +518,7 @@ namespace PingTheKiller.Client
             {
                 killerLayer.Render(rig.Pose, now, dt, menuGate.Open);
                 if (now < killerImpactUntil && killerLayer.CapturePoint(out Vector3 struck)) { killerImpactUntil = 0; PlayImpact(struck); }
+                chase.ApplyKillerHud(screens.Killer, position, menuGate.Open, now); // HUD_SPEC 15.2 / 15.4
                 dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
             }
         }
@@ -672,7 +679,11 @@ namespace PingTheKiller.Client
                 InteractPrompt reach = InteractCopy.Survivor(own.X, own.Z, exits, SharedMap.Map.ExitSwitches, lastWorld.HatchVisible == 1, lastWorld.HatchX, lastWorld.HatchZ);
                 if (!string.IsNullOrEmpty(reach.Text)) prompt = new PromptState { Text = reach.Text, Muted = reach.Muted };
             }
-            hud.SetPrompt(prompt, V2Wire.Hold(selfState));
+            HoldActionView hold = V2Wire.Hold(selfState);
+            // HUD_SPEC 15.2: the Shutter / Rail action line, or their prompt in an empty slot.
+            if (chase != null)
+                ChasePropsLayer.SurvivorPrompt(ref prompt, ref hold, chase.ChaseAction, own.Status == PlayerStatus.Normal, releasedCursor || capture.BannerVisible(now), own.X, own.Z, chase.Shutters);
+            hud.SetPrompt(prompt, hold);
             hud.SetMenuNote(PlayMenuCopy.CaptureNote(own.Status, own.CaptureCount)); // HUD_SPEC 5 line 3
         }
         private void OnApplicationFocus(bool focused)
@@ -686,7 +697,7 @@ namespace PingTheKiller.Client
         }
         private void DestroyWorld()
         {
-            killerLayer = null;
+            killerLayer = null; chase = null;
             if (world == null) return;
             world.gameObject.SetActive(false); Destroy(world.gameObject); world = null;
         }

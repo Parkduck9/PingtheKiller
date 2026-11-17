@@ -524,7 +524,9 @@ public sealed class U1AdversarialTests
             parts.Add(new byte[] { 0 });             // Flags
             parts.Add(Hex("00000000"));              // StatusTimer = 0f
             parts.Add(new byte[] { 0 });             // CaptureCount
+            parts.Add(new byte[] { 0 });             // Chase (v0.7)
         }
+        parts.Add(new byte[] { 0 });                 // no shutters (v0.7)
         return Concat(parts.ToArray());
     }
 
