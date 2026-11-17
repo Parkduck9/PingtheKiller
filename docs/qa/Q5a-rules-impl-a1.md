@@ -33,3 +33,31 @@
 **Risks:**
 - The harness ran before a one-line change to `MovePlayers` (moving now cancels a break instead of being swallowed).
 - No Unity compile was run.
+
+## Attempt 2 (Claude Opus): F2, bot prop use
+
+**Cause.** Attempt 1 used props by chance: a shutter within 3 m straight ahead, a rail with the killer within 2.5 m, a break only beside the shutter. A human seat lowers that rate further.
+
+**Fix (`ChaseTactics`; no rule number changed).**
+- Survivors chased within 8 m plan for the nearest shutter or rail within 9 m that they reach first. They pull when the killer nears the box (2.3 m, or after 2 s), or they vault.
+- The killer walks up to a Down shutter within 6 m to break it when the detour exceeds 8 m. It vaults a rail its target loops.
+- A* vault costs 2 m and 6 m; phantoms never vault.
+- A Dummy cast mid-vault no longer spawns its phantom over the rail.
+
+**Use per 300 s all-bot 1v7 match:**
+
+| | pulls | stuns | rail vaults (killer) | breaks |
+|---|---|---|---|---|
+| before | 1.06 | 0.56 | 0.38 (0) | 0.63 |
+| after | 2.50 | 1.58 | 8.25 (1.33) | 2.17 |
+
+**Balance** (two seed sets):
+- 1v7: 53 % / 589 s and 63 % / 600 s
+- 1v3: 60 % and 55 %
+- 1v1: 38 % and 40 %
+
+**Gates:**
+- build: 0 warnings
+- Server.Tests: 1120/1120, twice
+- BalanceSweep: 18/18
+- harness: 100/100 ×3
