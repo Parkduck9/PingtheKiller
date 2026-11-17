@@ -466,7 +466,7 @@ namespace PingTheKiller.Client
                 if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
                 screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
             }
-            bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+            bool pressed = (presses && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill(DevSkillAble())); // dev: -ptk-skill-at (-ptk-skill-when-able)
             bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
             if (sent) link.Send(skill);
             if (pressed) OnSkillPress(sent, now);
@@ -527,6 +527,10 @@ namespace PingTheKiller.Client
             Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
         }
 
+        // Dev only (-ptk-skill-when-able): the same derived precondition OnSkillPress uses (Restore target, switch in progress).
+        private bool DevSkillAble() => role == Role.Survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
+            : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
+
         // HUD_SPEC 14.3 (Q3): the server's reason for refusing the own pending press replaces the 0.5 s inference.
         private void OnSkillRejected(S2C_SkillRejected rejected, double time)
         {
@@ -570,11 +574,13 @@ namespace PingTheKiller.Client
             if (!world.LocalPosition(LinkClock.Now, out Vector3 self)) self = new Vector3(own.X, 0, own.Z);
             self.y = 0;
             skillFx.Play(record, self);
+            if (SkillSignature.IsOwnCast(record)) // U9 own-cast flash beside the skill block (HUD_SPEC 14.1b)
+                (record.KillerSkill ? screens.Killer.CastFlash : screens.Survivor.CastFlash).Show(record.KillerSkill, record.SkillId, skillFx.Reduced, Time.unscaledTimeAsDouble);
             dev?.OnSkillFx(record);
             int key = (record.KillerSkill ? 100 : 0) + record.SkillId * 10 + (int)record.Viewer;
             if (loggedFx.Add(key))
                 Debug.Log("[fx] " + (record.KillerSkill ? "killer" : "survivor") + " skill=" + record.SkillId + " viewer=" + record.Viewer
-                    + " line=\"" + record.Line.Text + "\" visual=" + record.Visual.Kind + (record.Visual.Prefab != FxPrefab.None ? "/" + record.Visual.Prefab : string.Empty)
+                    + " line=\"" + record.Line.Text + "\" visual=" + SkillSignature.Plan(record, skillFx.Reduced).Shape
                     + " sound=" + record.Sound.Clip + (record.Sound.Positional ? " (positional)" : string.Empty) + " reduced=" + skillFx.Reduced);
         }
 

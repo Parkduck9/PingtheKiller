@@ -80,7 +80,7 @@ One family with Hangul coverage and tabular figures: Pretendard (Latin fallback 
 | `bg` | `#101113` | screen background |
 | `panel` | `#1A1C1F` | panels; world-tag fills |
 | `line` | `#2C2F33` | dividers and secondary-button borders (decorative; the label identifies the button) |
-| `text` | `#E8E6E1` | text, primary button fill, neutral world markers |
+| `text` | `#E8E6E1` | text, primary button fill, neutral world markers (incl. every Killer-view skill signature and the White noise static, §14.6) |
 | `muted` | `#9A9890` | secondary text, disabled text, past/inactive markers, **text-field and meter outlines** |
 | `signal` | `#FFB020` | transmitting now: Signal state; in the Killer view, Signal Survivor outlines, markers and edge indicators |
 | `danger` | `#E5484D` | Killer-caused threat to a Survivor (threat noise, Lagging bar, Exit locked by the Killer); on the Killer HUD only the Traffic-overload slow bar. **Non-text only** (bars, segments, rings, noise mask) |
@@ -957,6 +957,8 @@ Spectators (own `Status` Eliminated or Escaped) see world effects and hear posit
 - Reason lines and refused presses make no sound, because no state changed.
 
 ### 14.2 Per-skill feedback
+**(11/17, U9)** The World column's Hovl one-shots and procedural rings are replaced by the per-skill signatures of §14.6. Viewers, anchors, tints and lines below are unchanged unless §14.6 says otherwise.
+
 Copy in `code` is final. `N` = a nickname (ellipsized at 12 characters); `E` = the exit number (`Id + 1`).
 
 #### 14.2.1 Ping scanner (Killer 0)
@@ -1119,3 +1121,30 @@ The clips were chosen by name, length and envelope (most of the energy early). N
 - **Tests** drive the rules type: per skill and viewer, decoy safety, the `0, 0` rule and durations. They also count pool instances after warm-up.
 - The Killer world layer keeps its §6.3 path unchanged; `SkillFx` adds nothing to blips.
 - **§12.5 Reduced motion** now also covers skill effects (14.1). The note under the toggle (S `muted`, at most 2 lines in 576 u) becomes: `Lagging shows every frame instead of holding the picture at 8 Hz. Skill effects show as still rings.`
+
+### 14.6 Skill signatures and glyphs (U9, 11/17)
+Playtest (11/17): "even when a skill is used, it is hard to tell which skill it was". Several §14.2 effects were similar Hovl marker rings in similar colours.
+
+**Rule.** Every skill has its own **shape** and its own **motion**; any two skills therefore differ in at least two of shape, motion and colour. Colour is **not** used to tell skills apart: it keeps its §0.4 meaning (SLOP V7, palette max 4 + neutrals; the brief's cyan / blue / yellow / green / grey suggestions were not adopted). All signatures are generated geometry: unlit wire lines (0.045–0.07 m wide, two crossed quads per segment, double-sided), one palette colour, depth-tested, no texture, no glow, no alpha blend.
+
+| Skill | Shape | Motion | Colour (viewer) | Time |
+|---|---|---|---|---|
+| Ping scanner (K0) | three vertical bands, 0.5–0.85 m above the ground (a band reads in first person; a flat ground ring did not) | **pulse**: Killer — staggered 0.15 s, each sweeps 2 → 16 m in 0.7 s around the own point; scanned Survivor — each closes 3 → 0.35 m onto its own feet | `text` (Killer), `signal` (scanned) | 1.0 s |
+| Overclock (K1) | ten short speed streaks around the first-person camera | **rush past**: 14 m/s toward and past the camera, following the own camera | `text` (Killer only) | the effect (3 s) |
+| Packet afterimage (K2) | — (passive; the §6.3 marker that lingers 1 s is unchanged) | linger | — | — |
+| Firewall block (K3) | a hex-grid barrier wall (cylinder r = 1.5 m, 2 m high, the switch hold radius) + ground ring, at the static switch point | **rise + one blink**: rises in 0.2 s, one 0.1 s blink at 0.72 s | `text` (Killer), `danger` (Survivors) | 1.0 s |
+| Dummy packet (S0) | a dashed wire double of a character (capsule r 0.5 × 1.8 m, 0.035 m lines; hidden while the camera is within 1 m of it, the §4.10 short-boom rule) | **pop-in**: back-ease overshoot to full size in 0.22 s, shrinks out over the last 0.12 s | `signal` | 1.2 s |
+| Stealth relay (S1) | a wire dome over the 5 m relay area (12 meridians, 3 parallels, ground ring) | **envelop**: grows in 0.15 s, turns 20°/s | `ally` | the effect (2 s) |
+| Traffic overload (S2) | ten jagged spikes from the caster's chest, 1.0 m | **burst**: out in 0.1 s, jitters between two jagged frames at 12 Hz | `signal` | 0.8 s |
+| Emergency restore (S3) | a beam of six columns (r 0.35 m, 3.2 m high) on the restored point | **ascend**: columns rise in 0.15 s, three rings climb the beam | `ally` | 1.0 s |
+| White noise (S4) | thirty filled static squares (0.12–0.3 m) in a 1.5 m-radius volume, 0.2–1.7 m high | **flicker**: each square blinks on a random 14 Hz pattern, about half on | **`text`** (was `signal`: the fake Signals are elsewhere on the map; nothing transmits at the caster) | 1.0 s |
+
+**Glyph.** The skill's §8 icon floats above its world effect: a 0.6 m camera-facing quad, 1.9 m above the effect point, rising 0.15 m over 1.0 s (ease-out), lowered when needed so its top stays 24 u inside the top screen edge, in the effect's colour, alpha-clipped (no blend), depth-tested. It is rasterized at warm-up from the same primitives the skill block draws (`SkillGlyph`), so the HUD and the world always match. No glyph above the Killer's own first-person point (Ping scanner, Overclock): the 14.1b flash covers those.
+
+**14.1b Own-cast flash (new element).** When the own effect arrives (the caster's record with its start cue), the skill's glyph (32 u, `text`, 1 u lines) shows for **0.6 s** in a 48 × 48 u `panel` block (1 u `line` border, padding 8; no name: the skill block it touches already names the skill), bottom-aligned with the skill block: **Survivor** — left of the bottom cluster, 8 u outside its border (outside the §13.1 stack; feet at 67 % stay clear, §4.10); **Killer** — right of the bottom-left cluster, 8 u gap. It rises 4 u into place in 0.1 s; with Reduced motion it is still. Removed in one frame. Not shown for the Overclock Recovering cue, the Stealth relay count line, ally or affected records.
+
+**Safety (unchanged rules, restated).** A signature and its glyph are drawn only for a record that already has a §14.2 world effect for this viewer, and only at `SkillFeedback.VisualPoint` (the effect point, the own point, or the static switch point) — or, for Overclock, at the Killer's own camera. The Killer client never receives Survivor skills (14.0), so it never draws their signatures or glyphs; the Killer-bound Traffic overload draws nothing.
+
+**Reduced motion.** Each signature shows still at its final pose for its time (Ping scanner for the scanned Survivor: three still rings at 0.45 / 0.75 / 1.05 m); the Killer's Ping sweep and the Overclock streaks are off; the glyph does not rise.
+
+**Pooling.** At warm-up: 2 rigs per shape (1 for the streaks), 4 glyph quads, 9 glyph textures (64 px), all meshes and materials; every rig and glyph is drawn once, tiny, in front of the camera for 2 frames so its pipeline state exists before the first cast. Nothing is created per effect.

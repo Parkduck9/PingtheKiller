@@ -149,8 +149,9 @@ namespace PingTheKiller.Client.Dev
 
         // -ptk-skill-at: true on the frames the own skill should be pressed. The first press is at the given match second;
         // while no cooldown starts (rejected, e.g. Emergency restore without a target) it presses again each second.
-        public bool PressSkill()
+        public bool PressSkill(bool able = true)
         {
+            if (args.SkillWhenAble && !able) return false; // -ptk-skill-when-able: wait, uncounted
             if (args.SkillAt <= 0 || matchAt < 0 || resultAt >= 0 || skillUsed || skillPresses >= DevArgs.SkillTries) return false;
             if (self != null && self.Available && self.SkillCooldown > 0) { skillUsed = true; return false; }
             double t = Now - matchAt;

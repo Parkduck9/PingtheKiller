@@ -460,15 +460,15 @@ namespace PingTheKiller.Client.Tests
                     foreach (FxRecord r in records) { fx.Play(r, new Vector3(40, 0, 40), now); now += .05; fx.Tick(now); }
                 fx.Reduced = true;
                 foreach (FxRecord r in records) fx.Play(r, new Vector3(40, 0, 40), now);
-                Assert.That(fx.LastKind, Is.Not.EqualTo(FxKind.Hovl), "reduced motion plays no Hovl one-shot");
+                Assert.That(fx.LastShape, Is.EqualTo(FxShape.Static), "reduced motion shows the still signature (U9: no Hovl one-shot)");
                 Assert.That(fx.Created, Is.EqualTo(created), "no GameObject per effect after warm-up");
                 Assert.That(host.transform.childCount, Is.EqualTo(children));
-                Assert.That(fx.BusyRings, Is.LessThanOrEqualTo(SkillFx.RingCount));
+                Assert.That(fx.BusyRigs, Is.LessThanOrEqualTo(SkillFx.PerShape * 8));
                 fx.Tick(now + 5.1);
-                Assert.That(fx.BusyOneShots + fx.BusyRings, Is.EqualTo(0), "everything ends at its time");
+                Assert.That(fx.BusyRigs + fx.BusyGlyphs, Is.EqualTo(0), "everything ends at its time");
                 fx.Play(records[5], Vector3.zero, now + 6);
                 fx.Clear();
-                Assert.That(fx.BusyOneShots + fx.BusyRings + fx.BusyVoices, Is.EqualTo(0));
+                Assert.That(fx.BusyRigs + fx.BusyGlyphs + fx.BusyVoices, Is.EqualTo(0));
                 if (art != null)
                 {
                     Assert.That(art.Marker, Is.Not.Null);
