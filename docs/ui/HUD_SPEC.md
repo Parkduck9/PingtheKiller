@@ -1119,3 +1119,102 @@ The clips were chosen by name, length and envelope (most of the energy early). N
 - **Tests** drive the rules type: per skill and viewer, decoy safety, the `0, 0` rule and durations. They also count pool instances after warm-up.
 - The Killer world layer keeps its §6.3 path unchanged; `SkillFx` adds nothing to blips.
 - **§12.5 Reduced motion** now also covers skill effects (14.1). The note under the toggle (S `muted`, at most 2 lines in 576 u) becomes: `Lagging shows every frame instead of holding the picture at 8 Hz. Skill effects show as still rings.`
+
+## 15. Shutters and rails (11/17, Q5)
+
+Sources: protocol v0.7 (Q5a S0):
+- `WorldChaseProps.Shutters` (10) and `.Rails` (8): static boxes;
+- `S2C_WorldState.Shutters`: one `ShutterState` byte per shutter, the same for every recipient;
+- `PlayerState.Chase`: `Pulling 1, Vaulting 2, Breaking 4, Stunned 8`;
+- `S2C_SelfState.ActionKind`: `Pull 4, Vault 5, Break 6`.
+
+The server decides every outcome. The client only shows the state it received and never predicts a pull, vault, stun or break. Code: `World/ChaseProps*.cs`, `World/ChaseActionPose.cs`, `Audio/ChasePropAudio.cs`, `Audio/ChasePropCues.cs`, `UI/ChasePropCopy.cs`, `Editor/Setup/ChasePropSetup.cs`.
+
+**New fixed terms** (added to the SLOP §8 vocabulary): Shutter, Rail, pull (verb), vault (verb), force (verb, Killer), Stunned.
+
+### 15.1 Visuals
+- **Where:** each prop stands at its Shared box centre, turned onto the box's long axis. The client places nothing on its own. Both roles draw the props as world geometry; the Killer sees them like any other prop.
+- **Art:**
+  - `ChasePropSetup` builds one prefab per box into `Art/ChaseProps/` and the catalog `Resources/ChaseProps.asset`. It is a sibling of the WorldArt setup and never touches `WorldArt`.
+  - Each piece records its box. A catalog built for other boxes is never drawn; the same shapes are then built from primitives (`ChasePropShapes` is the one definition for both paths).
+  - Toon materials in the WorldArt palette (`Shutter` 92/96/101, `Steel` 66/70/77, night graded). No emission, no glow (SLOP V3), no colliders.
+- **Shutter**, spanning the alley gap:
+  - frame (always): a guide post against each wall and the roll housing overhead (bottom at 2.6 m), thin and out of the way;
+  - `Up`: only the light bottom lip of the rolled panel shows under the housing;
+  - `Down`: a slatted steel panel 1.2 m high with light top and bottom bars, the same from both sides. On an Up → Down change after the first snapshot, the panel drops out of the housing in 0.12 s (at once under Reduced motion);
+  - `Broken`: the panel torn in two halves lying flat across the gap (≤ 0.16 m), and a torn strip under the housing.
+- **Rail:** 3 m long and 1.0 m high: two posts, a top tube and a mid tube.
+  - The vault point is marked by a light band on the top tube and a flat light plate on each side.
+  - The marker colour is `#D6D4CC`: a neutral readability cue like the hatch rim, never a role colour.
+- **Sight:** the panel (1.2 m) and the rail (1.0 m) are below the Killer eye (1.7 m) and the Survivor camera, like the existing low obstacles. The housing is overhead. Tags and markers are screen overlays, so the props do not hide them.
+- **Late join or reconnect:** the first `WorldState` sets every shutter look at once, with no drop and no sound.
+
+### 15.2 Prompts
+Same rows and rules as 13.3. The ranges are the server's (`GameConstants`): measured to the shutter box, and to the rail's vault point (its centre). The nearest target in its own range wins.
+
+| Role | Condition | Line 1 | Line 2 (Killer, S `muted`) |
+|---|---|---|---|
+| Survivor | `Up` shutter within 1.5 m | `Press [E] to pull the Shutter down — you will be Signal` | — |
+| Survivor | `Down` shutter within 1.0 m | `Press [E] to vault the Shutter — you will be Signal` | — |
+| Survivor | rail vault point within 1.0 m | `Press [E] to vault the Rail — you will be Signal` | — |
+| Killer | `Down` shutter within 1.5 m | `Hold [E] to force the Shutter` | `Stand still · 2 s breaks it` |
+| Killer | rail vault point within 1.0 m | `Press [E] to vault the Rail` | `Takes 1.6 s · you cannot move` |
+
+- **Order:**
+  - A Shutter or Rail prompt only fills an **empty** prompt slot, or one that shows a muted reason line. Every existing prompt (rescue, hack, hatch, switch, kick, banner) keeps the slot.
+  - The props stand away from terminals, exits and spawns, so the two rarely meet.
+  - The Survivor prompt needs `Status = Normal`, a captured cursor and no banner.
+  - The Killer prompt is hidden while stunned and while the play menu is open.
+- **During an action** (`SelfState.ActionKind`):
+  - Survivor `Pull`: the row reads `Pulling the Shutter — you are Signal`. Survivor `Vault`: `Vaulting — you are Signal`. There is no bar, because these actions last 0.3–1.0 s.
+  - Killer `Break`: the 13.3 hold block reads `Forcing the Shutter · 55%` and `Hold [E] · moving cancels`, with the bar.
+  - Killer `Vault`: `Vaulting the Rail` and `You cannot move until you land`, with the bar.
+  - Between SelfState packets the progress advances locally at the server's rate, as for the 13.3 holds.
+- Every Killer line is at most 38 characters.
+
+### 15.3 Animation (Survivor client: the Survivors and the line-of-sight Killer model)
+- A procedural overlay on top of the Animator pose (`ChasePoseRig`, applied in `LateUpdate`), driven only by `PlayerState.Chase`.
+- A pose starts at the snapshot that first carries its flag, and is timed to the server durations.
+- The parallel unit U8 owns the Motion controller, so no controller state is added.
+
+| Flag | Pose | Length |
+|---|---|---|
+| Pulling | both arms reach up and pull down | 0.3 s |
+| Vaulting | a hop with tucked legs and a forward lean; the server moves the body across | Survivor: 0.8 s rail, 1.0 s shutter. Killer: 1.6 s rail |
+| Breaking | the right arm hammers twice a second, the upper body leaning in | while held (2.0 s to break) |
+| Stunned | a stagger: leaning back, head down, arms out, swaying at 1.4 Hz (no sway under Reduced motion) | 2.0 s |
+
+- If flags ever combine, the precedence is Stunned > Breaking > Vaulting > Pulling.
+- The capsule fallback gets only the hop and a whole-body lean.
+- The Killer client draws no bodies (6.0), so it shows no poses.
+
+### 15.4 Stun feedback
+- **Survivors**, while the Killer model is drawn:
+  - a small burst over its head: the Hovl `Marker 5 Circle`, 0.9 m across, tinted `danger` (the Killer colour), with the low-emission marker material and the glow children off;
+  - under Reduced motion, a still `danger` ring instead;
+  - it lasts while `Stunned` is set, at most 2.0 + 0.2 s.
+- **The Killer player:**
+  - a 0.25 s view impulse: the vertical FOV narrows by up to 5° and eases back;
+  - the 6.1c effect line reads `Stunned` while the flag is set, at most 2.2 s. The line has no bar;
+  - Reduced motion removes the impulse; the line stays.
+
+### 15.5 Sounds
+The cues are procedural (`ChasePropSynth`: fixed seeds, the V2CueSynth reference level) and positional (3D, linear roll-off from 2 m). None plays on the first snapshot.
+
+| Cue | When | Where | Range |
+|---|---|---|---|
+| `ShutterSlam`, 0.7 s: a sheet-metal knock, a ringing plate and a slat rattle | a shutter goes Up → Down | the shutter centre, for every recipient | 30 m |
+| `ShutterCrunch`, 0.45 s: bending-metal bursts over a falling groan | a shutter becomes Broken | the shutter centre, for every recipient | 30 m |
+| `VaultThud`, 0.16 s: a soft low step | an entry the viewer receives starts Vaulting | that entry | 14 m |
+
+- Vault edges are matched by position (within 1.5 m), not by Id.
+- The Killer's stream carries `Chase = 0` on Survivor entries. So the Killer gets no Survivor vault thud; it hears the shutter slam and crunch like everyone else.
+
+### 15.6 Safety
+- Nothing here reveals a Silent Survivor:
+  - Shutter states are public.
+  - A Survivor who pulls or vaults is forced Signal by the server during the action and for 1 s after, so its entry is already in the Killer's stream.
+  - The Killer client still shows no pose for it: those entries carry `Chase = 0`, and the Killer client draws no bodies.
+- The slam and crunch are heard by everyone in range. That is the design: a pull is a loud action.
+- The stun burst is drawn only over the Killer model, which a Survivor sees only with a clear line (4.10). There is no through-wall stun cue.
+- The client sends nothing new: E is the existing `C2S_Interact`.
