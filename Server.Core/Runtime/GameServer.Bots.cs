@@ -23,6 +23,10 @@ namespace PingTheKiller.ServerCore
         private const int WhiteNoiseMinTerminalPoints = 2;
         private const int WhiteNoiseTerminalPointChoices = 3;
 
+        // GDD v2 section 8: A* vault-link cost in metres on top of the crossing (about vault seconds x speed, plus a margin).
+        internal const float SurvivorVaultCostMeters = 3f;
+        internal const float KillerVaultCostMeters = 7.5f;
+
         private readonly Dictionary<Player, BotBrain> _brains = new Dictionary<Player, BotBrain>();
         private readonly SurvivorBotView _survivorBotView = new SurvivorBotView();
         private readonly KillerBotView _killerBotView = new KillerBotView();
@@ -45,12 +49,22 @@ namespace PingTheKiller.ServerCore
                     if (bot.Role == Role.Killer)
                     {
                         FillKillerView(bot, _killerBotView);
-                        intent = BrainFor<KillerBrain>(bot).Update(_killerBotView, Nav, Map, _random);
+                        var brain = BrainFor<KillerBrain>(bot);
+                        brain.VaultWanted = false;
+                        brain.VaultCostMeters = KillerVaultCostMeters;
+                        intent = brain.Update(_killerBotView, Nav, Map, _random);
+                        if (brain.VaultWanted) intent.Interact = !bot.Interacting;
+                        brain.Tactics.Killer(_killerBotView, Nav, ref intent);
                     }
                     else
                     {
                         FillSurvivorView(bot, _survivorBotView);
-                        intent = BrainFor<SurvivorBrain>(bot).Update(_survivorBotView, Nav, Map, _random);
+                        var brain = BrainFor<SurvivorBrain>(bot);
+                        brain.VaultWanted = false;
+                        brain.VaultCostMeters = SurvivorVaultCostMeters;
+                        intent = brain.Update(_survivorBotView, Nav, Map, _random);
+                        if (brain.VaultWanted) intent.Interact = !bot.Interacting;
+                        brain.Tactics.Survivor(_survivorBotView, ref intent);
                     }
                 }
                 finally { BotProbeForTests?.Invoke(bot.Id, false); }
@@ -102,6 +116,12 @@ namespace PingTheKiller.ServerCore
             view.KillerX = view.KillerVisible ? _killer.X : 0;
             view.KillerZ = view.KillerVisible ? _killer.Z : 0;
             view.KillerYaw = view.KillerVisible ? _killer.Yaw : 0;
+            FillShutters(view.Shutters);
+        }
+
+        private void FillShutters(byte[] states)
+        {
+            for (int i = 0; i < states.Length; i++) states[i] = (byte)Map.ShutterAt(i);
         }
 
         // The killer client's knowledge: its own state, the anonymous killer view of the last WorldState (position and
@@ -127,6 +147,7 @@ namespace PingTheKiller.ServerCore
             view.HatchVisible = HatchVisibleTo(bot);
             view.HatchX = view.HatchVisible ? _hatchX : 0;
             view.HatchZ = view.HatchVisible ? _hatchZ : 0;
+            FillShutters(view.Shutters);
         }
 
         // The exits exactly as the WorldState carries them (both roles get the same), with the static switch points.

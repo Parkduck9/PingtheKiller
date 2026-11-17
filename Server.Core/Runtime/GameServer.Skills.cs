@@ -32,7 +32,8 @@ namespace PingTheKiller.ServerCore
             SkillRejectReason reason;
             if (!_matchStarted) reason = SkillRejectReason.NotInMatch;
             else if (skillId != caster.Skill) reason = SkillRejectReason.NotYourSkill;
-            else if (caster.Status != PlayerStatus.Normal) reason = SkillRejectReason.NotNormal;
+            // GDD v2 section 8: a stunned killer cannot use its skill (reported as NotNormal; no new reason on the wire).
+            else if (caster.Status != PlayerStatus.Normal || Stunned(caster)) reason = SkillRejectReason.NotNormal;
             else if (!SkillReady(caster)) reason = SkillRejectReason.Cooldown;
             else if (caster.Role == Role.Killer ? UseKillerSkill(caster, out reason) : UseSurvivorSkill(caster, out reason))
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.ServerCore.Map
 {
@@ -26,17 +27,58 @@ namespace PingTheKiller.ServerCore.Map
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
             _map = map;
-            _inflated = new Wall[map.Walls.Count + map.Obstacles.Count];
+            var rails = WorldChaseProps.Rails;
+            _inflated = new Wall[map.Walls.Count + map.Obstacles.Count + rails.Count];
             int k = 0;
             foreach (var w in map.Walls) _inflated[k++] = Inflate(w.MinX, w.MinZ, w.MaxX, w.MaxZ);
             foreach (var o in map.Obstacles) _inflated[k++] = Inflate(o.MinX, o.MinZ, o.MaxX, o.MaxZ);
+            // GDD v2 section 8: a rail is a static blocker; FindPath may cross it through a vault link (see below).
+            foreach (var r in rails) _inflated[k++] = Inflate(r.MinX, r.MinZ, r.MaxX, r.MaxZ);
+            var shutters = WorldChaseProps.Shutters;
+            _shutterBoxes = new Wall[shutters.Count];
+            _shutterDown = new bool[shutters.Count];
+            for (int i = 0; i < shutters.Count; i++)
+                _shutterBoxes[i] = Inflate(shutters[i].MinX, shutters[i].MinZ, shutters[i].MaxX, shutters[i].MaxZ);
             for (int i = 0; i < NodeCount; i++) _walkable[i] = PointClear(Center(i));
+            _portalA = new int[rails.Count];
+            _portalB = new int[rails.Count];
+            for (int i = 0; i < rails.Count; i++)
+            {
+                float reach = rails[i].HalfThickness + Clearance + PortalMargin;
+                _portalA[i] = Cell(rails[i].CenterX - rails[i].CrossX * reach, rails[i].CenterZ - rails[i].CrossZ * reach);
+                _portalB[i] = Cell(rails[i].CenterX + rails[i].CrossX * reach, rails[i].CenterZ + rails[i].CrossZ * reach);
+            }
             var spots = new List<MapPoint>();
             for (float x = 1.5f; x < FixedMap.Size; x += 3)
                 for (float z = 1.5f; z < FixedMap.Size; z += 3)
                     if (map.CanStand(x, z, Clearance + .5f)) spots.Add(new MapPoint(x, z));
             Spots = spots.AsReadOnly();
         }
+
+        // Down shutters (dynamic; the game loop calls SetShutterDown on every state change) and the rail vault links.
+        private readonly Wall[] _shutterBoxes;
+        private readonly bool[] _shutterDown;
+        private readonly int[] _portalA, _portalB;
+        private const float PortalMargin = 0.3f;
+
+        public void SetShutterDown(int id, bool down)
+        {
+            if (_shutterDown[id] == down) return;
+            _shutterDown[id] = down;
+            var box = _shutterBoxes[id];
+            int x0 = Math.Max(0, (int)(box.MinX / CellSize) - 1), x1 = Math.Min(Cells - 1, (int)(box.MaxX / CellSize) + 1);
+            int z0 = Math.Max(0, (int)(box.MinZ / CellSize) - 1), z1 = Math.Min(Cells - 1, (int)(box.MaxZ / CellSize) + 1);
+            for (int x = x0; x <= x1; x++)
+                for (int z = z0; z <= z1; z++)
+                    _walkable[x * Cells + z] = PointClear(Center(x * Cells + z));
+        }
+
+        public void ResetShutters()
+        {
+            for (int i = 0; i < _shutterDown.Length; i++) SetShutterDown(i, false);
+        }
+
+        public bool ShutterDown(int id) => _shutterDown[id];
 
         private static Wall Inflate(float x, float z, float xx, float zz) =>
             new Wall(x - Clearance, z - Clearance, xx + Clearance, zz + Clearance);
@@ -52,6 +94,12 @@ namespace PingTheKiller.ServerCore.Map
                 var w = _inflated[i];
                 if (p.X >= w.MinX && p.X <= w.MaxX && p.Z >= w.MinZ && p.Z <= w.MaxZ) return false;
             }
+            for (int i = 0; i < _shutterBoxes.Length; i++)
+            {
+                if (!_shutterDown[i]) continue;
+                var w = _shutterBoxes[i];
+                if (p.X >= w.MinX && p.X <= w.MaxX && p.Z >= w.MinZ && p.Z <= w.MaxZ) return false;
+            }
             return p.X >= Clearance && p.X <= FixedMap.Size - Clearance && p.Z >= Clearance && p.Z <= FixedMap.Size - Clearance;
         }
 
@@ -59,6 +107,8 @@ namespace PingTheKiller.ServerCore.Map
         {
             for (int i = 0; i < _inflated.Length; i++)
                 if (_inflated[i].IntersectsSegment(x, z, tx, tz)) return false;
+            for (int i = 0; i < _shutterBoxes.Length; i++)
+                if (_shutterDown[i] && _shutterBoxes[i].IntersectsSegment(x, z, tx, tz)) return false;
             return true;
         }
 
@@ -71,6 +121,14 @@ namespace PingTheKiller.ServerCore.Map
             {
                 var w = _inflated[i];
                 if (!w.IntersectsSegment(x,z,tx,tz)) continue;
+                if (x < w.MinX || x > w.MaxX || z < w.MinZ || z > w.MaxZ) return false;
+                escape = true;
+            }
+            for (int i = 0; i < _shutterBoxes.Length; i++)
+            {
+                if (!_shutterDown[i]) continue;
+                var w = _shutterBoxes[i];
+                if (!w.IntersectsSegment(x, z, tx, tz)) continue;
                 if (x < w.MinX || x > w.MaxX || z < w.MinZ || z > w.MaxZ) return false;
                 escape = true;
             }
@@ -141,7 +199,11 @@ namespace PingTheKiller.ServerCore.Map
 
         // Caller retains its list (capacity 128 is ample for this map). No allocations after list warm-up.
         // Includes the exact start and, when standable, the exact goal. Invalid goals snap to a nearby static cell.
-        public bool FindPath(float x, float z, float tx, float tz, List<MapPoint> path)
+        // vaultCostMeters >= 0 adds the rail vault links (portal to portal across each rail's vault point) at the crossing
+        // length plus that many metres; a negative value (phantoms, default) never crosses a rail.
+        public bool FindPath(float x, float z, float tx, float tz, List<MapPoint> path) => FindPath(x, z, tx, tz, path, -1);
+
+        public bool FindPath(float x, float z, float tx, float tz, List<MapPoint> path, float vaultCostMeters)
         {
             path.Clear();
             if (float.IsNaN(x) || float.IsInfinity(x) || float.IsNaN(z) || float.IsInfinity(z) || float.IsNaN(tx) || float.IsInfinity(tx) || float.IsNaN(tz) || float.IsInfinity(tz)) return false;
@@ -175,10 +237,26 @@ namespace PingTheKiller.ServerCore.Map
                     if (exactGoal) path.Add(new MapPoint(tx, tz));
                     return true;
                 }
-                for (int k = 0; k < 8; k++)
+                int links = vaultCostMeters >= 0 ? _portalA.Length : 0;
+                for (int k = 0; k < 8 + links; k++)
                 {
-                    if (!CanStep(cell, k, out int next) || _closed[next] == _generation) continue;
-                    int cost = _cost[cell] + (k < 4 ? 1000 : 1414);
+                    int next, step;
+                    if (k < 8)
+                    {
+                        if (!CanStep(cell, k, out next) || _closed[next] == _generation) continue;
+                        step = k < 4 ? 1000 : 1414;
+                    }
+                    else
+                    {
+                        int r = k - 8;
+                        next = cell == _portalA[r] ? _portalB[r] : cell == _portalB[r] ? _portalA[r] : -1;
+                        if (next < 0 || !_walkable[next] || _closed[next] == _generation) continue;
+                        var a = Center(cell);
+                        var b = Center(next);
+                        double crossing = Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
+                        step = (int)Math.Ceiling((crossing + vaultCostMeters) * 1000 / CellSize);
+                    }
+                    int cost = _cost[cell] + step;
                     bool fresh = _stamp[next] != _generation;
                     if (!fresh && cost >= _cost[next]) continue;
                     _cost[next] = cost; _parent[next] = cell; _priority[next] = cost + Heuristic(next, goal);

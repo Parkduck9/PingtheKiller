@@ -26,13 +26,14 @@ namespace PingTheKiller.ServerCore
             ResetTerminals();
             ResetExits();
             ResetSyncChecks();
+            ResetChaseProps();
             _skillRequests.Clear();
             _decoys.Clear();
             _killerView.Clear();
             _killerViewSources.Clear();
         }
 
-        // Order: skills (inputs) -> statuses/timers -> collapse -> capture -> rescue -> hacking (regression, sync checks)
+        // Order: skills (inputs) -> statuses/timers -> collapse -> shutters and rails -> capture -> rescue -> hacking (regression, sync checks)
         // -> killer holds (kick, hatch close) -> exit switches -> escape -> hatch spawn -> time limit -> end check.
         private void RunRules(float dt)
         {
@@ -48,6 +49,7 @@ namespace PingTheKiller.ServerCore
             ExecuteSkills();
             UpdateStatuses();
             RunCollapse(dt);
+            ChaseProps(dt);
             Capture();
             Rescue(dt);
             Hack(dt);
@@ -81,6 +83,7 @@ namespace PingTheKiller.ServerCore
         private void SetStatus(Player player, PlayerStatus status, string reason)
         {
             player.Status = status;
+            if (player.InChaseAction) CancelChase(player);
             player.Interacting = player.Hacking = player.Rescuing = false;
             player.HackTerminal = player.SwitchExit = -1;
             player.RescueProgress = 0;
@@ -107,7 +110,8 @@ namespace PingTheKiller.ServerCore
         // 30 s, 3 -> Eliminated). The killer cannot touch a Lagging survivor into the next stage: only its timer advances it.
         private void Capture()
         {
-            if (_killer == null) return;
+            // GDD v2 section 8: a stunned killer cannot capture.
+            if (_killer == null || Active(_killer.StunnedUntil)) return;
             foreach (var survivor in _players)
             {
                 if (survivor.Role != Role.Survivor || survivor.Status != PlayerStatus.Normal) continue;
@@ -211,6 +215,8 @@ namespace PingTheKiller.ServerCore
             if (active > 1 || _sandbox) return;
             if (active == 0) { player.Interacting = false; return; }
             if (player.Role == Role.Survivor && player.Status != PlayerStatus.Normal) return;
+            // GDD v2 section 8: a pull or vault starts on a fresh press (released before), never on a held Interact.
+            if (!player.Interacting) player.InteractPressed = true;
             player.Interacting = true;
         }
     }

@@ -15,6 +15,11 @@ namespace PingTheKiller.ServerCore
         internal bool Started;
 
         private readonly PathFollower _route = new PathFollower();
+        // GDD v2 section 8: the bot's own chase-prop layer, and whether this tick's route wants a rail vault press.
+        internal readonly ChaseTactics Tactics = new ChaseTactics();
+        internal bool VaultWanted;
+        // Extra metres a rail vault costs this brain's routes (A* vault links); negative never vaults.
+        internal float VaultCostMeters { set => _route.VaultCostMeters = value; }
         private float _yaw;
         protected static double Uniform(Random random, double min, double max) => min + random.NextDouble() * (max - min);
 
@@ -57,6 +62,15 @@ namespace PingTheKiller.ServerCore
             _route.Direction(nav, x, z, tx, tz, speed, time, out float dx, out float dz);
             intent.DirX = dx;
             intent.DirZ = dz;
+            // The route crosses a rail here: the next waypoint is on the other side of a vault point within reach.
+            if (_route.TryNextWaypoint(out float wx, out float wz))
+            {
+                var rails = WorldChaseProps.Rails;
+                for (int i = 0; i < rails.Count; i++)
+                    if (Distance(x, z, rails[i].CenterX, rails[i].CenterZ) <= GameConstants.RailVaultRadius - 0.05f &&
+                        rails[i].Side(x, z) * rails[i].Side(wx, wz) < 0)
+                        VaultWanted = true;
+            }
             if (dx != 0 || dz != 0) _yaw = YawOf(dx, dz);
             intent.Yaw = _yaw;
             return false;
