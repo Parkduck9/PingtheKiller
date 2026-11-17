@@ -97,6 +97,29 @@ namespace PingTheKiller.Client.Tests
             }
         }
 
+        // INTEG-R live run: the Survivor picker split Traffic overload as "...for 2 / s; the Killer...". A number keeps its unit.
+        [Test]
+        public void ThePickerNeverStartsALineWithABareUnit()
+        {
+            Assert.That(LobbyCopy.PickerEffect(Role.Survivor, SkillIds.TrafficOverload),
+                Is.EqualTo("You are Signal for\n2 s; the Killer moves\nat half speed for 2 s."));
+            foreach (Role role in new[] { Role.Survivor, Role.Killer })
+            {
+                int count = role == Role.Killer ? SkillIds.KillerSkillCount : SkillIds.SurvivorSkillCount;
+                for (byte id = 0; id < count; id++)
+                {
+                    string text = LobbyCopy.PickerEffect(role, id);
+                    Assert.That(text.Replace("\n", " "), Is.EqualTo(PlayMenuCopy.Effect(role, id)));
+                    foreach (string line in text.Split('\n'))
+                    {
+                        string first = line.Split(' ')[0].TrimEnd('.', ',', ';', ':');
+                        Assert.That(first == "s" || first == "m" || first == "%", Is.False, text);
+                        Assert.That(line.Length, Is.LessThanOrEqualTo(LobbyCopy.PickerLineChars), text);
+                    }
+                }
+            }
+        }
+
         // R1 QA M4: 16 ticks is the hit length; 17 keeps one tick of slack; 18 (a miss read with lost snapshots) is not a hit.
         [Test]
         public void TheSwingHitLengthStopsAtSeventeenTicks()

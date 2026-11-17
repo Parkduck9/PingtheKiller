@@ -31,10 +31,11 @@ namespace PingTheKiller.Client.UI
         public static string PickerEffect(Role role, byte skillId) => Balanced(PlayMenuCopy.Effect(role, skillId), PickerLineChars);
 
         // `text` in the fewest lines of at most `maxChars` (a longer single word gets its own line), minimizing the longest.
+        // INTEG-R (11/17): a number and its unit (`2 s;`, `12 m`) are one word here, so no line starts with a bare unit.
         public static string Balanced(string text, int maxChars)
         {
             if (string.IsNullOrEmpty(text) || text.Length <= maxChars) return text;
-            string[] words = text.Split(' ');
+            string[] words = UnitWords(text.Split(' '));
             int n = words.Length;
             for (int lines = 2; lines <= n; lines++)
             {
@@ -64,6 +65,21 @@ namespace PingTheKiller.Client.UI
                 return string.Join("\n", parts);
             }
             return text;
+        }
+
+        // Joins a unit word (`s`, `m`, `%`, with trailing punctuation) to the number before it; the joined text is unchanged.
+        private static string[] UnitWords(string[] words)
+        {
+            var merged = new List<string>(words.Length);
+            foreach (string word in words)
+            {
+                string bare = word.TrimEnd('.', ',', ';', ':');
+                bool unit = bare == "s" || bare == "m" || bare == "%";
+                if (unit && merged.Count > 0 && double.TryParse(merged[merged.Count - 1], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                    merged[merged.Count - 1] += " " + word;
+                else merged.Add(word);
+            }
+            return merged.ToArray();
         }
 
         public static string SkillName(Role role, byte skillId) => role == Role.Killer ? KillerHudCopy.SkillName(skillId) : SurvivorReadout.SkillName(skillId);
