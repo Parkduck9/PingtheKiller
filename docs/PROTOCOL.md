@@ -1,6 +1,6 @@
-# Ping the Killer: wire protocol v0.7 (GDD v2, units U6g, Q3, Q5a)
+# Ping the Killer: wire protocol v0.8 (GDD v2, units U6g, Q3, Q5a, R1, R2, R3)
 
-The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts, v0.5 RTT probes, the v0.6 skill rejection and the v0.7 shutters and rails. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
+The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts, v0.5 RTT probes, the v0.6 skill rejection, the v0.7 shutters and rails, and v0.8 (11/17: the Killer swing and lobby skill choice, packet routing instead of the sync check, the explicit rescue and get-up; `Protocol.Version`, documentation only). All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
 
 ## Frame
 
@@ -43,9 +43,9 @@ recipient gets the same list.
   equal to their index). A rail's vault point is its centre; a prop is crossed along `(CrossX, CrossZ)`.
 - `ShutterState`: `Up = 0`, `Down = 1`, `Broken = 2`. Values above 2 are rejected.
 - `PlayerState` gains a trailing `byte Chase` (`ChaseFlags`): `Pulling = 1`, `Vaulting = 2`, `Breaking = 4`,
-  `Stunned = 8`. Values above 15 are rejected. Masking is unchanged (a Silent survivor is still omitted for the killer;
+  `Stunned = 8` (v0.8: `Swinging = 16`, values above 31 are rejected). Masking is unchanged (a Silent survivor is still omitted for the killer;
   a pulling or vaulting survivor is Signal anyway).
-- `S2C_SelfState.ActionKind` adds `Pull = 4`, `Vault = 5`, `Break = 6` with `ActionProgress` 0-1. Values above 6 are
+- `S2C_SelfState.ActionKind` adds `Pull = 4`, `Vault = 5`, `Break = 6` with `ActionProgress` 0-1 (v0.8: `Rescue = 7`, values above 7 are rejected). Values above 6 were
   rejected.
 - The client sends nothing new: shutters and rails use `C2S_Interact`.
 
@@ -93,9 +93,9 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
 - **ExitState** (11 bytes): `byte Id, float X, float Z, byte Flags, byte SwitchProgress (0-100)`.
   - Flags: `Powered = 1`, `Open = 2`, `Locked = 4` (the switch is locked by Firewall Block). Values above 7 are rejected.
 - **PlayerState** (25 bytes, v0.7): `int32 Id, byte Role, byte Status, float X, float Z, float Yaw, byte Flags, float StatusTimer, byte CaptureCount, byte Chase`.
-  - Flags (R3, 11/17): `Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16, GettingUp = 32` (the 1.5 s after a rescue, Survivor entries only; the Killer's entries never carry it). Values above 63 are rejected.
+  - Flags (v0.8, R3): `Signal = 1, Afterimage = 2, Stealthed = 4, Hacking = 8, Rescuing = 16, GettingUp = 32` (the 1.5 s after a rescue, Survivor recipients only; the Killer's view never carries it). `Afterimage = 2` is no longer set since Packet trace replaced Packet afterimage (R1). Values above 63 are rejected.
 - **TerminalState** (11 bytes): `byte Id, float X, float Z, byte Progress (0-100), byte Flags`.
-  - Flags: `Regressing = 1`, sent to survivors only (the killer kicked the terminal); `Overloaded = 2`, sent to everyone for 1.5 s (`OverloadedSeconds`) after a wrong route key (v0.8, R2).
+  - Flags: `Regressing = 1`, sent to survivors only (the killer kicked the terminal); `Overloaded = 2`, sent to everyone for 1.5 s (`OverloadedSeconds`) after a wrong route key (v0.8, R2); `Locked = 4`, sent to everyone while a Firewall block holds the terminal (v0.8, R1). Values above 7 are rejected.
   - The killer still receives Progress as 0 or 100 only.
 
 ## S2C_GameResult (0x0007)

@@ -2,6 +2,11 @@ namespace PingTheKiller.Shared
 {
     public static class Protocol
     {
+        // The wire protocol version (docs/PROTOCOL.md). v0.8 (INTEG-R, 11/17): C2S_Attack 0x0017, C2S_ChooseSkill 0x0018 and
+        // C2S_HackInput 0x0019; the sync check (0x0011-0x0013) retired; ActionKind.Rescue, PlayerFlags.GettingUp,
+        // ChaseFlags.Swinging, TerminalFlags.Locked; S2C_SelfState route fields; the lobby slot SkillChoice byte.
+        // Documentation only: it is not sent on the wire, both ends compile this same file.
+        public const string Version = "0.8";
         public const int HeaderSize = 4;
         public const int IdSize = 2;
         public const int MaxBodyLength = 16384;
