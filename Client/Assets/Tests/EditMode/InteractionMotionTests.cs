@@ -31,6 +31,9 @@ namespace PingTheKiller.Client.Tests
             Assert.That(InteractionMap.Resolve(S, N, 0, MotionPose.Locomotion, 0, true, Kick), Is.EqualTo(InteractionKind.None));
             Assert.That(InteractionMap.Resolve(S, N, 0, MotionPose.Locomotion, 0, false, 0), Is.EqualTo(InteractionKind.None));
             Assert.That(InteractionMap.Resolve(S, N, Hacking, MotionPose.Locomotion, 3, false, 0), Is.EqualTo(InteractionKind.None), "moving");
+            Assert.That(InteractionMap.Resolve(S, N, Rescuing, MotionPose.Locomotion, 1.2f, false, 0), Is.EqualTo(InteractionKind.Restore), "following a crawling ally");
+            Assert.That(InteractionMap.Resolve(S, N, Rescuing, MotionPose.Locomotion, 1.6f, false, 0), Is.EqualTo(InteractionKind.None), "running past");
+            Assert.That(InteractionMap.Resolve(S, N, Hacking, MotionPose.Locomotion, 1.2f, false, 0), Is.EqualTo(InteractionKind.None), "hack needs standing still");
             Assert.That(InteractionMap.Resolve(S, L, Rescuing, MotionPose.Crawl, 0, false, 0), Is.EqualTo(InteractionKind.None), "Lagging");
             Assert.That(InteractionMap.Resolve(S, E, Hacking, MotionPose.Death, 0, false, 0), Is.EqualTo(InteractionKind.None));
             Assert.That(InteractionMap.Resolve(S, N, Hacking, MotionPose.GettingUp, 0, false, 0), Is.EqualTo(InteractionKind.None), "getting up first");

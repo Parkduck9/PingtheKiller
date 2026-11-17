@@ -16,11 +16,13 @@ namespace PingTheKiller.Client.World
         // Hack: one keystroke beat per KeySeconds, hands alternating; the panel pulses on each beat.
         public const float KeySeconds = .17f, KeyLift = .045f, PulseSeconds = .12f, PulseScale = .07f;
         // Hack panel, in the character's root space: centre height, distance in front, size and the tilt toward the eyes.
-        public const float PanelHeight = 1.18f, PanelForward = .46f, PanelWidth = .62f, PanelTall = .34f, PanelTilt = 32f;
+        public const float PanelHeight = 1.4f, PanelForward = .5f, PanelWidth = .9f, PanelTall = .5f, PanelTilt = 28f;
         // Hand goals on the panel: half the spread between the hands, and how far in front of the panel plane they hover.
-        public const float HandSpread = .15f, HandHover = .05f;
+        public const float HandSpread = .22f, HandHover = .05f;
         // Restore: the hips drop and the torso leans over the ally; both hands reach down to it.
         public const float RestoreDrop = .36f, RestoreLean = 30f, RestoreHandHeight = .32f, RestoreHandSpread = .14f;
+        // Restore keeps its pose and link while the rescuer follows a crawling ally, up to this speed (m/s); the feet are then free.
+        public const float RestoreMoveSpeed = 1.5f;
         // Exit switch: the right palm on the switch panel at this height; the body leans in.
         public const float SwitchHeight = 1.15f, SwitchLean = 14f, SwitchReach = .55f;
         // Killer jam: one slam (wind-up to JamPeak of the time, impact at JamImpact), the hands above then onto the top.
@@ -44,9 +46,10 @@ namespace PingTheKiller.Client.World
             if (view == MotionView.Killer) return InteractionKind.None;
             if (status != (byte)PlayerStatus.Normal) return InteractionKind.None;
             if (pose != MotionPose.Locomotion && pose != MotionPose.Injured && pose != MotionPose.Working) return InteractionKind.None;
-            if (speed >= MotionTiming.StillSpeed) return InteractionKind.None;
-            if ((flags & (byte)PlayerFlags.Hacking) != 0) return InteractionKind.Hack;
-            if ((flags & (byte)PlayerFlags.Rescuing) != 0) return InteractionKind.Restore;
+            bool still = speed < MotionTiming.StillSpeed;
+            if (still && (flags & (byte)PlayerFlags.Hacking) != 0) return InteractionKind.Hack;
+            if (speed < InteractionTiming.RestoreMoveSpeed && (flags & (byte)PlayerFlags.Rescuing) != 0) return InteractionKind.Restore;
+            if (!still) return InteractionKind.None;
             if (own && ownAction == (byte)ActionKind.Switch) return InteractionKind.Switch;
             return InteractionKind.None;
         }
@@ -73,8 +76,6 @@ namespace PingTheKiller.Client.World
         private double startedAt = double.NegativeInfinity;
         public int Count { get; private set; }
         public int Terminal { get; private set; } = -1;
-
-        public void Reset() { known = false; startedAt = double.NegativeInfinity; Count = 0; Terminal = -1; }
 
         // Feeds the terminals of the newest snapshot. True when a slam starts now.
         public bool Observe(double now, int count, float[] tx, float[] tz, bool[] flags, bool drawn, float killerX, float killerZ)
@@ -157,13 +158,6 @@ namespace PingTheKiller.Client.World
             return InteractionTiming.JamTop;
         }
 
-        public static float JamWeight(double t)
-        {
-            float x = (float)(t / InteractionTiming.JamSeconds);
-            if (x <= 0 || x >= 1) return 0;
-            return Mathf.Clamp01(Mathf.Min(x / .12f, (1 - x) / .25f));
-        }
-
         private static float Smooth(float x) => x * x * (3 - 2 * x);
     }
 
@@ -177,6 +171,22 @@ namespace PingTheKiller.Client.World
         public Vector3 Target { get; set; }
         public double Clock { get; set; }
         private Animator animator;
+        private Vector3 lastPosition; private double lastTime = double.NaN; private float moving;
+
+        // 0 standing .. 1 at RestoreMoveSpeed: the rescuer's own ground speed, from its parent's movement.
+        private void TrackMoving(Vector3 position)
+        {
+            double now = Application.isPlaying ? Time.timeAsDouble : 0;
+            if (!Application.isPlaying) { moving = 0; return; }
+            if (!double.IsNaN(lastTime) && now - lastTime > .004)
+            {
+                Vector3 d = position - lastPosition; d.y = 0;
+                float speed = d.magnitude / (float)(now - lastTime);
+                moving = Mathf.Lerp(moving, Mathf.Clamp01(speed / InteractionTiming.RestoreMoveSpeed), .5f);
+                lastPosition = position; lastTime = now;
+            }
+            else if (double.IsNaN(lastTime)) { lastPosition = position; lastTime = now; }
+        }
 
         private void OnAnimatorIK(int layer)
         {
@@ -208,8 +218,10 @@ namespace PingTheKiller.Client.World
                     Vector3 ally = new Vector3(Target.x, origin.y, Target.z);
                     Vector3 toward = ally - origin; toward.y = 0;
                     Vector3 dir = toward.sqrMagnitude > .0001f ? toward.normalized : forward;
-                    PinFeet(w);
-                    Crouch(w * InteractionTiming.RestoreDrop, dir, w * InteractionTiming.RestoreLean, .12f * w);
+                    TrackMoving(origin);
+                    float planted = 1 - moving; // following a crawling ally: no pinned feet, no hip drop; keep the lean and the reach
+                    PinFeet(w * planted);
+                    Crouch(w * InteractionTiming.RestoreDrop * planted, dir, w * InteractionTiming.RestoreLean * (1 - .3f * moving), .12f * w);
                     Vector3 side = Vector3.Cross(Vector3.up, dir);
                     Vector3 reach = origin + dir * Mathf.Min(.7f, toward.magnitude * .6f) + Vector3.up * InteractionTiming.RestoreHandHeight;
                     Hand(AvatarIKGoal.LeftHand, reach - side * InteractionTiming.RestoreHandSpread, w);

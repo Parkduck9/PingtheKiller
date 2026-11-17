@@ -34,3 +34,10 @@ The real cause is legibility. U4j's `MotionReach` IK drops the one-hand press to
 **Risks.**
 - From directly behind, the torso hides most of the panel.
 - Merge with U8 in `MotionSetup` and `CharacterMotion`.
+
+## Attempt 2 (Claude Sonnet)
+
+- **Own hack readability.** Panel raised from 1.18 to 1.4 m, widened from 0.62 to 0.9 m (0.5 m tall, 0.5 m forward, tilt 28 degrees). Hand spread widened from 0.15 to 0.22 m, so the hands stay on the panel. From the default camera behind, the panel now shows above and past both shoulders (`U10-screens/a2/hacking.png`; before: `U10-qa-screens/compare-before-after-behind.png`).
+- **Restore while moving.** `InteractionMap.Resolve` keeps Restore up to 1.5 m/s (`RestoreMoveSpeed`); Hack and Switch still need speed < 0.3 m/s. The rig tracks the rescuer's ground speed; while moving it frees the feet and hip drop and keeps the lean and the link line. The explicit QA diagnostic was not changed.
+- **Dead code.** Removed `InteractionMotion.JamWeight` and `JamTracker.Reset`. The Killer's unused panel is still built, but never shown.
+- **Gates.** EditMode 1504 passed, 0 failed, 2 explicit skipped (1506 total; +3 Resolve assertions in an existing test). BuildWindows OK. Live run done, `U10-screens/a2/`, log `U10-runs/live-a2.log`. The moving-rescuer pose was not seen live.
