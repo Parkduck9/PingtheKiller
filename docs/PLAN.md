@@ -334,6 +334,21 @@ Opus 브리프(영어) → Codex 구현 → Antigravity QA(테스트·하네스�
     - 기절 고리·방화벽·모션 줄이기는 실제 경기 화면으로 못 봤습니다.
     - U4l의 사소한 문제(집 코어가 외관을 덮음, 쓰레기통 모양)가 남아 있습니다.
 
+- **store-prep 병합 (2026-11-19, main `dcb6bdd`): Microsoft Store 출시 준비.** S1·L1·S2·S3를 각각 만들고 Fable이 검수한 뒤 `claude/store-prep`에 합쳤습니다. 합친 상태로 다시 검사했습니다.
+  - **S1 MSIX 패키징 (Sonnet → Opus, 3차 합격):** `Packaging/build-release.ps1 -Pack`이 출시 빌드와 msix 생성을 한 번에 합니다. 로고는 `make-logos.ps1`로 만든 초안입니다. 안내는 `docs/store/MSIX_PACKAGING.md`에 있습니다.
+  - **L1 라이선스 점검 (Sonnet, 2차 합격):** `docs/store/THIRD_PARTY.md`, `CREDITS.md`. 출처를 몰랐던 월드 모델은 City 03의 복사본임을 확인했습니다.
+  - **S2 개발 도구 제외 (Opus, 1차 합격):** 출시 빌드에서 MCP for Unity와 Newtonsoft DLL을 뺍니다. 두 DLL이 남아 있으면 빌드가 실패합니다.
+  - **S3 크레딧·라이선스 화면 (Sonnet, 2차 합격, SLOP 95):** 메뉴의 Credits에서 OFL 전문까지 볼 수 있습니다. 키보드와 게임패드로 스크롤합니다. 사소한 2건은 오케스트레이터가 고쳤습니다.
+  - **개발자명:** companyName과 개인정보 처리방침, 크레딧 모두 NIPAD입니다. 외부망 테스트 안내는 `docs/store/EXTERNAL_NET_TEST.md`에 있습니다.
+  - **게이트(합친 상태):** 빌드 오류 0, Unity EditMode 1628개 중 실패 0(건너뜀 2), `build-release.ps1 -Pack`으로 64.8 MB msix 생성, 패키지 안 금지 DLL 0, 패키지에서 꺼낸 게임의 오프라인 60초 실행 오류 0.
+  - **남은 것(소유자 작업):**
+    - 개인정보 처리방침의 문의 이메일, 그리고 공개 게시 허락.
+    - Partner Center 이름 예약 후 ID 값 3개를 패키지 설정에 넣고 다시 만들기. 지금은 임시 ID입니다.
+    - Asset Store 주문 번호 7개, Rio·Kyle의 출처 확인.
+    - 외부망 접속 테스트, 로고 승인, 사람이 하는 플레이 확인.
+    - 로컬 설치 시험(개발자 모드 또는 Trusted People 인증서), 스토어 스크린샷과 IARC 등급.
+  - **남은 것(작은 후속 후보):** `PerfectDOSVGA437.ttf` 라이선스 미확인, 쓰지 않는 DOTween 포함, Kevin Iglesias 약관 미확인, 실제 게임패드로 크레딧 스크롤 미확인.
+
 UI는 별도 기준: `docs/ui/SLOP_DEFINITION.md` §9, **≥ 85점 + 게이트 무위반**.
 
 ---
