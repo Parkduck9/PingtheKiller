@@ -41,7 +41,8 @@ namespace PingTheKiller.Client.UI
         private Button randomSkill;
         private SettingsScreen settingsScreen;
         private HowToPlayScreen howTo;
-        private Button openSettings, openHowTo;
+        private CreditsScreen credits;
+        private Button openSettings, openHowTo, openCredits;
         private PanelSettings panel;
         private Vector2Int scaledFor;
         public event Action<string> Join;
@@ -61,6 +62,9 @@ namespace PingTheKiller.Client.UI
         public bool SettingsOpen => settingsScreen != null && settingsScreen.Visible;
         public bool HowToOpen => howTo != null && howTo.Visible;
         public HowToPlayScreen HowTo => howTo;
+        public bool CreditsOpen => credits != null && credits.Visible;
+        public CreditsScreen Credits => credits;
+        public Button CreditsButton => openCredits;
         // 11/17 R3 (HUD_SPEC 3): the match intro card, both roles, bottom-center over the match.
         public IntroCard Intro { get; private set; }
         public KillerHud Killer { get; private set; }
@@ -104,6 +108,8 @@ namespace PingTheKiller.Client.UI
             settingsScreen.Closed += SettingsClosed;
             howTo = new HowToPlayScreen(root, font);
             howTo.Closed += HowToClosed;
+            credits = new CreditsScreen(root, font);
+            credits.Closed += CreditsClosed;
             Killer.OpenSettings += ShowSettings;
             Survivor.Menu.OpenSettings += ShowSettings;
             dev = Text(root, string.Empty, "dev"); dev.pickingMode = PickingMode.Ignore; DevVisible = false;
@@ -169,6 +175,8 @@ namespace PingTheKiller.Client.UI
             openHowTo.AddToClassList("set-open");
             openSettings = Action(menu, SettingsCopy.Title, ShowSettings);
             openSettings.AddToClassList("set-open");
+            openCredits = Action(menu, CreditsCopy.Button, ShowCredits);
+            openCredits.AddToClassList("set-open");
         }
         private void BuildLobby()
         {
@@ -273,6 +281,7 @@ namespace PingTheKiller.Client.UI
         {
             settingsScreen?.Hide();
             howTo?.Hide();
+            credits?.Hide();
             Show(menu, visible == menu);
             Show(lobby, visible == lobby);
             Show(result, visible == result);
@@ -288,7 +297,7 @@ namespace PingTheKiller.Client.UI
         }
         public void SetConnecting(bool value)
         {
-            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value); openSettings.SetEnabled(!value); openHowTo.SetEnabled(!value);
+            join.SetEnabled(!value); address.SetEnabled(!value); offline.SetEnabled(!value); openSettings.SetEnabled(!value); openHowTo.SetEnabled(!value); openCredits.SetEnabled(!value);
             Show(cancel, value);
             if (value) { message.text = "Connecting to " + address.value + "…"; cancel.Focus(); }
         }
@@ -352,6 +361,15 @@ namespace PingTheKiller.Client.UI
             howTo.Show(page);
         }
         public void CloseHowTo() => howTo.Close();
+        // S3-credits (HUD_SPEC 1.8): the Credits and licences screen replaces the main menu; Back, Esc or B returns to it.
+        public void ShowCredits()
+        {
+            if (CreditsOpen || Playing) return;
+            Show(menu, false);
+            credits.Show();
+        }
+        public void CloseCredits() => credits.Close();
+        private void CreditsClosed() { Show(menu, true); openCredits.Focus(); }
         private void HowToClosed() { Show(menu, true); openHowTo.Focus(); }
         private void SettingsClosed()
         {

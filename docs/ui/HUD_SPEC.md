@@ -156,6 +156,9 @@ Sounds: none.
 ### 1.7 How to play **(11/17, R3)**
 A "How to play" button sits under the Offline note in the main menu (class `set-open`), disabled while connecting. It opens the `howto` panel with two tabs, Survivor and Killer, and a Back button; Esc closes it. Each page has the headings `How to win`, `Controls`, `Status` (three lines: `Normal:`, `Lagging:`, `Rescue:`), `Signal and Silent` and `Skills` (names and effects from the existing skill tables). Copy lives in `HelpCopy.Page(role)`.
 
+### 1.8 Credits and licences **(S3-credits)**
+A `Credits` button (class `set-open`) sits under Settings in the main menu and is disabled while connecting. It opens the `credits` panel (same frame as `howto`: left 32, top 32, 1280 u wide, no modal) with the title `Credits and licences`, a vertical `ScrollView` (1280 x 700 u) and a Back button (`primary`). Back, Esc or gamepad B (NavigationCancel) closes it and focus returns to the Credits button; Back has focus on open so the pad can leave at once, and the wheel or the scroll bar moves the text. Body: heading `Credits` and the credits list (`htp-t`), heading `Licences`, the Inter copyright line, the full SIL OFL 1.1 text (`cr-ofl`, 13 u, `muted`), then the DOTween notice. All copy is `CreditsCopy`; the OFL text is read at runtime from `Resources/Fonts/OFL.txt`, never copied into code. Not shown: unity-mcp and Newtonsoft (stripped from the Store build by S2). Developer name: `CreditsCopy.Developer`. Shots: `-ptk-credits` (`credits-top.png`, `credits-licence.png`).
+
 ## 2. Lobby
 
 Purpose: fill 8 slots and start. The slot list *is* the data (SLOP §8).

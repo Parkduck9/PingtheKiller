@@ -1,6 +1,6 @@
 # Credits (attribution text for the game and the store page)
 
-Status 2026-11-19. Audit: `docs/qa/L1-license-audit.md`. Legal basis is as far as it could be verified from public terms; the owner must confirm against the purchase records.
+Status 2026-11-19. The in-game screen exists (S3-credits): main menu, Credits, `CreditsScreen` with all copy in `CreditsCopy.cs`. It shows the credits list below, the Inter copyright line with the full text of `Resources/Fonts/OFL.txt` loaded at runtime, and the DOTween notice. It does not show unity-mcp or Newtonsoft. The developer name is `CreditsCopy.Developer` (NIPAD, set by the owner); the Robot Kyle and Rio publishers are still not named. Audit: `docs/qa/L1-license-audit.md`. Legal basis is as far as it could be verified from public terms; the owner must confirm against the purchase records.
 
 ## Required by a licence (or safest to include)
 
@@ -12,7 +12,7 @@ Status 2026-11-19. Audit: `docs/qa/L1-license-audit.md`. Legal basis is as far a
 
 > DOTween. Copyright (c) 2014-2026 Daniele Giardini, Demigiant. http://dotween.demigiant.com
 
-**unity-mcp (MIT)** and **Newtonsoft.Json (MIT)** ship in the player today. Either strip them from release builds (preferred, see the audit) or put these notices, each with the full MIT text, in the Licences screen:
+**unity-mcp (MIT)** and **Newtonsoft.Json (MIT)** (stripped from the Store build by S2, so the in-game screen does not show them). Kept here for reference only. If either is ever left in a release build, add these notices, each with the full MIT text, to the Licences screen:
 
 > MCP for Unity. MIT License. Copyright (c) 2025 CoplayDev.
 
@@ -24,11 +24,11 @@ MIT text to include with each (from the package files): "Permission is hereby gr
 
 The Unity Asset Store EULA text read for this audit contains no attribution requirement. Mixamo says credit is optional. Kevin Iglesias, Hovl, QAtmo, Fries and Seagull, the SFX pack publisher and Toon Shaders Pro: terms are not in the repository and could not be read, so a credit is harmless and may be needed. Confirm on each Asset Store listing.
 
-## Recommended in-game credits list (Settings or Main menu, Credits)
+## Recommended in-game credits list (Main menu, Credits)
 
 ```
 Ping the Killer
-Design and programming: <developer name>
+Design and programming: NIPAD
 
 Characters: Robot Kyle and Rio (publishers to be confirmed by the owner before release; do not name Unity Technologies until confirmed)
 Animations: Human Animations by Kevin Iglesias; Mixamo (Adobe)
