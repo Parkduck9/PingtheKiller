@@ -67,6 +67,8 @@ namespace PingTheKiller.Client.Dev
         public bool Settings { get; private set; }
         // R3 (11/17): shots of the How to play screen, both pages, opened from the main menu after the menu shot.
         public bool HowTo { get; private set; }
+        // S3-credits: shots of the Credits and licences screen (top, then scrolled to the licence text), after the menu shot.
+        public bool Credits { get; private set; }
         // After the play-menu shots (and the Settings shot): press the open play menu's Leave match path and shoot
         // menu-after-leave.png once the main menu shows (needs -ptk-menu).
         public bool MenuLeave { get; private set; }
@@ -89,7 +91,7 @@ namespace PingTheKiller.Client.Dev
         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
-            || Settings || HowTo || MenuLeave || DevHack > 0 || DevSwitch || WalkAfterHack > 0 || AutoRoute != AutoRoute.None || WantSkill.HasValue;
+            || Settings || HowTo || Credits || MenuLeave || DevHack > 0 || DevSwitch || WalkAfterHack > 0 || AutoRoute != AutoRoute.None || WantSkill.HasValue;
 
         public static DevArgs Parse(IReadOnlyList<string> args)
         {
@@ -106,6 +108,7 @@ namespace PingTheKiller.Client.Dev
                 if (flag == "-ptk-skill-when-able") { result.SkillWhenAble = true; continue; }
                 if (flag == "-ptk-settings") { result.Settings = true; continue; }
                 if (flag == "-ptk-howto") { result.HowTo = true; continue; }
+                if (flag == "-ptk-credits") { result.Credits = true; continue; }
                 if (flag == "-ptk-menu-leave") { result.MenuLeave = true; continue; }
                 if (flag == "-ptk-dev-switch") { result.DevSwitch = true; continue; }
                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }

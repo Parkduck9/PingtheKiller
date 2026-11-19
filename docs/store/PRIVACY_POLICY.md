@@ -7,7 +7,7 @@
 ## 한국어
 
 **게임:** 핑 더 킬러 (Ping the Killer) — Windows용 멀티플레이어 게임
-**개발자:** [개발자 이름 또는 상호]
+**개발자:** NIPAD
 **문의:** [연락처 이메일]
 **최종 수정일:** 2026-10-27
 
@@ -63,7 +63,7 @@ Microsoft Store를 통한 설치·구매 내역·평가 등은 Microsoft가 자�
 ## English
 
 **Game:** Ping the Killer (핑 더 킬러) — multiplayer game for Windows
-**Developer:** [developer name or business name]
+**Developer:** NIPAD
 **Contact:** [contact email]
 **Last updated:** 2026-10-27
 
@@ -118,7 +118,7 @@ Send questions about this policy to the email address above.
 
 ## Open items for the developer
 
-1. Fill in `[개발자 이름 또는 상호]`, `[연락처 이메일]`, `[developer name or business name]` and `[contact email]`. Use an address you are willing to publish.
+1. Fill in `[연락처 이메일]` and `[contact email]` (the developer name NIPAD is filled in). Use an address you are willing to publish.
 2. Confirm the server never writes connection logs to disk. The policy says "not stored". If `Server/` or `Tools/Harness` writes IPs or nicknames to a file, either remove that logging or change §2 and §5.
 3. Confirm the Unity client does not save the nickname or last-used host IP in `PlayerPrefs` or a file. If it does, add one sentence under §2: "The nickname and the last server address are saved on your own device and are not sent anywhere."
 4. Confirm other players cannot see each other's IP addresses in the lobby or in any packet (`S2C_LobbyState` carries nickname, bot flag and host flag only per `docs/PLAN.md` §2).

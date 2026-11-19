@@ -34,3 +34,8 @@ TestResults/
 # QA artifacts that are regenerated
 docs/qa/*.xml
 docs/qa/screenshots/
+
+# MSIX packaging output (Packaging/pack-msix.ps1)
+Packaging/layout/
+Packaging/out/
+*.msix
