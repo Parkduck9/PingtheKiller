@@ -1,0 +1,128 @@
+Mono path[0] = 'C:/Users/User/AppData/Local/Temp/claude/431fcf170b8486ed/532937a2-a438-4a3d-9f8f-71b5bb9467fb/scratchpad/s2-strip/unpacked/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Users/User/AppData/Local/Temp/claude/431fcf170b8486ed/532937a2-a438-4a3d-9f8f-71b5bb9467fb/scratchpad/s2-strip/unpacked/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Users/User/AppData/Local/Temp/claude/431fcf170b8486ed/532937a2-a438-4a3d-9f8f-71b5bb9467fb/scratchpad/s2-strip/unpacked/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.117 seconds
+- Finished resetting the current domain, in  0.003 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 1.629000 ms
+[offline server] join player=4 reconnect=false
+[offline server] match start players=8 killer=8 matchSeed=551895050
+[fx] warm ms=24.1 objects=124 meshes=12 materials=21 glyphs=9
+[DEV] match 1 start role=Survivor skill=2
+[DEV] t=0.04 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.04 local status=Normal timer=0.00 hud="" pos=4.00,76.00
+[net] SelfState received (first of the match)
+[DEV] t=0.04 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=1.03 local position 4.00,76.00 moved=0.00 m
+[offline server] skill player=2 role=Survivor id=4
+[fx] survivor skill=4 viewer=Ally line="Bot 2 sent fake Signals across the map · 1.5 s" visual=Static sound=WhiteNoise (positional) reduced=False
+[net] SkillEffect skill=4 (survivor HUD)
+[fx] first cast Static frame ms=6.1 (average before 13.1)
+[offline server] terminal 5 locked seconds=8
+[offline server] skill player=8 role=Killer id=3
+[fx] killer skill=3 viewer=Ally line="Terminal 6 · Locked · 8 s" visual=HexWall sound=FirewallSurvivor (positional) reduced=False
+[net] SkillEffect skill=3 (survivor HUD)
+[DEV] t=5.00 local position 4.00,76.00 moved=0.00 m
+[DEV] t=8.89 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=6 terminal=7 complete progress=4.8
+[DEV] t=9.31 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.49 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:5 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.11 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=12.31 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:7 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.03 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:8 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.50 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:9 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=6 terminal=7 complete progress=11.8
+[DEV] t=13.58 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:11 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.68 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:12 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=7 terminal=7 complete progress=14.8
+[DEV] t=13.70 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:14 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.87 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:15 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.31 terminals 0:0 1:0 2:0 3:0 4:0 5:2 6:0 7:15 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=2 terminal=5 complete progress=6.1
+[DEV] t=14.99 terminals 0:0 1:0 2:0 3:0 4:0 5:6 6:0 7:15 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.69 terminals 0:0 1:0 2:0 3:0 4:0 5:6 6:0 7:16 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.20 terminals 0:0 1:0 2:0 3:0 4:0 5:6 6:0 7:17 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.39 terminals 0:0 1:0 2:0 3:0 4:0 5:7 6:0 7:17 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=1 terminal=5 complete progress=10.6
+[DEV] t=16.59 terminals 0:0 1:0 2:0 3:0 4:0 5:10 6:0 7:17 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.77 terminals 0:0 1:0 2:0 3:0 4:0 5:10 6:0 7:18 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.80 terminals 0:0 1:0 2:0 3:0 4:0 5:11 6:0 7:18 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=7 terminal=7 complete progress=21.4
+[offline server] terminal 7 locked seconds=8
+[offline server] skill player=8 role=Killer id=3
+[DEV] t=16.99 terminals 0:0 1:0 2:0 3:0 4:0 5:11 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.34 terminals 0:0 1:0 2:0 3:0 4:0 5:12 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.79 terminals 0:0 1:0 2:0 3:0 4:0 5:13 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=2 terminal=5 complete progress=16.9
+[DEV] t=18.30 terminals 0:0 1:0 2:0 3:0 4:0 5:16 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.38 terminals 0:0 1:0 2:0 3:0 4:0 5:17 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=19.54 terminals 0:0 1:0 2:0 3:0 4:0 5:18 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=1 terminal=5 complete progress=22.0
+[DEV] t=20.13 terminals 0:0 1:0 2:0 3:0 4:0 5:22 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=2 role=Survivor id=4
+[DEV] t=20.68 terminals 0:0 1:0 2:0 3:0 4:0 5:23 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.20 terminals 0:0 1:0 2:0 3:0 4:0 5:24 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=2 terminal=5 complete progress=28.2
+[DEV] t=21.79 terminals 0:0 1:0 2:0 3:0 4:0 5:28 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.34 terminals 0:0 1:0 2:0 3:0 4:0 5:29 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=1 terminal=5 complete progress=32.6
+[DEV] t=23.80 terminals 0:0 1:0 2:0 3:0 4:0 5:32 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.94 terminals 0:0 1:0 2:0 3:0 4:0 5:33 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.45 terminals 0:0 1:0 2:0 3:0 4:0 5:34 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] terminal 5 locked seconds=8
+[offline server] skill player=8 role=Killer id=3
+[offline server] skill player=1 role=Survivor id=1
+[fx] survivor skill=1 viewer=Ally line="" visual=Dome sound=None reduced=False
+[net] SkillEffect skill=1 (survivor HUD)
+[offline server] skill player=2 role=Survivor id=4
+[offline server] kick terminal 5
+[audio] v2 cue TerminalKick
+[DEV] t=43.57 terminals 0:0 1:0 2:0 3:0 4:0 5:29 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=44.80 terminals 0:0 1:0 2:0 3:0 4:0 5:28 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.83 terminals 0:0 1:0 2:0 3:0 4:0 5:27 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=48.81 terminals 0:0 1:0 2:0 3:0 4:0 5:26 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.80 terminals 0:0 1:0 2:0 3:0 4:0 5:25 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] terminal 7 locked seconds=8
+[offline server] skill player=8 role=Killer id=3
+[DEV] t=52.82 terminals 0:0 1:0 2:0 3:0 4:0 5:24 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.79 terminals 0:0 1:0 2:0 3:0 4:0 5:23 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=3 Lagging reason=capture
+[offline server] swing player=8 result=hit target=3
+[audio] v2 cue Capture
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=56.79 terminals 0:0 1:0 2:0 3:0 4:0 5:22 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=58.81 terminals 0:0 1:0 2:0 3:0 4:0 5:21 6:0 7:21 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] quit after 60 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

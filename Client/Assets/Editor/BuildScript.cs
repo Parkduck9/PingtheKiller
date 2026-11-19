@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -56,9 +58,70 @@ public static class BuildScript
 
     // Store/MSIX input (Builds/StoreWin64): release player (no Development Build, no script debugging, no profiler
     // autoconnect), Mono scripting backend (IL2CPP Windows support is not installed on this machine), x64.
+    // Editor tooling (com.coplaydev.unity-mcp's MCPForUnity.Runtime and its Newtonsoft.Json dependency) is filtered out
+    // of this player by ReleaseAssemblyFilter, and the output is checked afterwards: the build fails if either DLL is
+    // still in PingTheKiller_Data/Managed. The package stays in Packages/manifest.json for the editor.
     public static void BuildWindowsRelease()
     {
-        Build("Builds/StoreWin64/PingTheKiller.exe", "[S1] Windows release build succeeded: ");
+        const string output = "Builds/StoreWin64/PingTheKiller.exe";
+        ReleaseAssemblyFilter.Active = true;
+        try { Build(output, null); }
+        finally { ReleaseAssemblyFilter.Active = false; }
+        AssertNoEditorTooling(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output)), "PingTheKiller_Data", "Managed"));
+        Debug.Log("[S1] Windows release build succeeded: " + Path.GetFullPath(output));
+    }
+
+    // Stand-alone check of any build's Managed folder: -executeMethod BuildScript.VerifyReleaseManaged -ptkManagedDir <dir>
+    public static void VerifyReleaseManaged()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        string dir = null;
+        for (int i = 0; i < args.Length - 1; i++)
+            if (args[i] == "-ptkManagedDir") dir = args[i + 1];
+        if (string.IsNullOrEmpty(dir)) throw new ArgumentException("Pass -ptkManagedDir <path to PingTheKiller_Data/Managed>.");
+        AssertNoEditorTooling(dir);
+        Debug.Log("[S2] Release check passed: no editor-tooling assemblies in " + Path.GetFullPath(dir));
+    }
+
+    // True for assemblies that must never ship in the Store build (editor tooling and its dependency).
+    public static bool IsEditorToolingAssembly(string fileName)
+    {
+        string name = Path.GetFileName(fileName);
+        return name.StartsWith("MCPForUnity", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "Newtonsoft.Json.dll", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static void AssertNoEditorTooling(string managedDir)
+    {
+        if (!Directory.Exists(managedDir))
+            throw new InvalidOperationException("Release check: Managed folder not found: " + managedDir);
+        var found = new List<string>();
+        foreach (string file in Directory.GetFiles(managedDir, "*.dll", SearchOption.AllDirectories))
+            if (IsEditorToolingAssembly(file)) found.Add(Path.GetFileName(file));
+        if (found.Count > 0)
+            throw new InvalidOperationException("RELEASE BUILD REJECTED: editor-tooling assemblies must not ship in the Store build, found "
+                + string.Join(", ", found) + " in " + Path.GetFullPath(managedDir)
+                + ". Build with BuildScript.BuildWindowsRelease (Packaging/build-release.ps1), not BuildWindows.");
+    }
+
+    // Removes the editor-tooling assemblies from the player while BuildWindowsRelease runs; inactive for BuildWindows
+    // and for editor builds, so developers keep unity-mcp. Unity calls this for every player build.
+    internal sealed class ReleaseAssemblyFilter : IFilterBuildAssemblies
+    {
+        public static bool Active;
+        public int callbackOrder => 0;
+
+        public string[] OnFilterAssemblies(BuildOptions buildOptions, string[] assemblies)
+        {
+            if (!Active) return assemblies;
+            var kept = new List<string>(assemblies.Length);
+            foreach (string assembly in assemblies)
+            {
+                if (IsEditorToolingAssembly(assembly)) Debug.Log("[S2] Release build: excluded " + assembly);
+                else kept.Add(assembly);
+            }
+            return kept.ToArray();
+        }
     }
 
     private static void Build(string relativeOutput, string successMessage)
@@ -85,7 +148,7 @@ public static class BuildScript
         });
         if (report.summary.result != BuildResult.Succeeded)
             throw new InvalidOperationException("Windows build failed: " + report.summary.result + ", errors=" + report.summary.totalErrors);
-        Debug.Log(successMessage + output);
+        if (successMessage != null) Debug.Log(successMessage + output);
     }
 }
 

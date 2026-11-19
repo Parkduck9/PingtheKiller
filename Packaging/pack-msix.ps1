@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Builds an unsigned MSIX from the Unity release build (Client/Builds/StoreWin64). Windows PowerShell 5.1 compatible.
+  Builds an unsigned MSIX from the Unity release build (Client/Builds/StoreWin64, made by build-release.ps1). Windows PowerShell 5.1 compatible.
 .EXAMPLE
   powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1
   powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 -IdentityName "12345Studio.PingtheKiller" `
@@ -26,7 +26,10 @@ if (-not $OutDir) { $OutDir = Join-Path $here 'out' }
 $BuildDir = (Resolve-Path $BuildDir).Path
 if ($Version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw "Version must have four parts (e.g. 1.0.0.0), got '$Version'." }
 if ($Version -notmatch '\.0$') { throw "The 4th version part must be 0 (Microsoft Store reserves the revision), e.g. 1.0.1.0. Got '$Version'." }
-if (-not (Test-Path (Join-Path $BuildDir 'PingTheKiller.exe'))) { throw "PingTheKiller.exe not found in $BuildDir. Run BuildScript.BuildWindowsRelease first." }
+if (-not (Test-Path (Join-Path $BuildDir 'PingTheKiller.exe'))) { throw "PingTheKiller.exe not found in $BuildDir. Run Packaging\build-release.ps1 first." }
+# Never pack editor tooling (unity-mcp, Newtonsoft.Json): a dev build (BuildScript.BuildWindows) contains them.
+. (Join-Path $here 'release-guard.ps1')
+Assert-NoEditorTooling $BuildDir
 
 if (-not $MakeAppx) {
     $candidates = @(Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Directory -ErrorAction SilentlyContinue |

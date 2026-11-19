@@ -13,9 +13,10 @@ Target: Unity 6000.3 LTS, Windows Standalone, x64. First written 2026-10-27 agai
 ### Commands
 
 ```powershell
-# 1. Release build (Mono, non-development) -> Client\Builds\StoreWin64\PingTheKiller.exe
-& "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe" -batchmode -quit `
-  -projectPath "<repo>\Client" -executeMethod BuildScript.BuildWindowsRelease -logFile "<abs path>\build.log"
+# 1. Release build (Mono, non-development, editor tooling stripped) -> Client\Builds\StoreWin64\PingTheKiller.exe
+#    Unity batch BuildScript.BuildWindowsRelease; log in Packaging\out\build-release.log. The project must not be open in an editor.
+powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\build-release.ps1
+#    (or build and pack in one go: add -Pack and the identity parameters of step 3)
 
 # 2. (only when the artwork changes) regenerate Packaging\Assets\*.png from the game's own palette and font
 powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\make-logos.ps1
@@ -27,7 +28,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
 
 Without parameters the script uses placeholders (`PingTheKillerDev.PingtheKiller`, `CN=PingTheKillerDev`); that package cannot be uploaded to the Store, and the unsigned `.msix` **cannot be installed as-is** (`Add-AppxPackage` rejects an unsigned package). To try it locally the owner uses one of the two methods in the Korean owner steps §2: A (developer mode + `Add-AppxPackage -Register` on `Packaging\layout`) or B (a signed copy with the owner's own self-signed certificate).
 
-What `pack-msix.ps1` does: stages in a fresh temp folder (so `Packaging\layout` is replaced only after a successful pack; a failed run never leaves a stale layout) with `Client\Builds\StoreWin64` (robocopy; excludes `*_DoNotShip`, `*_BackUpThisFolder_ButDontShipItWithYourGame` and `*.pdb`), copies the logos into `Assets` (scale-100 base files, scale-200 and `Square44x44Logo.targetsize-*` plated/unplated variants), fills `Packaging\AppxManifest.template.xml` (`runFullTrust`, `internetClient`, `internetClientServer`, `privateNetworkClientServer`, `Windows.Desktop` 10.0.17763.0, x64), builds a single `resources.pri` with `makepri.exe` that indexes every logo candidate (neutral, scale-200 and all targetsize variants; without it Windows cannot pick the qualified files). The script strips the `<packaging>` block that `makepri createconfig` adds, because that block splits the scale-200 candidates into a `resources.scale-200.pri` that only a bundle loads, and it stops with an error if any split `resources.*.pri` appears. It then runs `makeappx pack /v /o`. The version must have four parts and the 4th must be `0` (the Store's rule; the script stops with an error otherwise). `Packaging\layout\` and `Packaging\out\` are git-ignored. The exe icon is `Client\Assets\Art\Icon\AppIcon.png`, set in `BuildScript.Build()`; both it and the logos come from `make-logos.ps1`.
+What `pack-msix.ps1` does: stages in a fresh temp folder (so `Packaging\layout` is replaced only after a successful pack; a failed run never leaves a stale layout) with `Client\Builds\StoreWin64` (robocopy; excludes `*_DoNotShip`, `*_BackUpThisFolder_ButDontShipItWithYourGame` and `*.pdb`), copies the logos into `Assets` (scale-100 base files, scale-200 and `Square44x44Logo.targetsize-*` plated/unplated variants), fills `Packaging\AppxManifest.template.xml` (`runFullTrust`, `internetClient`, `internetClientServer`, `privateNetworkClientServer`, `Windows.Desktop` 10.0.17763.0, x64), builds a single `resources.pri` with `makepri.exe` that indexes every logo candidate (neutral, scale-200 and all targetsize variants; without it Windows cannot pick the qualified files). The script strips the `<packaging>` block that `makepri createconfig` adds, because that block splits the scale-200 candidates into a `resources.scale-200.pri` that only a bundle loads, and it stops with an error if any split `resources.*.pri` appears. It then runs `makeappx pack /v /o`. The version must have four parts and the 4th must be `0` (the Store's rule; the script stops with an error otherwise). `Packaging\layout\` and `Packaging\out\` are git-ignored. Before staging it refuses a build folder that contains `MCPForUnity*.dll` or `Newtonsoft.Json.dll` (next section). The exe icon is `Client\Assets\Art\Icon\AppIcon.png`, set in `BuildScript.Build()`; both it and the logos come from `make-logos.ps1`.
+
+### Editor tooling is stripped from the Store build (unit S2-strip, 2026-11-19)
+
+`com.coplaydev.unity-mcp` (the editor AI bridge) and its dependency `com.unity.nuget.newtonsoft-json` stay in `Client\Packages\manifest.json` for developers, but `MCPForUnity.Runtime.dll` and `Newtonsoft.Json.dll` must not ship. Three layers make sure:
+
+1. `BuildScript.BuildWindowsRelease` turns on an `IFilterBuildAssemblies` filter (`BuildScript.ReleaseAssemblyFilter`) that removes `MCPForUnity*.dll` and `Newtonsoft.Json.dll` from the player's assembly list. It is off for `BuildWindows` (the dev/QA build in `Builds\Win64`, which keeps both DLLs) and in the editor.
+2. After the build, `BuildWindowsRelease` checks `PingTheKiller_Data\Managed` and throws `RELEASE BUILD REJECTED: ...` (Unity exits non-zero) if either DLL is there. The same check runs stand-alone on any folder: `-executeMethod BuildScript.VerifyReleaseManaged -ptkManagedDir <Managed folder>`.
+3. `Packaging\build-release.ps1` and `Packaging\pack-msix.ps1` run the same check (`Packaging\release-guard.ps1`) on the build folder, so `pack-msix.ps1` refuses to pack a dev build.
+
+Why the manifest is not edited for the release build: unity-mcp is a git package. Removing it makes the Package Manager delete `Library\PackageCache\com.coplaydev.unity-mcp@<hash>`, and there is no global git cache (`%LOCALAPPDATA%\Unity\cache` holds only `npm`, `packages`, `upm`), so restoring the manifest would need a GitHub download on the next editor start. `build-release.ps1` never writes the manifest, and it fails if `manifest.json` or `packages-lock.json` change during the build. No project code references `MCPForUnity` or `Newtonsoft` (and `Server.Tests/ArchitectureTests.cs` forbids `Newtonsoft` in `Shared/`), so the player needs neither. Evidence: `docs/qa/S2-strip-impl-a1.md`.
 
 ### What the shipped exe writes (audit, 2026-11-19)
 
@@ -35,7 +46,7 @@ With no command-line flags the game writes nothing inside its install folder. Pl
 
 ### Verified results
 
-See `docs/qa/S1-msix-impl-a1.md` for the run: pack succeeded with zero errors, unpack check, and an offline run from the staging folder with a before/after file listing.
+See `docs/qa/S1-msix-impl-a1.md` for the run: pack succeeded with zero errors, unpack check, and an offline run from the staging folder with a before/after file listing. Strip run (release `Managed` listing without the two DLLs, guard proof, pack, offline run from the unpacked package): `docs/qa/S2-strip-impl-a1.md`.
 
 ---
 
