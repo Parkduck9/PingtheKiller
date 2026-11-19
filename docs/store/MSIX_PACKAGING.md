@@ -1,8 +1,86 @@
 # Packaging Ping the Killer for Microsoft Store
 
-Target: Unity 6000.3 LTS, Windows Standalone, IL2CPP, x64. Written 2026-10-27 against Microsoft Learn pages listed in §9. Statements marked **(verify)** are not confirmed by a page I read; test them before relying on them. `docs/PLAN.md` §7 sets the plan: MSIX, or the Store's EXE/MSI path.
+Target: Unity 6000.3 LTS, Windows Standalone, x64. First written 2026-10-27 against Microsoft Learn pages listed in §9; §0 was added 2026-11-19 (unit S1-msix) and records the path that was actually built and tested. Where §0 and the older sections disagree, **§0 wins**. Statements marked **(verify)** are not confirmed by a page I read; test them before relying on them. `docs/PLAN.md` §7 sets the plan: MSIX, or the Store's EXE/MSI path.
 
 ---
+
+## 0. Tested build and pack path (2026-11-19)
+
+**Scripting backend is Mono, not IL2CPP.** IL2CPP Windows support is not installed on the build machine (only the Mono variations of the Windows module), so the Store build uses Mono. Everything below about "IL2CPP" in §1-§8 is superseded: the output has `Mono\` / `MonoBleedingEdge\` and `Assembly-CSharp.dll`, no `GameAssembly.dll`. Switching to IL2CPP needs the module installed first; it is not required for certification.
+
+**Packaging tool is `makeappx.exe` from the Windows SDK 10.0.26100.0, not `winapp`.** No download or install was needed. `winapp` (preview) is not used, so ignore §4 Steps 2, 4, 6, 7 except as background. Nothing is signed here: the Store signs the upload.
+
+### Commands
+
+```powershell
+# 1. Release build (Mono, non-development) -> Client\Builds\StoreWin64\PingTheKiller.exe
+& "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe" -batchmode -quit `
+  -projectPath "<repo>\Client" -executeMethod BuildScript.BuildWindowsRelease -logFile "<abs path>\build.log"
+
+# 2. (only when the artwork changes) regenerate Packaging\Assets\*.png from the game's own palette and font
+powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\make-logos.ps1
+
+# 3. Stage, write the manifest, pack -> Packaging\out\PingTheKiller_1.0.0.0_x64.msix
+powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
+  -IdentityName "<Identity Name>" -Publisher "<Identity Publisher>" -PublisherDisplayName "<Publisher display name>" -Version 1.0.0.0
+```
+
+Without parameters the script uses placeholders (`PingTheKillerDev.PingtheKiller`, `CN=PingTheKillerDev`); that package packs and can be test-installed locally but cannot be uploaded to the Store.
+
+What `pack-msix.ps1` does: copies `Client\Builds\StoreWin64` to `Packaging\layout` (robocopy; excludes `*_DoNotShip`, `*_BackUpThisFolder_ButDontShipItWithYourGame` and `*.pdb`), copies the four logos into `layout\Assets`, fills `Packaging\AppxManifest.template.xml` (`runFullTrust`, `internetClient`, `internetClientServer`, `privateNetworkClientServer`, `Windows.Desktop` 10.0.17763.0, x64), and runs `makeappx pack /v /o`. Version must have four parts; the Store wants the last part `0` **(verify)**. `Packaging\layout\` and `Packaging\out\` are git-ignored.
+
+### What the shipped exe writes (audit, 2026-11-19)
+
+With no command-line flags the game writes nothing inside its install folder. PlayerPrefs (HKCU registry) and Unity's `Player.log` (`%USERPROFILE%\AppData\LocalLow\<company>\<product>\`) are the only writes. The only code that writes files next to a path the caller chooses is the dev screenshot feature: `DevCapture` creates the `-ptk-shots <folder>` directory and writes PNGs there, and only when that flag is given (`DevCapture` exists only if a `-ptk-*` flag is present). The other `-ptk-*` flags (`-ptk-offline`, `-ptk-bots`, `-ptk-quit-after`, ...) do not write files. The dev flags are still compiled into the release build because the offline smoke test needs them; players never pass them. Changing `productName` or `companyName` moves the PlayerPrefs registry key, so existing settings are reset (fine before release).
+
+### Verified results
+
+See `docs/qa/S1-msix-impl-a1.md` for the run: pack succeeded with zero errors, unpack check, and an offline run from the staging folder with a before/after file listing.
+
+---
+
+## Owner steps (한국어)
+
+아래는 소유자가 직접 해야 하는 일입니다. 에이전트는 인증서 생성, 개발자 모드 변경, 패키지 설치를 하지 않았습니다.
+
+### 1. Partner Center에서 이름 예약하고 Identity 값 복사하기
+1. Partner Center에서 새 제품(MSIX 또는 PWA 앱, 게임이면 Game)을 만들고 `Ping the Killer` 이름을 예약합니다.
+2. 제품의 **Product identity** 페이지(메뉴 이름은 현재 UI에서 확인)에서 세 값을 복사합니다: `Package/Identity/Name`, `Package/Identity/Publisher` (`CN=...` 형태), `Package/Properties/PublisherDisplayName`.
+3. 이 값으로 패키지를 다시 만듭니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
+  -IdentityName "<Identity Name>" -Publisher "<Identity Publisher>" -PublisherDisplayName "<PublisherDisplayName>" -Version 1.0.0.0
+```
+4. `Client\ProjectSettings\ProjectSettings.asset`의 `companyName`(지금은 자리표시자 `PingTheKillerDev`)도 실제 회사/개발자 이름으로 바꿉니다. 바뀌면 PlayerPrefs 위치가 달라집니다.
+5. Partner Center에는 `Packaging\out\PingTheKiller_1.0.0.0_x64.msix` 파일을 올립니다. 서명은 스토어가 합니다. 업로드 전에 로고 4종(`Packaging\Assets`)이 마음에 드는지 확인하세요. 로고는 게임 팔레트와 Inter 글꼴로 만든 임시안이며 소유자 승인이 필요합니다.
+
+### 2. 내 PC에서 테스트 설치하기 (소유자가 직접)
+방법 A: 개발자 모드 + 레이아웃 등록 (서명 불필요, 가장 간단)
+1. Windows 설정 → 개인 정보 및 보안 → 개발자용 → **개발자 모드** 켜기.
+2. 먼저 `Packaging\pack-msix.ps1`을 한 번 실행해 `Packaging\layout`을 만듭니다.
+3. PowerShell에서: `Add-AppxPackage -Register "<repo>\Packaging\layout\AppxManifest.xml"`
+4. 시작 메뉴에서 "Ping the Killer"를 실행합니다. 제거: `Get-AppxPackage *PingtheKiller* | Remove-AppxPackage`
+5. 이 방식은 레이아웃 폴더를 그대로 쓰므로 폴더를 지우거나 옮기지 마세요. 끝나면 개발자 모드를 다시 끄세요.
+
+방법 B: 직접 만든 자체 서명 인증서 (서명된 .msix를 설치해 보고 싶을 때)
+1. 인증서 `Subject`가 매니페스트 `Publisher`와 정확히 같아야 합니다(기본값은 `CN=PingTheKillerDev`). 인증서와 .pfx는 저장소 밖에 두고 커밋하지 마세요.
+2. 소유자가 직접 `New-SelfSignedCertificate`로 만들고 신뢰하도록 설정한 뒤, SDK의 `signtool.exe sign /fd SHA256 /f <pfx> /p <암호> <msix>`로 서명하고 `Add-AppxPackage <msix>`로 설치합니다.
+3. 테스트가 끝나면 인증서를 신뢰 저장소에서 제거하세요.
+
+테스트할 것: 시작 메뉴 실행, Offline Bots 한 판, Host(방화벽 허용 창이 뜨는지), 다른 PC에서 Join, 제거 후 잔여물.
+
+### 3. runFullTrust 사유 (Partner Center → Submission options → Restricted capabilities에 붙여넣기)
+```
+Ping the Killer is a Unity Windows Standalone (x64) desktop game. It is a Win32 desktop application and must run as a full-trust packaged desktop app, which is why the runFullTrust capability is declared. It does not run other programs, install services, drivers or startup entries, or change system settings. It uses the network only for multiplayer matches: TCP port 7777 when hosting, outbound TCP when joining. Offline Bots mode needs no network and is the recommended way to test.
+```
+
+### 4. 소유자 확인 항목
+- `companyName` 자리표시자, Identity 값 3개, 로고 승인.
+- 설치 테스트, Store 인증(WACK 포함)은 아직 하지 않았습니다.
+
+---
+
 
 ## 1. Recommendation
 
@@ -203,7 +281,7 @@ Per Microsoft's guide the Store signs it, so the upload is unsigned. Microsoft r
 ### `runFullTrust` justification (paste into Submission options)
 
 ```
-Ping the Killer is a Unity Windows Standalone (IL2CPP, x64) desktop game. It is a Win32 desktop application and must run as a full-trust packaged desktop app, which is why the runFullTrust capability is declared. It does not run other programs, install services, drivers or startup entries, or change system settings. It uses the network only for multiplayer matches: TCP port 7777 when hosting, outbound TCP when joining. Offline Bots mode needs no network and is the recommended way to test.
+Ping the Killer is a Unity Windows Standalone (x64) desktop game. It is a Win32 desktop application and must run as a full-trust packaged desktop app, which is why the runFullTrust capability is declared. It does not run other programs, install services, drivers or startup entries, or change system settings. It uses the network only for multiplayer matches: TCP port 7777 when hosting, outbound TCP when joining. Offline Bots mode needs no network and is the recommended way to test.
 ```
 
 Microsoft's capability page says Partner Center detects restricted capabilities when you upload and asks for details on the Submission options page, and that your use may be approved or fail certification with feedback.

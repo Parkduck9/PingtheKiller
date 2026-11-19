@@ -48,11 +48,27 @@ public static class BuildScript
         AssetDatabase.SaveAssets();
     }
 
+    // Local test build (Builds/Win64). Not a development build either; kept for the existing QA flow.
     public static void BuildWindows()
+    {
+        Build("Builds/Win64/PingTheKiller.exe", "[U4] Windows build succeeded: ");
+    }
+
+    // Store/MSIX input (Builds/StoreWin64): release player (no Development Build, no script debugging, no profiler
+    // autoconnect), Mono scripting backend (IL2CPP Windows support is not installed on this machine), x64.
+    public static void BuildWindowsRelease()
+    {
+        Build("Builds/StoreWin64/PingTheKiller.exe", "[S1] Windows release build succeeded: ");
+    }
+
+    private static void Build(string relativeOutput, string successMessage)
     {
         EnsureAssets();
         PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
-        string output = Path.GetFullPath("Builds/Win64/PingTheKiller.exe");
+        EditorUserBuildSettings.development = false;
+        EditorUserBuildSettings.allowDebugging = false;
+        EditorUserBuildSettings.connectProfiler = false;
+        string output = Path.GetFullPath(relativeOutput);
         Directory.CreateDirectory(Path.GetDirectoryName(output));
         BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
@@ -61,6 +77,7 @@ public static class BuildScript
         });
         if (report.summary.result != BuildResult.Succeeded)
             throw new InvalidOperationException("Windows build failed: " + report.summary.result + ", errors=" + report.summary.totalErrors);
-        Debug.Log("[U4] Windows build succeeded: " + output);
+        Debug.Log(successMessage + output);
     }
 }
+
