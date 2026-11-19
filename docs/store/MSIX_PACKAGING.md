@@ -63,7 +63,7 @@ See `docs/qa/S1-msix-impl-a1.md` for the run: pack succeeded with zero errors, u
 powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
   -IdentityName "<Identity Name>" -Publisher "<Identity Publisher>" -PublisherDisplayName "<PublisherDisplayName>" -Version 1.0.0.0
 ```
-4. `Client\ProjectSettings\ProjectSettings.asset`의 `companyName`(지금은 자리표시자 `PingTheKillerDev`)도 실제 회사/개발자 이름으로 바꿉니다. 바뀌면 PlayerPrefs 위치가 달라집니다.
+4. `Client\ProjectSettings\ProjectSettings.asset`의 `companyName`은 NIPAD입니다(2026-11-19). Partner Center 게시자 표시 이름이 다르면 맞춰 바꿉니다. 바뀌면 PlayerPrefs 위치가 달라집니다.
 5. Partner Center에는 `Packaging\out\PingTheKiller_1.0.0.0_x64.msix` 파일을 올립니다. 서명은 스토어가 합니다. 업로드 전에 로고 4종(`Packaging\Assets`)이 마음에 드는지 확인하세요. 로고는 게임 팔레트와 Inter 글꼴로 만든 임시안이며 소유자 승인이 필요합니다.
 
 ### 2. 내 PC에서 테스트 설치하기 (소유자가 직접)
