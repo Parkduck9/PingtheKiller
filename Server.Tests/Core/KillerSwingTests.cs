@@ -71,8 +71,8 @@ public sealed class KillerSwingTests
     }
 
     [Theory]
-    [InlineData(2.7f, 0f, 0f, true)]     // range 2.75 m (INTEG-R balance; R1 had 2.6 m)
-    [InlineData(2.85f, 0f, 0f, false)]
+    [InlineData(2.9f, 0f, 0f, true)]     // range 2.95 m (B1 balance; INTEG-R had 2.75 m, R1 2.6 m)
+    [InlineData(3.05f, 0f, 0f, false)]
     [InlineData(2.0f, 35f, 0f, true)]    // arc +-40 degrees
     [InlineData(2.0f, -39f, 0f, true)]
     [InlineData(2.0f, 45f, 0f, false)]
@@ -281,6 +281,72 @@ public sealed class KillerSwingTests
         Assert.Equal(distance < GameConstants.SwingRange ? (byte)PlayerStatus.Lagging : (byte)PlayerStatus.Normal, StatusOf(m, 0));
     }
 
+    // M1 (F2): a press processed in the tick a recovery ends used to start the next swing in that tick, so the flag never fell.
+    // Now the flag is clear for one tick between swings, and each swing is its own span (16 after a hit, 20 after a miss).
+    [Fact]
+    public void APressEvery20TicksGivesEachSwingItsOwnFlagSpan()
+    {
+        using var m = Facing(3.5f);
+        Face(m, 0);
+        var spans = new System.Collections.Generic.List<int>();
+        int run = 0;
+        for (int tick = 0; tick < 100; tick++)
+        {
+            if (tick % 20 == 0) Attack(m.Killer); // the press lands in the very tick the previous recovery ends (one press per second)
+            m.Tick();
+            if ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0) run++;
+            else if (run > 0) { spans.Add(run); run = 0; }
+        }
+        Assert.True(spans.Count >= 3, "spans: " + string.Join(",", spans));
+        Assert.All(spans, length => Assert.Equal(20, length));
+    }
+
+    // integ-1118 F7: the real fast-clicking pattern, 5 presses per second (a press every 4 ticks). Every span is a whole swing
+    // (16 after a hit, 20 after a miss), every gap is at least one tick, and no press on an idle Killer is lost.
+    [Theory]
+    [InlineData(2.0f, 16)]
+    [InlineData(3.5f, 20)]
+    public void APressEvery4TicksGivesSeparateSwingsWithAGapOfAtLeastOneTick(float distance, int length)
+    {
+        using var m = Facing(distance);
+        Face(m, 0);
+        var spans = new System.Collections.Generic.List<int>();
+        var gaps = new System.Collections.Generic.List<int>();
+        int run = 0, gap = 0;
+        for (int tick = 0; tick < 200; tick++)
+        {
+            if (tick % 4 == 0) Attack(m.Killer);
+            m.Tick();
+            if ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0)
+            {
+                if (run == 0 && spans.Count > 0) gaps.Add(gap);
+                run++; gap = 0;
+            }
+            else
+            {
+                if (run > 0) { spans.Add(run); run = 0; }
+                gap++;
+            }
+        }
+        Assert.True(spans.Count >= 6, "spans: " + string.Join(",", spans));
+        // The first swing of a hit makes the target Lagging, so later swings miss (20): only the first span can be 16.
+        Assert.Equal(length, spans[0]);
+        Assert.All(spans.Skip(1), s => Assert.Equal(20, s));
+        Assert.All(gaps, g => Assert.True(g >= 1));
+    }
+
+    [Fact]
+    public void AChainedPressIsNotLostByTheOneTickGap()
+    {
+        using var m = Facing(3.5f);
+        Face(m, 0);
+        Attack(m.Killer);
+        m.Tick(20);
+        Attack(m.Killer);
+        m.Tick(2);
+        Assert.True(m.F.Server.SwingingForTests(m.Killer.Id), "the second swing started one tick after the first ended");
+    }
+
     [Fact]
     public void SwingingIsShownToSurvivorsWhoSeeTheKillerAndTheKillerLearnsNothingNew()
     {
@@ -486,7 +552,7 @@ public sealed class KillerSwingTests
         // t = 27.5 s: still refused; t = 28.5 s: terminal 1 locks again.
         m.Tick(49);
         Assert.Equal(0, Fire());
-        m.Tick(19);
+        m.Tick(20);
         Assert.Equal(1, Fire());
         Assert.Equal((terminals[1].X, terminals[1].Z), Locked());
     }

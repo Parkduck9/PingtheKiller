@@ -459,7 +459,8 @@ public sealed class U2bAdversarialTests
         r.Interact(r.S[0], true);
         r.Tick(40);
         byte before = r.KW.SwitchProgress(0);
-        Assert.InRange(before, 12, 14);
+        int twoSeconds = (int)Math.Floor(2 * 100 / GameConstants.ExitSwitchSeconds); // 13 at 15 s, 11 at 17 s (B1)
+        Assert.InRange(before, twoSeconds - 1, twoSeconds + 1);
         r.Use(r.K, SkillIds.FirewallBlock); // immediately usable: the failed attempts consumed nothing
         r.Tick();
         Assert.True(r.KW.Locked(0));

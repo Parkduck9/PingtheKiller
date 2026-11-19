@@ -29,7 +29,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
 {
     private const float Dt = 1f / GameConstants.TickRate;
     // The fake hacks a terminal alone in 10 s instead of 45 s: it validates the harness, not the rules
-    // timings, and keeps each H6 run short. Switches use the real 15 s (H6 checks the hold time).
+    // timings, and keeps each H6 run short. Switches use the real 17 s (H6 checks the hold time).
     private const float FakeHackSeconds = 10f;
 
     private sealed class Player(int id)
@@ -396,7 +396,7 @@ internal sealed class ScenarioServer : IAsyncDisposable
             terminals[i].Progress = (byte)(progress[i] >= 1 ? 100 : Math.Min(99, (int)(progress[i] * 100)));
         }
         if (terminals.Count(t => t.Progress == 100) >= required && fault != H6Fault.ExitNeverOpens) powered = true;
-        // GDD v2 §3: a Normal survivor holding Interact at a powered switch fills it in 15 s (holders do not stack).
+        // GDD v2 §3: a Normal survivor holding Interact at a powered switch fills it in 17 s (holders do not stack).
         if (collapseLeft > 0) collapseLeft = Math.Max(0, collapseLeft - Dt);
         for (int e = 0; e < exitOpen.Length && powered; e++)
         {

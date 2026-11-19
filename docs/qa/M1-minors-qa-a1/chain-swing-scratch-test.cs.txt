@@ -1,0 +1,45 @@
+using PingTheKiller.ServerCore;
+using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace PingTheKiller.Tests.Core;
+
+// QA scratch (M1-minors a1): the own Swinging flag across a swing pressed in the tick the previous recovery ends.
+public sealed class ChainTests
+{
+    private readonly ITestOutputHelper _out;
+    public ChainTests(ITestOutputHelper o) { _out = o; }
+    private static uint _seq = 5000;
+
+    [Theory]
+    [InlineData(2.0f)]  // first swing hits
+    [InlineData(3.5f)]  // first swing misses
+    public void FlagLengthWhenPressingEveryTick(float distance)
+    {
+        using var m = RulesMatch.Start(2, -1);
+        m.F.Server.ContactSwingForTests = false;
+        m.F.Server.PlaceForTests(m.Killer.Id, 5, 24);
+        m.F.Server.PlaceForTests(m[0].Id, 5, 24 + distance);
+        m.F.Server.PlaceForTests(m[1].Id, 5, 36);
+        m.Tick(25);
+        var log = new List<string>();
+        m.F.Server.Log += log.Add;
+        m.Killer.Send(new C2S_MoveInput { DirX = 0, DirZ = 0, Yaw = 0, Seq = m.Killer.NextSeq++ });
+        m.Killer.Send(new C2S_Attack { Seq = ++_seq });
+        m.Tick();
+        uint rise = m.Killer.Last<S2C_WorldState>().Tick;
+        int n = 0;
+        // a player clicking every 150 ms (3 ticks), well under the 1 s press limit? press every 3 ticks
+        while ((m.Killer.Self().Chase & (byte)ChaseFlags.Swinging) != 0 && n++ < 80)
+        {
+            if (n % 4 == 0) m.Killer.Send(new C2S_Attack { Seq = ++_seq });
+            m.Tick();
+        }
+        int length = (int)(m.Killer.Last<S2C_WorldState>().Tick - rise);
+        _out.WriteLine("distance " + distance + ": continuous flag length " + length + " ticks");
+        foreach (var l in log) if (l.Contains("swing")) _out.WriteLine(l);
+        Assert.True(length > 0);
+    }
+}

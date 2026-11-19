@@ -339,7 +339,7 @@ public sealed class U3dH6Skew500Tests
         var (item, _, _, _) = await U3dH6Run.RunAsync("control-no-los-B-1000ms", losServer: false,
             delay: conn => conn == 2 ? TimeSpan.FromMilliseconds(1000) : TimeSpan.Zero);
         Assert.False(item.Passed, "Behaviour changed: H6 now tolerates a 1 s lag on B, so the 1 s LOS tests can be added. " + item.Evidence);
-        // GDD v2 (U6a): the 15 s switch hold is a new step where a lagging walker overshoots the 1.5 m switch radius.
+        // GDD v2 (U6a): the 17 s switch hold is a new step where a lagging walker overshoots the 1.5 m switch radius.
         Assert.True(item.Evidence.Contains("stuck on leg") || (item.Evidence.Contains("[rescue]") && item.Evidence.Contains("not observed")) ||
             (item.Evidence.Contains("[switch") && item.Evidence.Contains("not observed")), item.Evidence);
     }

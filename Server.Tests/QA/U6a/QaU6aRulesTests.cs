@@ -373,12 +373,13 @@ public sealed class QaU6aRulesTests
         Hold(a, true);
         Hold(b, true);
 
-        // Advance 100 ticks (5.0s of 15.0s switch time)
+        // Advance 100 ticks (5.0 s of the ExitSwitchSeconds switch time; B1: 17 s)
         m.Tick(100);
 
-        // Progress should be ~33% (5/15), NOT 66% (2x stacking)
+        // Progress should be 5/ExitSwitchSeconds (29 % at 17 s), NOT twice that (2x stacking)
+        int expected = (int)Math.Floor(5 * 100 / GameConstants.ExitSwitchSeconds);
         byte progress = World(a).SwitchProgress(0);
-        Assert.InRange(progress, (byte)32, (byte)34);
+        Assert.InRange(progress, expected - 1, expected + 1);
     }
 
     [Theory]

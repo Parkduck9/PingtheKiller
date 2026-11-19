@@ -160,14 +160,17 @@ internal sealed class RulesMatch : IDisposable
         Assert.False(Killer.Last<S2C_WorldState>().AnyOpen());
     }
 
-    // Powers the exits, then survivor 0 holds the switch of exit 0 for the full 15 s: exit 0 (4,4) opens and the
+    // Ticks of a full exit switch hold (GameConstants.ExitSwitchSeconds; B1: 17 s).
+    internal static int SwitchTicks => (int)Math.Round(GameConstants.ExitSwitchSeconds * GameConstants.TickRate);
+
+    // Powers the exits, then survivor 0 holds the switch of exit 0 for the full ExitSwitchSeconds: exit 0 (4,4) opens and the
     // collapse starts. Survivor 0 is left at that switch, survivor 1 at terminal 3.
     internal void OpenExitWithTwoSurvivors()
     {
         PowerExitsWithTwoSurvivors();
         var a=Survivors[0]; var point=F.Server.Map.ExitSwitches[0];
         WalkTo(a,point.X,point.Z,GameConstants.SurvivorSpeed);
-        a.Send(new C2S_Interact {Active=1}); Tick(301);
+        a.Send(new C2S_Interact {Active=1}); Tick(SwitchTicks + 1);
         a.Send(new C2S_Interact {Active=0}); Tick();
         Assert.True(Killer.Last<S2C_WorldState>().Open(0));
         Assert.False(Killer.Last<S2C_WorldState>().Open(1));

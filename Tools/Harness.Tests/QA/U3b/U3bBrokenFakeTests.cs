@@ -19,7 +19,7 @@ internal static class U3bRun
 }
 
 // A broken fake must score 0 on H6, with evidence that names the broken step. GDD v2 (U6a): the H6 bounds of
-// 60 s or more were raised by 150 s (45 s hack waits, the 15 s switch step and two escape walks). One class per fake so xUnit runs
+// 60 s or more were raised by 150 s (45 s hack waits, the 17 s switch step and two escape walks). One class per fake so xUnit runs
 // the ~50 s scenarios in parallel.
 public abstract class U3bBrokenFake
 {

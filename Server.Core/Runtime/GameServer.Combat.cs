@@ -67,7 +67,10 @@ namespace PingTheKiller.ServerCore
                 killer.SwingPhase = SwingNone;
                 LogSwing(killer, "interrupted", null);
             }
-            if (killer.SwingPhase == SwingRecovery && !Active(killer.SwingEnd)) killer.SwingPhase = SwingNone;
+            bool recoveryEnded = false;
+            if (killer.SwingPhase == SwingRecovery && !Active(killer.SwingEnd)) { killer.SwingPhase = SwingNone; recoveryEnded = true; }
+            // M1: the flag falls for one tick between chained swings, so each swing is its own span; a press made now waits one tick.
+            if (recoveryEnded && requested) killer.AttackRequested = true;
             if (contact)
             {
                 var aim = NearestCandidate(killer, GameConstants.CaptureRadius);
@@ -75,7 +78,7 @@ namespace PingTheKiller.ServerCore
                 killer.SwingPhase = SwingWindUp;
                 killer.SwingStart = killer.SwingHitAt = _now;
             }
-            else if (killer.SwingPhase == SwingNone && requested && CanStartSwing(killer))
+            else if (killer.SwingPhase == SwingNone && requested && !recoveryEnded && CanStartSwing(killer))
             {
                 killer.SwingPhase = SwingWindUp;
                 killer.SwingStart = _now;

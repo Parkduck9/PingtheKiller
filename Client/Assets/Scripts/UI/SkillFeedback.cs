@@ -99,6 +99,8 @@ namespace PingTheKiller.Client.UI
         // the muted reason), above the own skill line, for MissedSeconds.
         public const string Missed = "Missed";
         public const float MissedSeconds = 1f;
+        // (11/18, M1) A hit with no capture confirm (an eliminating hit, or one on a Survivor never seen): the same line slot, `Hit`.
+        public const string Hit = "Hit";
         // R1 (11/17): Packet trace's world ring grows to its 12 m radius in this time.
         public const float TraceGrowSeconds = .35f, TraceSeconds = .6f;
         public const string KillerRefused = "Not used " + Dot + " server did not accept";
@@ -633,7 +635,7 @@ namespace PingTheKiller.Client.UI
     {
         private double scanEnd = double.NegativeInfinity, overclockStart = double.NegativeInfinity, overclockEnd = double.NegativeInfinity;
         private double lockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, reasonEnd = double.NegativeInfinity;
-        private double traceEnd = double.NegativeInfinity, missedEnd = double.NegativeInfinity;
+        private double traceEnd = double.NegativeInfinity, missedEnd = double.NegativeInfinity, hitEnd = double.NegativeInfinity;
         private byte ownSkill;
         private int lockExit = -1, lockTerminal = -1;
         private string reason;
@@ -642,7 +644,7 @@ namespace PingTheKiller.Client.UI
 
         public void Reset()
         {
-            scanEnd = overclockStart = overclockEnd = lockEnd = slowedEnd = reasonEnd = traceEnd = missedEnd = double.NegativeInfinity;
+            scanEnd = overclockStart = overclockEnd = lockEnd = slowedEnd = reasonEnd = traceEnd = missedEnd = hitEnd = double.NegativeInfinity;
             lockExit = lockTerminal = -1; reason = null; recoverPending = false; Press.Reset();
         }
 
@@ -673,7 +675,13 @@ namespace PingTheKiller.Client.UI
         }
 
         // R1 (11/17) a2: the own swing missed (KillerSwingWatch).
-        public void OnMissed(double now) => missedEnd = now + SkillFeedback.MissedSeconds;
+        public void OnMissed(double now) { hitEnd = double.NegativeInfinity; missedEnd = now + SkillFeedback.MissedSeconds; }
+
+        // (11/18, M1) A new swing or a confirmed hit clears a stale `Missed`.
+        public void ClearMissed() { missedEnd = double.NegativeInfinity; }
+
+        // (11/18, M1) A hit proven by the own flag's length: replaces a `Missed` still showing.
+        public void OnHit(double now) { missedEnd = double.NegativeInfinity; hitEnd = now + SkillFeedback.MissedSeconds; }
 
         // Q3: an S2C_SkillRejected. Only the own pending press shows its reason, at once, on the 6.1c line (`muted`).
         // Returns the text shown, or null.
@@ -693,11 +701,13 @@ namespace PingTheKiller.Client.UI
             return now < overclockEnd + SkillIds.OverclockRecoverySeconds;
         }
 
-        // The 6.1c line: Slowed > the most recent own skill > reason. Text null = hidden.
+        // The 6.1c line: a swing result (1 s) > Slowed > the most recent own skill > reason. Text null = hidden.
         public FxLine Line(double now)
         {
-            if (now < slowedEnd) return new FxLine { Text = KillerHudCopy.Slowed((float)(slowedEnd - now)), Tone = LineTone.Danger };
+            // integ-1118 F4: a swing's result (1 s) shows over Slowed; the slow line comes back after it.
             if (now >= missedEnd - SkillFeedback.MissedSeconds && now < missedEnd) return new FxLine { Text = SkillFeedback.Missed, Tone = LineTone.Plain };
+            if (now >= hitEnd - SkillFeedback.MissedSeconds && now < hitEnd) return new FxLine { Text = SkillFeedback.Hit, Tone = LineTone.Plain };
+            if (now < slowedEnd) return new FxLine { Text = KillerHudCopy.Slowed((float)(slowedEnd - now)), Tone = LineTone.Danger };
             string own = OwnLine(now);
             if (own != null) return new FxLine { Text = own, Tone = LineTone.Plain };
             if (now < reasonEnd) return new FxLine { Text = reason, Tone = LineTone.Reason };

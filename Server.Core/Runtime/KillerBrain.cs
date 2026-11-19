@@ -40,7 +40,9 @@ namespace PingTheKiller.ServerCore
         private const float FirewallExitDistance = 12f;
         // R1 (11/17): it swings at a Normal blip within SwingTrigger metres and SwingFrontDegrees of its facing (a decoy
         // can bait it), aiming the look yaw at that blip; Packet trace when a blip was near recently but none is now.
-        // INTEG-R balance: SwingTrigger 2.2 -> 2.75 m (the swing range).
+        // INTEG-R balance: SwingTrigger 2.2 -> 2.75 m (the swing range then).
+        // B1 balance (11/18): the rule range grew to 2.95 m; the trigger deliberately stays 2.75 m (no bot change). Moving it
+        // with the range made the all-bot results jump between nearby values instead of following the rule smoothly.
         internal const float SwingTrigger = 2.75f, SwingFrontDegrees = 45f;
         private const float TraceRecentDistance = 10f;
         private const double StrikeHoldSeconds = GameConstants.SwingWindUpSeconds + 0.1, TrailStrikeSeconds = 1.0;
