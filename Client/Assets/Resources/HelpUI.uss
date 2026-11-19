@@ -25,6 +25,7 @@
 /* S3-credits (HUD_SPEC 1.8): the Credits and licences screen. Same frame as .howto; the body scrolls. */
 .root .credits { position: absolute; left: 32px; top: 32px; width: 1280px; align-items: flex-start; }
 .root .credits .title { margin-bottom: 16px; }
-.root .cr-scroll { width: 1280px; height: 700px; margin-bottom: 16px; }
-.root .unity-label.cr-ofl { font-size: 13px; white-space: normal; width: 1240px; margin-bottom: 8px; color: #9A9890; }
+.root .cr-scroll { width: 880px; height: 700px; margin-bottom: 16px; }
+.root .cr-scroll .unity-label.htp-t, .root .cr-scroll .unity-label.cr-ofl { width: 840px; }
+.root .unity-label.cr-ofl { font-size: 14px; white-space: normal; margin-bottom: 8px; color: #9A9890; }
 .root.s-floor .unity-label.cr-ofl { font-size: 15px; }

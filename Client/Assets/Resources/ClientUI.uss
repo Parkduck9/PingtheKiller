@@ -258,3 +258,12 @@
 .root .smenu-actions { position: absolute; left: 12px; bottom: 12px; flex-direction: row; height: 40px; }
 .root .smenu .unity-button.kbutton.smenu-button { width: 160px; min-width: 0; height: 40px; margin: 0; margin-right: 8px; }
 .root .smenu .unity-button.kbutton.smenu-button.klast { margin-right: 0; }
+
+/* S3-credits (V10): the menu ScrollView scroller (Credits is the only ScrollView): thin dark tracker, muted dragger, no arrow buttons. */
+.root .cr-scroll .unity-scroller--vertical { width: 12px; }
+.root .cr-scroll .unity-scroller__low-button, .root .cr-scroll .unity-scroller__high-button { display: none; }
+.root .cr-scroll .unity-base-slider__tracker { background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0; }
+.root .cr-scroll .unity-base-slider__dragger { background-color: #9A9890; border-width: 0; border-radius: 0; width: 8px; margin-left: 1px; }
+.root .cr-scroll .unity-base-slider__dragger:hover, .root .cr-scroll .unity-base-slider:focus .unity-base-slider__dragger { background-color: #E8E6E1; }
+.root .cr-scroll .unity-scroller--horizontal { display: none; }
+.root .cr-scroll .unity-scroller__slider, .root .cr-scroll .unity-scroller--vertical .unity-base-slider { margin-top: 0; margin-bottom: 0; }

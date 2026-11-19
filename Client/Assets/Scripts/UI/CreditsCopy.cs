@@ -26,7 +26,7 @@ namespace PingTheKiller.Client.UI
             "Tween library: DOTween by Demigiant",
         };
 
-        public const string InterNotice = "Inter. Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter). Licensed under the SIL Open Font License, Version 1.1. The full licence text follows.";
+        public const string InterNotice = "Inter (font)";
         public const string DoTweenNotice = "DOTween. Copyright (c) 2014-2026 Daniele Giardini, Demigiant. http://dotween.demigiant.com";
 
         // The full OFL text, or an empty string when the asset is missing.

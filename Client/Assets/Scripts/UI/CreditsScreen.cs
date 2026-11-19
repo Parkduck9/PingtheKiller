@@ -40,8 +40,29 @@ namespace PingTheKiller.Client.UI
                 if (e.keyCode != KeyCode.Escape) return;
                 e.StopPropagation(); Close();
             });
+            // Up and Down (arrows, d-pad, stick) scroll by about three lines, PageUp and PageDown by a page; Back keeps focus.
+            panel.RegisterCallback<NavigationMoveEvent>(e =>
+            {
+                if (e.direction != NavigationMoveEvent.Direction.Up && e.direction != NavigationMoveEvent.Direction.Down) return;
+                ScrollBy(e.direction == NavigationMoveEvent.Direction.Down ? LineStep : -LineStep);
+                e.StopPropagation(); e.PreventDefault();
+            });
+            panel.RegisterCallback<KeyDownEvent>(e =>
+            {
+                if (e.keyCode != KeyCode.PageDown && e.keyCode != KeyCode.PageUp) return;
+                ScrollBy((e.keyCode == KeyCode.PageDown ? 1 : -1) * Mathf.Max(LineStep, scroll.contentViewport.layout.height - LineStep));
+                e.StopPropagation();
+            });
             panel.RegisterCallback<NavigationCancelEvent>(e => { e.StopPropagation(); Close(); });
             panel.style.display = DisplayStyle.None;
+        }
+
+        public const float LineStep = 72f; // about three lines of the 14 u body
+        // Scrolls the body by delta logical units, clamped to the content (the mouse wheel and the bar still work).
+        public void ScrollBy(float delta)
+        {
+            float max = Mathf.Max(0, scroll.contentContainer.layout.height - scroll.contentViewport.layout.height);
+            scroll.scrollOffset = new Vector2(0, Mathf.Clamp(scroll.scrollOffset.y + delta, 0, max));
         }
 
         public void Show()

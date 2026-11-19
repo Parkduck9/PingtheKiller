@@ -356,7 +356,7 @@ namespace PingTheKiller.Client.UI
         public void ShowHowTo() => ShowHowTo(Role.Survivor);
         public void ShowHowTo(Role page)
         {
-            if (HowToOpen || Playing) return;
+            if (HowToOpen || CreditsOpen || Playing) return;
             Show(menu, false);
             howTo.Show(page);
         }
@@ -364,7 +364,7 @@ namespace PingTheKiller.Client.UI
         // S3-credits (HUD_SPEC 1.8): the Credits and licences screen replaces the main menu; Back, Esc or B returns to it.
         public void ShowCredits()
         {
-            if (CreditsOpen || Playing) return;
+            if (CreditsOpen || HowToOpen || SettingsOpen || Playing) return;
             Show(menu, false);
             credits.Show();
         }
