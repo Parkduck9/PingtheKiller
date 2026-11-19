@@ -27,11 +27,11 @@ function Draw-Mark($g, [single]$cx, [single]$cy, [single]$r) {
     $pen.Dispose(); $brush.Dispose()
 }
 
-function New-Logo([string]$name, [int]$w, [int]$h, [bool]$wide) {
+function New-Logo([string]$name, [int]$w, [int]$h, [bool]$wide, [bool]$transparent = $false, [string]$dir = $out) {
     $bmp = New-Object System.Drawing.Bitmap $w, $h, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode = 'AntiAlias'; $g.TextRenderingHint = 'AntiAliasGridFit'
-    $g.Clear($ink)
+    if ($transparent) { $g.Clear([System.Drawing.Color]::Transparent) } else { $g.Clear($ink) }
     if ($wide) {
         $r = $h * 0.30
         Draw-Mark $g ([single]($h * 0.5)) ([single]($h * 0.5)) ([single]$r)
@@ -47,12 +47,26 @@ function New-Logo([string]$name, [int]$w, [int]$h, [bool]$wide) {
         Draw-Mark $g ([single]($w / 2)) ([single]($h / 2)) ([single]$r)
     }
     $g.Dispose()
-    $bmp.Save((Join-Path $out $name), [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Save((Join-Path $dir $name), [System.Drawing.Imaging.ImageFormat]::Png)
     $bmp.Dispose()
 }
 
+# Scale-100 base files (referenced by the manifest) and scale-200 versions.
 New-Logo 'StoreLogo.png' 50 50 $false
 New-Logo 'Square44x44Logo.png' 44 44 $false
 New-Logo 'Square150x150Logo.png' 150 150 $false
 New-Logo 'Wide310x150Logo.png' 310 150 $true
+New-Logo 'StoreLogo.scale-200.png' 100 100 $false
+New-Logo 'Square44x44Logo.scale-200.png' 88 88 $false
+New-Logo 'Square150x150Logo.scale-200.png' 300 300 $false
+New-Logo 'Wide310x150Logo.scale-200.png' 620 300 $true
+# Taskbar / list icon sizes: plated (ink background) and unplated (transparent, mark only).
+foreach ($s in 16, 24, 32, 48, 256) {
+    New-Logo ("Square44x44Logo.targetsize-{0}.png" -f $s) $s $s $false
+    New-Logo ("Square44x44Logo.targetsize-{0}_altform-unplated.png" -f $s) $s $s $false $true
+}
+# Source for the Windows exe icon (BuildScript.Build sets it via PlayerSettings.SetIcons).
+$iconDir = Join-Path $root '..\Client\Assets\Art\Icon'
+New-Item -ItemType Directory -Force $iconDir | Out-Null
+New-Logo 'AppIcon.png' 256 256 $false $false (Resolve-Path $iconDir).Path
 Get-ChildItem $out -Filter *.png | Select-Object Name, Length

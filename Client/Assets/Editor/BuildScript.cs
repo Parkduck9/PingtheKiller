@@ -68,6 +68,14 @@ public static class BuildScript
         EditorUserBuildSettings.development = false;
         EditorUserBuildSettings.allowDebugging = false;
         EditorUserBuildSettings.connectProfiler = false;
+        // Game mark as the exe/title-bar icon (source made by Packaging/make-logos.ps1).
+        var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Art/Icon/AppIcon.png");
+        if (icon == null) throw new InvalidOperationException("Assets/Art/Icon/AppIcon.png is missing. Run Packaging/make-logos.ps1.");
+        // One slot per size Unity asks for; every slot gets the same source texture (Unity downsamples it).
+        var iconSizes = PlayerSettings.GetIconSizes(UnityEditor.Build.NamedBuildTarget.Standalone, UnityEditor.IconKind.Application);
+        var icons = new Texture2D[iconSizes.Length];
+        for (int i = 0; i < icons.Length; i++) icons[i] = icon;
+        PlayerSettings.SetIcons(UnityEditor.Build.NamedBuildTarget.Standalone, icons, UnityEditor.IconKind.Application);
         string output = Path.GetFullPath(relativeOutput);
         Directory.CreateDirectory(Path.GetDirectoryName(output));
         BuildReport report = BuildPipeline.BuildPlayer(new BuildPlayerOptions

@@ -25,13 +25,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
   -IdentityName "<Identity Name>" -Publisher "<Identity Publisher>" -PublisherDisplayName "<Publisher display name>" -Version 1.0.0.0
 ```
 
-Without parameters the script uses placeholders (`PingTheKillerDev.PingtheKiller`, `CN=PingTheKillerDev`); that package packs and can be test-installed locally but cannot be uploaded to the Store.
+Without parameters the script uses placeholders (`PingTheKillerDev.PingtheKiller`, `CN=PingTheKillerDev`); that package cannot be uploaded to the Store, and the unsigned `.msix` **cannot be installed as-is** (`Add-AppxPackage` rejects an unsigned package). To try it locally the owner uses one of the two methods in the Korean owner steps §2: A (developer mode + `Add-AppxPackage -Register` on `Packaging\layout`) or B (a signed copy with the owner's own self-signed certificate).
 
-What `pack-msix.ps1` does: copies `Client\Builds\StoreWin64` to `Packaging\layout` (robocopy; excludes `*_DoNotShip`, `*_BackUpThisFolder_ButDontShipItWithYourGame` and `*.pdb`), copies the four logos into `layout\Assets`, fills `Packaging\AppxManifest.template.xml` (`runFullTrust`, `internetClient`, `internetClientServer`, `privateNetworkClientServer`, `Windows.Desktop` 10.0.17763.0, x64), and runs `makeappx pack /v /o`. Version must have four parts; the Store wants the last part `0` **(verify)**. `Packaging\layout\` and `Packaging\out\` are git-ignored.
+What `pack-msix.ps1` does: stages in a fresh temp folder (so `Packaging\layout` is replaced only after a successful pack; a failed run never leaves a stale layout) with `Client\Builds\StoreWin64` (robocopy; excludes `*_DoNotShip`, `*_BackUpThisFolder_ButDontShipItWithYourGame` and `*.pdb`), copies the logos into `Assets` (scale-100 base files, scale-200 and `Square44x44Logo.targetsize-*` plated/unplated variants), fills `Packaging\AppxManifest.template.xml` (`runFullTrust`, `internetClient`, `internetClientServer`, `privateNetworkClientServer`, `Windows.Desktop` 10.0.17763.0, x64), builds `resources.pri` with `makepri.exe` (needed so the qualified logo names resolve), and runs `makeappx pack /v /o`. The version must have four parts and the 4th must be `0` (the Store's rule; the script stops with an error otherwise). `Packaging\layout\` and `Packaging\out\` are git-ignored. The exe icon is `Client\Assets\Art\Icon\AppIcon.png`, set in `BuildScript.Build()`; both it and the logos come from `make-logos.ps1`.
 
 ### What the shipped exe writes (audit, 2026-11-19)
 
-With no command-line flags the game writes nothing inside its install folder. PlayerPrefs (HKCU registry) and Unity's `Player.log` (`%USERPROFILE%\AppData\LocalLow\<company>\<product>\`) are the only writes. The only code that writes files next to a path the caller chooses is the dev screenshot feature: `DevCapture` creates the `-ptk-shots <folder>` directory and writes PNGs there, and only when that flag is given (`DevCapture` exists only if a `-ptk-*` flag is present). The other `-ptk-*` flags (`-ptk-offline`, `-ptk-bots`, `-ptk-quit-after`, ...) do not write files. The dev flags are still compiled into the release build because the offline smoke test needs them; players never pass them. Changing `productName` or `companyName` moves the PlayerPrefs registry key, so existing settings are reset (fine before release).
+With no command-line flags the game writes nothing inside its install folder. PlayerPrefs (HKCU registry) and Unity's `Player.log` (`%USERPROFILE%\AppData\LocalLow\<company>\<product>\`) are the only writes. The only code that writes files next to a path the caller chooses is the dev screenshot feature: `DevCapture` creates the `-ptk-shots <folder>` directory and writes PNGs there, and only when that flag is given (`DevCapture` exists only if a `-ptk-*` flag is present). The other `-ptk-*` flags (`-ptk-offline`, `-ptk-bots`, `-ptk-quit-after`, ...) do not write files. The dev flags (and `[DEV]` log lines) ship in the Store build on purpose, because the offline smoke test needs them; they are inert unless the game is started with `-ptk-*` arguments, and players never pass them. Changing `productName` or `companyName` moves the PlayerPrefs registry key, so existing settings are reset (fine before release).
 
 ### Verified results
 
@@ -65,7 +65,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File Packaging\pack-msix.ps1 `
 
 방법 B: 직접 만든 자체 서명 인증서 (서명된 .msix를 설치해 보고 싶을 때)
 1. 인증서 `Subject`가 매니페스트 `Publisher`와 정확히 같아야 합니다(기본값은 `CN=PingTheKillerDev`). 인증서와 .pfx는 저장소 밖에 두고 커밋하지 마세요.
-2. 소유자가 직접 `New-SelfSignedCertificate`로 만들고 신뢰하도록 설정한 뒤, SDK의 `signtool.exe sign /fd SHA256 /f <pfx> /p <암호> <msix>`로 서명하고 `Add-AppxPackage <msix>`로 설치합니다.
+2. 소유자가 직접 `New-SelfSignedCertificate`로 만들고, 인증서(.cer)를 **신뢰할 수 있는 사용자(Trusted People)** 저장소(`Cert:\LocalMachine\TrustedPeople`)에만 넣습니다. **신뢰할 수 있는 루트(Trusted Root)에는 절대 넣지 마세요.** 그런 다음 SDK의 `signtool.exe sign /fd SHA256 /f <pfx> /p <암호> <msix>`로 서명하고 `Add-AppxPackage <msix>`로 설치합니다.
 3. 테스트가 끝나면 인증서를 신뢰 저장소에서 제거하세요.
 
 테스트할 것: 시작 메뉴 실행, Offline Bots 한 판, Host(방화벽 허용 창이 뜨는지), 다른 PC에서 Join, 제거 후 잔여물.
@@ -81,6 +81,8 @@ Ping the Killer is a Unity Windows Standalone (x64) desktop game. It is a Win32 
 
 ---
 
+
+> **§1-§8 below are the original 2026-10-27 research. Superseded by §0 where they differ:** the build is Mono (not IL2CPP), packing uses `makeappx`/`makepri` via `Packaging\pack-msix.ps1` (not `winapp`), and the logo and manifest files are the ones in `Packaging\`. The Store and Partner Center content stays valid.
 
 ## 1. Recommendation
 
@@ -159,7 +161,7 @@ Options for the manifest:
 
 Also **(verify)**: a packaged app's install path contains the version, so an update may trigger a new prompt. Test an update from version 1.0.0.0 to 1.1.0.0 before relying on it.
 
-## 4. Steps — MSIX with `winapp`
+## 4. Steps — MSIX with `winapp` (superseded by §0: use `Packaging\pack-msix.ps1`; kept as background)
 
 Unity build specifics below come from general Unity practice and were not re-checked against the Unity 6000.3 manual. **(verify)** against the Unity manual.
 
@@ -310,7 +312,7 @@ Microsoft's capability page says Partner Center detects restricted capabilities 
 
 ## 8. Pre-submission checklist
 
-- [ ] Build is IL2CPP, x64, Release, and the folder excludes the two Unity debug folders
+- [ ] Build is x64, Release, Mono (see §0; IL2CPP is not installed), and the folder excludes the two Unity debug folders
 - [ ] Game writes nothing beside the executable
 - [ ] No analytics, ads or crash-upload service is enabled in the Unity project (the privacy policy says none)
 - [ ] Offline Bots mode works with no network and no firewall prompt
