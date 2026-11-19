@@ -31,7 +31,7 @@ namespace PingTheKiller.Client.Dev
         private double orbitAt = -1, aimAt = -1;
         private bool menuWanted;
         private double settingsAt = -1;
-        private int settingsStage, settingsPlayStage, howToStage;
+        private int settingsStage, settingsPlayStage, howToStage, creditsStage;
         private double leaveAt = -1; // -ptk-menu-leave: when the play menu's Leave match was pressed
         private int participants, match;
         private Role role;
@@ -701,6 +701,27 @@ namespace PingTheKiller.Client.Dev
             return true;
         }
         // -ptk-howto: open the How to play screen, shoot the Survivor page, the Killer page, close. Stages 0..5 (done).
+        // -ptk-credits: open the Credits screen, shoot the top, scroll to the licence text, shoot it, close. Stages 0..5 (done).
+        private double creditsAt = -1;
+        private bool CreditsShot(double t)
+        {
+            if (screens == null) { creditsStage = 9; return false; }
+            switch (creditsStage)
+            {
+                case 0: screens.ShowCredits(); creditsAt = t; creditsStage = 1; return true;
+                case 1: if (t < creditsAt + .5) return true; creditsStage = 2; Shot("credits-top.png"); return true;
+                case 2:
+                    {
+                        var scroll = screens.Credits.Scroll;
+                        scroll.scrollOffset = new Vector2(0, Mathf.Max(0, scroll.contentContainer.layout.height - scroll.layout.height) * .55f);
+                        creditsAt = t; creditsStage = 3; return true;
+                    }
+                case 3: if (t < creditsAt + .5) return true; creditsStage = 4; Shot("credits-licence.png"); return true;
+                case 4: screens.Credits.ScrollBy(100000f); creditsAt = t; creditsStage = 6; return true;
+                case 6: if (t < creditsAt + .5) return true; creditsStage = 7; Shot("credits-end.png"); return true;
+                default: screens.CloseCredits(); creditsStage = 9; return false;
+            }
+        }
         private double howToAt = -1;
         private bool HowToShot(double t)
         {
@@ -765,7 +786,8 @@ namespace PingTheKiller.Client.Dev
             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
             if (args.Settings && shots && menuShot && settingsStage < 3 && SettingsMenuShot(t)) return;
             if (args.HowTo && shots && menuShot && (!args.Settings || settingsStage >= 3) && howToStage < 5 && HowToShot(t)) return;
-            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot) && (!args.Settings || !shots || settingsStage >= 3) && (!args.HowTo || !shots || howToStage >= 5))
+            if (args.Credits && shots && menuShot && (!args.HowTo || howToStage >= 5) && creditsStage < 9 && CreditsShot(t)) return;
+            if ((args.Offline || args.Join != null) && !joined && (!shots || menuShot) && (!args.Settings || !shots || settingsStage >= 3) && (!args.HowTo || !shots || howToStage >= 5) && (!args.Credits || !shots || creditsStage >= 9))
             {
                 joined = true;
                 if (args.Offline) Offline?.Invoke(); else Join?.Invoke(args.Join);
