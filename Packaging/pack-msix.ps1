@@ -65,18 +65,42 @@ try {
     $manifestPath = Join-Path $stage 'AppxManifest.xml'
     [System.IO.File]::WriteAllText($manifestPath, $manifest, (New-Object System.Text.UTF8Encoding($false)))
 
-    # 4. resources.pri: makeappx only resolves qualified logo names (scale-200, targetsize-*) through a PRI index.
-    #    Index only the Assets folder (a temp copy), not the whole Unity build.
+    # 4. resources.pri: Windows resolves the qualified logo names (scale-200, targetsize-*) through a PRI index.
+    #    Index only the Assets folder (a temp copy), not the whole Unity build. The config lives in a separate temp
+    #    folder so it is not indexed as a resource itself.
     if (-not $MakePri) { $MakePri = Join-Path (Split-Path -Parent $MakeAppx) 'makepri.exe' }
     if (-not (Test-Path $MakePri)) { throw "makepri.exe not found next to makeappx ($MakePri). Pass -MakePri <path>." }
-    $priRoot = Join-Path ([System.IO.Path]::GetTempPath()) ((Split-Path -Leaf $stage) + '-pri')
+    $priRoot = $stage + '-pri'
+    $priCfgDir = $stage + '-cfg'
     New-Item -ItemType Directory -Force (Join-Path $priRoot 'Assets') | Out-Null
+    New-Item -ItemType Directory -Force $priCfgDir | Out-Null
     Copy-Item (Join-Path $assets '*.png') (Join-Path $priRoot 'Assets')
-    $priConfig = Join-Path $priRoot 'priconfig.xml'
+    $priConfig = Join-Path $priCfgDir 'priconfig.xml'
     & $MakePri createconfig /cf $priConfig /dq en-US /o | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "makepri createconfig failed with exit code $LASTEXITCODE" }
+
+    #    createconfig always adds <packaging><autoResourcePackage .../></packaging>, which makes `makepri new` split the
+    #    Scale/Language candidates into resources.<qualifier>.pri files. Those are resource-pack PRIs that only a bundle
+    #    loads; in this single msix they would be dead. Remove <packaging> so one resources.pri holds every candidate.
+    $cfgXml = New-Object System.Xml.XmlDocument
+    $cfgXml.PreserveWhitespace = $true
+    $cfgXml.Load($priConfig)
+    $packagingNodes = @($cfgXml.DocumentElement.SelectNodes('packaging'))
+    foreach ($node in $packagingNodes) { [void]$node.ParentNode.RemoveChild($node) }
+    if ($cfgXml.DocumentElement.SelectNodes('packaging').Count -ne 0) { throw 'Could not remove <packaging> from the PRI config.' }
+    $cfgSettings = New-Object System.Xml.XmlWriterSettings
+    $cfgSettings.Encoding = New-Object System.Text.UTF8Encoding($false)
+    $cfgWriter = [System.Xml.XmlWriter]::Create($priConfig, $cfgSettings)
+    try { $cfgXml.Save($cfgWriter) } finally { $cfgWriter.Close() }
+
     & $MakePri new /pr $priRoot /cf $priConfig /mn $manifestPath /of (Join-Path $stage 'resources.pri') /o | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "makepri new failed with exit code $LASTEXITCODE" }
+    if (-not (Test-Path (Join-Path $stage 'resources.pri'))) { throw 'makepri new did not write resources.pri.' }
+    $splitPri = @(Get-ChildItem $stage -Filter '*.pri' -File | Where-Object { $_.Name -ne 'resources.pri' })
+    if ($splitPri.Count -ne 0) {
+        throw ('makepri split the index into resource-pack PRIs (' + (($splitPri | ForEach-Object { $_.Name }) -join ', ') +
+            '); a single msix would not load them. Check the <packaging> removal.')
+    }
 
     # 5. Pack.
     $msix = Join-Path $OutDir ("PingTheKiller_{0}_x64.msix" -f $Version)
@@ -90,7 +114,7 @@ try {
     if ($LASTEXITCODE -ge 8) { throw "robocopy to layout failed with exit code $LASTEXITCODE" }
 }
 finally {
-    foreach ($d in $stage, ($stage + '-pri')) { if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue } }
+    foreach ($d in $stage, ($stage + '-pri'), ($stage + '-cfg')) { if (Test-Path $d) { Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue } }
 }
 $item = Get-Item $msix
 Write-Host ("OK {0} ({1:N1} MB)" -f $item.FullName, ($item.Length / 1MB))
