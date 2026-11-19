@@ -347,7 +347,7 @@ namespace PingTheKiller.Client.UI
         // Opened from the main menu (it replaces the menu) or from either role's play menu (it sits over the match).
         public void ShowSettings()
         {
-            if (SettingsOpen) return;
+            if (SettingsOpen || CreditsOpen) return;
             if (!Playing) Show(menu, false);
             settingsScreen.Show();
         }
