@@ -1,0 +1,82 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  Shared -> C:\Unity\MultiPlayGame\PingtheKiller\artifacts\bin\Shared\debug\Shared.dll
+  Server.Core -> C:\Unity\MultiPlayGame\PingtheKiller\artifacts\bin\Server.Core\debug\Server.Core.dll
+  Server.Tests -> C:\Unity\MultiPlayGame\PingtheKiller\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+C:\Unity\MultiPlayGame\PingtheKiller\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:03.64]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [FAIL]
+[xUnit.net 00:00:04.26]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [FAIL]
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v1", survivors: 1, winMin: 0.20000000000000001, winMax: 0.80000000000000004, medianMin: 90, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [296 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.20000000000000001 - 0.80000000000000004)
+Actual: 0
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PingtheKiller\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 197
+   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v1 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v1 | 0% | 279 s (177/479) | AllSurvivorsDown 38, time 2 | 0.15 | 0.98 / 0.00 / 0.00 | 5% | 0% |
+ Lagging timeouts per match: 0.95; elapsed: 0.3 s
+
+
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v3", survivors: 3, winMin: 0.25, winMax: 0.75, medianMin: 120, medianMax: 480, timeoutMax: 1, reqRescueShare: 0) [620 ms]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.25 - 0.75)
+Actual: 0
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PingtheKiller\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 197
+   at InvokeStub_U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v3 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v3 | 0% | 446 s (324/645) | AllSurvivorsDown 27, AllResolved 8, time 3, Collapse 2 | 0.60 | 4.88 / 3.13 / 0.00 | 8% | 88% |
+ Lagging timeouts per match: 1.68; elapsed: 0.6 s
+
+
+[xUnit.net 00:00:05.81]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v7", survivors: 7, winMin: 0.34999999999999998, winMax: 0.65000000000000002, medianMin: 180, medianMax: 480, timeoutMax: 0.14999999999999999, reqRescueShare: 0.29999999999999999) [FAIL]
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "1v7", survivors: 7, winMin: 0.34999999999999998, winMax: 0.65000000000000002, medianMin: 180, medianMax: 480, timeoutMax: 0.14999999999999999, reqRescueShare: 0.29999999999999999) [1 s]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (0.34999999999999998 - 0.65000000000000002)
+Actual: 0.025000000000000001
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PingtheKiller\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 197
+   at InvokeStub_U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: 1v7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | 1v7 | 3% | 790 s (660/900) | AllSurvivorsDown 15, AllResolved 13, time 12 | 2.20 | 12.98 / 11.10 / 0.00 | 30% | 100% |
+ Lagging timeouts per match: 1.85; elapsed: 1.5 s
+
+
+[xUnit.net 00:00:07.30]     PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 120, medianMax: 360, timeoutMax: 1, reqRescueShare: 0) [FAIL]
+  실패 PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(config: "idle killer + 7", survivors: 0, winMin: 0.90000000000000002, winMax: 1, medianMin: 120, medianMax: 360, timeoutMax: 1, reqRescueShare: 0) [1 s]
+  오류 메시지:
+   Assert.InRange() Failure: Value not in range
+Range:  (120 - 360)
+Actual: 631.02499999999998
+  스택 추적:
+     at PingTheKiller.Tests.QA.U2d.U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(String config, Int32 survivors, Double winMin, Double winMax, Double medianMin, Double medianMax, Double timeoutMax, Double reqRescueShare) in C:\Unity\MultiPlayGame\PingtheKiller\Server.Tests\QA\U2d\U2dQaSweepTests.cs:line 198
+   at InvokeStub_U2dQaSweepTests.IndependentSeedSweep_MeetsSection3TargetsOnFreshSeeds(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithManyArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  표준 출력 메시지:
+ === QA INDEPENDENT SWEEP: idle killer + 7 (Seeds 1001..1040) ===
+ | Config | Survivor win | Median length (p25/p75) | End reasons | Terminals done | Captures / rescues / executions per match | Timeouts | Matches with >= 1 rescue |
+|---|---|---|---|---|---|---|---|
+ | idle killer + 7 | 98% | 631 s (608/670) | Collapse 32, AllResolved 8 | 5.10 | 1.75 / 0.55 / 0.00 | 0% | 45% |
+ Lagging timeouts per match: 0.10; elapsed: 1.5 s
+
+
+
+실패!  - 실패:     4, 통과:     3, 건너뜀:     0, 전체:     7, 기간: 6 s - Server.Tests.dll (net10.0)

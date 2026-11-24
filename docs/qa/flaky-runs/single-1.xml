@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Passed" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.3683686">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1356" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.368369" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1956" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PtK-work/u6c-ui/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="846" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.357178" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="16064" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1957" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="846" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.353521" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1958" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="846" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.350136" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1959" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="846" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.346840" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1960" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="846" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.338194" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestSuite" id="1961" name="Reverify" fullname="PingTheKiller.Client.QA.Tests.Reverify" runstate="Runnable" testcasecount="36" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.322331" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-suite type="TestFixture" id="1939" name="SurvivorKillerRenderingReverifyTests" fullname="PingTheKiller.Client.QA.Tests.Reverify.SurvivorKillerRenderingReverifyTests" classname="PingTheKiller.Client.QA.Tests.Reverify.SurvivorKillerRenderingReverifyTests" runstate="Runnable" testcasecount="7" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.318852" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1946" name="SurvivorRole_OfflineLink_ReceivedKillerEntry_CompliesWithU2eContract" fullname="PingTheKiller.Client.QA.Tests.Reverify.SurvivorKillerRenderingReverifyTests.SurvivorRole_OfflineLink_ReceivedKillerEntry_CompliesWithU2eContract" methodname="SurvivorRole_OfflineLink_ReceivedKillerEntry_CompliesWithU2eContract" classname="PingTheKiller.Client.QA.Tests.Reverify.SurvivorKillerRenderingReverifyTests" runstate="Runnable" seed="2089687762" result="Passed" start-time="2026-11-04 10:10:04Z" end-time="2026-11-04 10:10:09Z" duration="5.296164" asserts="0">
+                    <properties>
+                      <property name="retryIteration" value="0" />
+                      <property name="repeatIteration" value="0" />
+                    </properties>
+                    <output><![CDATA[SNAPSHOTS_TO_FIRST_KILLER=103
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                  </test-case>
+                </test-suite>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

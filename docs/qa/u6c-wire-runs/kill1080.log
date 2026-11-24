@@ -1,0 +1,704 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/u6c-ui/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/u6c-ui/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/u6c-ui/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.202 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.669500 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\lobby.png
+[offline server] match start players=8 killer=4 matchSeed=-674647291
+[DEV] match 1 start role=Killer skill=2
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=0.01 killer look Fixed yaw=90.00
+[DEV] t=0.03 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=0.51 killer look Fixed yaw=90.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\play-1s.png
+[DEV] t=1.06 killer look Fixed yaw=90.00
+[DEV] t=1.07 local position 34.00,43.50 moved=0.00 m
+[DEV] t=1.57 killer look Fixed yaw=90.00
+[DEV] t=2.07 killer look Fixed yaw=90.00
+[DEV] t=2.45 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=2.45 blips tracked max=1
+[DEV] t=2.45 event killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\killer-offscreen.png
+[DEV] t=2.57 killer look Fixed yaw=90.00
+[DEV] t=2.84 blips tracked max=2
+[DEV] t=2.95 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=3.07 killer look Fixed yaw=90.00
+[DEV] t=3.58 killer look Fixed yaw=90.00
+[DEV] t=3.64 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=3.64 blips tracked max=3
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\play-4s.png
+[DEV] t=4.08 killer look Fixed yaw=90.00
+[DEV] t=4.58 killer look Fixed yaw=90.00
+[DEV] t=5.00 local position 34.00,43.50 moved=0.00 m
+[DEV] t=5.09 killer look Fixed yaw=90.00
+[DEV] t=5.34 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=5.34 blips tracked max=4
+[DEV] t=5.39 blips tracked max=5
+[DEV] t=5.59 killer look Fixed yaw=90.00
+[DEV] t=5.74 blips tracked max=6
+[DEV] t=5.74 event killer-crowd.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\killer-crowd.png
+[DEV] t=5.84 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=5.99 blips tracked max=7
+[DEV] t=6.09 killer look Fixed yaw=90.00
+[DEV] t=6.34 blips inView=0 occluded=2 edges=5 tracked=7
+[DEV] t=6.60 killer look Fixed yaw=90.00
+[DEV] t=7.10 killer look Fixed yaw=90.00
+[DEV] t=7.19 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=7.60 killer look Fixed yaw=90.00
+[DEV] t=7.99 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=8.10 killer look Fixed yaw=90.00
+[DEV] t=8.61 killer look Fixed yaw=90.00
+[DEV] t=9.11 killer look Fixed yaw=90.00
+[DEV] t=9.24 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=9.61 killer look Fixed yaw=90.00
+[DEV] t=9.74 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=10.12 killer look Fixed yaw=90.00
+[DEV] t=10.22 event killer-inview.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\killer-inview.png
+[DEV] t=10.28 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=10.62 killer look Fixed yaw=90.00
+[DEV] t=10.78 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=11.12 killer look Fixed yaw=90.00
+[DEV] t=11.29 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=11.63 killer look Fixed yaw=90.00
+[DEV] t=11.79 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=12.13 killer look Fixed yaw=90.00
+[DEV] t=12.63 killer look Fixed yaw=90.00
+[DEV] t=13.14 killer look Fixed yaw=90.00
+[DEV] t=13.64 killer look Fixed yaw=90.00
+[DEV] t=14.14 killer look Fixed yaw=90.00
+[DEV] t=14.64 killer look Fixed yaw=90.00
+[DEV] t=15.15 killer look Fixed yaw=90.00
+[DEV] t=15.65 killer look Fixed yaw=90.00
+[DEV] t=16.15 killer look Fixed yaw=90.00
+[DEV] t=16.66 killer look Fixed yaw=90.00
+[DEV] t=17.16 killer look Fixed yaw=90.00
+[DEV] t=17.66 killer look Fixed yaw=90.00
+[DEV] t=18.17 killer look Fixed yaw=90.00
+[DEV] t=18.67 killer look Fixed yaw=90.00
+[DEV] t=19.17 killer look Fixed yaw=90.00
+[DEV] t=19.67 killer look Fixed yaw=90.00
+[DEV] t=20.18 killer look Fixed yaw=90.00
+[DEV] t=20.68 killer look Fixed yaw=90.00
+[DEV] t=21.18 killer look Fixed yaw=90.00
+[DEV] t=21.69 killer look Fixed yaw=90.00
+[DEV] t=22.19 killer look Fixed yaw=90.00
+[DEV] t=22.69 killer look Fixed yaw=90.00
+[DEV] t=23.20 killer look Fixed yaw=90.00
+[DEV] t=23.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=23.70 killer look Fixed yaw=90.00
+[DEV] t=24.20 killer look Fixed yaw=90.00
+[DEV] t=24.70 killer look Fixed yaw=90.00
+[DEV] t=25.04 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=25.21 killer look Fixed yaw=90.00
+[DEV] t=25.71 killer look Fixed yaw=90.00
+[DEV] t=26.21 killer look Fixed yaw=90.00
+[DEV] t=26.72 killer look Fixed yaw=90.00
+[DEV] t=27.22 killer look Fixed yaw=90.00
+[DEV] t=27.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=27.72 killer look Fixed yaw=90.00
+[DEV] t=28.23 killer look Fixed yaw=90.00
+[DEV] t=28.73 killer look Fixed yaw=90.00
+[DEV] t=29.09 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=29.23 killer look Fixed yaw=90.00
+[DEV] t=29.73 killer look Fixed yaw=90.00
+[DEV] t=30.24 killer look Fixed yaw=90.00
+[DEV] t=30.74 killer look Fixed yaw=90.00
+[DEV] t=31.24 killer look Fixed yaw=90.00
+[DEV] t=31.75 killer look Fixed yaw=90.00
+[DEV] t=32.25 killer look Fixed yaw=90.00
+[DEV] t=32.75 killer look Fixed yaw=90.00
+[DEV] t=33.26 killer look Fixed yaw=90.00
+[DEV] t=33.76 killer look Fixed yaw=90.00
+[DEV] t=34.26 killer look Fixed yaw=90.00
+[DEV] t=34.76 killer look Fixed yaw=90.00
+[DEV] t=34.84 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=35.27 killer look Fixed yaw=90.00
+[DEV] t=35.77 killer look Fixed yaw=90.00
+[DEV] t=35.79 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=36.27 killer look Fixed yaw=90.00
+[DEV] t=36.29 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=36.78 killer look Fixed yaw=90.00
+[DEV] t=37.28 killer look Fixed yaw=90.00
+[DEV] t=37.78 killer look Fixed yaw=90.00
+[DEV] t=38.29 killer look Fixed yaw=90.00
+[DEV] t=38.46 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=38.79 killer look Fixed yaw=90.00
+[DEV] t=39.29 killer look Fixed yaw=90.00
+[DEV] t=39.54 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=39.54 event killer-occluded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\killer-occluded.png
+[DEV] t=39.79 killer look Fixed yaw=90.00
+[DEV] t=40.04 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=40.30 killer look Fixed yaw=90.00
+[DEV] t=40.80 killer look Fixed yaw=90.00
+[DEV] t=41.30 killer look Fixed yaw=90.00
+[DEV] t=41.81 killer look Fixed yaw=90.00
+[DEV] t=42.31 killer look Fixed yaw=90.00
+[DEV] t=42.81 killer look Fixed yaw=90.00
+[DEV] t=43.32 killer look Fixed yaw=90.00
+[DEV] t=43.44 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=43.82 killer look Fixed yaw=90.00
+[DEV] t=43.94 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=44.32 killer look Fixed yaw=90.00
+[DEV] t=44.44 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=44.82 killer look Fixed yaw=90.00
+[DEV] t=45.33 killer look Fixed yaw=90.00
+[DEV] t=45.79 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=45.83 killer look Fixed yaw=90.00
+[DEV] t=46.33 killer look Fixed yaw=90.00
+[DEV] t=46.84 killer look Fixed yaw=90.00
+[DEV] t=47.34 killer look Fixed yaw=90.00
+[DEV] t=47.79 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=47.84 killer look Fixed yaw=90.00
+[DEV] t=48.29 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=48.35 killer look Fixed yaw=90.00
+[DEV] t=48.79 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=48.85 killer look Fixed yaw=90.00
+[DEV] t=49.35 killer look Fixed yaw=90.00
+[DEV] t=49.85 killer look Fixed yaw=90.00
+[DEV] t=50.36 killer look Fixed yaw=90.00
+[DEV] t=50.86 killer look Fixed yaw=90.00
+[DEV] t=51.14 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=51.36 killer look Fixed yaw=90.00
+[DEV] t=51.87 killer look Fixed yaw=90.00
+[DEV] t=52.37 killer look Fixed yaw=90.00
+[DEV] t=52.87 killer look Fixed yaw=90.00
+[DEV] t=53.38 killer look Fixed yaw=90.00
+[DEV] t=53.64 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=53.88 killer look Fixed yaw=90.00
+[DEV] t=54.14 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=54.38 killer look Fixed yaw=90.00
+[DEV] t=54.88 killer look Fixed yaw=90.00
+[DEV] t=55.39 killer look Fixed yaw=90.00
+[DEV] t=55.89 killer look Fixed yaw=90.00
+[DEV] t=56.39 killer look Fixed yaw=90.00
+[DEV] t=56.90 killer look Fixed yaw=90.00
+[DEV] t=57.40 killer look Fixed yaw=90.00
+[DEV] t=57.48 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=57.90 killer look Fixed yaw=90.00
+[DEV] t=58.39 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=58.40 killer look Fixed yaw=90.00
+[DEV] t=58.91 killer look Fixed yaw=90.00
+[DEV] t=59.41 killer look Fixed yaw=90.00
+[DEV] t=59.79 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] sync player=2 check=1 result=Fail
+[DEV] t=59.91 killer look Fixed yaw=90.00
+[DEV] overloaded alerts=1
+[DEV] t=60.14 event v2-killer-overloaded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u6c-ui\docs\qa\U6c-wire-screens\tk1080\v2-killer-overloaded.png
+[DEV] t=60.42 killer look Fixed yaw=90.00
+[DEV] t=60.92 killer look Fixed yaw=90.00
+[DEV] t=61.42 killer look Fixed yaw=90.00
+[DEV] t=61.93 killer look Fixed yaw=90.00
+[DEV] t=62.43 killer look Fixed yaw=90.00
+[DEV] t=62.93 killer look Fixed yaw=90.00
+[DEV] t=63.04 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=63.44 killer look Fixed yaw=90.00
+[DEV] t=63.54 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=63.94 killer look Fixed yaw=90.00
+[DEV] t=64.44 killer look Fixed yaw=90.00
+[DEV] t=64.94 killer look Fixed yaw=90.00
+[DEV] t=65.45 killer look Fixed yaw=90.00
+[DEV] t=65.95 killer look Fixed yaw=90.00
+[DEV] t=66.45 killer look Fixed yaw=90.00
+[DEV] t=66.96 killer look Fixed yaw=90.00
+[DEV] t=67.46 killer look Fixed yaw=90.00
+[DEV] t=67.96 killer look Fixed yaw=90.00
+[DEV] t=68.47 killer look Fixed yaw=90.00
+[DEV] t=68.97 killer look Fixed yaw=90.00
+[DEV] t=69.47 killer look Fixed yaw=90.00
+[DEV] t=69.97 killer look Fixed yaw=90.00
+[DEV] t=70.48 killer look Fixed yaw=90.00
+[DEV] t=70.98 killer look Fixed yaw=90.00
+[DEV] t=71.48 killer look Fixed yaw=90.00
+[DEV] t=71.99 killer look Fixed yaw=90.00
+[DEV] t=72.49 killer look Fixed yaw=90.00
+[DEV] t=72.99 killer look Fixed yaw=90.00
+[DEV] t=73.50 killer look Fixed yaw=90.00
+[DEV] t=74.00 killer look Fixed yaw=90.00
+[DEV] t=74.50 killer look Fixed yaw=90.00
+[DEV] t=75.01 killer look Fixed yaw=90.00
+[DEV] t=75.51 killer look Fixed yaw=90.00
+[DEV] t=76.01 killer look Fixed yaw=90.00
+[DEV] t=76.29 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=76.51 killer look Fixed yaw=90.00
+[DEV] t=77.02 killer look Fixed yaw=90.00
+[DEV] t=77.19 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=77.52 killer look Fixed yaw=90.00
+[DEV] t=77.69 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=78.02 killer look Fixed yaw=90.00
+[DEV] t=78.19 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=78.53 killer look Fixed yaw=90.00
+[DEV] t=79.03 killer look Fixed yaw=90.00
+[DEV] t=79.24 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=79.53 killer look Fixed yaw=90.00
+[DEV] t=79.74 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=80.04 killer look Fixed yaw=90.00
+[DEV] t=80.44 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=80.54 killer look Fixed yaw=90.00
+[DEV] t=81.04 killer look Fixed yaw=90.00
+[DEV] t=81.54 killer look Fixed yaw=90.00
+[DEV] t=81.94 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=82.05 killer look Fixed yaw=90.00
+[DEV] t=82.44 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=82.55 killer look Fixed yaw=90.00
+[DEV] t=83.05 killer look Fixed yaw=90.00
+[DEV] t=83.56 killer look Fixed yaw=90.00
+[DEV] t=84.06 killer look Fixed yaw=90.00
+[DEV] t=84.56 killer look Fixed yaw=90.00
+[DEV] t=85.07 killer look Fixed yaw=90.00
+[DEV] t=85.57 killer look Fixed yaw=90.00
+[DEV] t=86.07 killer look Fixed yaw=90.00
+[DEV] t=86.57 killer look Fixed yaw=90.00
+[DEV] t=87.08 killer look Fixed yaw=90.00
+[DEV] t=87.58 killer look Fixed yaw=90.00
+[DEV] t=88.08 killer look Fixed yaw=90.00
+[DEV] t=88.59 killer look Fixed yaw=90.00
+[DEV] t=89.09 killer look Fixed yaw=90.00
+[DEV] t=89.19 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=89.59 killer look Fixed yaw=90.00
+[DEV] t=90.10 killer look Fixed yaw=90.00
+[DEV] t=90.60 killer look Fixed yaw=90.00
+[DEV] t=91.10 killer look Fixed yaw=90.00
+[DEV] t=91.60 killer look Fixed yaw=90.00
+[DEV] t=92.11 killer look Fixed yaw=90.00
+[DEV] t=92.61 killer look Fixed yaw=90.00
+[DEV] t=92.64 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=93.11 killer look Fixed yaw=90.00
+[DEV] t=93.14 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=93.62 killer look Fixed yaw=90.00
+[DEV] t=94.12 killer look Fixed yaw=90.00
+[DEV] t=94.62 killer look Fixed yaw=90.00
+[DEV] t=94.89 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=95.13 killer look Fixed yaw=90.00
+[DEV] t=95.39 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=95.63 killer look Fixed yaw=90.00
+[DEV] t=96.13 killer look Fixed yaw=90.00
+[DEV] t=96.63 killer look Fixed yaw=90.00
+[DEV] t=97.14 killer look Fixed yaw=90.00
+[DEV] t=97.34 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=97.64 killer look Fixed yaw=90.00
+[DEV] t=98.14 killer look Fixed yaw=90.00
+[DEV] t=98.24 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=98.65 killer look Fixed yaw=90.00
+[DEV] t=98.74 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=99.15 killer look Fixed yaw=90.00
+[DEV] t=99.65 killer look Fixed yaw=90.00
+[DEV] t=100.16 killer look Fixed yaw=90.00
+[DEV] t=100.34 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=100.66 killer look Fixed yaw=90.00
+[DEV] t=100.84 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=101.16 killer look Fixed yaw=90.00
+[DEV] t=101.34 blips inView=2 occluded=0 edges=0 tracked=2
+[DEV] t=101.66 killer look Fixed yaw=90.00
+[DEV] t=101.85 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=102.17 killer look Fixed yaw=90.00
+[DEV] t=102.39 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=102.67 killer look Fixed yaw=90.00
+[DEV] t=103.17 killer look Fixed yaw=90.00
+[DEV] t=103.68 killer look Fixed yaw=90.00
+[DEV] t=104.18 killer look Fixed yaw=90.00
+[DEV] t=104.39 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=104.68 killer look Fixed yaw=90.00
+[DEV] t=105.19 killer look Fixed yaw=90.00
+[DEV] t=105.69 killer look Fixed yaw=90.00
+[DEV] t=106.19 killer look Fixed yaw=90.00
+[DEV] t=106.34 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=106.69 killer look Fixed yaw=90.00
+[DEV] t=107.20 killer look Fixed yaw=90.00
+[DEV] t=107.70 killer look Fixed yaw=90.00
+[DEV] t=108.20 killer look Fixed yaw=90.00
+[DEV] t=108.71 killer look Fixed yaw=90.00
+[DEV] t=109.21 killer look Fixed yaw=90.00
+[DEV] t=109.71 killer look Fixed yaw=90.00
+[DEV] t=109.74 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=110.22 killer look Fixed yaw=90.00
+[DEV] t=110.72 killer look Fixed yaw=90.00
+[offline server] sync player=1 check=2 result=Good
+[DEV] t=111.22 killer look Fixed yaw=90.00
+[DEV] t=111.72 killer look Fixed yaw=90.00
+[DEV] t=112.23 killer look Fixed yaw=90.00
+[DEV] t=112.73 killer look Fixed yaw=90.00
+[DEV] t=113.23 killer look Fixed yaw=90.00
+[DEV] t=113.74 killer look Fixed yaw=90.00
+[DEV] t=113.99 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=114.24 killer look Fixed yaw=90.00
+[DEV] t=114.74 killer look Fixed yaw=90.00
+[DEV] t=115.25 killer look Fixed yaw=90.00
+[DEV] t=115.75 killer look Fixed yaw=90.00
+[DEV] t=116.25 killer look Fixed yaw=90.00
+[DEV] t=116.75 killer look Fixed yaw=90.00
+[DEV] t=117.26 killer look Fixed yaw=90.00
+[DEV] t=117.76 killer look Fixed yaw=90.00
+[DEV] t=118.26 killer look Fixed yaw=90.00
+[DEV] t=118.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=118.77 killer look Fixed yaw=90.00
+[DEV] t=119.27 killer look Fixed yaw=90.00
+[DEV] t=119.77 killer look Fixed yaw=90.00
+[DEV] t=120.28 killer look Fixed yaw=90.00
+[DEV] t=120.78 killer look Fixed yaw=90.00
+[DEV] t=121.28 killer look Fixed yaw=90.00
+[DEV] t=121.78 killer look Fixed yaw=90.00
+[DEV] t=122.29 killer look Fixed yaw=90.00
+[DEV] t=122.79 killer look Fixed yaw=90.00
+[DEV] t=122.89 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=123.29 killer look Fixed yaw=90.00
+[DEV] t=123.39 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=123.80 killer look Fixed yaw=90.00
+[DEV] t=124.30 killer look Fixed yaw=90.00
+[DEV] t=124.80 killer look Fixed yaw=90.00
+[DEV] t=125.31 killer look Fixed yaw=90.00
+[DEV] t=125.74 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=125.81 killer look Fixed yaw=90.00
+[DEV] t=126.31 killer look Fixed yaw=90.00
+[DEV] t=126.69 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=126.81 killer look Fixed yaw=90.00
+[DEV] t=127.24 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=127.32 killer look Fixed yaw=90.00
+[DEV] t=127.74 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=127.82 killer look Fixed yaw=90.00
+[DEV] t=128.32 killer look Fixed yaw=90.00
+[DEV] t=128.83 killer look Fixed yaw=90.00
+[DEV] t=129.33 killer look Fixed yaw=90.00
+[DEV] t=129.58 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=129.83 killer look Fixed yaw=90.00
+[DEV] t=130.34 killer look Fixed yaw=90.00
+[DEV] t=130.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=130.84 killer look Fixed yaw=90.00
+[DEV] t=130.99 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=131.34 killer look Fixed yaw=90.00
+[DEV] t=131.85 killer look Fixed yaw=90.00
+[DEV] t=132.35 killer look Fixed yaw=90.00
+[DEV] t=132.85 killer look Fixed yaw=90.00
+[DEV] t=133.34 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=133.35 killer look Fixed yaw=90.00
+[DEV] t=133.84 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=133.86 killer look Fixed yaw=90.00
+[DEV] t=134.36 killer look Fixed yaw=90.00
+[DEV] t=134.86 killer look Fixed yaw=90.00
+[DEV] t=135.37 killer look Fixed yaw=90.00
+[DEV] t=135.58 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] terminal 5 complete
+[DEV] t=135.74 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=135.87 killer look Fixed yaw=90.00
+[DEV] t=136.37 killer look Fixed yaw=90.00
+[DEV] t=136.88 killer look Fixed yaw=90.00
+[DEV] t=137.38 killer look Fixed yaw=90.00
+[DEV] t=137.88 killer look Fixed yaw=90.00
+[DEV] t=137.94 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=138.38 killer look Fixed yaw=90.00
+[DEV] t=138.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=138.89 killer look Fixed yaw=90.00
+[DEV] t=138.99 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=139.39 killer look Fixed yaw=90.00
+[DEV] t=139.49 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=139.89 killer look Fixed yaw=90.00
+[DEV] t=140.04 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=140.40 killer look Fixed yaw=90.00
+[DEV] t=140.54 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=140.90 killer look Fixed yaw=90.00
+[DEV] t=141.04 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=141.40 killer look Fixed yaw=90.00
+[DEV] t=141.91 killer look Fixed yaw=90.00
+[DEV] t=142.39 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=142.41 killer look Fixed yaw=90.00
+[DEV] t=142.89 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=142.91 killer look Fixed yaw=90.00
+[DEV] t=143.41 killer look Fixed yaw=90.00
+[DEV] t=143.92 killer look Fixed yaw=90.00
+[DEV] t=144.42 killer look Fixed yaw=90.00
+[DEV] t=144.89 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=144.92 killer look Fixed yaw=90.00
+[DEV] t=145.43 killer look Fixed yaw=90.00
+[DEV] t=145.93 killer look Fixed yaw=90.00
+[DEV] t=146.43 killer look Fixed yaw=90.00
+[DEV] t=146.49 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=146.94 killer look Fixed yaw=90.00
+[DEV] t=147.44 killer look Fixed yaw=90.00
+[DEV] t=147.94 killer look Fixed yaw=90.00
+[DEV] t=148.44 killer look Fixed yaw=90.00
+[DEV] t=148.95 killer look Fixed yaw=90.00
+[DEV] t=149.45 killer look Fixed yaw=90.00
+[DEV] t=149.95 killer look Fixed yaw=90.00
+[DEV] t=150.46 killer look Fixed yaw=90.00
+[DEV] t=150.96 killer look Fixed yaw=90.00
+[DEV] t=151.46 killer look Fixed yaw=90.00
+[DEV] t=151.97 killer look Fixed yaw=90.00
+[DEV] t=152.47 killer look Fixed yaw=90.00
+[DEV] t=152.89 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=152.97 killer look Fixed yaw=90.00
+[DEV] t=153.47 killer look Fixed yaw=90.00
+[DEV] t=153.98 killer look Fixed yaw=90.00
+[DEV] t=154.48 killer look Fixed yaw=90.00
+[DEV] t=154.98 killer look Fixed yaw=90.00
+[DEV] t=155.49 killer look Fixed yaw=90.00
+[DEV] t=155.84 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=155.99 killer look Fixed yaw=90.00
+[DEV] t=156.49 killer look Fixed yaw=90.00
+[DEV] t=157.00 killer look Fixed yaw=90.00
+[DEV] t=157.50 killer look Fixed yaw=90.00
+[DEV] t=157.79 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=158.00 killer look Fixed yaw=90.00
+[DEV] t=158.50 killer look Fixed yaw=90.00
+[DEV] t=159.01 killer look Fixed yaw=90.00
+[DEV] t=159.04 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=159.51 killer look Fixed yaw=90.00
+[DEV] t=159.54 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=160.01 killer look Fixed yaw=90.00
+[DEV] t=160.52 killer look Fixed yaw=90.00
+[DEV] t=160.73 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=161.02 killer look Fixed yaw=90.00
+[DEV] t=161.52 killer look Fixed yaw=90.00
+[DEV] t=162.03 killer look Fixed yaw=90.00
+[DEV] t=162.53 killer look Fixed yaw=90.00
+[DEV] t=163.03 killer look Fixed yaw=90.00
+[DEV] t=163.39 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=163.53 killer look Fixed yaw=90.00
+[DEV] t=164.04 killer look Fixed yaw=90.00
+[DEV] t=164.44 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=164.54 killer look Fixed yaw=90.00
+[DEV] t=165.04 killer look Fixed yaw=90.00
+[DEV] t=165.55 killer look Fixed yaw=90.00
+[DEV] t=165.99 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=166.05 killer look Fixed yaw=90.00
+[DEV] t=166.55 killer look Fixed yaw=90.00
+[DEV] t=167.06 killer look Fixed yaw=90.00
+[DEV] t=167.49 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=167.56 killer look Fixed yaw=90.00
+[DEV] t=168.06 killer look Fixed yaw=90.00
+[DEV] t=168.56 killer look Fixed yaw=90.00
+[DEV] t=168.73 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=169.07 killer look Fixed yaw=90.00
+[DEV] t=169.36 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=169.57 killer look Fixed yaw=90.00
+[DEV] t=169.86 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=170.07 killer look Fixed yaw=90.00
+[DEV] t=170.58 killer look Fixed yaw=90.00
+[DEV] t=171.08 killer look Fixed yaw=90.00
+[DEV] t=171.58 killer look Fixed yaw=90.00
+[DEV] t=172.09 killer look Fixed yaw=90.00
+[DEV] t=172.13 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=172.59 killer look Fixed yaw=90.00
+[DEV] t=172.89 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=173.09 killer look Fixed yaw=90.00
+[DEV] t=173.59 killer look Fixed yaw=90.00
+[DEV] t=174.10 killer look Fixed yaw=90.00
+[DEV] t=174.60 killer look Fixed yaw=90.00
+[DEV] t=175.10 killer look Fixed yaw=90.00
+[DEV] t=175.61 killer look Fixed yaw=90.00
+[DEV] t=175.69 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=176.11 killer look Fixed yaw=90.00
+[DEV] t=176.61 killer look Fixed yaw=90.00
+[DEV] t=177.12 killer look Fixed yaw=90.00
+[DEV] t=177.54 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=177.62 killer look Fixed yaw=90.00
+[DEV] t=178.12 killer look Fixed yaw=90.00
+[DEV] t=178.62 killer look Fixed yaw=90.00
+[DEV] t=179.13 killer look Fixed yaw=90.00
+[DEV] t=179.14 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=179.63 killer look Fixed yaw=90.00
+[DEV] t=180.13 killer look Fixed yaw=90.00
+[DEV] t=180.64 killer look Fixed yaw=90.00
+[DEV] t=181.14 killer look Fixed yaw=90.00
+[DEV] t=181.64 killer look Fixed yaw=90.00
+[DEV] t=182.04 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=182.15 killer look Fixed yaw=90.00
+[DEV] t=182.65 killer look Fixed yaw=90.00
+[DEV] t=182.84 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=183.15 killer look Fixed yaw=90.00
+[DEV] t=183.65 killer look Fixed yaw=90.00
+[DEV] t=184.16 killer look Fixed yaw=90.00
+[DEV] t=184.66 killer look Fixed yaw=90.00
+[DEV] t=185.16 killer look Fixed yaw=90.00
+[DEV] t=185.67 killer look Fixed yaw=90.00
+[DEV] t=185.84 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=186.17 killer look Fixed yaw=90.00
+[DEV] t=186.34 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=186.67 killer look Fixed yaw=90.00
+[DEV] t=187.18 killer look Fixed yaw=90.00
+[DEV] t=187.68 killer look Fixed yaw=90.00
+[DEV] t=188.18 killer look Fixed yaw=90.00
+[DEV] t=188.68 killer look Fixed yaw=90.00
+[DEV] t=189.19 killer look Fixed yaw=90.00
+[DEV] t=189.49 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=189.69 killer look Fixed yaw=90.00
+[DEV] t=190.19 killer look Fixed yaw=90.00
+[DEV] t=190.70 killer look Fixed yaw=90.00
+[DEV] t=191.20 killer look Fixed yaw=90.00
+[DEV] t=191.70 killer look Fixed yaw=90.00
+[DEV] t=192.21 killer look Fixed yaw=90.00
+[DEV] t=192.39 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=192.71 killer look Fixed yaw=90.00
+[DEV] t=193.21 killer look Fixed yaw=90.00
+[DEV] t=193.71 killer look Fixed yaw=90.00
+[offline server] sync player=1 check=5 result=Good
+[DEV] t=194.22 killer look Fixed yaw=90.00
+[DEV] t=194.24 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=194.72 killer look Fixed yaw=90.00
+[DEV] t=195.22 killer look Fixed yaw=90.00
+[DEV] t=195.39 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=195.73 killer look Fixed yaw=90.00
+[DEV] t=195.89 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=196.23 killer look Fixed yaw=90.00
+[DEV] t=196.73 killer look Fixed yaw=90.00
+[DEV] t=197.14 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=197.24 killer look Fixed yaw=90.00
+[DEV] t=197.74 killer look Fixed yaw=90.00
+[DEV] t=198.24 killer look Fixed yaw=90.00
+[DEV] t=198.75 killer look Fixed yaw=90.00
+[DEV] t=199.25 killer look Fixed yaw=90.00
+[DEV] t=199.69 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=199.75 killer look Fixed yaw=90.00
+[DEV] t=200.19 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=200.25 killer look Fixed yaw=90.00
+[DEV] t=200.76 killer look Fixed yaw=90.00
+[DEV] t=201.09 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=201.26 killer look Fixed yaw=90.00
+[DEV] t=201.76 killer look Fixed yaw=90.00
+[DEV] t=202.27 killer look Fixed yaw=90.00
+[DEV] t=202.77 killer look Fixed yaw=90.00
+[DEV] t=203.27 killer look Fixed yaw=90.00
+[DEV] t=203.78 killer look Fixed yaw=90.00
+[DEV] t=204.28 killer look Fixed yaw=90.00
+[DEV] t=204.74 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=204.78 killer look Fixed yaw=90.00
+[DEV] t=205.28 killer look Fixed yaw=90.00
+[DEV] t=205.79 killer look Fixed yaw=90.00
+[DEV] t=205.84 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=206.29 killer look Fixed yaw=90.00
+[DEV] t=206.79 killer look Fixed yaw=90.00
+[DEV] t=207.24 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=207.30 killer look Fixed yaw=90.00
+[DEV] t=207.80 killer look Fixed yaw=90.00
+[DEV] t=208.30 killer look Fixed yaw=90.00
+[DEV] t=208.81 killer look Fixed yaw=90.00
+[DEV] t=209.31 killer look Fixed yaw=90.00
+[DEV] t=209.81 killer look Fixed yaw=90.00
+[DEV] t=210.31 killer look Fixed yaw=90.00
+[DEV] t=210.64 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=210.82 killer look Fixed yaw=90.00
+[DEV] t=211.32 killer look Fixed yaw=90.00
+[DEV] t=211.82 killer look Fixed yaw=90.00
+[DEV] t=212.33 killer look Fixed yaw=90.00
+[DEV] t=212.83 killer look Fixed yaw=90.00
+[DEV] t=213.33 killer look Fixed yaw=90.00
+[DEV] t=213.84 killer look Fixed yaw=90.00
+[DEV] t=214.34 killer look Fixed yaw=90.00
+[DEV] t=214.84 killer look Fixed yaw=90.00
+[DEV] t=215.34 killer look Fixed yaw=90.00
+[DEV] t=215.85 killer look Fixed yaw=90.00
+[DEV] t=216.14 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=216.35 killer look Fixed yaw=90.00
+[DEV] t=216.85 killer look Fixed yaw=90.00
+[DEV] t=217.36 killer look Fixed yaw=90.00
+[DEV] t=217.86 killer look Fixed yaw=90.00
+[DEV] t=218.36 killer look Fixed yaw=90.00
+[DEV] t=218.87 killer look Fixed yaw=90.00
+[DEV] t=218.99 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=219.37 killer look Fixed yaw=90.00
+[DEV] t=219.49 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=219.87 killer look Fixed yaw=90.00
+[DEV] t=220.29 blips inView=1 occluded=2 edges=1 tracked=4
+[DEV] t=220.37 killer look Fixed yaw=90.00
+[DEV] t=220.79 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=220.88 killer look Fixed yaw=90.00
+[DEV] t=221.38 killer look Fixed yaw=90.00
+[DEV] t=221.88 killer look Fixed yaw=90.00
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=222.09 blips inView=1 occluded=1 edges=2 tracked=4
+[DEV] t=222.39 killer look Fixed yaw=90.00
+[DEV] t=222.49 blips tracked max=8
+[DEV] t=222.59 blips inView=2 occluded=1 edges=5 tracked=8
+[DEV] t=222.89 killer look Fixed yaw=90.00
+[DEV] t=223.10 blips inView=1 occluded=1 edges=5 tracked=7
+[DEV] t=223.39 killer look Fixed yaw=90.00
+[DEV] t=223.79 blips inView=2 occluded=1 edges=5 tracked=8
+[DEV] t=223.90 killer look Fixed yaw=90.00
+[DEV] t=224.29 blips inView=2 occluded=0 edges=5 tracked=7
+[DEV] t=224.40 killer look Fixed yaw=90.00
+[DEV] t=224.79 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=224.90 killer look Fixed yaw=90.00
+[DEV] t=225.40 killer look Fixed yaw=90.00
+[DEV] t=225.91 killer look Fixed yaw=90.00
+[DEV] t=226.14 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=226.41 killer look Fixed yaw=90.00
+[DEV] t=226.64 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=226.91 killer look Fixed yaw=90.00
+[DEV] t=227.39 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=227.42 killer look Fixed yaw=90.00
+[DEV] t=227.89 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=227.92 killer look Fixed yaw=90.00
+[DEV] t=228.42 killer look Fixed yaw=90.00
+[DEV] t=228.93 killer look Fixed yaw=90.00
+[DEV] t=228.94 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=229.43 killer look Fixed yaw=90.00
+[DEV] t=229.44 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=229.93 killer look Fixed yaw=90.00
+[DEV] t=229.94 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=230.43 killer look Fixed yaw=90.00
+[DEV] t=230.59 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=230.94 killer look Fixed yaw=90.00
+[DEV] t=231.44 killer look Fixed yaw=90.00
+[DEV] t=231.94 killer look Fixed yaw=90.00
+[offline server] sync player=2 check=6 result=Fail
+[DEV] t=232.23 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=232.45 killer look Fixed yaw=90.00
+[DEV] t=232.95 killer look Fixed yaw=90.00
+[DEV] t=232.99 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=233.45 killer look Fixed yaw=90.00
+[DEV] t=233.59 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=233.96 killer look Fixed yaw=90.00
+[DEV] t=234.09 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=234.46 killer look Fixed yaw=90.00
+[DEV] t=234.59 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=234.96 killer look Fixed yaw=90.00
+[offline server] skill player=3 role=Survivor id=4
+[DEV] t=235.29 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=235.46 killer look Fixed yaw=90.00
+[DEV] t=235.79 blips inView=0 occluded=3 edges=5 tracked=8
+[DEV] t=235.97 killer look Fixed yaw=90.00
+[DEV] t=236.47 killer look Fixed yaw=90.00
+[DEV] t=236.97 killer look Fixed yaw=90.00
+[DEV] t=237.48 killer look Fixed yaw=90.00
+[DEV] quit after 240 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
