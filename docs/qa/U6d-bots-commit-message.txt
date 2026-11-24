@@ -1,0 +1,43 @@
+U6d-bots: fair v2 bot teamwork, a moving Killer and tuned balance
+
+Attempt 1 (Codex): remove worker caps, coordinate timed rescues and escapes,
+and add anonymous predictive pursuit, Signal-driven patrol, terminal kicks and
+exit guarding. Match phantom pacing, restore the fairness bounds, and gate the
+GDD v2 balance bands on both seed sets.
+
+Attempt 2 (Codex, then Claude Opus after a quota switch): the Killer always
+has a destination. When all work was checked recently it sweeps the least
+recently checked terminal (a recent Signal counts as older), roams far map
+spots against small teams, and does not re-kick a terminal within its revisit
+window. Survivors work out of sight of a still, camping Killer, keep their
+terminal unless another is 15 points ahead, rescue before holding a powered
+switch, and detour around a visible Killer on the way out. Survivors freeze
+Silent while an unseen or distant Killer is near, flee only at Threat 3, calm
+down faster, and only a team of five or more abandons the threatened terminal.
+A stalled leading switch sends a second holder to another powered switch. The
+phantom worker mix follows the new survivor pacing. Guard escape-rescue
+timing against zero speed.
+
+Attempt 3 (Claude Opus, Codex out of credits): make "the match keeps moving"
+a tested invariant. Every balance sweep config, plus one idle human survivor
+with six bots, must never go 150 s without progress. A survivor that made no progress for 25 s commits: only Threat 3 or a
+Killer closing within 10 m stops it, and it works the target farthest from
+the Killer and out of its sight. Running out of match time commits too. A
+stalled switch duty moves to the switch farthest from the Killer, and idle
+teammates are not counted on for rescues, switches or terminal slots. The
+Killer searches the map cell by cell after 45 s without a blip, patrols open
+exits instead of guarding them, and pays more attention late in the match.
+The escape detour is cached for a second.
+
+Attempt 3 follow-up (Claude Opus, Codex out of credits): drop the late-match
+"desperate" mode, which stopped survivor bots from fleeing even Threat 3 or a
+Killer closing within 10 m. Running out of match time still commits a bot, but
+the Threat 3 and closing-Killer interrupts always apply. Two regression tests
+cover a committed, time-short survivor breaking off for both.
+The invariant now only reports, and no longer
+asserts, time-ups with zero captures: a lone survivor that keeps evading and
+working can lose the race against the clock without any freeze (user
+decision).
+
+Co-Authored-By: Codex gpt-6.1-sol
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

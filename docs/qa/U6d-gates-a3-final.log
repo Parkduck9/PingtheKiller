@@ -1,0 +1,152 @@
+C:\Unity\MultiPlayGame\PtK-work\u4h\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+C:\Unity\MultiPlayGame\PtK-work\u4h\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.04]   Discovering: Server.Tests
+[xUnit.net 00:00:00.14]   Discovered:  Server.Tests
+[xUnit.net 00:00:00.16]   Starting:    Server.Tests
+  통과 PingTheKiller.Tests.Core.IndistinguishabilityTests.KolmogorovSmirnovMatchesKnownCases [7 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.AThreatFreezeAlwaysReleases_SurvivorBotsMoveAgainWhileTheKillerCampsNearby [75 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 11.3999996, z: 22.2999992, tx: 4, tz: 4) [11 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 41.5999985, z: 23, tx: 57.5, tz: 44) [22 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 19.6000004, z: 17, tx: 10, tz: 25) [6 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 5, z: 5, tx: 58, tz: 27) [58 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 31, z: 12, tx: 25, tz: 63) [30 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.RouteReachesGoalsBehindWalls(x: 18.6000004, z: 30, tx: 10, tz: 25) [7 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Shuffle_RealEntriesAndTheKillerEntryAreUniformlyOrdered_ChiSquare(seed: 2) [896 ms]
+  표준 출력 메시지:
+ entry counts: 5:11900 last tick 11900
+ seed 2: samples=11900 chi2(perm, df23)=31.3 chi2(killer rank, df4)=6.2 chi2(slot0, df4)=1.1 slot0-repeat=2301/11900
+
+
+  통과 PingTheKiller.Tests.Core.IndistinguishabilityTests.PhantomTracksMatchRealNormalSignalTracksInSpeedStillnessAndTail [1 s]
+  표준 출력 메시지:
+ tracks: 432 phantom, 1324 real (of 1817 recorded)
+ speed m/s (median step): phantom median 0 mean 1.546, real median 0 mean 1.414, KS D=0.034 p=0.8434
+ still-away steps before the final frame: phantom median 0 mean 0, real median 0 mean 0.006, KS D=0.006 p=1
+ afterimage tail ticks: phantom median 20 mean 20, real median 20 mean 20, KS D=0 p=1
+ mean speed m/s: phantom median 0 mean 1.476, real median 0 mean 1.386, KS D=0.245 p=0 (reported, not gated)
+ still-away fraction of all steps: phantom median 0 mean 0.018, real median 0 mean 0.008, KS D=0.326 p=0 (reported, not gated)
+ lifetime s: phantom median 1.25 mean 1.259, real median 1.85 mean 2.344, KS D=0.749 p=0 (reported, not gated)
+ spawn distance to nearest real survivor m: phantom median 15.259 mean 15.863, real median 0.207 mean 4.472, KS D=0.474 p=0 (reported, not gated)
+ GATE PASS
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Shuffle_RealEntriesAndTheKillerEntryAreUniformlyOrdered_ChiSquare(seed: 3) [520 ms]
+  표준 출력 메시지:
+ entry counts: 5:11900 last tick 11900
+ seed 3: samples=11900 chi2(perm, df23)=14.2 chi2(killer rank, df4)=2.6 chi2(slot0, df4)=2.0 slot0-repeat=2418/11900
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Shuffle_RealEntriesAndTheKillerEntryAreUniformlyOrdered_ChiSquare(seed: 1) [531 ms]
+  표준 출력 메시지:
+ entry counts: 5:11900 last tick 11900
+ seed 1: samples=11900 chi2(perm, df23)=23.6 chi2(killer rank, df4)=0.9 chi2(slot0, df4)=1.8 slot0-repeat=2379/11900
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.SelfState_IsSentOnEveryJumpAndAtLeastOncePerSecond_NotEveryTick_AndNoSecondCopyInATick [17 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Leak_TerminalProgress_IsZeroOrHundredToTheKillerAtEveryByte_WhileSurvivorsSeeTheExactPercentage [23 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Leak_KillerView_IsIdenticalInShapeForRealAndPhantomEntries_EveryFieldButPosition_InTheSameSnapshot [655 ms]
+  표준 출력 메시지:
+ snapshots with real and phantom entries: 2407, entries compared: 13563
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Regression_Sandbox_KillerViewIsAnonymousRealOnlyAndShuffled_NoPhantomNoAfterimageNoSelfStateSurprise [35 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.MedianMatchLengthReport(humanRole: Killer, floor: 120) [2 s]
+  표준 출력 메시지:
+ seed 1: 236.3s winner=Survivor reason=AllResolved terminals 5/5 1@55.1s 2@57.6s 3@109.7s 4@177.2s 5@192.7s end [b:N b:E b:E b:E b:E b:E b:E]
+ seed 2: 219.4s winner=Survivor reason=AllResolved terminals 6/5 1@49.0s 2@53.1s 3@106.6s 4@126.2s 5@178.2s 6@181.1s end [b:E b:E b:N b:E b:E b:E b:E]
+ seed 3: 210.4s winner=Survivor reason=AllResolved terminals 5/5 1@50.8s 2@58.0s 3@107.3s 4@166.8s 5@181.3s end [b:E b:E b:E b:N b:E b:E b:E]
+ seed 4: 232.8s winner=Survivor reason=AllResolved terminals 6/5 1@51.3s 2@55.4s 3@105.9s 4@148.7s 5@203.7s 6@213.5s end [b:E b:E b:E b:N b:E b:E b:E]
+ seed 5: 222.4s winner=Survivor reason=AllResolved terminals 5/5 1@54.4s 2@55.1s 3@107.8s 4@140.8s 5@192.7s end [b:E b:E b:N b:E b:E b:E b:E]
+ seed 6: 201.7s winner=Survivor reason=AllResolved terminals 5/5 1@53.2s 2@54.6s 3@103.9s 4@145.8s 5@156.8s end [b:E b:E b:N b:E b:E b:E b:E]
+ seed 7: 196.9s winner=Survivor reason=AllResolved terminals 5/5 1@52.8s 2@53.3s 3@104.9s 4@105.0s 5@166.3s end [b:E b:N b:E b:E b:E b:E b:E]
+ seed 8: 215.8s winner=Survivor reason=AllResolved terminals 5/5 1@55.3s 2@56.8s 3@108.5s 4@149.1s 5@171.0s end [b:E b:E b:N b:E b:E b:E b:E]
+ seed 9: 241.6s winner=Survivor reason=AllResolved terminals 5/5 1@53.3s 2@57.3s 3@105.3s 4@179.1s 5@198.7s end [b:N b:E b:E b:E b:E b:E b:E]
+ seed 10: 192.9s winner=Survivor reason=AllResolved terminals 5/5 1@55.1s 2@56.5s 3@105.9s 4@112.2s 5@158.6s end [b:E b:E b:E b:N b:E b:E b:E]
+ seed 11: 199.6s winner=Survivor reason=AllResolved terminals 5/5 1@52.3s 2@54.2s 3@106.8s 4@142.0s 5@170.5s end [b:E b:E b:E b:N b:E b:E b:E]
+ seed 12: 230.5s winner=Survivor reason=AllResolved terminals 6/5 1@51.2s 2@51.8s 3@105.8s 4@134.0s 5@189.6s 6@192.5s end [b:E b:N b:E b:E b:E b:E b:E]
+ seed 13: 265.0s winner=Survivor reason=AllResolved terminals 5/5 1@51.6s 2@55.0s 3@144.8s 4@183.8s 5@234.6s end [b:N b:N b:E b:E b:E b:E b:E]
+ seed 14: 214.3s winner=Survivor reason=AllResolved terminals 5/5 1@50.7s 2@54.6s 3@106.1s 4@148.4s 5@175.0s end [b:E b:E b:N b:E b:E b:E b:E]
+ seed 15: 212.0s winner=Survivor reason=AllResolved terminals 5/5 1@55.4s 2@57.7s 3@109.7s 4@165.8s 5@177.4s end [b:E b:N b:E b:E b:E b:E b:E]
+ median 215.8s, time-outs with a Normal bot 0
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Rng_PrivateSeedHook_IsDeterministic_KillerStreamWithPhantomsAndOrderIsBitIdentical_CosmeticSeedHasNoInfluence [664 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Cap_PhantomFlood_NeverExceedsSixteen_RealSignalsAreNeverCut_ShownPhantomsAreNotDroppedWhenAHiddenSurvivorTurnsSignal [24 ms]
+  표준 출력 메시지:
+ max entries=11; frames at the binding limit=12; distinct counts=1,5,9,10,11
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Leak_KillerBoundSkillEffects_NeverCarryASurvivorId_ForEverySurvivorSkill_AndEveryKillerSkillOnlyTheKillersOwn [40 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Rng_NoSystemRandomOrClockSeedInServerCoreOrShared_AndTheTestHooksAreNeverSetOutsideTests [15 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Shuffle_PhantomsAreNotClusteredBeforeOrAfterTheRealEntries_MeanSlotMatchesUniform [1 s]
+  표준 출력 메시지:
+ snapshots=9523 mean phantom slot=3.515 (expected 3.5 +- 0.007); mean real/killer slot=3.475
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Rng_HiddenStreams_AreXoshiro256NotSystemRandom_With256BitCsprngStateThatDiffersPerServerAndPerMatch [104 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.SelfState_OnlyToItsOwner_NeverAboutAnotherPlayer_ClientCountdownMatchesTheServerTimersEveryTick(seed: 2) [13 ms]
+  표준 출력 메시지:
+ frames compared=1312; SelfStates per player: 1:17, 2:19, 3:18, 4:17
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.SelfState_OnlyToItsOwner_NeverAboutAnotherPlayer_ClientCountdownMatchesTheServerTimersEveryTick(seed: 1) [11 ms]
+  표준 출력 메시지:
+ frames compared=1312; SelfStates per player: 1:17, 2:19, 3:18, 4:17
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Cap_Decoders_AcceptExactlySixteenEntries_ThroughTheFramingLayerToo_AndRejectSeventeen [2 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Leak_KillerFramesAtByteLevel_NoSurvivorIdYawTimerCaptureCountOrDetailFlag_OverManyBotMatches [987 ms]
+  표준 출력 메시지:
+ frames=24000 survivorEntries=83845 phantomEntries(ground truth)=5966 lagging=6961 maxEntries=15 killerSkills=0,1,2,3
+
+
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.SelfState_NotSentOutsideAMatchOrToBots_FirstOneArrivesWithTheFirstWorldStateAndAgainAfterReconnect [25 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Rng_PrivateSeedHook_GivesIndependentDeterministicStreamsPerNamedStream [< 1 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.SelfState_ExecutionGraceLeft_IsAlwaysZero_EvenForTheKillerNextToALaggingSurvivor [7 ms]
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Rng_Xoshiro256_MatchesAnIndependentReferenceImplementation_AndTheKnownVector_AndIsUnbiased [25 ms]
+  통과 PingTheKiller.Tests.Core.MatchLengthTests.MedianMatchLengthReport(humanRole: Survivor, floor: 120) [8 s]
+  표준 출력 메시지:
+ seed 1: 866.6s winner=Killer reason=Collapse terminals 5/5 1@61.9s 2@98.5s 3@164.1s 4@358.2s 5@722.4s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 2: 840.3s winner=Killer reason=AllSurvivorsDown terminals 3/5 1@260.0s 2@438.4s 3@465.0s end [H:E b:E b:E b:E b:E b:E b:L]
+ seed 3: 900.0s winner=Killer reason=TimeUp terminals 4/5 1@64.3s 2@280.5s 3@300.5s 4@544.0s end [H:N b:E b:L b:E b:E b:E b:E]
+ seed 4: 900.0s winner=Killer reason=TimeUp terminals 5/5 1@64.6s 2@154.8s 3@297.3s 4@311.2s 5@720.2s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 5: 803.9s winner=Survivor reason=Collapse terminals 5/5 1@107.4s 2@352.4s 3@436.8s 4@535.8s 5@666.8s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 6: 721.1s winner=Killer reason=Collapse terminals 5/5 1@101.9s 2@109.3s 3@234.0s 4@387.9s 5@443.0s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 7: 630.3s winner=Killer reason=Collapse terminals 7/5 1@93.3s 2@117.6s 3@234.9s 4@271.7s 5@425.3s 6@471.7s 7@503.5s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 8: 900.0s winner=Survivor reason=TimeUp terminals 5/5 1@62.7s 2@278.5s 3@497.3s 4@746.4s 5@776.4s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 9: 585.6s winner=Killer reason=Collapse terminals 5/5 1@135.9s 2@163.5s 3@216.4s 4@312.4s 5@445.8s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 10: 769.1s winner=Killer reason=Collapse terminals 5/5 1@97.7s 2@189.9s 3@213.1s 4@214.1s 5@490.4s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 11: 520.4s winner=Survivor reason=Collapse terminals 6/5 1@88.2s 2@137.3s 3@152.5s 4@254.4s 5@330.8s 6@399.7s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 12: 665.2s winner=Killer reason=Collapse terminals 5/5 1@51.2s 2@155.4s 3@336.1s 4@369.2s 5@474.6s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 13: 630.8s winner=Survivor reason=Collapse terminals 5/5 1@64.3s 2@156.2s 3@242.7s 4@388.1s 5@483.8s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 14: 466.7s winner=Survivor reason=Collapse terminals 5/5 1@60.3s 2@159.0s 3@179.6s 4@263.8s 5@327.4s end [H:N b:E b:E b:E b:E b:E b:E]
+ seed 15: 729.7s winner=Killer reason=Collapse terminals 5/5 1@75.7s 2@226.3s 3@246.7s 4@445.6s 5@530.5s end [H:N b:E b:E b:E b:E b:E b:E]
+ median 729.7s, time-outs with a Normal bot 0
+
+
+[xUnit.net 00:00:14.72]   Finished:    Server.Tests
+  통과 PingTheKiller.Tests.QA.U2cAdversarialTests.Classifier_PositionTrackingAt20Hz_SeparatesPhantomFromRealNormalTracks_AucReportedWithGroundTruth [8 s]
+  표준 출력 메시지:
+ tracks=9114 phantom=1099 realNormal=4983 mixed(association errors)=543
+ AUC median step speed                            0.431  (distance from chance 0.069)
+ AUC mean step speed                              0.395  (distance from chance 0.105)
+ AUC still-step fraction                          0.609  (distance from chance 0.109)
+ AUC straightness                                 0.591  (distance from chance 0.091)
+ AUC end distance to terminal                     0.318  (distance from chance 0.182)
+ AUC gap count                                    0.482  (distance from chance 0.018)
+ AUC final still run                              0.481  (distance from chance 0.019)
+ AUC lifetime (reported only)                     0.225  (distance from chance 0.275)
+ AUC observations (reported only)                 0.225  (distance from chance 0.275)
+ AUC start distance to terminal (reported only)   0.290  (distance from chance 0.210)
+ AUC path length (reported only)                  0.361  (distance from chance 0.139)
+ CLASSIFIER 5-fold cross-validated logistic AUC: gated per-step features 0.705; all features incl. lifetime/spawn 0.786; stillness only 0.686
+ best single gated feature AUC 0.682
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 33
+     통과: 33
+ 총 시간: 15.0174 초

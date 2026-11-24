@@ -1,0 +1,1140 @@
+diff --git a/Server.Core/Runtime/BotViews.cs b/Server.Core/Runtime/BotViews.cs
+index d2e73d8..90a960c 100644
+--- a/Server.Core/Runtime/BotViews.cs
++++ b/Server.Core/Runtime/BotViews.cs
+@@ -30,6 +30,8 @@ namespace PingTheKiller.ServerCore
+         internal bool HatchVisible;
+         internal float HatchX, HatchZ;
+         internal byte Threat;
++        // Personal collapse clock, as received in SelfState (-1 before collapse).
++        internal float CollapseLeft = -1;
+         internal bool KillerVisible;
+         internal float KillerX, KillerZ, KillerYaw;
+     }
+diff --git a/Server.Core/Runtime/GameServer.Bots.cs b/Server.Core/Runtime/GameServer.Bots.cs
+index 082f873..c03f620 100644
+--- a/Server.Core/Runtime/GameServer.Bots.cs
++++ b/Server.Core/Runtime/GameServer.Bots.cs
+@@ -19,6 +19,9 @@ namespace PingTheKiller.ServerCore
+         private const double BotWalkPauseMin = SurvivorBrain.WalkPauseMin, BotWalkPauseMax = SurvivorBrain.WalkPauseMax;
+         private const double BotHackBurstMin = SurvivorBrain.HackBurstMin, BotHackBurstMax = SurvivorBrain.HackBurstMax;
+         private const double BotHackPauseMin = SurvivorBrain.HackPauseMin, BotHackPauseMax = SurvivorBrain.HackPauseMax;
++        // White Noise mixes workers with travellers, just as the uncapped survivor team does.
++        private const int WhiteNoiseMinTerminalPoints = 1;
++        private const int WhiteNoiseTerminalPointChoices = 3;
+ 
+         private readonly Dictionary<Player, BotBrain> _brains = new Dictionary<Player, BotBrain>();
+         private readonly SurvivorBotView _survivorBotView = new SurvivorBotView();
+@@ -94,6 +97,7 @@ namespace PingTheKiller.ServerCore
+             view.HatchX = view.HatchVisible ? _hatchX : 0;
+             view.HatchZ = view.HatchVisible ? _hatchZ : 0;
+             view.Threat = ThreatFor(bot);
++            view.CollapseLeft = _collapseRunning ? (float)bot.CollapseLeft : -1;
+             view.KillerVisible = KillerInSightOf(bot);
+             view.KillerX = view.KillerVisible ? _killer.X : 0;
+             view.KillerZ = view.KillerVisible ? _killer.Z : 0;
+diff --git a/Server.Core/Runtime/GameServer.Phantoms.cs b/Server.Core/Runtime/GameServer.Phantoms.cs
+index 9ad234a..41d0534 100644
+--- a/Server.Core/Runtime/GameServer.Phantoms.cs
++++ b/Server.Core/Runtime/GameServer.Phantoms.cs
+@@ -50,9 +50,7 @@ namespace PingTheKiller.ServerCore
+         private const float WhiteNoiseSpacing = 6f;
+         private const float WhiteNoiseTerminalJitter = 1f;
+         private const float WhiteNoiseSegmentReach = 4f;
+-        // N or N+1 of the five start at a terminal. N=2 is the only range passing both phantom gates on map v2.1 + rules v2:
+-        // U2c gated AUC 0.855 (< 0.86), Indistinguishability median-speed KS p=0.38 (1..4: 0.872 / 0.98; 1..2: 0.840 / 0).
+-        private const int WhiteNoiseMinTerminalPoints = 2;
++        // The worker/traveller mix and burst pacing live with the bot tuning in GameServer.Bots.
+ 
+         private readonly List<Phantom> _decoys = new List<Phantom>();
+         private readonly List<MapPoint> _landmarks = new List<MapPoint>();
+@@ -115,7 +113,7 @@ namespace PingTheKiller.ServerCore
+         {
+             BuildLandmarks();
+             var placed = new List<MapPoint>();
+-            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(2);
++            int terminalPoints = WhiteNoiseMinTerminalPoints + _decoyRandom.Next(WhiteNoiseTerminalPointChoices);
+             for (int i = 0; i < SkillIds.WhiteNoiseSignalCount; i++)
+             {
+                 bool atTerminal = i < terminalPoints && IncompleteTerminalCount() > 0;
+@@ -360,4 +358,4 @@ namespace PingTheKiller.ServerCore
+             }
+         }
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Server.Core/Runtime/KillerBrain.cs b/Server.Core/Runtime/KillerBrain.cs
+index e2b6b8e..05b2422 100644
+--- a/Server.Core/Runtime/KillerBrain.cs
++++ b/Server.Core/Runtime/KillerBrain.cs
+@@ -10,21 +10,21 @@ namespace PingTheKiller.ServerCore
+     // chases the last blip it noticed, looks around where the trail ends, and patrols terminals that are not done.
+     internal sealed class KillerBrain : BotBrain
+     {
+-        private const double ReactionMin = 0.4, ReactionMax = 0.9;
+-        private const double ChaseMemorySeconds = 5;
++        private const double ReactionMin = 0.7, ReactionMax = 1.3;
++        private const double ChaseMemorySeconds = 1.5;
+         private const double LookMin = 1.5, LookMax = 4;
+         private const float LookTurnDegreesPerSecond = 120f;
+         // First-person attention: blips inside the half-angle in front, or within NoticeRadius in any direction.
+-        private const float FovHalfDegrees = 60f, NoticeRadius = 5f, NoticeRange = 20f;
+-        private const double MissChance = 0.3;
+-        // Difficulty scales with the lobby, read from the terminals placed (GameConstants.TerminalsFor: four means one or
+-        // two survivors, five means three to five): against a small team it is less perceptive, so a lone survivor is not
++        private const float FovHalfDegrees = 60f, NoticeRadius = 3f, NoticeRange = 14f;
++        private const double MissChance = 0.5;
++        // Difficulty scales with the public terminal count (five for one or two survivors, seven for three to five):
++        // against a small team it is less perceptive, so a lone survivor is not
+         // found at once.
+-        private const int SmallLobbyTerminals = 4, MidLobbyTerminals = 5;
+-        private const float SmallLobbyNoticeRange = 11f, MidLobbyNoticeRange = 12f;
+-        private const double SmallLobbyMissChance = 0.55, MidLobbyMissChance = 0.5;
++        private const int SmallLobbyTerminals = 5, MidLobbyTerminals = 7;
++        private const float SmallLobbyNoticeRange = 7f, MidLobbyNoticeRange = 10f;
++        private const double SmallLobbyMissChance = 0.75, MidLobbyMissChance = 0.65;
+         // Where it thinks a noticed blip was is off by up to this much (reading a blip off the view is not exact).
+-        private const float SmallLobbyAimError = 2.2f, MidLobbyAimError = 1.2f, AimError = 0.3f;
++        private const float SmallLobbyAimError = 2.2f, MidLobbyAimError = 1.2f, AimError = 0.6f;
+         private const float ArriveDistance = 0.8f;
+         private const double PatrolTimeout = 12;
+         private const float PatrolStandOff = 3f;
+@@ -40,6 +40,12 @@ namespace PingTheKiller.ServerCore
+         private float _targetX, _targetZ;
+         private int _patrol = -1;
+         private float _patrolX, _patrolZ;
++        private float _observedX, _observedZ, _velocityX, _velocityZ, _aimX, _aimZ, _searchX, _searchZ;
++        private double _observedAt = double.NegativeInfinity, _kickUntil;
++        private double[] _signalAt = Array.Empty<double>(), _visitedAt = Array.Empty<double>();
++        private bool _guardSwitch;
++        private bool _surveying;
++        private double _surveyUntil;
+ 
+         internal BotIntent Update(KillerBotView view, NavGrid nav, FixedMap map, Random random)
+         {
+@@ -53,8 +59,25 @@ namespace PingTheKiller.ServerCore
+             bool anyNormal = false;
+             foreach (var blip in view.Blips) if (!blip.Lagging) anyNormal = true;
+             if (anyNormal) _lastBlipAt = t;
++            if (_signalAt.Length != view.TerminalCount)
++            {
++                _signalAt = new double[view.TerminalCount];
++                _visitedAt = new double[view.TerminalCount];
++                for (int i = 0; i < view.TerminalCount; i++) _signalAt[i] = _visitedAt[i] = double.NegativeInfinity;
++            }
++            foreach (var blip in view.Blips)
++                if (!blip.Lagging)
++                    for (int i = 0; i < view.TerminalCount; i++)
++                        if (Distance(blip.X, blip.Z, view.Terminals[i].X, view.Terminals[i].Z) <= 6) _signalAt[i] = t;
+             // GDD v2 §4: a Lagging survivor cannot be touched into the next stage, so Lagging blips are never targets.
+             if (t >= _thinkAt) Look(view, random);
++            if (_hasTarget)
++            {
++                _kickUntil = 0;
++                double ahead = Math.Min(1.5, Math.Max(0, t - _observedAt) + 0.25);
++                _targetX = _observedX + _velocityX * (float)ahead + _aimX;
++                _targetZ = _observedZ + _velocityZ * (float)ahead + _aimZ;
++            }
+             if (view.HatchVisible)
+             {
+                 // GDD v2 §3: a hatch in sight is closed at once (hold Interact standing still).
+@@ -70,13 +93,15 @@ namespace PingTheKiller.ServerCore
+             if (_hasTarget && (Distance(view.X, view.Z, _targetX, _targetZ) < ArriveDistance || t >= _targetUntil))
+             {
+                 _hasTarget = false;
++                _searchX = _targetX;
++                _searchZ = _targetZ;
+                 _lookUntil = t + Uniform(random, LookMin, LookMax);
+             }
+             if (_hasTarget) MoveTo(ref intent, nav, view.X, view.Z, _targetX, _targetZ, 0, view.Speed, t, random);
+             else if (t < _lookUntil)
+             {
+-                Stop(ref intent, view.X, view.Z);
+-                Face(ref intent, Facing + LookTurnDegreesPerSecond / GameConstants.TickRate);
++                if (MoveTo(ref intent, nav, view.X, view.Z, _searchX, _searchZ, ArriveDistance, view.Speed, t, random))
++                    Face(ref intent, Facing + LookTurnDegreesPerSecond / GameConstants.TickRate);
+             }
+             else Patrol(ref intent, view, nav, map, random);
+             UseSkills(ref intent, view);
+@@ -109,7 +134,7 @@ namespace PingTheKiller.ServerCore
+             {
+                 if (blip.Lagging || !Noticed(view, blip.X, blip.Z, random)) continue;
+                 float score = Distance(view.X, view.Z, blip.X, blip.Z);
+-                if (_hasTarget) score += 0.5f * Distance(blip.X, blip.Z, _targetX, _targetZ);
++                if (_hasTarget) score = Distance(blip.X, blip.Z, _targetX, _targetZ);
+                 if (score >= best) continue;
+                 best = score;
+                 bx = blip.X;
+@@ -120,52 +145,147 @@ namespace PingTheKiller.ServerCore
+             float error = view.TerminalCount <= SmallLobbyTerminals ? SmallLobbyAimError
+                 : view.TerminalCount <= MidLobbyTerminals ? MidLobbyAimError : AimError;
+             double angle = random.NextDouble() * 2 * Math.PI, reach = random.NextDouble() * error;
++            double elapsed = t - _observedAt;
++            if (_hasTarget && elapsed > 0 && elapsed <= ChaseMemorySeconds &&
++                Distance(bx, bz, _observedX, _observedZ) <= 6 * elapsed + 1)
++            {
++                _velocityX = (bx - _observedX) / (float)elapsed;
++                _velocityZ = (bz - _observedZ) / (float)elapsed;
++                float speed = Distance(0, 0, _velocityX, _velocityZ);
++                if (speed > 6) { _velocityX *= 6 / speed; _velocityZ *= 6 / speed; }
++            }
++            else _velocityX = _velocityZ = 0;
++            _observedAt = t;
++            _observedX = bx;
++            _observedZ = bz;
++            _aimX = (float)(Math.Sin(angle) * reach);
++            _aimZ = (float)(Math.Cos(angle) * reach);
+             _hasTarget = true;
+-            _targetX = bx + (float)(Math.Sin(angle) * reach);
+-            _targetZ = bz + (float)(Math.Cos(angle) * reach);
++            _targetX = _observedX;
++            _targetZ = _observedZ;
+             _targetUntil = t + ChaseMemorySeconds;
+         }
+ 
+-        // Terminals that are not done weigh three times as much as done ones; powered exits weigh most.
++        // Public Signal history ranks unfinished terminals; during the end game alternate the leading switch and nearby work.
+         private void Patrol(ref BotIntent intent, KillerBotView view, NavGrid nav, FixedMap map, Random random)
+         {
+             double t = view.Time;
+-            if (view.TerminalCount == 0) { Stop(ref intent, view.X, view.Z); return; }
+             bool arrived = _patrol >= 0 && Distance(view.X, view.Z, _patrolX, _patrolZ) < ArriveDistance;
+             if (arrived)
+             {
++                if (_surveying)
++                {
++                    if (t < _surveyUntil)
++                    {
++                        Survey(view, nav);
++                        MoveTo(ref intent, nav, view.X, view.Z, _patrolX, _patrolZ, 0, view.Speed, t, random);
++                        return;
++                    }
++                    _surveying = false;
++                    _patrolX = view.Terminals[_patrol].X;
++                    _patrolZ = view.Terminals[_patrol].Z;
++                    _patrolUntil = t + PatrolTimeout;
++                    MoveTo(ref intent, nav, view.X, view.Z, _patrolX, _patrolZ, 0, view.Speed, t, random);
++                    return;
++                }
++                if (_patrol < view.TerminalCount && !view.Terminals[_patrol].Done)
++                {
++                    foreach (var blip in view.Blips)
++                        if (!blip.Lagging && Distance(view.X, view.Z, blip.X, blip.Z) <= 6 &&
++                            !map.SegmentBlocked(view.X, view.Z, blip.X, blip.Z))
++                        {
++                            _kickUntil = 0;
++                            // Turn to inspect it through the usual attention/reaction model, then move on.
++                            // Do not wait forever for a missed blip or turn a patrol into perfect pursuit.
++                            _visitedAt[_patrol] = t;
++                            _patrol = -1;
++                            _lookUntil = t + Uniform(random, LookMin, LookMax);
++                            _searchX = view.X; _searchZ = view.Z;
++                            Stop(ref intent, view.X, view.Z);
++                            Face(ref intent, YawOf(blip.X - view.X, blip.Z - view.Z));
++                            return;
++                        }
++                    if (_kickUntil == 0) _kickUntil = t + GameConstants.KickHoldSeconds + 0.15;
++                    if (t < _kickUntil)
++                    {
++                        Stop(ref intent, view.X, view.Z);
++                        intent.Interact = true;
++                        return;
++                    }
++                }
++                if (_patrol < view.TerminalCount) _visitedAt[_patrol] = t;
++                _kickUntil = 0;
+                 _patrol = -1;
++                _surveying = false;
+                 _lookUntil = t + Uniform(random, LookMin, LookMax);
++                _searchX = view.X;
++                _searchZ = view.Z;
+                 Stop(ref intent, view.X, view.Z);
+                 return;
+             }
+             if (_patrol < 0 || t >= _patrolUntil)
+             {
+-                double total = 0;
+-                for (int i = 0; i < view.TerminalCount; i++) total += view.Terminals[i].Done ? 1 : 3;
++                _surveying = false;
+                 bool powered = Powered(view);
+-                if (powered) total += 4;
+-                double pick = random.NextDouble() * total;
+-                _patrol = view.TerminalCount;
++                int exitIndex = -1;
++                for (int i = 0; i < view.ExitCount; i++)
++                    if (view.Exits[i].Powered && (exitIndex < 0 || view.Exits[i].Progress > view.Exits[exitIndex].Progress)) exitIndex = i;
++                float best = float.MaxValue;
++                _patrol = -1;
+                 for (int i = 0; i < view.TerminalCount; i++)
+                 {
+-                    pick -= view.Terminals[i].Done ? 1 : 3;
+-                    if (pick < 0) { _patrol = i; break; }
++                    var terminal = view.Terminals[i];
++                    double revisit = view.TerminalCount <= SmallLobbyTerminals ? 150
++                        : view.TerminalCount <= MidLobbyTerminals ? 110 : 90;
++                    if (terminal.Done || t - _visitedAt[i] < revisit) continue;
++                    if (powered && Distance(terminal.X, terminal.Z, view.Exits[exitIndex].SwitchX, view.Exits[exitIndex].SwitchZ) > 18) continue;
++                    float score = Distance(view.X, view.Z, terminal.X, terminal.Z);
++                    if (t - _signalAt[i] <= 60) score -= 200;
++                    if (score < best) { best = score; _patrol = i; }
++                }
++                if (powered && (!_guardSwitch || _patrol < 0)) { _patrol = view.TerminalCount; _guardSwitch = true; }
++                else _guardSwitch = false;
++                bool fallback = _patrol < 0;
++                if (_patrol < 0)
++                {
++                    // Revisit suppression must never remove every destination. Prefer recent Signals,
++                    // then the least recently checked unfinished terminal.
++                    for (int i = 0; i < view.TerminalCount; i++)
++                    {
++                        if (view.Terminals[i].Done) continue;
++                        bool signal = t - _signalAt[i] <= 60;
++                        bool previousSignal = _patrol >= 0 && t - _signalAt[_patrol] <= 60;
++                        if (_patrol < 0 || (signal && !previousSignal) ||
++                            (signal == previousSignal && _visitedAt[i] < _visitedAt[_patrol])) _patrol = i;
++                    }
+                 }
+-                if (_patrol == view.TerminalCount && !powered) _patrol = view.TerminalCount - 1;
+                 float cx, cz;
+-                if (_patrol < view.TerminalCount) { cx = view.Terminals[_patrol].X; cz = view.Terminals[_patrol].Z; }
+-                else
++                if (_patrol >= 0 && _patrol < view.TerminalCount)
++                { cx = view.Terminals[_patrol].X; cz = view.Terminals[_patrol].Z; }
++                else if (_patrol == view.TerminalCount)
+                 {
+                     // A powered exit: its switch, where survivors have to stand.
+-                    var exit = view.Exits[random.Next(view.ExitCount)];
++                    var exit = view.Exits[exitIndex];
+                     cx = exit.SwitchX;
+                     cz = exit.SwitchZ;
+                 }
++                else { cx = view.X; cz = view.Z; }
++                // With no unfinished work (or only the terminal underfoot), search a distant map spot.
++                if (_patrol < 0 || (fallback && _patrol < view.TerminalCount && Distance(view.X, view.Z, cx, cz) < 4))
++                {
++                    _patrol = view.TerminalCount + 1;
++                    float farthest = -1;
++                    foreach (var spot in nav.Spots)
++                    {
++                        float distance = Distance(view.X, view.Z, spot.X, spot.Z);
++                        if (distance <= farthest) continue;
++                        farthest = distance; cx = spot.X; cz = spot.Z;
++                    }
++                }
+                 // It checks a place from a few metres off (any standable side), not from on top of it.
+                 _patrolX = cx;
+                 _patrolZ = cz;
+-                for (int attempt = 0; attempt < 8; attempt++)
++                for (int attempt = 0; attempt < 8 && _patrol == view.TerminalCount; attempt++)
+                 {
+                     double angle = random.NextDouble() * 2 * Math.PI;
+                     float x = cx + (float)Math.Sin(angle) * PatrolStandOff, z = cz + (float)Math.Cos(angle) * PatrolStandOff;
+@@ -175,10 +295,32 @@ namespace PingTheKiller.ServerCore
+                     break;
+                 }
+                 _patrolUntil = t + PatrolTimeout;
++                if (fallback && _patrol < view.TerminalCount)
++                {
++                    // Search beyond recently checked work before returning to the reserved terminal.
++                    // Unlike the old revisit wait this explores the map and can notice new Signals en route.
++                    double revisit = view.TerminalCount <= SmallLobbyTerminals ? 150
++                        : view.TerminalCount <= MidLobbyTerminals ? 110 : 90;
++                    _surveyUntil = _visitedAt[_patrol] + revisit;
++                    _surveying = true;
++                    Survey(view, nav);
++                }
+             }
+             MoveTo(ref intent, nav, view.X, view.Z, _patrolX, _patrolZ, 0, view.Speed, t, random);
+         }
+ 
++        private void Survey(KillerBotView view, NavGrid nav)
++        {
++            float farthest = -1;
++            foreach (var spot in nav.Spots)
++            {
++                float distance = Distance(view.X, view.Z, spot.X, spot.Z);
++                if (distance <= farthest) continue;
++                farthest = distance; _patrolX = spot.X; _patrolZ = spot.Z;
++            }
++            _patrolUntil = view.Time + farthest * 2 / Math.Max(0.1f, view.Speed) + PatrolTimeout;
++        }
++
+         private void UseSkills(ref BotIntent intent, KillerBotView view)
+         {
+             if (!view.SkillReady) return;
+diff --git a/Server.Core/Runtime/SurvivorBrain.cs b/Server.Core/Runtime/SurvivorBrain.cs
+index f1b9073..f760f92 100644
+--- a/Server.Core/Runtime/SurvivorBrain.cs
++++ b/Server.Core/Runtime/SurvivorBrain.cs
+@@ -14,25 +14,18 @@ namespace PingTheKiller.ServerCore
+         // Walk and hack pacing. GameServer.Phantoms copies these through the GameServer.Bot* constants, so phantom tracks
+         // keep the same burst and pause shape as real survivor bots.
+         internal const double WalkBurstMin = 2, WalkBurstMax = 5, WalkPauseMin = 1, WalkPauseMax = 3;
+-        internal const double HackBurstMin = 2, HackBurstMax = 4, HackPauseMin = 8, HackPauseMax = 16;
++        internal const double HackBurstMin = 1.5, HackBurstMax = 2, HackPauseMin = 0.5, HackPauseMax = 1.5;
+         // Hacking spot: inside TerminalRadius but beyond CaptureRadius of the terminal centre, where a patrolling killer stops.
+         internal const float HackStopDistance = 1.4f;
+ 
+         private const double ReactionMin = 0.25, ReactionMax = 0.6;
+         // A Silent look around before the first move, letting the killer commit to a direction first.
+         private const double OpeningMin = 2, OpeningMax = 8;
+-        // Danger: flee when the killer in sight walks at this bot (within ComingHalfAngle and ComingRange) shortly after it
+-        // was Signal near the killer and slipping away is unsafe, or when ThreatLevel reaches ThreatFleeLevel shortly after
+-        // that while the killer is out of sight. After a flee it holds still and Silent, and it waits (calm) before it
+-        // resumes work. Otherwise a nearby killer only makes it pause, or slip away from a terminal while that is safe.
+-        private const float HideSightDistance = 25f;
++        // Sight or Threat 2 triggers cover and a Silent hold; a recently exposed bot also reacts to an approaching chase.
+         private const float WatchRange = 27f, WatchHalfAngle = 70f, ComingHalfAngle = 30f, ComingRange = 32f, SlipDistance = 14f;
+         private const double NoticedWindow = 6, BlindNoticedWindow = 4;
+         private const float SlipMinDistance = 6f, ExitCaution = 10f;
+-        private const byte ThreatFleeLevel = 2, HideThreatLevel = 1;
+-        // ThreatLevel 1 alone is a scare only for a while after it rose; a killer that stays in that band without coming
+-        // closer (camping, idle) is then ignored like a human player would.
+-        private const double ThreatScareSeconds = 8;
++        private const byte ThreatFleeLevel = 2;
+         // ThreatLevel 2+ stays acute danger only while something changes: ThreatLevel rose, or the killer was seen moving
+         // (or newly sighted, or found elsewhere) within CampSeconds. A killer that neither comes closer nor is seen moving
+         // for that long is camping or idle: the bot leaves a terminal near it for other work (AvoidTerminal) and, when no
+@@ -43,7 +36,6 @@ namespace PingTheKiller.ServerCore
+         private const float KillerAtTerminalRadius = GameConstants.CaptureRadius + HackStopDistance + 1f;
+         private const float TerminalLeaveRadius = 3f, HideMinReach = 5f, HideMaxReach = 14f;
+         private const double HoldMin = 3, HoldMax = 6;
+-        private const double ExposedWindow = 1.0;
+         private const double FleeMin = 2.5, FleeMax = 4.5;
+         private const float FleeMinReach = 5f, FleeMaxReach = 16f;
+         private const double CalmMin = 4, CalmMax = 10;
+@@ -51,17 +43,10 @@ namespace PingTheKiller.ServerCore
+         private const double TerminalDangerMemorySeconds = 12;
+         private const float TerminalDangerRadius = 10f;
+         private const double AvoidTerminalSeconds = 20;
+-        // Rescue only when the killer was not seen for a while and ThreatLevel is at most 1.
++        // Quiet rescues are preferred; the timer can override these gates when arrival and the hold still fit.
+         private const double RescueQuietSeconds = 5;
+-        private const float RescueRange = 30f;
+-        // Team spread, judged only from the team entries every survivor receives: the ActiveWorkers Normal survivors with
+-        // the lowest Ids work terminals (one each, at most TerminalCap teammates near one terminal); the rest stay away
+-        // from terminals, keep watch and rescue. A captured worker hands its turn to the next Id.
+-        private const int TerminalCap = 1, ActiveWorkers = 1, LargeTeam = 4;
+-        private const double UrgentAt = 210, HurryAt = 360;
+-        // A lower-Id teammate holds a worker turn only while it visibly works (Signal, or at an incomplete terminal) at
+-        // least once per TeammateActiveSeconds, so an idle teammate (an AFK human) does not block the turn for good.
+-        private const double TeammateActiveSeconds = 45;
++        // Every available Normal survivor works. Lower Id wins a contested slot, using public teammate positions only.
++        private const int TerminalCap = 2;
+         private const float OccupiedRadius = 3f;
+         private const double WaitPauseMin = 25, WaitPauseMax = 50;
+         private const float HideoutDistance = 15f;
+@@ -71,7 +56,7 @@ namespace PingTheKiller.ServerCore
+         private double _reaction;
+         private double _thinkAt, _burstUntil, _pauseUntil, _calmUntil, _fleeUntil, _holdUntil;
+         private bool _fleeing, _hiding, _interrupted;
+-        private double _exposedAt = double.NegativeInfinity, _exposedNearAt = double.NegativeInfinity;
++        private double _exposedNearAt = double.NegativeInfinity;
+         private double _killerSeenAt = double.NegativeInfinity;
+         private double _threatRoseAt = double.NegativeInfinity;
+         private double _killerMovedAt = double.NegativeInfinity;
+@@ -86,7 +71,7 @@ namespace PingTheKiller.ServerCore
+         private double _avoidUntil;
+         private float _hideX, _hideZ;
+         private bool _wantSkill, _coverHack;
+-        private readonly Dictionary<int, double> _teammateActiveAt = new Dictionary<int, double>();
++        private readonly List<MapPoint> _escapePath = new List<MapPoint>(128);
+ 
+         internal BotIntent Update(SurvivorBotView view, NavGrid nav, FixedMap map, Random random)
+         {
+@@ -128,6 +113,11 @@ namespace PingTheKiller.ServerCore
+                 intent.Interact = _mode == ModeHack;
+             }
+             UseSkills(ref intent, view);
++            if (intent.Interact && _terminal >= 0 && Occupants(view, _terminal) >= TerminalCap)
++            {
++                intent.Interact = false;
++                _thinkAt = t;
++            }
+             return intent;
+         }
+ 
+@@ -135,18 +125,9 @@ namespace PingTheKiller.ServerCore
+         {
+             if (view.Threat > _lastThreat) _threatRoseAt = view.Time;
+             _lastThreat = view.Threat;
+-            foreach (var entry in view.Team)
+-            {
+-                if (entry.Id == view.SelfId || entry.Status != (byte)PlayerStatus.Normal) continue;
+-                // First sighting counts as active (everyone starts out working).
+-                if ((entry.Flags & (byte)PlayerFlags.Signal) != 0 || NearIncompleteTerminal(view, entry.X, entry.Z, OccupiedRadius) ||
+-                    !_teammateActiveAt.ContainsKey(entry.Id))
+-                    _teammateActiveAt[entry.Id] = view.Time;
+-            }
+             foreach (var entry in view.Team)
+                 if (entry.Id == view.SelfId && (entry.Flags & (byte)PlayerFlags.Signal) != 0)
+                 {
+-                    _exposedAt = view.Time;
+                     // Signal with the killer this close (ThreatLevel or sight): it may well have noticed this bot.
+                     if (view.Threat >= 1 || (view.KillerVisible && Distance(view.X, view.Z, view.KillerX, view.KillerZ) <= GameConstants.ThreatLevel1Distance))
+                         _exposedNearAt = view.Time;
+@@ -154,7 +135,7 @@ namespace PingTheKiller.ServerCore
+             if (!view.KillerVisible) return;
+             // Moving: the position changed since the sighting one tick ago (the entry carries no velocity).
+             float shift = Distance(_killerX, _killerZ, view.KillerX, view.KillerZ);
+-            _killerMoving = view.Time - _killerSeenAt < 0.2 && shift > 0.05f;
++            _killerMoving = view.Time - _killerSeenAt < 0.2 && shift > 0.001f;
+             // News about the killer: seen moving, sighted again after a while out of sight, or found somewhere else.
+             if (_killerMoving || view.Time - _killerSeenAt > KillerMemorySeconds || shift > KillerShiftDistance)
+                 _killerMovedAt = view.Time;
+@@ -173,22 +154,27 @@ namespace PingTheKiller.ServerCore
+ 
+         private bool KillerSeenWithin(double t, double seconds) => t - _killerSeenAt <= seconds;
+ 
++        private bool Acute(double t) => t - _threatRoseAt <= CampSeconds || t - _killerMovedAt <= CampSeconds;
++
+         private void Think(SurvivorBotView view, NavGrid nav, FixedMap map, Random random)
+         {
+             double t = view.Time;
+             _thinkAt = t + _reaction * Uniform(random, 0.7, 1.4);
+             bool fresh = KillerSeenWithin(t, KillerMemorySeconds);
+             float killerDistance = fresh ? Distance(view.X, view.Z, _killerX, _killerZ) : float.MaxValue;
+-            bool exposed = t - _exposedAt <= ExposedWindow;
+ 
+-            // An exit is open: head for the nearest open one, unless the killer is in sight close by and moving (then the
+-            // usual danger rules apply; a killer standing still would otherwise freeze the bot until the collapse ends it).
+-            // The same caution holds for the hatch and for the exit switch duty.
++            // Escape keeps moving, but routes around a visible killer. Affordable close rescues come first.
+             bool cautious = view.KillerVisible && killerDistance <= ExitCaution && _killerMoving;
+-            int open = NearestExit(view, true);
+-            if (open >= 0 && !cautious && t >= _fleeUntil)
++            int open = EscapeExit(view);
++            if (open >= 0)
+             {
+-                Plan(view.Exits[open].X, view.Exits[open].Z, 0, false);
++                int rescue = RescueTarget(view, t);
++                if (rescue >= 0 && CanRescueBeforeEscape(view, rescue, open))
++                {
++                    PlanRescue(view, rescue);
++                    return;
++                }
++                PlanEscape(view, open, nav);
+                 return;
+             }
+             // The last survivor in play goes for a hatch it can see and presses Interact on it.
+@@ -200,6 +186,13 @@ namespace PingTheKiller.ServerCore
+             }
+             // Powered exits: the Normal survivor nearest to an unopened switch holds it; the others carry on.
+             int duty = SwitchDuty(view);
++            // Switch holders used to return before considering rescue, even as an ally's timer expired.
++            int poweredRescue = duty >= 0 ? RescueTarget(view, t) : -1;
++            if (poweredRescue >= 0 && (!cautious || RescueUrgent(view, poweredRescue)))
++            {
++                PlanRescue(view, poweredRescue);
++                return;
++            }
+             if (duty >= 0 && !cautious && t >= _fleeUntil)
+             {
+                 var exit = view.Exits[duty];
+@@ -217,6 +210,13 @@ namespace PingTheKiller.ServerCore
+                 if (Distance(view.X, view.Z, _goalX, _goalZ) > StopDistance) { _mode = ModeWalk; return; }
+                 _fleeUntil = t;
+             }
++            // Reaching cover, rather than the reaction timer alone, ends a flee.
++            if (_fleeing && Distance(view.X, view.Z, _goalX, _goalZ) > StopDistance)
++            {
++                _mode = ModeWalk;
++                _fleeUntil = Math.Max(_fleeUntil, t + _reaction);
++                return;
++            }
+             if (_fleeing && t >= _fleeUntil)
+             {
+                 // The flee is over: hold still and Silent (running again next to the killer only shows where it is).
+@@ -232,21 +232,18 @@ namespace PingTheKiller.ServerCore
+                 t - _exposedNearAt <= NoticedWindow;
+             // Moving is safe enough while the killer is in sight and either looks elsewhere or is still far off.
+             bool canSlip = view.KillerVisible && killerDistance > SlipMinDistance && (!watched || killerDistance > SlipDistance);
+-            bool acute = t - _threatRoseAt <= CampSeconds || t - _killerMovedAt <= CampSeconds;
++            bool acute = Acute(t);
+             bool blind = !view.KillerVisible && view.Threat >= ThreatFleeLevel && acute && t - _exposedNearAt <= BlindNoticedWindow;
+             if (!holding && ((coming && !canSlip) || blind))
+             {
+                 StartFlee(view, nav, map, random, fresh);
+                 return;
+             }
+-            // A killer standing still far off (camping, idle) only keeps this bot away from its area (see ChooseTerminal);
+-            // one standing still close by (ThreatLevel 2+, seen or not) is danger only while acute (see CampSeconds).
+-            bool threatened = view.Threat > HideThreatLevel ? acute : view.Threat == HideThreatLevel && t - _threatRoseAt <= ThreatScareSeconds;
+-            bool danger = coming || threatened ||
+-                (fresh && killerDistance <= HideSightDistance && (_killerMoving || (killerDistance <= GameConstants.ThreatLevel2Distance && acute)));
++            // Sight triggers hiding until a stationary, non-approaching killer is established as camping.
++            bool danger = acute && (view.KillerVisible || view.Threat >= ThreatFleeLevel);
+             // Every new stale phase (after anything acute) notes the camp once.
+             if (acute) _campNoted = false;
+-            else if (view.Threat >= ThreatFleeLevel && !_campNoted)
++            else if ((view.KillerVisible || view.Threat >= ThreatFleeLevel) && !_campNoted)
+             {
+                 // The killer camps within ThreatLevel 2 of this bot: leave a terminal this close for other work if any.
+                 _campNoted = true;
+@@ -258,15 +255,21 @@ namespace PingTheKiller.ServerCore
+                     _terminal = -1;
+                 }
+             }
+-            if (holding || danger || t < _calmUntil)
++            int urgentRescue = RescueTarget(view, t);
++            if (urgentRescue >= 0 && RescueUrgent(view, urgentRescue) && !coming)
++            {
++                PlanRescue(view, urgentRescue);
++                return;
++            }
++            if (holding || danger || t < _calmUntil || (acute && _hiding && KillerSeenWithin(t, 3)))
+             {
+                 if (danger) _calmUntil = Math.Max(_calmUntil, t + Uniform(random, CalmMin, CalmMax));
+                 _interrupted = true;
+-                // Leave a terminal (where a patrolling killer heads, or where it saw this bot) for a quiet spot, but only
+-                // while that move is unlikely to be seen; unseen or watched up close it holds still instead.
+-                if (danger && !_hiding && canSlip && (coming || NearIncompleteTerminal(view, view.X, view.Z, TerminalLeaveRadius)))
++                // With a remembered position, move behind cover. A distance band alone supplies no escape direction.
++                if (danger && !_hiding && fresh)
+                 {
+                     _hiding = true;
++                    if (_terminal >= 0) { _avoidTerminal = _terminal; _avoidUntil = t + (LastInPlay(view) ? 15 : 90); }
+                     _terminal = -1;
+                     var spot = PickRefuge(view, nav, map, random, fresh, HideMinReach, HideMaxReach);
+                     Plan(spot.X, spot.Z, StopDistance, false);
+@@ -288,13 +291,11 @@ namespace PingTheKiller.ServerCore
+             int lagging = RescueTarget(view, t);
+             if (lagging >= 0)
+             {
+-                var ally = view.Team[lagging];
+-                if (Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.5f) _mode = ModePause;
+-                else Plan(ally.X, ally.Z, GameConstants.RescueRadius - 0.7f, false);
++                PlanRescue(view, lagging);
+                 return;
+             }
+ 
+-            int terminal = ChooseTerminal(view, t, random);
++            int terminal = ChooseTerminal(view, t, map);
+             bool atTerminal = terminal >= 0 &&
+                 Distance(view.X, view.Z, view.Terminals[terminal].X, view.Terminals[terminal].Z) <= HackStopDistance + 0.05f;
+             if (t >= _burstUntil)
+@@ -323,6 +324,73 @@ namespace PingTheKiller.ServerCore
+         private const float SwitchStop = GameConstants.ExitSwitchRadius - 0.5f;
+         private const float HatchStop = GameConstants.HatchRadius - 0.5f;
+ 
++        private static float SegmentDistance(float x, float z, float ax, float az, float bx, float bz)
++        {
++            float dx = bx - ax, dz = bz - az;
++            float square = dx * dx + dz * dz;
++            float along = square <= 0.0001f ? 0 : Math.Max(0, Math.Min(1, ((x - ax) * dx + (z - az) * dz) / square));
++            return Distance(x, z, ax + along * dx, az + along * dz);
++        }
++
++        private static int EscapeExit(SurvivorBotView view)
++        {
++            int best = -1;
++            float score = float.MaxValue;
++            for (int i = 0; i < view.ExitCount; i++)
++            {
++                var exit = view.Exits[i];
++                if (!exit.Open) continue;
++                float candidate = Distance(view.X, view.Z, exit.X, exit.Z);
++                if (view.KillerVisible && SegmentDistance(view.KillerX, view.KillerZ, view.X, view.Z, exit.X, exit.Z) <
++                    GameConstants.ThreatLevel3Distance) candidate += FixedMap.Size * 4;
++                if (candidate < score) { score = candidate; best = i; }
++            }
++            return best;
++        }
++
++        // Validate the actual static-map route, including its shortcuts, against the visible capture zone.
++        private bool SafeEscapePath(NavGrid nav, SurvivorBotView view, float x, float z, float tx, float tz, out float length)
++        {
++            length = 0;
++            if (!nav.FindPath(x, z, tx, tz, _escapePath)) return false;
++            for (int i = 1; i < _escapePath.Count; i++)
++            {
++                var a = _escapePath[i - 1]; var b = _escapePath[i];
++                if (SegmentDistance(view.KillerX, view.KillerZ, a.X, a.Z, b.X, b.Z) < GameConstants.CaptureRadius + 2) return false;
++                length += Distance(a.X, a.Z, b.X, b.Z);
++            }
++            return _escapePath.Count > 0;
++        }
++
++        private void PlanEscape(SurvivorBotView view, int index, NavGrid nav)
++        {
++            var exit = view.Exits[index];
++            _terminal = -1;
++            if (!view.KillerVisible || SafeEscapePath(nav, view, view.X, view.Z, exit.X, exit.Z, out _))
++            {
++                Plan(exit.X, exit.Z, 0, false);
++                return;
++            }
++            float best = float.MaxValue, waypointX = exit.X, waypointZ = exit.Z;
++            // Two safe map routes joined outside the capture zone form a detour. Only the first
++            // straight route segment becomes the immediate goal, preventing follower shortcuts across the killer.
++            for (int ring = 0; ring < 3; ring++)
++                for (int side = 0; side < 16; side++)
++                {
++                    double angle = side * Math.PI / 8;
++                    float radius = GameConstants.CaptureRadius + 3 + ring * 3;
++                    float x = view.KillerX + (float)Math.Cos(angle) * radius;
++                    float z = view.KillerZ + (float)Math.Sin(angle) * radius;
++                    if (!SafeEscapePath(nav, view, view.X, view.Z, x, z, out float first)) continue;
++                    MapPoint next = _escapePath.Count > 1 ? _escapePath[1] : new MapPoint(x, z);
++                    if (!SafeEscapePath(nav, view, x, z, exit.X, exit.Z, out float second)) continue;
++                    if (first + second >= best) continue;
++                    best = first + second; waypointX = next.X; waypointZ = next.Z;
++                }
++            // If every route is unsafe, still make progress toward escape rather than hiding until collapse.
++            Plan(waypointX, waypointZ, 0, false);
++        }
++
+         // The nearest exit that is open (open = true) or powered and not yet open (open = false); -1 when none.
+         private static int NearestExit(SurvivorBotView view, bool open)
+         {
+@@ -347,16 +415,17 @@ namespace PingTheKiller.ServerCore
+             return true;
+         }
+ 
+-        // The unopened powered switch this bot should hold: it is the Normal survivor (lowest Id on a tie) closest to any
+-        // unopened powered switch. Every bot evaluates the same WorldState, so exactly one takes the duty.
++        // Prefer the most advanced powered switch, then its nearest Normal holder (lower Id breaks ties).
+         private static int SwitchDuty(SurvivorBotView view)
+         {
+-            int bestExit = -1, bestId = int.MaxValue;
++            int bestExit = -1, bestId = int.MaxValue, progress = -1;
+             float best = float.MaxValue;
+             for (int i = 0; i < view.ExitCount; i++)
+             {
+                 var exit = view.Exits[i];
+                 if (!exit.Powered || exit.Open) continue;
++                if (exit.Progress < progress) continue;
++                if (exit.Progress > progress) { progress = exit.Progress; best = float.MaxValue; bestId = int.MaxValue; }
+                 foreach (var entry in view.Team)
+                 {
+                     if (entry.Status != (byte)PlayerStatus.Normal) continue;
+@@ -398,7 +467,7 @@ namespace PingTheKiller.ServerCore
+                     float dot = ((spot.X - view.X) * (_killerX - view.X) + (spot.Z - view.Z) * (_killerZ - view.Z)) / (d * kd);
+                     if (dot > 0.2f) continue;
+                     score += Distance(spot.X, spot.Z, _killerX, _killerZ) - 0.3f * d +
+-                        (map.SegmentBlocked(_killerX, _killerZ, spot.X, spot.Z) ? 6f : 0f);
++                        (map.SegmentBlocked(_killerX, _killerZ, spot.X, spot.Z) ? 1000f : 0f);
+                 }
+                 if (score <= bestScore) continue;
+                 bestScore = score;
+@@ -432,19 +501,21 @@ namespace PingTheKiller.ServerCore
+                 (view.Skill == SkillIds.TrafficOverload && known && kd <= 8f);
+         }
+ 
+-        // The nearest Lagging teammate within RescueRange when this bot is the closest Normal survivor to it (ties: lower
+-        // Id), the killer has not been seen for RescueQuietSeconds and ThreatLevel is at most 1. Index into view.Team.
++        // The closest reachable Lagging ally for which this bot is the nearest Normal rescuer (lower Id breaks ties).
+         private int RescueTarget(SurvivorBotView view, double t)
+         {
+-            if (view.Threat > 1 || KillerSeenWithin(t, RescueQuietSeconds)) return -1;
+             int best = -1;
+-            float bestDistance = RescueRange;
++            float bestDistance = float.MaxValue;
+             for (int i = 0; i < view.Team.Count; i++)
+             {
+                 var ally = view.Team[i];
+                 if (ally.Id == view.SelfId || ally.Status != (byte)PlayerStatus.Lagging) continue;
+                 float mine = Distance(view.X, view.Z, ally.X, ally.Z);
+                 if (mine >= bestDistance) continue;
++                double arrival = mine * 1.4 / Math.Max(0.1f, view.Speed) + GameConstants.RescueTimeSeconds + 1;
++                if (ally.StatusTimer <= arrival) continue;
++                bool urgent = ally.StatusTimer < arrival + 12;
++                if (!urgent && Acute(t) && (view.Threat > 1 || KillerSeenWithin(t, RescueQuietSeconds))) continue;
+                 bool closer = false;
+                 foreach (var other in view.Team)
+                 {
+@@ -463,51 +534,71 @@ namespace PingTheKiller.ServerCore
+         {
+             int count = 0;
+             foreach (var other in view.Team)
+-                if (other.Id != view.SelfId && other.Status == (byte)PlayerStatus.Normal &&
++                if (other.Id < view.SelfId && other.Status == (byte)PlayerStatus.Normal &&
+                     Distance(other.X, other.Z, view.Terminals[terminal].X, view.Terminals[terminal].Z) <= OccupiedRadius) ++count;
+             return count;
+         }
+ 
+-        // Keeps its terminal while it is incomplete and not near where the killer was just seen; otherwise picks the
+-        // nearest incomplete terminal with room, limiting how many terminals the team works at once.
+-        private int ChooseTerminal(SurvivorBotView view, double t, Random random)
++        // Prefer progress, then distance, while avoiding danger and respecting two slots at every terminal.
++        private bool TerminalAllowed(SurvivorBotView view, double t, FixedMap map, int i, int pass)
+         {
+-            int rank = 0, normal = 0;
+-            foreach (var entry in view.Team)
+-            {
+-                if (entry.Status != (byte)PlayerStatus.Normal) continue;
+-                ++normal;
+-                if (entry.Id != view.SelfId && entry.Id < view.SelfId &&
+-                    _teammateActiveAt.TryGetValue(entry.Id, out double active) && t - active <= TeammateActiveSeconds) ++rank;
+-            }
+-            // More hands as the match clock runs down (every client shows the clock).
+-            int workers = (normal >= LargeTeam ? ActiveWorkers + 1 : ActiveWorkers) + (t >= UrgentAt ? 1 : 0) + (t >= HurryAt ? 1 : 0);
+-            if (rank >= workers) { _terminal = -1; return -1; }
+-            bool danger = KillerSeenWithin(t, TerminalDangerMemorySeconds);
+-            bool killerKnown = !double.IsNegativeInfinity(_killerSeenAt);
+-            if (_terminal >= 0 && _terminal < view.TerminalCount && view.Terminals[_terminal].Progress < 100 &&
+-                !(danger && Distance(view.Terminals[_terminal].X, view.Terminals[_terminal].Z, _killerX, _killerZ) < TerminalDangerRadius))
+-                return _terminal;
++            var terminal = view.Terminals[i];
++            if (terminal.Progress >= 100 || Occupants(view, i) >= TerminalCap) return false;
++            bool visibleCamp = view.KillerVisible && !Acute(t);
++            if ((pass == 0 || visibleCamp) && i == _avoidTerminal && t < _avoidUntil) return false;
++            if (visibleCamp && !map.SegmentBlocked(_killerX, _killerZ, terminal.X, terminal.Z)) return false;
++            if (KillerSeenWithin(t, TerminalDangerMemorySeconds) &&
++                Distance(terminal.X, terminal.Z, _killerX, _killerZ) < TerminalDangerRadius &&
++                (pass == 0 || Acute(t))) return false;
++            if (pass == 1 && !double.IsNegativeInfinity(_killerSeenAt) &&
++                Distance(terminal.X, terminal.Z, _killerX, _killerZ) <= KillerAtTerminalRadius) return false;
++            return true;
++        }
++
++        private int ChooseTerminal(SurvivorBotView view, double t, FixedMap map)
++        {
++            int current = _terminal;
+             _terminal = -1;
+             float best = float.MaxValue;
+             for (int pass = 0; pass < 2 && _terminal < 0; pass++)
+                 for (int i = 0; i < view.TerminalCount; i++)
+                 {
+                     var terminal = view.Terminals[i];
+-                    if (terminal.Progress >= 100) continue;
+-                    if (pass == 0 && i == _avoidTerminal && t < _avoidUntil) continue;
+-                    // A killer seen near a terminal blocks it; on the fallback pass only while it is not camping there.
+-                    if (danger && Distance(terminal.X, terminal.Z, _killerX, _killerZ) < TerminalDangerRadius &&
+-                        (pass == 0 || t - _killerMovedAt <= CampSeconds)) continue;
+-                    if (pass == 1 && killerKnown && Distance(terminal.X, terminal.Z, _killerX, _killerZ) <= KillerAtTerminalRadius) continue;
+-                    int occupants = Occupants(view, i);
+-                    if (occupants >= TerminalCap) continue;
+-                    float score = Distance(view.X, view.Z, terminal.X, terminal.Z) + (float)random.NextDouble() * 4f;
++                    if (!TerminalAllowed(view, t, map, i, pass)) continue;
++                    float score = -terminal.Progress * 200f + Distance(view.X, view.Z, terminal.X, terminal.Z);
+                     if (score < best) { best = score; _terminal = i; }
+                 }
++            if (current >= 0 && current < view.TerminalCount && TerminalAllowed(view, t, map, current, 0) &&
++                (_terminal < 0 || view.Terminals[_terminal].Progress < view.Terminals[current].Progress + 15))
++                _terminal = current;
+             return _terminal;
+         }
+ 
++        private void PlanRescue(SurvivorBotView view, int target)
++        {
++            var ally = view.Team[target];
++            _terminal = -1;
++            if (Distance(view.X, view.Z, ally.X, ally.Z) <= GameConstants.RescueRadius - 0.5f) _mode = ModePause;
++            else Plan(ally.X, ally.Z, GameConstants.RescueRadius - 0.7f, false);
++        }
++
++        private static bool RescueUrgent(SurvivorBotView view, int target)
++        {
++            var ally = view.Team[target];
++            double arrival = Distance(view.X, view.Z, ally.X, ally.Z) * 1.4 / Math.Max(0.1f, view.Speed);
++            return ally.StatusTimer < arrival + GameConstants.RescueTimeSeconds + 13;
++        }
++
++        private static bool CanRescueBeforeEscape(SurvivorBotView view, int target, int exit)
++        {
++            var ally = view.Team[target];
++            double arrive = Distance(view.X, view.Z, ally.X, ally.Z) * 1.4 / Math.Max(0.1f, view.Speed);
++            double leave = Distance(ally.X, ally.Z, view.Exits[exit].X, view.Exits[exit].Z) * 1.4 / Math.Max(0.1f, view.Speed);
++            // A Lagging ally consumes twice as much collapse clock until the rescue completes.
++            return arrive < 4 && (view.CollapseLeft < 0 ||
++                (arrive + GameConstants.RescueTimeSeconds) * GameConstants.CollapseLaggingRate + leave + 3 < view.CollapseLeft);
++        }
++
+         // A random lattice spot (NavGrid.Spots) at least HideoutDistance away (the farthest one if none is).
+         private void PickHideout(SurvivorBotView view, NavGrid nav, Random random)
+         {
+@@ -555,6 +646,9 @@ namespace PingTheKiller.ServerCore
+             // A flee skill is wanted only while that flee lasts. A decoy also covers the start of a hack burst (hacking is
+             // Signal, so fake Signals elsewhere make the real one harder to pick).
+             bool use = _wantSkill && view.Time < _fleeUntil;
++            if (view.Skill == SkillIds.TrafficOverload &&
++                ((view.KillerVisible && Distance(view.X, view.Z, view.KillerX, view.KillerZ) <= 10) ||
++                (view.Threat >= 3 && (intent.DirX != 0 || intent.DirZ != 0)))) use = true;
+             if (_mode != ModeHack) _coverHack = false;
+             else if (_coverHack && (view.Skill == SkillIds.DummyPacket || view.Skill == SkillIds.WhiteNoise))
+             {
+@@ -570,9 +664,7 @@ namespace PingTheKiller.ServerCore
+             }
+             else if (view.Skill == SkillIds.StealthRelay && _mode == ModeHack && view.Threat >= 1)
+             {
+-                foreach (var ally in view.Team)
+-                    if (ally.Id != view.SelfId && ally.Status == (byte)PlayerStatus.Normal &&
+-                        Distance(view.X, view.Z, ally.X, ally.Z) <= SkillIds.StealthRelayRadius) use = true;
++                use = true;
+             }
+             if (!use) return;
+             intent.UseSkill = true;
+diff --git a/Server.Tests/Core/BotBalance.cs b/Server.Tests/Core/BotBalance.cs
+index 13ac8cd..8ccaf8d 100644
+--- a/Server.Tests/Core/BotBalance.cs
++++ b/Server.Tests/Core/BotBalance.cs
+@@ -20,6 +20,7 @@ internal static class BotBalance
+         internal string Reason = "";
+         internal int Terminals, Required;
+         internal int Captures, Rescues, Executions, SecondCaptures, LagTimeouts, Escaped;
++        internal int ExitEscapes, CollapseLosses;
+         internal double Seconds => Ticks / (double)GameConstants.TickRate;
+         internal bool SurvivorWin => Winner == "Survivor";
+         internal bool TimeUp => Reason == "TimeUp";
+@@ -39,6 +40,8 @@ internal static class BotBalance
+                 else if (m.EndsWith("reason=execution", StringComparison.Ordinal)) Stats.Executions++;
+                 else if (m.EndsWith("reason=timeout", StringComparison.Ordinal)) Stats.LagTimeouts++;
+                 else if (m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal)) Stats.Rescues++;
++                else if (m.EndsWith("Escaped reason=exit", StringComparison.Ordinal)) Stats.ExitEscapes++;
++                else if (m.EndsWith("Eliminated reason=collapse", StringComparison.Ordinal)) Stats.CollapseLosses++;
+             }
+             else if (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) Stats.Terminals++;
+             else if (m.StartsWith("match end ", StringComparison.Ordinal))
+diff --git a/Server.Tests/Core/BotBalanceTests.cs b/Server.Tests/Core/BotBalanceTests.cs
+index 2e933f5..4c87335 100644
+--- a/Server.Tests/Core/BotBalanceTests.cs
++++ b/Server.Tests/Core/BotBalanceTests.cs
+@@ -15,12 +15,11 @@ public sealed class BotBalanceTests
+     public static IEnumerable<object[]> Configs() => new[]
+     {
+         // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share.
+-        // GDD v2 (U6a): the U2d win and length bands are reported only until U6d sets the v2 targets; the gate is that 1v7
+-        // all-bot matches end through the rules (at most 30 % time-ups).
+-        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.30 },
+-        new object[] { "1v3", 3, 0.25, 0.75, 120.0, 480.0, 1.0 },
+-        new object[] { "1v1", 1, 0.20, 0.80, 90.0, 480.0, 1.0 },
+-        new object[] { "idle killer + 7", 0, 0.90, 1.0, 120.0, 360.0, 1.0 },
++        // U6d: enforce the GDD v2 win, median and timeout bands on both fixed seed sets.
++        new object[] { "1v7", 7, 0.35, 0.65, 540.0, 660.0, 0.10 },
++        new object[] { "1v3", 3, 0.25, 0.75, 0.0, 660.0, 0.20 },
++        new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30 },
++        new object[] { "idle killer + 7", 0, 0.90, 1.0, 0.0, 900.0, 1.0 },
+     };
+ 
+     [Theory]
+@@ -37,9 +36,18 @@ public sealed class BotBalanceTests
+         _output.WriteLine(BotBalance.Header);
+         _output.WriteLine(summary.Row(config));
+         _output.WriteLine($"lagging timeouts per match {summary.LagTimeouts:0.00}; sweep {watch.Elapsed.TotalSeconds:0.0} s");
+-        _output.WriteLine($"U2d bands (not gated under GDD v2): win {winMin:P0}-{winMax:P0}, median {medianMin:0}-{medianMax:0} s");
++        _output.WriteLine($"GDD v2 bands: win {winMin:P0}-{winMax:P0}, median {medianMin:0}-{medianMax:0} s");
+         Assert.Equal(Seeds, summary.Matches);
++        Assert.InRange(summary.WinRate, winMin, winMax);
++        Assert.InRange(summary.Median, medianMin, medianMax);
+         Assert.True(summary.TimeoutRate <= timeoutMax, $"timeouts {summary.TimeoutRate:P0}");
++        if (survivors == 0)
++        {
++            int exits = runs.Sum(r => r.ExitEscapes), collapse = runs.Sum(r => r.CollapseLosses);
++            _output.WriteLine($"idle survivor outcomes: exit escapes {exits}/{Seeds * 7}, collapse losses {collapse}/{Seeds * 7}");
++            Assert.True(exits > Seeds * 7 / 2, "most survivors must escape through exits");
++            Assert.True(exits > collapse);
++        }
+     }
+ 
+     // The all-bot hook is deterministic per private seed: the same seed replays the same match.
+diff --git a/Server.Tests/Core/BotMatchTests.cs b/Server.Tests/Core/BotMatchTests.cs
+index 6e4f593..8703462 100644
+--- a/Server.Tests/Core/BotMatchTests.cs
++++ b/Server.Tests/Core/BotMatchTests.cs
+@@ -50,7 +50,8 @@ public sealed class BotMatchTests
+         Assert.NotNull(result);
+         Assert.True(ticks <= 18000, "the match must end by the 900 s time limit");
+         if (result.WinnerRole == (byte)Role.Survivor) Assert.NotEmpty(result.EscapedIds);
+-        else Assert.Empty(result.EscapedIds);
++        // GDD v2: fewer than half escaping is still a killer victory.
++        else Assert.True(result.EscapedIds.Count < 4);
+         // After the end only lobby traffic follows, and no second result.
+         f.Tick();
+         f.Tick();
+diff --git a/Server.Tests/Core/IndistinguishabilityTests.cs b/Server.Tests/Core/IndistinguishabilityTests.cs
+index b269556..157d22a 100644
+--- a/Server.Tests/Core/IndistinguishabilityTests.cs
++++ b/Server.Tests/Core/IndistinguishabilityTests.cs
+@@ -101,7 +101,7 @@ public sealed class IndistinguishabilityTests
+         Assert.True(p < 1e-10);
+     }
+ 
+-    // Gate (orchestrator ruling, attempt 2): KS p >= 0.01 for speed, still-away-from-terminal and afterimage tail,
++    // U6d strengthens the KS gate to p >= 0.02 for speed, still-away-from-terminal and afterimage tail,
+     // phantoms against real Normal Signal tracks. Spawn distance (aim D < 0.2) and lifetime are reported only.
+     // White Noise lives 1.5 s by design (GDD 4), so the gated features are per-step and do not scale with lifetime:
+     // the track's median step speed, and still steps away from any terminal before the final stop frame (every
+@@ -137,7 +137,7 @@ public sealed class IndistinguishabilityTests
+             var (d, p) = KolmogorovSmirnov(a, b);
+             string line = $"{name}: phantom median {Median(a):0.###} mean {a.Average():0.###}, real median {Median(b):0.###} mean {b.Average():0.###}, KS D={d:0.###} p={p:0.####}{(gated ? "" : " (reported, not gated)")}";
+             _output.WriteLine(line);
+-            if (gated && p < 0.01) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
++            if (gated && p < 0.02) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
+         }
+         _output.WriteLine(failures.Count == 0 ? "GATE PASS" : "GATE FAIL: " + string.Join(", ", failures));
+         Assert.True(phantoms.Count >= 100 && reals.Count >= 100, $"{phantoms.Count} phantom / {reals.Count} real tracks");
+diff --git a/Server.Tests/Core/MatchLengthTests.cs b/Server.Tests/Core/MatchLengthTests.cs
+index 938d0a2..793b7d4 100644
+--- a/Server.Tests/Core/MatchLengthTests.cs
++++ b/Server.Tests/Core/MatchLengthTests.cs
+@@ -93,12 +93,8 @@ public sealed class MatchLengthTests
+         }
+         double median = Median(lengths);
+         _output.WriteLine($"median {median:0.0}s, time-outs with a Normal bot {botTimeouts}");
+-        // U6a gate under GDD v2: at most 6 of 15 time-ups (raised from 4 by the orchestrator in U6a attempt 2: without
+-        // Lagging executions survivors live longer and more matches reach the limit). U6d sets the tuned v2 targets.
+-        // Raised to 7 by the orchestrator at the 2026-11-04 merge (map v2.1 + rules v2): seeds 2, 3, 5, 15 time out with the
+-        // killer bot moving and survivor bots hacking ~3-9 s per 30 s across many terminals (bot pacing, not a stall). U6d
+-        // must restore <= 4 (docs/qa/merge-1104/botfreeze-impl.md).
+-        Assert.True(botTimeouts <= 7, $"time-outs with a Normal bot {botTimeouts} of 15");
++        // U6d restores the original ceiling after tuning the v2 brains.
++        Assert.True(botTimeouts <= 4, $"time-outs with a Normal bot {botTimeouts} of 15");
+         Assert.True(median >= floor, $"median match length {median:0.0}s");
+         // GDD v2: the U2d 360 s ceiling no longer applies (45 s terminals, 15 s switch); U6d sets the v2 length targets.
+         if (humanRole == RoleChoice.Killer) Assert.True(median <= GameConstants.MatchLengthSeconds, $"median match length {median:0.0}s");
+diff --git a/Server.Tests/Core/SurvivorCampTests.cs b/Server.Tests/Core/SurvivorCampTests.cs
+index 3d8efd2..fce3b30 100644
+--- a/Server.Tests/Core/SurvivorCampTests.cs
++++ b/Server.Tests/Core/SurvivorCampTests.cs
+@@ -116,12 +116,14 @@ public sealed class SurvivorCampTests
+         Assert.True(maxThreatWhileHacking >= 2, "the hacking spot must be inside ThreatLevel 2 for this test to mean anything");
+     }
+ 
+-    // The same idle killer in plain sight (standing still, facing the terminal) does not freeze the bot either.
++    // Sight initially triggers hiding; stale camping releases work when the killer becomes unseen.
+     [Fact]
+-    public void AnIdleKillerInSightNearTheLastTerminalDoesNotFreezeTheBot()
++    public void AnIdleKillerSeenThenHiddenDoesNotFreezeTheBot()
+     {
+         var sim = new Sim(7, 41f, 38f) { KillerVisible = true, KillerYaw = 90f };
+-        Assert.True(sim.RunUntilHacking(120), "the bot never hacked next to an idle killer in sight");
++        for (int i = 0; i < 100; i++) { sim.Step(); Assert.False(sim.Hacking); }
++        sim.KillerVisible = false;
++        Assert.True(sim.RunUntilHacking(120), "the bot never resumed after the killer became unseen");
+     }
+ 
+     // Once the bot works next to the camping killer, a rising ThreatLevel (the killer walks at it, still unseen) makes it
+@@ -199,6 +201,8 @@ public sealed class SurvivorCampTests
+             sim.Step();
+             Assert.Equal(2, sim.View.Threat);
+         }
++        // This variant loses sight; continuous sight is covered separately below.
++        sim.KillerVisible = false;
+         bool atOther = false;
+         for (int i = 0; i < 90 * 20 && !atOther; i++)
+         {
+@@ -226,4 +230,31 @@ public sealed class SurvivorCampTests
+         }
+         Assert.True(closest > GameConstants.CaptureRadius + 1f, $"seed {seed}: came within {closest:0.00} m of the killer");
+     }
++
++    [Fact]
++    public void VisibleCampReleasesOccludedWorkWithinFortySecondsAndMovementRestoresHiding()
++    {
++        var sim = new Sim(7, 41, 38) { KillerVisible = true, KillerX = 8, KillerZ = 38 };
++        Assert.True(Dist(sim.View.X, sim.View.Z, sim.KillerX, sim.KillerZ) > GameConstants.ThreatLevel2Distance);
++        bool hackedByForty = false;
++        for (int i = 0; i < 60 * 20; i++)
++        {
++            sim.Step();
++            if (!sim.Hacking) continue;
++            Assert.True(sim.Map.SegmentBlocked(sim.KillerX, sim.KillerZ,
++                sim.View.Terminals[Terminal].X, sim.View.Terminals[Terminal].Z));
++            if (sim.Time <= 40) hackedByForty = true;
++        }
++        Assert.True(hackedByForty, $"no occluded hack within 40s; position {sim.View.X},{sim.View.Z}");
++        bool hid = false;
++        for (int i = 0; i < 20; i++)
++        {
++            sim.KillerX += .1f;
++            sim.Step();
++            hid |= (bool)typeof(SurvivorBrain).GetField("_hiding",
++                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(sim.Brain)!;
++        }
++        Assert.True(hid, "visible killer movement did not restore hiding");
++        Assert.False(sim.Intent.Interact);
++    }
+ }
+diff --git a/Server.Tests/Core/SyncTimingTests.cs b/Server.Tests/Core/SyncTimingTests.cs
+index 2abcafc..b576493 100644
+--- a/Server.Tests/Core/SyncTimingTests.cs
++++ b/Server.Tests/Core/SyncTimingTests.cs
+@@ -245,7 +245,8 @@ public sealed class SyncTimingTests
+     public void BotSyncSharesAreUnchanged()
+     {
+         int great = 0, good = 0, fail = 0;
+-        for (int seed = 11; seed < 26; seed++)
++        // Faster v2 matches produce fewer checks per match; retain the statistical sample floor with more seeds.
++        for (int seed = 11; seed < 51; seed++)
+         {
+             using var f = new CoreFixture(seed: seed);
+             bool ended = false;
+@@ -272,8 +273,7 @@ public sealed class SyncTimingTests
+         Assert.True(total >= 150, $"only {total} bot sync results");
+         double successShare = (great + good) / (double)total;
+         double greatShare = great / (double)(great + good);
+-        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results). These seeds
+-        // give 30 Great / 162 Good / 22 Fail both before and after U6f (a bot press still resolves on the same tick).
++        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results).
+         Assert.InRange(successShare, GameServer.DefaultBotSyncSuccessRate - 0.12, GameServer.DefaultBotSyncSuccessRate + 0.12);
+         Assert.InRange(greatShare, GameServer.BotSyncGreatShare - 0.1, GameServer.BotSyncGreatShare + 0.1);
+     }
+diff --git a/Server.Tests/QA/U2cAdversarialTests.cs b/Server.Tests/QA/U2cAdversarialTests.cs
+index a16247f..ed3270c 100644
+--- a/Server.Tests/QA/U2cAdversarialTests.cs
++++ b/Server.Tests/QA/U2cAdversarialTests.cs
+@@ -608,10 +608,8 @@ public sealed class U2cAdversarialTests
+         // The orchestrator accepted a per-track residual (average speed/stillness D~0.49, lifetime, spawn distance). This test
+         // pins the measured level (reported above, see docs/qa/U2c-qa-a1.md) as a regression ceiling, not as proof of
+         // indistinguishability: a rise above 0.85 means the residual got worse.
+-        // Orchestrator, U6a attempt 2: the gated AUC ceiling is 0.86 (was 0.85) because survivors now live longer without Lagging
+-        // executions, so phantom tracks are longer and more numerous (571); the phantom code itself did not change. U6d retunes
+-        // phantoms and restores 0.85.
+-        Assert.True(aucGated < 0.86, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
++        // U6d restores the original 0.85 ceiling after matching the phantom and survivor pacing.
++        Assert.True(aucGated < 0.85, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
+         Assert.True(bestGated < 0.85, $"a single gated feature reaches AUC {bestGated:0.000}");
+     }
+ 
+diff --git a/Server.Tests/QA/U2d/U2dQaSweepTests.cs b/Server.Tests/QA/U2d/U2dQaSweepTests.cs
+index b72555e..1d21fae 100644
+--- a/Server.Tests/QA/U2d/U2dQaSweepTests.cs
++++ b/Server.Tests/QA/U2d/U2dQaSweepTests.cs
+@@ -31,6 +31,7 @@ public sealed class U2dQaSweepTests
+         internal string Reason = "";
+         internal int Terminals, Required;
+         internal int Captures, Rescues, Executions, SecondCaptures, LagTimeouts, Escaped;
++        internal int ExitEscapes, CollapseLosses;
+         internal double Seconds => Ticks / (double)GameConstants.TickRate;
+         internal bool SurvivorWin => Winner == "Survivor";
+         internal bool TimeUp => Reason == "TimeUp";
+@@ -50,6 +51,8 @@ public sealed class U2dQaSweepTests
+                 else if (m.EndsWith("reason=execution", StringComparison.Ordinal)) Stats.Executions++;
+                 else if (m.EndsWith("reason=timeout", StringComparison.Ordinal)) Stats.LagTimeouts++;
+                 else if (m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal)) Stats.Rescues++;
++                else if (m.EndsWith("Escaped reason=exit", StringComparison.Ordinal)) Stats.ExitEscapes++;
++                else if (m.EndsWith("Eliminated reason=collapse", StringComparison.Ordinal)) Stats.CollapseLosses++;
+             }
+             else if (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) Stats.Terminals++;
+             else if (m.StartsWith("match end ", StringComparison.Ordinal))
+@@ -160,10 +163,10 @@ public sealed class U2dQaSweepTests
+     public static IEnumerable<object[]> SweepConfigs() => new[]
+     {
+         // config, survivors (0 = idle killer + 7 bots), winMin, winMax, medianMin, medianMax, timeoutMax, reqRescueShare
+-        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.15, 0.30 },
+-        new object[] { "1v3", 3, 0.25, 0.75, 120.0, 480.0, 1.0, 0.0 },
+-        new object[] { "1v1", 1, 0.20, 0.80, 90.0, 480.0, 1.0, 0.0 },
+-        new object[] { "idle killer + 7", 0, 0.90, 1.0, 120.0, 360.0, 1.0, 0.0 },
++        new object[] { "1v7", 7, 0.35, 0.65, 540.0, 660.0, 0.10, 0.30 },
++        new object[] { "1v3", 3, 0.25, 0.75, 0.0, 660.0, 0.20, 0.0 },
++        new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30, 0.0 },
++        new object[] { "idle killer + 7", 0, 0.90, 1.0, 0.0, 900.0, 1.0, 0.0 },
+     };
+ 
+     [Theory]
+@@ -197,6 +200,13 @@ public sealed class U2dQaSweepTests
+         Assert.InRange(summary.WinRate, winMin, winMax);
+         Assert.InRange(summary.Median, medianMin, medianMax);
+         Assert.True(summary.TimeoutRate <= timeoutMax, $"timeouts {summary.TimeoutRate:P0} > max {timeoutMax:P0}");
++        if (survivors == 0)
++        {
++            int exits = runs.Sum(r => r.ExitEscapes), collapse = runs.Sum(r => r.CollapseLosses);
++            _output.WriteLine($"idle survivor outcomes: exit escapes {exits}/{SeedCount * 7}, collapse losses {collapse}/{SeedCount * 7}");
++            Assert.True(exits > SeedCount * 7 / 2, "most survivors must escape through exits");
++            Assert.True(exits > collapse);
++        }
+         if (reqRescueShare > 0)
+             Assert.True(summary.RescueShare >= reqRescueShare, $"rescue share {summary.RescueShare:P0} < required {reqRescueShare:P0}");
+     }
