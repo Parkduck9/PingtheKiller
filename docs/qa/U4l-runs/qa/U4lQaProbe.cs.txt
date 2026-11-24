@@ -1,0 +1,415 @@
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using NUnit.Framework;
+using PingTheKiller.Client.World;
+using PingTheKiller.Editor.Setup;
+using PingTheKiller.ServerCore.Map;
+using UnityEngine;
+
+namespace PingTheKiller.Client.Tests
+{
+    // QA probe for U4l-gapfill (Fable). Temporary: it measures, writes docs/qa/U4l-runs/qa/probe.txt and qa-views.txt, and
+    // asserts nothing about the art. It is an independent re-implementation of the see-through ray rule without the
+    // implementer's 60 degree incidence filter, plus mutation runs of the shipped reduced-density scan.
+    public sealed class U4lQaProbe
+    {
+        private struct B { public bool Wall; public int I; public float X0, Z0, X1, Z1, H; }
+
+        private static readonly RaycastHit[] buffer = new RaycastHit[512];
+        private static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+
+        private static float Cast(Vector3 o, Vector3 d, float range, HashSet<Collider> set, out Collider nearest)
+        {
+            int n = Physics.RaycastNonAlloc(o, d, buffer, range, ~0, QueryTriggerInteraction.Collide);
+            float best = float.PositiveInfinity;
+            nearest = null;
+            for (int i = 0; i < n; i++)
+                if (set.Contains(buffer[i].collider) && buffer[i].distance < best) { best = buffer[i].distance; nearest = buffer[i].collider; }
+            return best;
+        }
+
+        private static bool Axis(float o, float d, float min, float max, ref float enter, ref float exit)
+        {
+            if (Mathf.Abs(d) < 1e-7f) return o > min && o < max;
+            float t1 = (min - o) / d, t2 = (max - o) / d;
+            if (t1 > t2) { float s = t1; t1 = t2; t2 = s; }
+            if (t1 > enter) enter = t1;
+            if (t2 < exit) exit = t2;
+            return enter < exit;
+        }
+
+        private static List<B> Boxes(FixedMap map)
+        {
+            var list = new List<B>();
+            for (int i = 0; i < map.Walls.Count; i++)
+            {
+                Wall w = map.Walls[i];
+                list.Add(new B { Wall = true, I = i, X0 = w.MinX, Z0 = w.MinZ, X1 = w.MaxX, Z1 = w.MaxZ, H = MapGeometry.WallHeight });
+            }
+            for (int i = 0; i < map.Obstacles.Count; i++)
+            {
+                Obstacle o = map.Obstacles[i];
+                list.Add(new B { Wall = false, I = i, X0 = o.MinX, Z0 = o.MinZ, X1 = o.MaxX, Z1 = o.MaxZ, H = MapGeometry.ObstacleHeight });
+            }
+            return list;
+        }
+
+        // origin corner, right, outward, length for the four faces S, E, N, W
+        private static void Face(B b, int side, out Vector3 origin, out Vector3 right, out Vector3 outward, out float length)
+        {
+            switch (side)
+            {
+                case 0: origin = new Vector3(b.X0, 0, b.Z0); right = Vector3.right; outward = Vector3.back; length = b.X1 - b.X0; break;
+                case 1: origin = new Vector3(b.X1, 0, b.Z0); right = Vector3.forward; outward = Vector3.right; length = b.Z1 - b.Z0; break;
+                case 2: origin = new Vector3(b.X1, 0, b.Z1); right = Vector3.left; outward = Vector3.forward; length = b.X1 - b.X0; break;
+                default: origin = new Vector3(b.X0, 0, b.Z1); right = Vector3.back; outward = Vector3.left; length = b.Z1 - b.Z0; break;
+            }
+        }
+
+        [Test]
+        public void Probe()
+        {
+            FixedMap map = SharedMap.Map;
+            WorldArt art = WorldArt.Load();
+            Assert.That(art, Is.Not.Null);
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "docs", "qa", "U4l-runs", "qa"));
+            Directory.CreateDirectory(dir);
+            var log = new StringBuilder();
+            var views = new StringBuilder();
+            bool backfaces = Physics.queriesHitBackfaces;
+            Physics.queriesHitBackfaces = true;
+            GameObject city = WorldArtGapScan.BuildCity(art, true, out HashSet<Collider> set);
+            try
+            {
+                SeeThrough(map, set, log, views);
+                HouseCores(map, city, set, log, views);
+                Sky(map, set, log, views);
+                OtherViews(map, views);
+            }
+            finally
+            {
+                Object.DestroyImmediate(city);
+                Physics.queriesHitBackfaces = backfaces;
+                Physics.SyncTransforms();
+            }
+            try { Mutations(art, log); }
+            catch (System.Exception e) { log.AppendLine("MUTATIONS FAILED: " + e); }
+            File.WriteAllText(Path.Combine(dir, "probe.txt"), log.ToString());
+            File.WriteAllText(Path.Combine(dir, "qa-views.txt"), views.ToString());
+        }
+
+        // ---- 1. see-through without the incidence filter ---------------------------------------------------------------
+
+        private static void SeeThrough(FixedMap map, HashSet<Collider> set, StringBuilder log, StringBuilder views)
+        {
+            List<B> boxes = Boxes(map);
+            float[] heights = { .3f, 1f, 1.7f, 2.6f };
+            float[] limits = { .25f, .10f };
+            // [limit][bucket: <=60.5, 60.5-75.5, >75.5][kind wall/obstacle]
+            var counts = new int[2, 3, 2];
+            var perBox = new Dictionary<string, int>();
+            var worst = new Dictionary<string, string>();
+            var worstInside = new Dictionary<string, float>();
+            int rays = 0, eyes = 0, shots = 0;
+            foreach (B box in boxes)
+                for (int side = 0; side < 4; side++)
+                {
+                    Face(box, side, out Vector3 origin, out Vector3 right, out Vector3 outward, out float length);
+                    foreach (float distance in new[] { 1f, 2f })
+                        for (float u = .5f; u < length; u += 1f)
+                        {
+                            Vector3 eye = origin + right * u + outward * distance;
+                            if (!map.CanStand(eye.x, eye.z, .2f)) continue;
+                            eyes++;
+                            for (float yaw = -85; yaw <= 85.01f; yaw += 5)
+                            {
+                                Vector3 d = Quaternion.Euler(0, yaw, 0) * -outward;
+                                foreach (float h in heights)
+                                {
+                                    rays++;
+                                    float bestEnter = 30, bestExit = 0;
+                                    int best = -1;
+                                    for (int i = 0; i < boxes.Count; i++)
+                                    {
+                                        B b = boxes[i];
+                                        if (h >= b.H) continue;
+                                        float enter = 0, exit = float.PositiveInfinity;
+                                        if (!Axis(eye.x, d.x, b.X0, b.X1, ref enter, ref exit) || !Axis(eye.z, d.z, b.Z0, b.Z1, ref enter, ref exit)) continue;
+                                        if (enter < 0 || enter >= bestEnter) continue;
+                                        bestEnter = enter; bestExit = exit; best = i;
+                                    }
+                                    if (best < 0 || bestExit - bestEnter < .05f) continue;
+                                    B e = boxes[best];
+                                    Vector3 p = new Vector3(eye.x, h, eye.z) + d * bestEnter;
+                                    float s = Mathf.Abs(p.z - e.Z0), ea = Mathf.Abs(p.x - e.X1), n = Mathf.Abs(p.z - e.Z1), w = Mathf.Abs(p.x - e.X0);
+                                    float m = Mathf.Min(Mathf.Min(s, ea), Mathf.Min(n, w));
+                                    bool zFace = m == s || m == n;
+                                    float incidence = Mathf.Acos(Mathf.Clamp01(Mathf.Abs(zFace ? d.z : d.x))) * Mathf.Rad2Deg;
+                                    float artAt = Cast(new Vector3(eye.x, h, eye.z), d, bestExit + 1, set, out _);
+                                    float inside = Mathf.Min(artAt, bestExit) - bestEnter;
+                                    int bucket = incidence <= 60.5f ? 0 : incidence <= 75.5f ? 1 : 2;
+                                    for (int l = 0; l < 2; l++)
+                                        if (artAt > bestEnter + limits[l]) counts[l, bucket, e.Wall ? 0 : 1]++;
+                                    if (artAt <= bestEnter + .25f) continue;
+                                    string key = (e.Wall ? "wall " : "obstacle ") + e.I + " bucket " + bucket;
+                                    perBox.TryGetValue(key, out int c);
+                                    perBox[key] = c + 1;
+                                    worstInside.TryGetValue(key, out float wi);
+                                    if (inside > wi)
+                                    {
+                                        worstInside[key] = inside;
+                                        worst[key] = $"eye ({F(eye.x)}, {F(eye.z)}) h {F(h)} dir ({F(d.x)}, {F(d.z)}) incidence {F(incidence)} entry ({F(p.x)}, {F(p.z)}) inside {F(inside)} exited {artAt > bestExit}"
+                                            + $"|{F(eye.x)} 1.7 {F(eye.z)} {F(p.x + d.x * .3f)} {F(h)} {F(p.z + d.z * .3f)}";
+                                    }
+                                }
+                            }
+                        }
+                }
+            log.AppendLine("== 1. Independent see-through scan (yaw fan -85..+85 step 5, eye 1 m and 2 m, every 1 m, heights .3/1/1.7/2.6) ==");
+            log.AppendLine($"eye points {eyes}, rays {rays}");
+            for (int l = 0; l < 2; l++)
+                log.AppendLine($"inside limit {F(limits[l])} m: incidence<=60.5 walls {counts[l, 0, 0]} obstacles {counts[l, 0, 1]}; 60.5-75.5 walls {counts[l, 1, 0]} obstacles {counts[l, 1, 1]}; >75.5 walls {counts[l, 2, 0]} obstacles {counts[l, 2, 1]}");
+            var keys = new List<string>(perBox.Keys);
+            keys.Sort((a, b) => perBox[b].CompareTo(perBox[a]));
+            foreach (string key in keys)
+            {
+                string[] parts = worst[key].Split('|');
+                log.AppendLine($"  {key}: {perBox[key]} rays; worst {parts[0]}");
+                if (shots < 14) { views.AppendLine("graze-" + key.Replace(' ', '-') + " " + parts[1]); shots++; }
+            }
+            log.AppendLine();
+        }
+
+        // ---- 2. how much of each fitted house is the core block, seen from the street --------------------------------------
+
+        private static void HouseCores(FixedMap map, GameObject city, HashSet<Collider> set, StringBuilder log, StringBuilder views)
+        {
+            log.AppendLine("== 2. Fitted houses: first art hit above the podium from street eye points (3, 6, 10 m out; aim 3.2-8 m high) ==");
+            foreach (int index in new[] { 9, 12, 15, 22, 28 })
+            {
+                Wall w = map.Walls[index];
+                var b = new B { Wall = true, I = index, X0 = w.MinX, Z0 = w.MinZ, X1 = w.MaxX, Z1 = w.MaxZ, H = 3 };
+                int core = 0, model = 0, podium = 0, other = 0, none = 0;
+                for (int side = 0; side < 4; side++)
+                {
+                    Face(b, side, out Vector3 origin, out Vector3 right, out Vector3 outward, out float length);
+                    int sideCore = 0, sideAll = 0;
+                    foreach (float distance in new[] { 3f, 6f, 10f })
+                        for (float u = .25f; u < length; u += .5f)
+                        {
+                            Vector3 eye = origin + right * u + outward * distance + Vector3.up * 1.7f;
+                            if (!map.CanStand(eye.x, eye.z, .2f)) continue;
+                            foreach (float du in new[] { -3f, 0f, 3f })
+                            {
+                                float tu = u + du;
+                                if (tu < 1.1f || tu > length - 1.1f) continue;
+                                for (float y = 3.2f; y <= 8f; y += .4f)
+                                {
+                                    Vector3 target = origin + right * tu - outward * 1.05f + Vector3.up * y;
+                                    float at = Cast(eye, (target - eye).normalized, 80, set, out Collider hit);
+                                    if (hit == null) { none++; continue; }
+                                    Transform item = hit.transform;
+                                    while (item.parent != null && item.parent != city.transform) item = item.parent;
+                                    if (item.name != "Building " + index) { other++; continue; }
+                                    sideAll++;
+                                    if (hit.name == "Upper core") { core++; sideCore++; }
+                                    else if (hit.name == "Podium") podium++;
+                                    else model++;
+                                }
+                            }
+                        }
+                    if (sideAll > 0)
+                    {
+                        log.AppendLine($"  wall {index} face {"SENW"[side]}: core first-hit {sideCore}/{sideAll} = {F(100f * sideCore / sideAll)} %");
+                        Vector3 mid = origin + right * length * .5f;
+                        foreach (float distance in new[] { 5f, 9f })
+                        {
+                            Vector3 eye = mid + outward * distance;
+                            if (!map.CanStand(eye.x, eye.z, .2f)) continue;
+                            views.AppendLine($"house{index}-{"SENW"[side]}-{F(distance)}m {F(eye.x)} 1.7 {F(eye.z)} {F(mid.x - outward.x)} 4.6 {F(mid.z - outward.z)}");
+                        }
+                        Vector3 corner = origin + right * -1.5f + outward * 3f;
+                        if (map.CanStand(corner.x, corner.z, .2f))
+                        {
+                            Vector3 far = origin + right * (length * .6f) - outward;
+                            views.AppendLine($"house{index}-{"SENW"[side]}-oblique {F(corner.x)} 1.7 {F(corner.z)} {F(far.x)} 4.8 {F(far.z)}");
+                        }
+                    }
+                }
+                log.AppendLine($"  wall {index} total: core {core}, house model {model}, podium {podium}, other building {other}, nothing {none}");
+            }
+            log.AppendLine();
+        }
+
+        // ---- 3. sky over the border walls, both rules -----------------------------------------------------------------------
+
+        private static void Sky(FixedMap map, HashSet<Collider> set, StringBuilder log, StringBuilder views)
+        {
+            log.AppendLine("== 3. Sky columns over the border walls (eye 1.7 m, 4/10/20 m in, every 4 m, yaw -60..60 step 10, pitch 20..0) ==");
+            float size = FixedMap.Size;
+            // inner face: origin, right, outward (into the arena)
+            var faces = new[]
+            {
+                (new Vector3(0, 0, 0), Vector3.forward, Vector3.right, "W"),
+                (new Vector3(size, 0, 0), Vector3.forward, Vector3.left, "E"),
+                (new Vector3(0, 0, 0), Vector3.right, Vector3.forward, "S"),
+                (new Vector3(0, 0, size), Vector3.right, Vector3.back, "N")
+            };
+            int columns = 0, gapsSky = 0, notchSky = 0, gapsAny = 0, notchAny = 0, lowRoof = 0, shots = 0;
+            var lines = new List<string>();
+            foreach (var face in faces)
+                for (float u = 2; u < size - 2; u += 4)
+                    foreach (float distance in new[] { 4f, 10f, 20f })
+                    {
+                        Vector3 eye = face.Item1 + face.Item2 * u + face.Item3 * distance + Vector3.up * 1.7f;
+                        if (!map.CanStand(eye.x, eye.z, .2f)) continue;
+                        for (float yaw = -60; yaw <= 60.01f; yaw += 10)
+                        {
+                            columns++;
+                            Vector3 flat = Quaternion.Euler(0, yaw, 0) * -face.Item3;
+                            bool aboveSky = false, aboveAny = false;
+                            float missSky = -1, missAny = -1, lowestMiss = 99;
+                            for (float pitch = 20; pitch >= 0; pitch -= 1)
+                            {
+                                Vector3 d = Quaternion.AngleAxis(-pitch, Vector3.Cross(Vector3.up, flat)) * flat;
+                                float at = Cast(eye, d, 200, set, out _);
+                                if (!float.IsInfinity(at))
+                                {
+                                    Vector3 p = eye + d * at;
+                                    aboveAny = true;
+                                    if (p.x < -1 || p.z < -1 || p.x > size + 1 || p.z > size + 1) aboveSky = true;
+                                    continue;
+                                }
+                                lowestMiss = pitch;
+                                if (aboveSky && missSky < 0) missSky = pitch;
+                                if (aboveAny && missAny < 0) missAny = pitch;
+                            }
+                            if (lowestMiss <= 8) lowRoof++;
+                            if (missAny >= 0) { if (missAny <= 12) gapsAny++; else notchAny++; }
+                            if (missSky >= 0) { if (missSky <= 12) gapsSky++; else notchSky++; }
+                            if (missAny >= 0 || lowestMiss <= 8)
+                            {
+                                float pitchShown = missAny >= 0 ? missAny : lowestMiss;
+                                lines.Add($"  border {face.Item4}: eye ({F(eye.x)}, {F(eye.z)}) yaw {F(yaw)}: miss under skyline art at {F(missSky)}, under any art at {F(missAny)}, lowest sky pitch {F(lowestMiss)}");
+                                if (shots < 12)
+                                {
+                                    Vector3 d = Quaternion.AngleAxis(-pitchShown, Vector3.Cross(Vector3.up, flat)) * flat;
+                                    Vector3 t = eye + d * 40;
+                                    views.AppendLine($"sky-{face.Item4}-{F(eye.x)}-{F(eye.z)}-yaw{F(yaw)} {F(eye.x)} 1.7 {F(eye.z)} {F(t.x)} {F(t.y)} {F(t.z)}");
+                                    shots++;
+                                }
+                            }
+                        }
+                    }
+            log.AppendLine($"columns {columns}; rule 'skyline art above' (shipped): gaps<=12deg {gapsSky}, notches {notchSky}; rule 'any art above' (v1): gaps<=12deg {gapsAny}, notches {notchAny}; columns with open sky at pitch <= 8 deg (no art above needed): {lowRoof}");
+            for (int i = 0; i < lines.Count && i < 60; i++) log.AppendLine(lines[i]);
+            log.AppendLine();
+        }
+
+        // ---- 4. extra close views: every obstacle from two corners, the border walls at eye level -----------------------------
+
+        private static void OtherViews(FixedMap map, StringBuilder views)
+        {
+            for (int i = 0; i < map.Obstacles.Count; i++)
+            {
+                Obstacle o = map.Obstacles[i];
+                Vector3 centre = new Vector3((o.MinX + o.MaxX) * .5f, .6f, (o.MinZ + o.MaxZ) * .5f);
+                int made = 0;
+                foreach (Vector2 c in new[] { new Vector2(o.MinX - 1.2f, o.MinZ - 1.2f), new Vector2(o.MaxX + 1.2f, o.MaxZ + 1.2f), new Vector2(o.MinX - 1.2f, o.MaxZ + 1.2f), new Vector2(o.MaxX + 1.2f, o.MinZ - 1.2f) })
+                {
+                    if (made >= 2 || !map.CanStand(c.x, c.y, .2f)) continue;
+                    views.AppendLine($"obstacle{i}-corner{made} {F(c.x)} 1.7 {F(c.y)} {F(centre.x)} {F(centre.y)} {F(centre.z)}");
+                    made++;
+                }
+                // low, along the long face: the crouch-like view of the seams
+                bool alongX = o.MaxX - o.MinX > o.MaxZ - o.MinZ;
+                Vector2 low = alongX ? new Vector2(o.MinX - .8f, o.MinZ - .9f) : new Vector2(o.MinX - .9f, o.MinZ - .8f);
+                if (map.CanStand(low.x, low.y, .2f))
+                    views.AppendLine($"obstacle{i}-low {F(low.x)} 1.0 {F(low.y)} {F(alongX ? o.MaxX : o.MinX + .3f)} 0.5 {F(alongX ? o.MinZ + .3f : o.MaxZ)}");
+            }
+            float size = FixedMap.Size;
+            foreach (float u in new[] { 14f, 40f, 66f })
+            {
+                AddBorder(map, views, "W", new Vector3(5, 1.7f, u), new Vector3(-40, 7, u));
+                AddBorder(map, views, "E", new Vector3(size - 5, 1.7f, u), new Vector3(size + 40, 7, u));
+                AddBorder(map, views, "S", new Vector3(u, 1.7f, 5), new Vector3(u, 7, -40));
+                AddBorder(map, views, "N", new Vector3(u, 1.7f, size - 5), new Vector3(u, 7, size + 40));
+            }
+        }
+
+        private static void AddBorder(FixedMap map, StringBuilder views, string side, Vector3 eye, Vector3 target)
+        {
+            for (int k = 0; k < 6 && !map.CanStand(eye.x, eye.z, .2f); k++) eye += side == "W" || side == "E" ? Vector3.forward : Vector3.right;
+            if (!map.CanStand(eye.x, eye.z, .2f)) return;
+            views.AppendLine($"border-{side}-{F(eye.x)}-{F(eye.z)} {F(eye.x)} 1.7 {F(eye.z)} {F(target.x)} {F(target.y)} {F(target.z)}");
+        }
+
+        // ---- 5. would the shipped reduced-density scan (the EditMode tests) notice a regression? ---------------------------
+
+        private static GameObject Stripped(GameObject prefab, string prefix, List<GameObject> temp, out int removed)
+        {
+            var copy = (GameObject)Object.Instantiate(prefab);
+            copy.name = prefab.name;
+            copy.transform.position = new Vector3(0, -500, 0);
+            temp.Add(copy);
+            var kill = new List<GameObject>();
+            foreach (Transform t in copy.GetComponentsInChildren<Transform>(true))
+                if (t != copy.transform && t.name.StartsWith(prefix)) kill.Add(t.gameObject);
+            removed = kill.Count;
+            foreach (GameObject g in kill) if (g != null) Object.DestroyImmediate(g);
+            return copy;
+        }
+
+        private static void Mutations(WorldArt art, StringBuilder log)
+        {
+            log.AppendLine("== 5. Mutations against WorldArtGapScan.Scan(Density.Reduced, sky) — what WorldArtGapTests asserts ==");
+            var temp = new List<GameObject>();
+            try
+            {
+                WorldArtGapScan.Report r = WorldArtGapScan.Scan(art, WorldArtGapScan.Density.Reduced, true);
+                log.AppendLine($"baseline: see-through {r.SeeThrough} ({r.Rays} rays, {r.EyePoints} eyes), upper {r.UpperGaps}/{r.UpperRays}, sky gaps {r.SkyGaps} notches {r.SkyNotches} /{r.SkyRays}, obstacle fill {F(r.MinObstacleFill)} over {F(r.MaxObstacleOver)}, podium {F(r.MinPodiumFill)}");
+
+                for (int i = 0; i < art.Obstacles.Length; i++)
+                {
+                    WorldArt clone = Object.Instantiate(art);
+                    clone.Obstacles[i].Prefab = Stripped(art.Obstacles[i].Prefab, "Core", temp, out int removed);
+                    r = WorldArtGapScan.Scan(clone, WorldArtGapScan.Density.Reduced, false);
+                    log.AppendLine($"obstacle {i} without its Core ({removed} removed): see-through {r.SeeThrough}, fill {F(r.MinObstacleFill)}");
+                    Object.DestroyImmediate(clone);
+                }
+                {
+                    WorldArt clone = Object.Instantiate(art);
+                    var empty = new GameObject("Obstacle 4");
+                    temp.Add(empty);
+                    clone.Obstacles[4].Prefab = empty;
+                    r = WorldArtGapScan.Scan(clone, WorldArtGapScan.Density.Reduced, false);
+                    log.AppendLine($"obstacle 4 empty: see-through {r.SeeThrough}, fill {F(r.MinObstacleFill)}");
+                    Object.DestroyImmediate(clone);
+                }
+                foreach (int i in new[] { 9, 12, 15, 22, 28 })
+                {
+                    WorldArt clone = Object.Instantiate(art);
+                    clone.Walls[i].Prefab = Stripped(art.Walls[i].Prefab, "Upper core", temp, out int removed);
+                    r = WorldArtGapScan.Scan(clone, WorldArtGapScan.Density.Reduced, false);
+                    log.AppendLine($"wall {i} without its Upper core ({removed} removed): upper gaps {r.UpperGaps}/{r.UpperRays}, see-through {r.SeeThrough}");
+                    Object.DestroyImmediate(clone);
+                }
+                {
+                    WorldArt clone = Object.Instantiate(art);
+                    clone.Backdrop = Stripped(art.Backdrop, "Backing", temp, out int removed);
+                    r = WorldArtGapScan.Scan(clone, WorldArtGapScan.Density.Reduced, true);
+                    log.AppendLine($"backdrop without the backing row ({removed} removed), reduced: sky gaps {r.SkyGaps}, notches {r.SkyNotches} /{r.SkyRays}");
+                    r = WorldArtGapScan.Scan(clone, WorldArtGapScan.Density.Full, true);
+                    log.AppendLine($"backdrop without the backing row, FULL density: sky gaps {r.SkyGaps}, notches {r.SkyNotches} /{r.SkyRays}; see-through {r.SeeThrough}, upper {r.UpperGaps}");
+                    Object.DestroyImmediate(clone);
+                }
+            }
+            finally
+            {
+                foreach (GameObject g in temp) if (g != null) Object.DestroyImmediate(g);
+            }
+        }
+    }
+}

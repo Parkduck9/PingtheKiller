@@ -1,0 +1,96 @@
+== 1. Independent see-through scan (yaw fan -85..+85 step 5, eye 1 m and 2 m, every 1 m, heights .3/1/1.7/2.6) ==
+eye points 2524, rays 353360
+inside limit 0.25 m: incidence<=60.5 walls 0 obstacles 0; 60.5-75.5 walls 0 obstacles 11; >75.5 walls 2391 obstacles 25
+inside limit 0.1 m: incidence<=60.5 walls 0 obstacles 1001; 60.5-75.5 walls 10216 obstacles 129; >75.5 walls 6300 obstacles 87
+  wall 3 bucket 2: 491 rays; worst eye (5.5, 79) h 0.3 dir (0.996, 0.087) incidence 85 entry (16.93, 80) inside 0.459 exited False
+  wall 1 bucket 2: 433 rays; worst eye (78, 28.5) h 1 dir (0.087, -0.996) incidence 85 entry (80, 5.64) inside 0.459 exited False
+  wall 2 bucket 2: 417 rays; worst eye (74.5, 1) h 0.3 dir (-0.996, -0.087) incidence 85 entry (63.07, 0) inside 0.459 exited False
+  wall 0 bucket 2: 409 rays; worst eye (2, 43.5) h 1 dir (-0.087, 0.996) incidence 85 entry (0, 66.36) inside 0.459 exited False
+  wall 5 bucket 2: 53 rays; worst eye (20, 27.5) h 1 dir (-0.087, -0.996) incidence 85 entry (19, 16.07) inside 0.459 exited False
+  wall 9 bucket 2: 49 rays; worst eye (57.5, 13) h 0.3 dir (-0.996, -0.087) incidence 85 entry (46.07, 12) inside 0.459 exited False
+  wall 12 bucket 2: 46 rays; worst eye (10.5, 52.5) h 1.7 dir (0.087, -0.996) incidence 85 entry (12, 35.355) inside 0.459 exited False
+  wall 16 bucket 2: 42 rays; worst eye (23, 53.5) h 1 dir (0.087, -0.996) incidence 85 entry (24, 42.07) inside 0.459 exited False
+  wall 15 bucket 2: 42 rays; worst eye (62, 15) h 1.7 dir (-0.996, 0.087) incidence 85 entry (50.57, 16) inside 0.459 exited False
+  wall 8 bucket 2: 38 rays; worst eye (14.5, 22) h 1 dir (0.996, -0.087) incidence 85 entry (25.93, 21) inside 0.459 exited False
+  wall 10 bucket 2: 38 rays; worst eye (35.5, 2) h 1 dir (0.996, 0.087) incidence 85 entry (58.36, 4) inside 0.459 exited False
+  wall 18 bucket 2: 36 rays; worst eye (46, 32) h 1.7 dir (0.087, 0.996) incidence 85 entry (47, 43.43) inside 0.459 exited False
+  wall 7 bucket 2: 35 rays; worst eye (57.5, 2) h 1 dir (-0.996, 0.087) incidence 85 entry (34.64, 4) inside 0.459 exited False
+  wall 23 bucket 2: 32 rays; worst eye (15.5, 50) h 1.7 dir (0.087, 0.996) incidence 85 entry (17, 67.145) inside 0.459 exited False
+  wall 6 bucket 2: 24 rays; worst eye (47.5, 2) h 1 dir (-0.996, 0.087) incidence 85 entry (24.64, 4) inside 0.459 exited False
+  wall 24 bucket 2: 23 rays; worst eye (17.5, 58) h 1 dir (0.996, 0.087) incidence 85 entry (28.93, 59) inside 0.459 exited False
+  wall 30 bucket 2: 22 rays; worst eye (49.5, 73) h 1 dir (0.996, -0.087) incidence 85 entry (72.36, 71) inside 0.459 exited False
+  wall 25 bucket 2: 22 rays; worst eye (34, 61.5) h 0.3 dir (-0.087, 0.996) incidence 85 entry (33, 72.93) inside 0.459 exited False
+  wall 29 bucket 2: 20 rays; worst eye (45.5, 57) h 1 dir (0.996, 0.087) incidence 85 entry (68.36, 59) inside 0.459 exited False
+  wall 28 bucket 2: 18 rays; worst eye (55.5, 54.5) h 1 dir (0.087, 0.996) incidence 85 entry (56, 60.215) inside 0.459 exited False
+  wall 19 bucket 2: 16 rays; worst eye (28.5, 56) h 1 dir (0.996, -0.087) incidence 85 entry (51.36, 54) inside 0.459 exited False
+  wall 13 bucket 2: 16 rays; worst eye (17.5, 38) h 1 dir (0.996, -0.087) incidence 85 entry (28.93, 37) inside 0.459 exited False
+  wall 4 bucket 2: 12 rays; worst eye (10, 35.5) h 1 dir (0.087, -0.996) incidence 85 entry (12, 12.64) inside 0.459 exited False
+  obstacle 9 bucket 2: 12 rays; worst eye (26.5, 39) h 1 dir (0.996, 0.087) incidence 85 entry (37.93, 40) inside 1.147 exited False
+  wall 17 bucket 2: 10 rays; worst eye (38, 39) h 1.7 dir (-0.087, 0.996) incidence 85 entry (37, 50.43) inside 0.459 exited False
+  wall 21 bucket 2: 10 rays; worst eye (57, 57) h 1 dir (0.996, -0.087) incidence 85 entry (68.43, 56) inside 0.459 exited False
+  wall 27 bucket 2: 10 rays; worst eye (31.5, 57) h 1 dir (0.996, 0.087) incidence 85 entry (42.93, 58) inside 0.459 exited False
+  obstacle 10 bucket 2: 10 rays; worst eye (33.5, 38) h 1 dir (0.996, -0.087) incidence 85 entry (44.93, 37) inside 1.147 exited False
+  wall 20 bucket 2: 9 rays; worst eye (53.5, 49) h 1 dir (0.996, -0.087) incidence 85 entry (64.93, 48) inside 0.459 exited False
+  wall 26 bucket 2: 9 rays; worst eye (63, 73.5) h 1.7 dir (-0.996, -0.087) incidence 85 entry (45.855, 72) inside 0.459 exited False
+  wall 14 bucket 2: 8 rays; worst eye (14.5, 23) h 1 dir (0.996, 0.087) incidence 85 entry (25.93, 24) inside 0.459 exited False
+  obstacle 10 bucket 1: 5 rays; worst eye (34.5, 29) h 1 dir (0.94, 0.342) incidence 70 entry (45.49, 33) inside 0.292 exited False
+  obstacle 9 bucket 1: 4 rays; worst eye (30.5, 38) h 1 dir (0.966, 0.259) incidence 75 entry (37.964, 40) inside 0.386 exited False
+  obstacle 2 bucket 2: 3 rays; worst eye (46.5, 32) h 1 dir (0.996, -0.087) incidence 85 entry (63.645, 30.5) inside 1.147 exited False
+  obstacle 2 bucket 1: 2 rays; worst eye (72, 32.5) h 1 dir (-0.966, -0.259) incidence 75 entry (64.536, 30.5) inside 0.386 exited False
+  wall 22 bucket 2: 1 rays; worst eye (14.5, 50) h 1.7 dir (-0.087, 0.996) incidence 85 entry (13, 67.145) inside 0.459 exited False
+
+== 2. Fitted houses: first art hit above the podium from street eye points (3, 6, 10 m out; aim 3.2-8 m high) ==
+  wall 9 face S: core first-hit 317/388 = 81.701 %
+  wall 9 face E: core first-hit 271/329 = 82.371 %
+  wall 9 face N: core first-hit 320/388 = 82.474 %
+  wall 9 face W: core first-hit 260/316 = 82.278 %
+  wall 9 total: core 1168, house model 4, podium 249, other building 38, nothing 77
+  wall 12 face E: core first-hit 500/575 = 86.957 %
+  wall 12 face N: core first-hit 470/535 = 87.85 %
+  wall 12 face W: core first-hit 543/2050 = 26.488 %
+  wall 12 total: core 1513, house model 1276, podium 371, other building 34, nothing 94
+  wall 15 face S: core first-hit 384/541 = 70.98 %
+  wall 15 face E: core first-hit 1674/2103 = 79.601 %
+  wall 15 face N: core first-hit 884/1111 = 79.568 %
+  wall 15 face W: core first-hit 1209/1508 = 80.172 %
+  wall 15 total: core 4151, house model 478, podium 634, other building 156, nothing 77
+  wall 22 face S: core first-hit 1046/1182 = 88.494 %
+  wall 22 face E: core first-hit 406/532 = 76.316 %
+  wall 22 face N: core first-hit 632/750 = 84.267 %
+  wall 22 face W: core first-hit 250/532 = 46.992 %
+  wall 22 total: core 2334, house model 244, podium 418, other building 11, nothing 113
+  wall 28 face S: core first-hit 541/666 = 81.231 %
+  wall 28 face E: core first-hit 440/532 = 82.707 %
+  wall 28 face N: core first-hit 286/339 = 84.366 %
+  wall 28 face W: core first-hit 628/738 = 85.095 %
+  wall 28 total: core 1895, house model 59, podium 321, other building 38, nothing 99
+
+== 3. Sky columns over the border walls (eye 1.7 m, 4/10/20 m in, every 4 m, yaw -60..60 step 10, pitch 20..0) ==
+columns 1690; rule 'skyline art above' (shipped): gaps<=12deg 0, notches 1; rule 'any art above' (v1): gaps<=12deg 0, notches 1; columns with open sky at pitch <= 8 deg (no art above needed): 0
+  border S: eye (54, 20) yaw -10: miss under skyline art at 19, under any art at 19, lowest sky pitch 19
+
+== 5. Mutations against WorldArtGapScan.Scan(Density.Reduced, sky) — what WorldArtGapTests asserts ==
+baseline: see-through 0 (23544 rays, 654 eyes), upper 0/786, sky gaps 0 notches 2 /5670, obstacle fill 1 over 0, podium 1
+obstacle 0 without its Core (1 removed): see-through 11, fill 1
+obstacle 1 without its Core (0 removed): see-through 0, fill 1
+obstacle 2 without its Core (1 removed): see-through 11, fill 1
+obstacle 3 without its Core (0 removed): see-through 0, fill 1
+obstacle 4 without its Core (0 removed): see-through 0, fill 1
+obstacle 5 without its Core (0 removed): see-through 0, fill 1
+obstacle 6 without its Core (1 removed): see-through 10, fill 1
+obstacle 7 without its Core (0 removed): see-through 0, fill 1
+obstacle 8 without its Core (1 removed): see-through 0, fill 1
+obstacle 9 without its Core (1 removed): see-through 9, fill 1
+obstacle 10 without its Core (1 removed): see-through 11, fill 1
+obstacle 11 without its Core (1 removed): see-through 0, fill 1
+obstacle 12 without its Core (1 removed): see-through 12, fill 1
+obstacle 13 without its Core (0 removed): see-through 0, fill 1
+obstacle 14 without its Core (1 removed): see-through 0, fill 1
+obstacle 4 empty: see-through 120, fill -37.5
+wall 9 without its Upper core (1 removed): upper gaps 7/786, see-through 0
+wall 12 without its Upper core (1 removed): upper gaps 0/786, see-through 0
+wall 15 without its Upper core (1 removed): upper gaps 12/786, see-through 0
+wall 22 without its Upper core (1 removed): upper gaps 4/786, see-through 0
+wall 28 without its Upper core (1 removed): upper gaps 16/786, see-through 0
+backdrop without the backing row (4 removed), reduced: sky gaps 1, notches 2 /5661
+backdrop without the backing row, FULL density: sky gaps 2, notches 5 /37107; see-through 0, upper 0
