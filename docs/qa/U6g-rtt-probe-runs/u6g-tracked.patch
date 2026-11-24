@@ -1,0 +1,583 @@
+diff --git a/Client/Assets/Scripts/Net/NetClient.cs b/Client/Assets/Scripts/Net/NetClient.cs
+index ff2b279..fe8dd88 100644
+--- a/Client/Assets/Scripts/Net/NetClient.cs
++++ b/Client/Assets/Scripts/Net/NetClient.cs
+@@ -96,6 +96,12 @@ namespace PingTheKiller.Client.Net
+                         if (result == AssembleResult.Malformed) throw new PacketFormatException("Invalid frame length.");
+                         IPacket packet = PacketCodec.Decode(id, payload.Span);
+                         if (!IsServerPacket(packet.Id)) throw new PacketFormatException("Unexpected client packet from server.");
++                        if (packet is S2C_RttProbe probe)
++                        {
++                            // Same receive-thread -> outgoing queue -> send-thread path as the sync needle and press.
++                            Send(new C2S_RttEcho { Nonce = probe.Nonce });
++                            continue;
++                        }
+                         if (Interlocked.Increment(ref queuedIn) > 512) throw new IOException("Receive queue is full.");
+                         incoming.Enqueue(new ReceivedPacket(packet));
+                     }
+@@ -134,7 +140,7 @@ namespace PingTheKiller.Client.Net
+         // Every S2C_ packet the client accepts from the socket (protocol v0.3 adds S2C_SelfState); a C2S_ id disconnects.
+         public static bool IsServerPacket(PacketId id) => id is PacketId.S2C_JoinResult or PacketId.S2C_WorldState or PacketId.S2C_SkillEffect
+             or PacketId.S2C_GameResult or PacketId.S2C_Pong or PacketId.S2C_LobbyState or PacketId.S2C_MatchStart or PacketId.S2C_SelfState
+-            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult; // v0.4 sync check packets
++            or PacketId.S2C_SyncCheck or PacketId.S2C_SyncResult or PacketId.S2C_RttProbe; // v0.5 server-timed RTT
+ 
+         private static void Write(NetworkStream stream, IPacket packet)
+         {
+diff --git a/Client/Assets/Tests/EditMode/NetClientTests.cs b/Client/Assets/Tests/EditMode/NetClientTests.cs
+index 8124f3e..79d7011 100644
+--- a/Client/Assets/Tests/EditMode/NetClientTests.cs
++++ b/Client/Assets/Tests/EditMode/NetClientTests.cs
+@@ -118,6 +118,41 @@ namespace PingTheKiller.Client.Tests
+             finally { listener.Stop(); }
+         }
+ 
++        [Test]
++        public void RttProbeIsEchoedWithoutPumpingAndNeverReachesTheMainThread()
++        {
++            var listener = new TcpListener(IPAddress.Loopback, 0);
++            listener.Start();
++            try
++            {
++                using var client = new NetClient();
++                int deliveredProbes = 0;
++                client.PacketReceived += item => { if (item.Packet is S2C_RttProbe) deliveredProbes++; };
++                client.Connect((IPEndPoint)listener.LocalEndpoint);
++                Assert.That(SpinWait.SpinUntil(() => listener.Pending(), 3000), Is.True);
++                using TcpClient peer = listener.AcceptTcpClient();
++                NetworkStream stream = peer.GetStream();
++                stream.ReadTimeout = 3000;
++                Assert.That(ReadPacket(stream), Is.TypeOf<C2S_Join>());
++                // Neither receiving nor echoing may depend on a Unity frame (no Pump before the echo).
++                foreach (uint nonce in new uint[] { 0x87654321, 0x10203040 })
++                {
++                    byte[] frame = PacketCodec.Encode(new S2C_RttProbe { Nonce = nonce });
++                    stream.Write(frame, 0, frame.Length);
++                    IPacket packet;
++                    do packet = ReadPacket(stream); while (packet is C2S_Ping);
++                    Assert.That(packet, Is.TypeOf<C2S_RttEcho>());
++                    Assert.That(((C2S_RttEcho)packet).Nonce, Is.EqualTo(nonce));
++                }
++                client.Pump();
++                Assert.That(deliveredProbes, Is.Zero);
++                Assert.That(client.IsConnected, Is.True);
++                Assert.That(NetClient.IsServerPacket(PacketId.S2C_RttProbe), Is.True);
++                Assert.That(NetClient.IsServerPacket(PacketId.C2S_RttEcho), Is.False);
++            }
++            finally { listener.Stop(); }
++        }
++
+         private static void PumpUntil(NetClient client, Func<bool> condition)
+         {
+             var timer = Stopwatch.StartNew();
+diff --git a/Client/Assets/Tests/EditMode/QA/NetClientWhitelistQaTests.cs b/Client/Assets/Tests/EditMode/QA/NetClientWhitelistQaTests.cs
+index b17b61b..30f1f49 100644
+--- a/Client/Assets/Tests/EditMode/QA/NetClientWhitelistQaTests.cs
++++ b/Client/Assets/Tests/EditMode/QA/NetClientWhitelistQaTests.cs
+@@ -82,7 +82,8 @@ namespace PingTheKiller.Client.QA.Tests
+                     var packet = (IPacket)Activator.CreateInstance(type);
+                     byte[] frame = PacketCodec.Encode(packet);
+                     stream.Write(frame, 0, frame.Length);
+-                    sent.Add(id);
++                    // Probes are handled on the receive thread and must never reach Pump.
++                    if (id != PacketId.S2C_RttProbe) sent.Add(id);
+                 }
+                 var timer = Stopwatch.StartNew();
+                 while (timer.ElapsedMilliseconds < 4000 && notice == null && received.Count < sent.Count)
+diff --git a/Client/Assets/Tests/EditMode/QA/Reverify/SelfStateReadoutReverifyTests.cs b/Client/Assets/Tests/EditMode/QA/Reverify/SelfStateReadoutReverifyTests.cs
+index 446608b..6087b7b 100644
+--- a/Client/Assets/Tests/EditMode/QA/Reverify/SelfStateReadoutReverifyTests.cs
++++ b/Client/Assets/Tests/EditMode/QA/Reverify/SelfStateReadoutReverifyTests.cs
+@@ -138,7 +138,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
+         }
+ 
+         [Test]
+-        public void NetClient_IsServerPacket_AcceptsAllEightS2CPackets_AndRejectsAllC2SPackets()
++        public void NetClient_IsServerPacket_AcceptsAllS2CPackets_AndRejectsAllC2SPackets()
+         {
+             var allPacketIds = (PacketId[])Enum.GetValues(typeof(PacketId));
+             int s2cCount = 0;
+@@ -157,7 +157,7 @@ namespace PingTheKiller.Client.QA.Tests.Reverify
+                 }
+             }
+ 
+-            Assert.That(s2cCount, Is.EqualTo(10), "Protocol v0.4 defines exactly 10 S2C packet types (adds S2C_SyncCheck and S2C_SyncResult)");
++            Assert.That(s2cCount, Is.EqualTo(11), "Protocol v0.5 defines exactly 11 S2C packet types (adds S2C_RttProbe)");
+         }
+     }
+ }
+diff --git a/Server.Core/Runtime/GameServer.Terminals.cs b/Server.Core/Runtime/GameServer.Terminals.cs
+index eeb9339..5cd9d2e 100644
+--- a/Server.Core/Runtime/GameServer.Terminals.cs
++++ b/Server.Core/Runtime/GameServer.Terminals.cs
+@@ -171,8 +171,8 @@ namespace PingTheKiller.ServerCore
+             GameConstants.SyncCheckIntervalMinSeconds +
+             player.SyncRandom.NextDouble() * (GameConstants.SyncCheckIntervalMaxSeconds - GameConstants.SyncCheckIntervalMinSeconds);
+ 
+-        // Bots press inside the server (no latency). RttSeconds stays 0 until a server-side RTT estimate exists; offline
+-        // sessions have no transport delay, so it stays 0 there as well. Server tests set it through SetRttForTests.
++        // Bots press inside the server (no latency). Online humans use the server-timed probe estimate; offline
++        // sessions have no transport delay and stay at 0. Server tests can override it through SetRttForTests.
+         // The full round trip applies: the needle starts when the check reaches the client (half a trip after it left)
+         // and the press needs the other half to come back.
+         private static double RttOf(Player player) => player.IsBot ? 0 : player.RttSeconds;
+@@ -294,7 +294,7 @@ namespace PingTheKiller.ServerCore
+                 }
+                 SyncTerminal(terminal);
+             }
+-            WriteLog($"sync player={player.Id} check={id} result={result}");
++            WriteLog($"sync player={player.Id} check={id} result={result} rtt={RttOf(player) * 1000:0}");
+             SendTo(player, new S2C_SyncResult { CheckId = id, Result = (byte)result });
+         }
+ 
+@@ -326,7 +326,7 @@ namespace PingTheKiller.ServerCore
+ 
+         internal double TerminalProgressForTests(int index) { lock (_tickGate) return _progress[index]; }
+ 
+-        // Server tests only: the smoothed RTT the sync judge subtracts for this player (the server has no RTT probe yet).
++        // Server tests only: overrides the probe's estimate of the full RTT subtracted by the sync judge.
+         internal void SetRttForTests(int playerId, double seconds)
+         {
+             lock (_tickGate)
+diff --git a/Server.Core/Runtime/GameServer.cs b/Server.Core/Runtime/GameServer.cs
+index 014eaed..954f55f 100644
+--- a/Server.Core/Runtime/GameServer.cs
++++ b/Server.Core/Runtime/GameServer.cs
+@@ -34,7 +34,7 @@ namespace PingTheKiller.ServerCore
+             internal readonly Binding Binding;
+             internal readonly IPacket Packet;
+             internal readonly byte Kind; // 0 = packet, 1 = add, 2 = close
+-            // Server clock seconds when the receive thread queued it (only C2S_SyncPress uses it).
++            // Server clock seconds when the receive thread queued it (sync presses and RTT echoes).
+             internal readonly double ReceivedAt;
+         }
+ 
+@@ -98,6 +98,7 @@ namespace PingTheKiller.ServerCore
+                 _decoyRandom = PrivateRandom.FromSeed(seed, 1);
+                 _shuffleRandom = PrivateRandom.FromSeed(seed, 2);
+                 _syncRandom = PrivateRandom.FromSeed(seed, 3);
++                _rttRandom = PrivateRandom.FromSeed(seed, 4);
+             }
+             else
+             {
+@@ -105,6 +106,7 @@ namespace PingTheKiller.ServerCore
+                 _decoyRandom = PrivateRandom.FromCsprng();
+                 _shuffleRandom = PrivateRandom.FromCsprng();
+                 _syncRandom = PrivateRandom.FromCsprng();
++                _rttRandom = PrivateRandom.FromCsprng();
+             }
+         }
+ 
+@@ -267,6 +269,7 @@ namespace PingTheKiller.ServerCore
+                             Handle(input.Binding.Connection, input.Packet, input.ReceivedAt);
+                     }
+                 }
++                UpdateRttProbes();
+                 if (_matchStarted)
+                 {
+                     UpdateBots();
+@@ -343,7 +346,7 @@ namespace PingTheKiller.ServerCore
+             player.DirX = player.DirZ = 0;
+             player.LastSignal = double.NegativeInfinity;
+             player.Interacting = false;
+-            player.RttSeconds = 0;
++            ResetRtt(player);
+             WriteLog($"leave player={player.Id}");
+             BroadcastLobby();
+         }
+@@ -352,13 +355,14 @@ namespace PingTheKiller.ServerCore
+             foreach (var player in _players) if (player.ConnectionId == id) return player;
+             return null;
+         }
+-        // receivedAt: server clock when the packet was queued; only C2S_SyncPress reads it.
++        // receivedAt: server clock when the packet was queued; sync presses and RTT echoes read it.
+         private void Handle(IConnection connection, IPacket packet, double receivedAt)
+         {
+             if (connection.IsClosed) return;
+             if (packet is C2S_Join join) { Join(connection, join); return; }
+             var player = FindByConnection(connection.RemoteId);
+             if (player == null) return;
++            if (packet is C2S_RttEcho echo) { ReceiveRttEcho(player, echo.Nonce, receivedAt); return; }
+             // Semantically invalid values are ignored; only wire-format violations close a connection.
+             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
+             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
+diff --git a/Server.Core/Runtime/Player.cs b/Server.Core/Runtime/Player.cs
+index 2cb28a3..c67e9ba 100644
+--- a/Server.Core/Runtime/Player.cs
++++ b/Server.Core/Runtime/Player.cs
+@@ -48,6 +48,11 @@ namespace PingTheKiller.ServerCore
+         internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
+         // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
+         internal double RttSeconds;
++        // Connection state, deliberately preserved across match resets to keep the lobby estimate warm.
++        internal uint RttProbeNonce;
++        internal bool RttProbePending;
++        internal int RttSampleCount;
++        internal double RttProbeSentAt, RttNextProbeAt;
+         internal double ExposedUntil, StealthUntil;
+         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
+         // Effective Signal for the current tick and the last position the killer saw (Packet Afterimage).
+diff --git a/Server.Tests/Core/CoreFixture.cs b/Server.Tests/Core/CoreFixture.cs
+index feba2a0..6d3bc71 100644
+--- a/Server.Tests/Core/CoreFixture.cs
++++ b/Server.Tests/Core/CoreFixture.cs
+@@ -48,11 +48,11 @@ internal sealed class TestClock
+ internal sealed class CoreFixture : IDisposable
+ {
+     // seed is the private-RNG test hook; csprng = true leaves it unset like the console host and offline client.
+-    internal CoreFixture(int bots = 0, bool autostart = false, int seed = 1234, bool sandbox = false, int? matchSeed = null, bool csprng = false)
++    internal CoreFixture(int bots = 0, bool autostart = false, int seed = 1234, bool sandbox = false, int? matchSeed = null, bool csprng = false, bool offline = true)
+     {
+         Server = new GameServer(new ServerOptions
+         {
+-            IsOffline = true, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
++            IsOffline = offline, Seed = csprng ? null : seed, BotCount = bots, AutoStart = autostart, Sandbox = sandbox,
+             MatchSeedForTests = matchSeed, ClockForTests = Clock.Read
+         });
+         Transport = new InMemoryTransport();
+diff --git a/Server.Tests/Core/SyncTimingTests.cs b/Server.Tests/Core/SyncTimingTests.cs
+index 2abcafc..e724e5e 100644
+--- a/Server.Tests/Core/SyncTimingTests.cs
++++ b/Server.Tests/Core/SyncTimingTests.cs
+@@ -253,9 +253,9 @@ public sealed class SyncTimingTests
+             {
+                 if (line.StartsWith("match end ", StringComparison.Ordinal)) ended = true;
+                 if (!line.StartsWith("sync player=", StringComparison.Ordinal)) return;
+-                if (line.EndsWith("result=Great", StringComparison.Ordinal)) great++;
+-                else if (line.EndsWith("result=Good", StringComparison.Ordinal)) good++;
+-                else if (line.EndsWith("result=Fail", StringComparison.Ordinal)) fail++;
++                if (line.Contains(" result=Great ", StringComparison.Ordinal)) great++;
++                else if (line.Contains(" result=Good ", StringComparison.Ordinal)) good++;
++                else if (line.Contains(" result=Fail ", StringComparison.Ordinal)) fail++;
+             };
+             var killer = f.Join("Idle killer");
+             killer.Send(new C2S_SetBots { Count = 7 });
+diff --git a/Server.Tests/ProtocolV02Tests.cs b/Server.Tests/ProtocolV02Tests.cs
+index 9c9c2a1..dbbb208 100644
+--- a/Server.Tests/ProtocolV02Tests.cs
++++ b/Server.Tests/ProtocolV02Tests.cs
+@@ -70,7 +70,7 @@ public sealed class ProtocolV02Tests
+     {
+         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
+         int count = Enum.GetValues<PacketId>().Length;
+-        Assert.Equal(19, count); // v0.3 adds S2C_SelfState (0x0010); v0.4 adds the sync check packets (0x0011-0x0013)
++        Assert.Equal(21, count); // v0.5 adds the server-timed RTT probe/echo (0x0014-0x0015).
+         Assert.Equal(count, packets.Length);
+         Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
+     }
+diff --git a/Server.Tests/QA/U2cAdversarialTests.cs b/Server.Tests/QA/U2cAdversarialTests.cs
+index a16247f..34d1f61 100644
+--- a/Server.Tests/QA/U2cAdversarialTests.cs
++++ b/Server.Tests/QA/U2cAdversarialTests.cs
+@@ -660,7 +660,7 @@ public sealed class U2cAdversarialTests
+     // 3. RNG
+     // ====================================================================================================================
+ 
+-    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom" };
++    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom", "_rttRandom" };
+ 
+     [Fact]
+     public void Rng_HiddenStreams_AreXoshiro256NotSystemRandom_With256BitCsprngStateThatDiffersPerServerAndPerMatch()
+@@ -681,13 +681,13 @@ public sealed class U2cAdversarialTests
+                 Assert.True(states.Add(string.Join(",", s)), "two streams share a state");
+             }
+         }
+-        // a new match re-seeds all three streams
++        // A new match re-seeds every private stream, including the RTT nonce stream.
+         using var q = new QaRig(2, csprng: true);
+         var before = StreamFields.Select(f => string.Join(",", Words(Spy.Server<object>(q.Server, f)))).ToList();
+         q.NextMatch();
+         var after = StreamFields.Select(f => string.Join(",", Words(Spy.Server<object>(q.Server, f)))).ToList();
+-        for (int i = 0; i < 3; i++) Assert.NotEqual(before[i], after[i]);
+-        // the private streams of one server are independent states (v0.4 adds the sync-check stream)
++        for (int i = 0; i < StreamFields.Length; i++) Assert.NotEqual(before[i], after[i]);
++        // The private streams of one server are independent states (v0.5 adds the RTT nonce stream).
+         Assert.Equal(StreamFields.Length, after.Distinct().Count());
+     }
+ 
+@@ -780,7 +780,7 @@ public sealed class U2cAdversarialTests
+             }
+         }
+         Assert.True(offenders.Count == 0, "System.Random / clock seeding in server code: " + string.Join(" | ", offenders));
+-        // The only allowed Random subtype is PrivateRandom; every hidden draw goes through one of the three fields.
++        // The only allowed Random subtype is PrivateRandom; every hidden draw goes through a named private stream.
+         string server = File.ReadAllText(Path.Combine(root, "Server.Core", "Runtime", "GameServer.cs"));
+         Assert.DoesNotContain("new Random", server);
+         // The console host and the offline client never set the hooks.
+@@ -790,10 +790,10 @@ public sealed class U2cAdversarialTests
+         string offline = File.ReadAllText(Path.Combine(root, "Client", "Assets", "Scripts", "Net", "OfflineLink.cs"));
+         Assert.DoesNotContain("MatchSeedForTests", offline);
+         Assert.DoesNotContain("Seed =", offline);
+-        // the hidden draw sites use only the three private streams
++        // Draw sites use only the named private streams (v0.5 adds RTT nonces).
+         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "Server.Core", "Runtime"), "GameServer*.cs"))
+             foreach (var line in File.ReadAllLines(file))
+-                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
++                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|_rttRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
+                     "unexpected random source in " + Path.GetFileName(file) + ": " + line.Trim());
+     }
+ 
+diff --git a/Shared/Runtime/Net/PacketCodec.cs b/Shared/Runtime/Net/PacketCodec.cs
+index 41977c4..98571c5 100644
+--- a/Shared/Runtime/Net/PacketCodec.cs
++++ b/Shared/Runtime/Net/PacketCodec.cs
+@@ -47,6 +47,8 @@ namespace PingTheKiller.Shared.Net
+                 case PacketId.S2C_SyncCheck: packet = S2C_SyncCheck.Read(ref reader); break;
+                 case PacketId.C2S_SyncPress: packet = C2S_SyncPress.Read(ref reader); break;
+                 case PacketId.S2C_SyncResult: packet = S2C_SyncResult.Read(ref reader); break;
++                case PacketId.S2C_RttProbe: packet = S2C_RttProbe.Read(ref reader); break;
++                case PacketId.C2S_RttEcho: packet = C2S_RttEcho.Read(ref reader); break;
+                 default: throw new PacketFormatException("Unknown packet ID.");
+             }
+             reader.EnsureEnd();
+diff --git a/Shared/Runtime/Packets/ClientPackets.cs b/Shared/Runtime/Packets/ClientPackets.cs
+index 959d5d4..d9fb9ab 100644
+--- a/Shared/Runtime/Packets/ClientPackets.cs
++++ b/Shared/Runtime/Packets/ClientPackets.cs
+@@ -51,6 +51,14 @@ namespace PingTheKiller.Shared.Packets
+         public static C2S_UseSkill Read(ref PacketReader r) => new C2S_UseSkill { SkillId = r.ReadByte() };
+     }
+ 
++    public sealed class C2S_RttEcho : IPacket
++    {
++        public uint Nonce;
++        public PacketId Id => PacketId.C2S_RttEcho;
++        public void Write(PacketWriter w) => w.WriteUInt32(Nonce);
++        public static C2S_RttEcho Read(ref PacketReader r) => new C2S_RttEcho { Nonce = r.ReadUInt32() };
++    }
++
+     public sealed class C2S_Ping : IPacket
+     {
+         public long Timestamp;
+diff --git a/Shared/Runtime/Packets/PacketId.cs b/Shared/Runtime/Packets/PacketId.cs
+index 961ef6e..2fe239d 100644
+--- a/Shared/Runtime/Packets/PacketId.cs
++++ b/Shared/Runtime/Packets/PacketId.cs
+@@ -20,6 +20,8 @@ namespace PingTheKiller.Shared.Packets
+         S2C_SelfState = 0x0010,
+         S2C_SyncCheck = 0x0011,
+         C2S_SyncPress = 0x0012,
+-        S2C_SyncResult = 0x0013
++        S2C_SyncResult = 0x0013,
++        S2C_RttProbe = 0x0014,
++        C2S_RttEcho = 0x0015
+     }
+ }
+diff --git a/Shared/Runtime/Packets/ServerPackets.cs b/Shared/Runtime/Packets/ServerPackets.cs
+index 40b2719..370ce89 100644
+--- a/Shared/Runtime/Packets/ServerPackets.cs
++++ b/Shared/Runtime/Packets/ServerPackets.cs
+@@ -167,6 +167,15 @@ namespace PingTheKiller.Shared.Packets
+         }
+     }
+ 
++    // v0.5: server-timed RTT; the client echoes this nonce on its receive thread.
++    public sealed class S2C_RttProbe : IPacket
++    {
++        public uint Nonce;
++        public PacketId Id => PacketId.S2C_RttProbe;
++        public void Write(PacketWriter w) => w.WriteUInt32(Nonce);
++        public static S2C_RttProbe Read(ref PacketReader r) => new S2C_RttProbe { Nonce = r.ReadUInt32() };
++    }
++
+     public sealed class S2C_Pong : IPacket
+     {
+         public long Timestamp;
+diff --git a/Tools/Harness.Tests/MeasurementTests.cs b/Tools/Harness.Tests/MeasurementTests.cs
+index 19747e7..532185a 100644
+--- a/Tools/Harness.Tests/MeasurementTests.cs
++++ b/Tools/Harness.Tests/MeasurementTests.cs
+@@ -81,6 +81,20 @@ public sealed class MeasurementTests
+         }
+     }
+ 
++    [Fact]
++    public void MaskingAcceptsOpaqueProbeNoncesButRejectsExtraBytes()
++    {
++        var stopped = new PlayerState { Id = 73, X = 7.12345f, Z = -8.45678f };
++        foreach (float coordinate in new[] { stopped.X, stopped.Z })
++        {
++            var probe = new S2C_RttProbe { Nonce = (uint)BitConverter.SingleToInt32Bits(coordinate) };
++            var frame = new ReceivedFrame(probe, PacketCodec.Encode(probe), 0);
++            Measurements.Masked(frame, stopped);
++            Assert.Throws<CheckFailure>(() => Measurements.Masked(frame with
++                { Raw = frame.Raw.Concat(Measurements.FloatBytes(coordinate)).ToArray() }, stopped));
++        }
++    }
++
+     // U3d replaced "the killer is always hidden" with the line-of-sight rule (KillerSight, see LineOfSightTests): without a
+     // killer tick an entry is undecided, and any killer entry to a recipient that is not in the world is a leak.
+     [Fact]
+diff --git a/Tools/Harness.Tests/PlannerAndLeakScanTests.cs b/Tools/Harness.Tests/PlannerAndLeakScanTests.cs
+index c31f709..4baba27 100644
+--- a/Tools/Harness.Tests/PlannerAndLeakScanTests.cs
++++ b/Tools/Harness.Tests/PlannerAndLeakScanTests.cs
+@@ -63,6 +63,15 @@ public sealed class PlannerTests
+ 
+ public sealed class KillerLeakScanTests
+ {
++    [Fact]
++    public void ProbeNonceIsNotACoordinateButUnexplainedBytesStillFail()
++    {
++        var frame = Frame(new S2C_RttProbe { Nonce = (uint)KillerLeakScan.Bits(KillerX) });
++        Assert.Null(KillerLeakScan.Excess(frame, Killer, new[] { A, B }));
++        var extra = frame with { Raw = frame.Raw.Concat(BitConverter.GetBytes(KillerX)).ToArray() };
++        Assert.NotNull(KillerLeakScan.Excess(extra, Killer, new[] { A, B }));
++    }
++
+     private const int A = 2, B = 3, KillerId = 1;
+     private static readonly float KillerX = 12.345678f, KillerZ = 40.98765f;
+     private static readonly HashSet<int> Killer = new() { KillerLeakScan.Bits(KillerX), KillerLeakScan.Bits(KillerZ) };
+diff --git a/Tools/Harness.Tests/WireClientTests.cs b/Tools/Harness.Tests/WireClientTests.cs
+index 798e210..6bbadb2 100644
+--- a/Tools/Harness.Tests/WireClientTests.cs
++++ b/Tools/Harness.Tests/WireClientTests.cs
+@@ -1,3 +1,5 @@
++using System.Net;
++using System.Net.Sockets;
+ using PingTheKiller.Shared.Net;
+ using PingTheKiller.Shared.Packets;
+ using Xunit;
+@@ -6,6 +8,30 @@ namespace PingTheKiller.Harness.Tests;
+ 
+ public sealed class WireClientTests
+ {
++    [Fact]
++    public async Task TypedReadsSkipKnownProbesAndPreserveExpectedPongValues()
++    {
++        var listener = new TcpListener(IPAddress.Loopback, 0);
++        listener.Start();
++        try
++        {
++            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
++            var options = new Options { Port = ((IPEndPoint)listener.LocalEndpoint).Port };
++            await using var client = await WireClient.ConnectAsync(options, deadline.Token);
++            using var peer = await listener.AcceptTcpClientAsync(deadline.Token);
++            foreach (long timestamp in new long[] { 42, 43 })
++            {
++                byte[] bytes = PacketCodec.Encode(new S2C_RttProbe { Nonce = (uint)timestamp })
++                    .Concat(PacketCodec.Encode(new S2C_Pong { Timestamp = timestamp })).ToArray();
++                await peer.GetStream().WriteAsync(bytes, deadline.Token);
++                var pong = (S2C_Pong)(await client.ReadAsync<S2C_Pong>(deadline.Token)).Packet;
++                Assert.Equal(timestamp, pong.Timestamp);
++            }
++            Assert.Empty(client.UnknownCounts());
++        }
++        finally { listener.Stop(); }
++    }
++
+     [Fact]
+     public async Task ADecoderFailureIsNotAcceptedAsAnAbuserDisconnect()
+     {
+diff --git a/Tools/Harness/KillerLeakScan.cs b/Tools/Harness/KillerLeakScan.cs
+index 37f6331..e8f85c8 100644
+--- a/Tools/Harness/KillerLeakScan.cs
++++ b/Tools/Harness/KillerLeakScan.cs
+@@ -105,6 +105,9 @@ public static class KillerLeakScan
+         var fields = new List<Field>();
+         switch (packet)
+         {
++            case S2C_RttProbe:
++                // Opaque server nonce, no coordinate fields; exact re-encoding is still checked above.
++                break;
+             case S2C_WorldState w:
+                 fields.Add(I((int)w.Tick));
+                 fields.Add(F(w.TimeLeft, true));
+diff --git a/Tools/Harness/Measurements.cs b/Tools/Harness/Measurements.cs
+index c15e6f4..6815d21 100644
+--- a/Tools/Harness/Measurements.cs
++++ b/Tools/Harness/Measurements.cs
+@@ -1,4 +1,5 @@
+ using System.Buffers.Binary;
++using PingTheKiller.Shared.Net;
+ using PingTheKiller.Shared.Game;
+ using PingTheKiller.Shared.Packets;
+ 
+@@ -71,7 +72,17 @@ public static class Measurements
+     }
+ 
+     // H3 raw scan of one killer-bound frame. Entries are matched by tick and position elsewhere (TickJoin), never by Id.
+-    public static void Masked(ReceivedFrame frame, PlayerState stopped) => MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);
++    public static void Masked(ReceivedFrame frame, PlayerState stopped)
++    {
++        if (frame.Packet is S2C_RttProbe)
++        {
++            // The nonce is opaque and has no coordinate fields. Still reject any unexplained raw bytes.
++            Check.Require(frame.Raw.AsSpan().SequenceEqual(PacketCodec.Encode(frame.Packet)),
++                "Unexplained bytes in RTT probe.");
++            return;
++        }
++        MaskedBytes(frame.Raw, frame.Packet.Id.ToString(), stopped);
++    }
+ 
+     public static void MaskedBytes(byte[] raw, string what, PlayerState stopped)
+     {
+diff --git a/docs/PLAN.md b/docs/PLAN.md
+index 392fb44..01cfc20 100644
+--- a/docs/PLAN.md
++++ b/docs/PLAN.md
+@@ -78,6 +78,10 @@
+ - `C2S_Interact {byte Active}` (해킹·구출 유지 시작/종료)
+ - `C2S_SetBots {byte Count}`, `C2S_SetRole {byte Role}` (호스트 전용, 로비)
+ 
++**v0.5 변경 (U6g, 서버 RTT 측정):**
++- `0x0014 S2C_RttProbe {uint Nonce}`, `0x0015 C2S_RttEcho {uint Nonce}` 추가. 온라인 인간에게 로비·매치에서 1 s마다 전송하며 클라이언트 수신 스레드에서 즉시 에코한다(동시 대기 1개, 1 s 시간 초과).
++- 서버 시계로 왕복 시간을 측정하고 0~0.25 s 클램프·1/8 평활화 후 싱크 판정에서 전체 RTT를 뺀다. 기존 Ping/Pong은 클라이언트 표시용이며 판정에 사용하지 않는다. 봇·오프라인은 프로브 없이 RTT 0을 유지한다.
++
+ ---
+ 
+ ## 3. 일정 (Notion 일정 기준, 서버 클라우드 단계 제거)
+diff --git a/docs/PROTOCOL.md b/docs/PROTOCOL.md
+index dd8b4c0..1a0ed93 100644
+--- a/docs/PROTOCOL.md
++++ b/docs/PROTOCOL.md
+@@ -1,6 +1,6 @@
+-# Ping the Killer: wire protocol v0.4 (GDD v2, unit U6a)
++# Ping the Killer: wire protocol v0.5 (GDD v2, unit U6g)
+ 
+-The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 changes and the full layouts of the packets they touch. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
++The source of truth is `Shared/Runtime/` (server and Unity compile the same files). This page covers the v0.4 layouts and v0.5 RTT probes. All integers and floats are little-endian. Counts are one byte, and a reader rejects any count above its maximum (`PacketFormatException`).
+ 
+ ## Frame
+ 
+@@ -8,13 +8,28 @@ The source of truth is `Shared/Runtime/` (server and Unity compile the same file
+ 
+ ## Packet ids
+ 
+-| Id | Packet | Dir | v0.4 |
++| Id | Packet | Dir | Changes |
+ |---|---|---|---|
+ | 0x0001-0x000F | Join, JoinResult, MoveInput, UseSkill, WorldState, SkillEffect, GameResult, Ping, Pong, LobbyState, StartMatch, MatchStart, Interact, SetBots, SetRole | | WorldState and GameResult changed |
+ | 0x0010 | S2C_SelfState | S→C | extended |
+ | 0x0011 | S2C_SyncCheck | S→C | new |
+ | 0x0012 | C2S_SyncPress | C→S | new |
+ | 0x0013 | S2C_SyncResult | S→C | new |
++| 0x0014 | S2C_RttProbe | S→C | v0.5: `uint Nonce` |
++| 0x0015 | C2S_RttEcho | C→S | v0.5: `uint Nonce` |
++
++## Server-timed RTT (0x0014-0x0015, v0.5)
++
++Both packets have exactly four payload bytes (`uint Nonce`); short or trailing payloads are rejected.
++The server probes each joined, connected online human in the lobby and match, starting on the first tick after joining,
++then every 1 s with at most one outstanding nonce. Bots, offline sessions and unjoined connections receive none.
++The client immediately queues the matching echo on its receive thread, bypassing the Unity main thread.
++
++The server stamps the send and echo receipt with its own monotonic clock. Only an outstanding matching nonce counts;
++duplicates, guesses and stale echoes are ignored. A probe expires at 1 s without changing the estimate.
++Samples are clamped to 0–0.25 s; the first sets the estimate, then `RTT += (sample - RTT) / 8`.
++Disconnect/reconnect clears the estimate and probe state. `C2S_Ping`/`S2C_Pong` remain unchanged and client-timed
++for display only; the server never uses their client-supplied timestamps for judging.
+ 
+ ## S2C_WorldState (0x0005)
+ 
+@@ -72,8 +87,8 @@ The `ExitOpen` and `ExitLocked` bytes of v0.3 are removed.
+   - Values: `Fail = 0`, `Good = 1`, `Great = 2`. Values above 2 are rejected.
+   - Great gives +1 point. Good changes nothing. Fail gives −5 points and sets the terminal's `Overloaded` flag for 2 s.
+ 
+-**Judging.** The server takes the press moment as arrival − RTT/2 and computes the fraction of the sweep since the check was sent.
++**Judging.** The server takes the press moment as receive-thread arrival − the full server-probed RTT and computes the fraction of the sweep since the check was sent. The client starts the needle at the check's receive-thread timestamp.
+ - Great: inside `[ZoneStart, ZoneStart + GreatSize]`.
+ - Good: inside `[ZoneStart − tol, ZoneStart + ZoneSize + tol]`, where `tol = 0.15 s / Duration`.
+-- Fail: anything else, including no press by `Duration + 0.15 s + RTT/2` after sending.
++- Fail: anything else, including no press by `Duration + 0.15 s + RTT` after sending.
+ - Stopping the hack cancels the pending check silently.
