@@ -1,0 +1,59 @@
+diff --git a/Client/Assets/Scripts/World/WorldView.cs b/Client/Assets/Scripts/World/WorldView.cs
+index 930d411..38492f4 100644
+--- a/Client/Assets/Scripts/World/WorldView.cs
++++ b/Client/Assets/Scripts/World/WorldView.cs
+@@ -20,6 +20,11 @@ namespace PingTheKiller.Client.World
+         // Alpha of the Killer's visor material after the last Render; it fades with the body (KillerAlpha).
+         public float KillerVisorAlpha => characters != null ? characters.KillerVisorAlpha : 0;
+ 
++        // The escape hatch (both roles): drawn only while the latest snapshot carries one; snaps to its position.
++        public bool HatchShown => hatch != null && hatch.Shown;
++        public Vector3 HatchPosition => hatch != null ? hatch.Position : Vector3.zero;
++        public HatchView Hatch => hatch;
++
+         // A spectator (own status Eliminated or Escaped) never sees the Killer model, even if an entry arrives (U4e Q-04b).
+         public static bool KillerDrawable(byte ownStatus) => CharacterViews.KillerDrawable(ownStatus);
+ 
+@@ -27,6 +32,7 @@ namespace PingTheKiller.Client.World
+         private WorldMaterials materials;
+         private CharacterViews characters;
+         private WorldProps props;
++        private HatchView hatch;
+         private int localId;
+         private Role role;
+ 
+@@ -36,6 +42,7 @@ namespace PingTheKiller.Client.World
+             materials = new WorldMaterials(transform);
+             props = new WorldProps(materials, role);
+             characters = new CharacterViews(materials, localId, role);
++            hatch = new HatchView(materials);
+             props.Initialize();
+             characters.Initialize();
+         }
+@@ -45,12 +52,17 @@ namespace PingTheKiller.Client.World
+             snapshots.Add(state, time);
+             characters.Accept(state);
+             props.Accept(state);
++            hatch.Set(state.HatchVisible == 1, state.HatchX, state.HatchZ);
+         }
+ 
+         // Survivor view: the own character faces the local facing (HUD_SPEC 4.10) and is dithered while the boom is short.
+         public void SetLocalLook(float facing, bool dither) => characters.SetLocalLook(facing, dither);
+ 
+-        public void Render(double now) => characters.Render(now, snapshots);
++        public void Render(double now)
++        {
++            characters.Render(now, snapshots);
++            hatch.Render(now);
++        }
+ 
+         // Survivor: the own entry by Id. Killer: the own entry by Role (HUD_SPEC 6.2).
+         public bool LocalPosition(double now, out Vector3 position)
+@@ -63,6 +75,7 @@ namespace PingTheKiller.Client.World
+             materials?.Dispose();
+             characters?.Dispose();
+             props?.Dispose();
++            hatch?.Dispose();
+         }
+     }
+ }

@@ -1,0 +1,361 @@
+using System.Collections.Generic;
+using PingTheKiller.Client.UI;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace PingTheKiller.Client.World
+{
+    // HUD_SPEC 14.1 world effects and skill sounds: plays SkillFeedback records from pools built once at warm-up (3 per
+    // Hovl prefab, 6 procedural rings, 2 2D voices, 4 positional voices). After Warm nothing is instantiated; an exhausted
+    // pool reuses its oldest instance. Hovl one-shots use the low-emission marker copy (no bloom) with their Flash and
+    // EndSparks glow children off; reduced motion swaps them for still rings (SkillFeedback.Reduced).
+    public sealed class SkillFx : MonoBehaviour
+    {
+        public const int PerPrefab = 3, RingCount = 6, PositionalCount = 4;
+        public const float RingWidth = .08f, RingHeight = .02f, DuckSeconds = .3f, DuckGain = .5f, TierCutFade = .03f;
+        private const int RingPoints = 96;
+        public static readonly Color Signal = new Color32(255, 176, 32, 255), Ally = new Color32(63, 184, 175, 255);
+        public static readonly Color Danger = new Color32(229, 72, 77, 255), Text = new Color32(232, 230, 225, 255);
+        private static readonly string[] GlowChildren = { "Flash", "EndSparks" };
+
+        private sealed class OneShot
+        {
+            public GameObject Root;
+            public ParticleSystem[] Systems;
+            public float[] Alpha;
+            public double Start, End;
+            public bool Busy;
+        }
+
+        private sealed class Ring
+        {
+            public LineRenderer Line;
+            public Material Material;
+            public FxVisual Visual;
+            public Vector3 Center;
+            public double Start;
+            public bool Busy;
+            public float Shown = -1;
+        }
+
+        private sealed class Voice
+        {
+            public AudioSource Source;
+            public double Start, Stop, FadeFrom;
+            public float Volume;
+            public bool Busy, Positional;
+        }
+
+        private readonly Dictionary<FxPrefab, List<OneShot>> oneShots = new Dictionary<FxPrefab, List<OneShot>>();
+        private readonly List<Ring> rings = new List<Ring>();
+        private readonly List<Voice> voices = new List<Voice>();
+        private readonly Vector3[] points = new Vector3[RingPoints];
+        // Two skill-tier voices: a new skill-tier cue starts on the idle one while the cut one fades out over TierCutFade.
+        private readonly Voice[] skillVoices = new Voice[2];
+        private int skillSlot;
+        private Voice highVoice;
+        private readonly Dictionary<float, AnimationCurve> rolloffs = new Dictionary<float, AnimationCurve>();
+        private SkillFxArt art;
+        private double duckUntil = double.NegativeInfinity;
+
+        public bool Warmed { get; private set; }
+        public bool Reduced { get; set; }
+        // GameObjects created by this component (tests: no growth after Warm).
+        public int Created { get; private set; }
+        public int BusyOneShots { get { int n = 0; foreach (List<OneShot> list in oneShots.Values) foreach (OneShot s in list) if (s.Busy) n++; return n; } }
+        public int BusyRings { get { int n = 0; foreach (Ring r in rings) if (r.Busy) n++; return n; } }
+        public int BusyVoices { get { int n = 0; foreach (Voice v in voices) if (v.Busy) n++; return n; } }
+        public float LastRingDiameter { get; private set; }
+        public Color LastTint { get; private set; }
+        public FxKind LastKind { get; private set; }
+
+        public static Color Tint(FxTint tint)
+        {
+            switch (tint)
+            {
+                case FxTint.Signal: return Signal;
+                case FxTint.Ally: return Ally;
+                case FxTint.Danger: return Danger;
+                default: return Text;
+            }
+        }
+
+        // Builds every pooled instance. Safe to call again (no-op once warmed). art may be null: rings and no sound.
+        public void Warm(SkillFxArt source)
+        {
+            if (Warmed) return;
+            Warmed = true; art = source;
+            for (int p = 1; p < SkillFeedback.PrefabNames.Length; p++)
+            {
+                var prefabId = (FxPrefab)p;
+                GameObject prefab = art != null ? art.Prefab(prefabId) : null;
+                if (prefab == null) continue;
+                var list = new List<OneShot>();
+                for (int i = 0; i < PerPrefab; i++) list.Add(NewOneShot(prefab, prefabId, i));
+                oneShots[prefabId] = list;
+            }
+            for (int i = 0; i < RingCount; i++) rings.Add(NewRing(i));
+            skillVoices[0] = NewVoice("skill fx 2D skill a", false);
+            skillVoices[1] = NewVoice("skill fx 2D skill b", false);
+            highVoice = NewVoice("skill fx 2D high", false);
+            for (int i = 0; i < PositionalCount; i++) NewVoice("skill fx positional " + i, true);
+        }
+
+        private GameObject Child(string label)
+        {
+            var item = new GameObject(label);
+            item.transform.SetParent(transform, false);
+            Created++;
+            return item;
+        }
+
+        private OneShot NewOneShot(GameObject prefab, FxPrefab id, int index)
+        {
+            GameObject root = Instantiate(prefab, transform);
+            Created++;
+            root.name = "skill fx " + SkillFeedback.PrefabNames[(int)id] + " " + index;
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+                if (System.Array.IndexOf(GlowChildren, child.name) >= 0) child.gameObject.SetActive(false);
+            var systems = new List<ParticleSystem>();
+            foreach (ParticleSystem system in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (!system.gameObject.activeSelf) continue;
+                ParticleSystem.MainModule main = system.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                main.loop = false; main.playOnAwake = false;
+                system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                systems.Add(system);
+            }
+            foreach (ParticleSystemRenderer renderer in root.GetComponentsInChildren<ParticleSystemRenderer>(true))
+            {
+                renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+                if (art.Marker == null) continue;
+                Material[] used = renderer.sharedMaterials;
+                for (int i = 0; i < used.Length; i++) used[i] = art.Marker;
+                renderer.sharedMaterials = used;
+                if (renderer.trailMaterial != null) renderer.trailMaterial = art.Marker;
+            }
+            var shot = new OneShot { Root = root, Systems = systems.ToArray(), Alpha = new float[systems.Count] };
+            for (int i = 0; i < shot.Systems.Length; i++) shot.Alpha[i] = shot.Systems[i].main.startColor.color.a;
+            root.SetActive(false);
+            return shot;
+        }
+
+        private Ring NewRing(int index)
+        {
+            GameObject item = Child("skill fx ring " + index);
+            item.transform.rotation = Quaternion.Euler(90, 0, 0); // TransformZ alignment: the line lies flat on the ground
+            var line = item.AddComponent<LineRenderer>();
+            line.useWorldSpace = true; line.loop = true; line.positionCount = RingPoints;
+            line.alignment = LineAlignment.TransformZ; line.widthMultiplier = RingWidth;
+            line.shadowCastingMode = ShadowCastingMode.Off; line.receiveShadows = false;
+            line.numCornerVertices = 0; line.numCapVertices = 0;
+            Material template = art != null ? art.Ring : null;
+            Material material = template != null ? new Material(template) : new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            material.name = "skill fx ring";
+            line.sharedMaterial = material;
+            item.SetActive(false);
+            return new Ring { Line = line, Material = material };
+        }
+
+        private Voice NewVoice(string label, bool positional)
+        {
+            GameObject item = Child(label);
+            var source = item.AddComponent<AudioSource>();
+            source.playOnAwake = false; source.loop = false; source.dopplerLevel = 0; source.spread = 0;
+            source.spatialBlend = positional ? 1 : 0;
+            var voice = new Voice { Source = source, Positional = positional };
+            voices.Add(voice);
+            return voice;
+        }
+
+        public void Play(in FxRecord record, Vector3 own) => Play(record, own, Time.unscaledTimeAsDouble);
+
+        // One record. `own` is the own rendered ground position; the world effect and a positional sound are placed by
+        // SkillFeedback.VisualPoint / SoundPoint (a positional sound always at the effect's world point).
+        public void Play(in FxRecord record, Vector3 own, double now)
+        {
+            if (!Warmed) return;
+            FxVisual visual = Reduced ? SkillFeedback.Reduced(record.Visual) : record.Visual;
+            SkillFeedback.VisualPoint(record, own.x, own.z, out float vx, out float vz);
+            SkillFeedback.SoundPoint(record, own.x, own.z, out float sx, out float sz);
+            if (visual.Shown) Show(visual, new Vector3(vx, 0, vz), now);
+            if (record.Sound.Shown) Sound(record.Sound, new Vector3(sx, 0, sz), now);
+        }
+
+        // Read-back for tests: where the last positional voice was placed, and a skill-tier voice's stop time and volume.
+        public Vector3 LastSoundPosition { get; private set; }
+        public double SkillVoiceStop(int slot) => skillVoices[slot].Busy ? skillVoices[slot].Stop : double.NegativeInfinity;
+        public float SkillVoiceVolume(int slot) => skillVoices[slot].Source.volume;
+        public int SkillSlot => skillSlot;
+
+        private void Show(FxVisual visual, Vector3 at, double now)
+        {
+            LastKind = visual.Kind; LastTint = Tint(visual.Tint);
+            if (visual.Kind == FxKind.Hovl && oneShots.TryGetValue(visual.Prefab, out List<OneShot> list))
+            {
+                OneShot shot = Oldest(list);
+                shot.Busy = true; shot.Start = now; shot.End = now + visual.Seconds;
+                shot.Root.SetActive(true);
+                shot.Root.transform.position = at + Vector3.up * RingHeight;
+                shot.Root.transform.localScale = Vector3.one * (visual.Diameter / SkillFeedback.PrefabDiameters[(int)visual.Prefab]);
+                Color tint = Tint(visual.Tint);
+                for (int i = 0; i < shot.Systems.Length; i++)
+                {
+                    ParticleSystem system = shot.Systems[i];
+                    system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    ParticleSystem.MainModule main = system.main;
+                    main.startColor = new Color(tint.r, tint.g, tint.b, shot.Alpha[i]);
+                    system.Play(false);
+                }
+                return;
+            }
+            if (visual.Kind == FxKind.Hovl) { visual = SkillFeedback.Reduced(visual); LastKind = FxKind.Ring; } // no prefab: the ring fallback
+            Ring ring = OldestRing();
+            ring.Busy = true; ring.Visual = visual; ring.Center = at; ring.Start = now; ring.Shown = -1;
+            ring.Material.color = Tint(visual.Tint);
+            ring.Line.gameObject.SetActive(true);
+            DrawRing(ring, now);
+        }
+
+        private OneShot Oldest(List<OneShot> list)
+        {
+            OneShot pick = null;
+            foreach (OneShot shot in list)
+            {
+                if (!shot.Busy) return shot;
+                if (pick == null || shot.Start < pick.Start) pick = shot;
+            }
+            return pick;
+        }
+
+        private Ring OldestRing()
+        {
+            Ring pick = null;
+            foreach (Ring ring in rings)
+            {
+                if (!ring.Busy) return ring;
+                if (pick == null || ring.Start < pick.Start) pick = ring;
+            }
+            return pick;
+        }
+
+        private void Sound(FxSound sound, Vector3 at, double now)
+        {
+            AudioClip clip = art != null ? art.Clip(sound.Clip) : null;
+            Voice voice;
+            if (!sound.Positional)
+            {
+                if (sound.Tier == FxTier.High) voice = highVoice;
+                else
+                {
+                    // 14.1: a new skill-tier cue cuts the previous one with a 30 ms fade, on the other pooled voice.
+                    Voice previous = skillVoices[skillSlot];
+                    if (previous.Busy && previous.Stop > now + TierCutFade) { previous.FadeFrom = now; previous.Stop = now + TierCutFade; }
+                    skillSlot = 1 - skillSlot;
+                    voice = skillVoices[skillSlot];
+                }
+                duckUntil = now + DuckSeconds;
+            }
+            else
+            {
+                voice = null;
+                foreach (Voice v in voices)
+                {
+                    if (!v.Positional) continue;
+                    if (voice == null || (voice.Busy && !v.Busy) || (voice.Busy == v.Busy && v.Start < voice.Start)) voice = v;
+                }
+                voice.Source.transform.position = at;
+                voice.Source.rolloffMode = AudioRolloffMode.Custom;
+                voice.Source.maxDistance = sound.Range;
+                if (!rolloffs.TryGetValue(sound.Range, out AnimationCurve curve)) rolloffs[sound.Range] = curve = Rolloff(sound.Range);
+                voice.Source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, curve);
+                LastSoundPosition = at;
+            }
+            voice.Busy = true; voice.Start = now;
+            voice.Volume = SkillFeedback.Volume(sound.Clip, sound.Db);
+            float length = clip != null ? clip.length : 0;
+            float cut = sound.Cut > 0 ? sound.Cut : length;
+            voice.Stop = now + cut;
+            voice.FadeFrom = voice.Stop - Mathf.Max(sound.Fade, 0);
+            voice.Source.Stop();
+            voice.Source.volume = voice.Volume;
+            if (clip == null) return;
+            voice.Source.clip = clip;
+            voice.Source.Play();
+        }
+
+        private static AnimationCurve Rolloff(float range)
+        {
+            var keys = new Keyframe[12];
+            for (int i = 0; i < 11; i++)
+            {
+                float x = i / 10f * .999f;
+                keys[i] = new Keyframe(x, SkillFeedback.Attenuation(x * range, range));
+            }
+            keys[11] = new Keyframe(1, 0);
+            return new AnimationCurve(keys);
+        }
+
+        private void Update() => Tick(Time.unscaledTimeAsDouble);
+
+        // Ends one-shots and rings at their time, grows rings, fades voices to their cut and ducks positional voices.
+        public void Tick(double now)
+        {
+            foreach (List<OneShot> list in oneShots.Values)
+                foreach (OneShot shot in list)
+                    if (shot.Busy && now >= shot.End) EndOneShot(shot);
+            foreach (Ring ring in rings) if (ring.Busy) DrawRing(ring, now);
+            bool ducked = now < duckUntil;
+            foreach (Voice voice in voices)
+            {
+                if (!voice.Busy) continue;
+                if (now >= voice.Stop) { voice.Source.Stop(); voice.Busy = false; continue; }
+                float gain = now >= voice.FadeFrom && voice.Stop > voice.FadeFrom ? (float)((voice.Stop - now) / (voice.Stop - voice.FadeFrom)) : 1;
+                if (voice.Positional && ducked) gain *= DuckGain;
+                voice.Source.volume = voice.Volume * gain;
+            }
+        }
+
+        private void DrawRing(Ring ring, double now)
+        {
+            float diameter = SkillFeedback.DiameterAt(ring.Visual, now - ring.Start);
+            if (diameter < 0) { ring.Busy = false; ring.Line.gameObject.SetActive(false); return; }
+            LastRingDiameter = diameter;
+            if (Mathf.Approximately(diameter, ring.Shown)) return;
+            ring.Shown = diameter;
+            float radius = Mathf.Max(.01f, diameter * .5f);
+            for (int i = 0; i < RingPoints; i++)
+            {
+                float a = i * Mathf.PI * 2 / RingPoints;
+                points[i] = ring.Center + new Vector3(Mathf.Cos(a) * radius, RingHeight, Mathf.Sin(a) * radius);
+            }
+            ring.Line.SetPositions(points);
+        }
+
+        private static void EndOneShot(OneShot shot)
+        {
+            foreach (ParticleSystem system in shot.Systems) system.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+            shot.Root.SetActive(false);
+            shot.Busy = false;
+        }
+
+        // MatchStart, GameResult, disconnect: everything stops at once.
+        public void Clear()
+        {
+            foreach (List<OneShot> list in oneShots.Values) foreach (OneShot shot in list) if (shot.Busy) EndOneShot(shot);
+            foreach (Ring ring in rings) { ring.Busy = false; ring.Line.gameObject.SetActive(false); }
+            foreach (Voice voice in voices) { voice.Busy = false; voice.Source.Stop(); }
+            duckUntil = double.NegativeInfinity;
+        }
+
+        private void OnDestroy()
+        {
+            foreach (Ring ring in rings)
+            {
+                if (ring.Material == null) continue;
+                if (Application.isPlaying) Destroy(ring.Material); else DestroyImmediate(ring.Material);
+            }
+        }
+    }
+}

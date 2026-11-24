@@ -1,0 +1,276 @@
+using System.Reflection;
+using PingTheKiller.ServerCore;
+using PingTheKiller.ServerCore.Map;
+using PingTheKiller.Shared.Game;
+using Xunit;
+
+namespace PingTheKiller.Tests.Core;
+
+// Decisions are exercised with role views and the public static map.
+public sealed class BotV2Tests
+{
+    private readonly FixedMap _map = new();
+    private readonly NavGrid _nav;
+    public BotV2Tests() => _nav = new NavGrid(_map);
+    private static T Read<T>(object brain, string name) =>
+        (T)brain.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(brain)!;
+    private static SurvivorBotView Survivor(int id = 1) => new()
+    {
+        SelfId = id, X = 41, Z = 42.7f, Speed = 4, Status = PlayerStatus.Normal,
+        Terminals = new[] { new TerminalState { X = 41, Z = 44, Progress = 40 },
+            new TerminalState { X = 58, Z = 27, Progress = 20 } }, TerminalCount = 2
+    };
+    private static PlayerState Ally(int id, float x, float z, PlayerStatus status = PlayerStatus.Normal, float timer = 60) =>
+        new() { Id = id, X = x, Z = z, Status = (byte)status, StatusTimer = timer, CaptureCount = 1 };
+    private BotIntent Step(SurvivorBrain brain, SurvivorBotView view, Random rng)
+    {
+        view.Time += .05;
+        return brain.Update(view, _nav, _map, rng);
+    }
+
+    [Fact]
+    public void EveryNormalSurvivorWorksAndAtMostTwoHackEachTerminal()
+    {
+        const int count = 7;
+        var brains = Enumerable.Range(0, count).Select(_ => new SurvivorBrain()).ToArray();
+        var views = Enumerable.Range(1, count).Select(id => Survivor(id)).ToArray();
+        var rngs = Enumerable.Range(1, count).Select(id => new Random(id)).ToArray();
+        var worked = new bool[count];
+        var intents = new BotIntent[count];
+        foreach (var view in views)
+        {
+            view.Terminals = _map.CreateTerminals(7, out _);
+            view.TerminalCount = view.Terminals.Length;
+        }
+        for (int tick = 0; tick < 2400; tick++)
+        {
+            foreach (var view in views)
+            {
+                view.Team.Clear();
+                foreach (var other in views) view.Team.Add(Ally(other.SelfId, other.X, other.Z));
+            }
+            var hackers = new int[views[0].TerminalCount];
+            for (int i = 0; i < count; i++)
+            {
+                intents[i] = Step(brains[i], views[i], rngs[i]);
+                if (!intents[i].Interact) continue;
+                worked[i] = true;
+                int target = Read<int>(brains[i], "_terminal");
+                if (target >= 0) hackers[target]++;
+            }
+            Assert.All(hackers, n => Assert.InRange(n, 0, 2));
+            for (int i = 0; i < count; i++)
+            {
+                var next = _map.Move(views[i].X, views[i].Z, intents[i].DirX * .2f, intents[i].DirZ * .2f);
+                views[i].X = next.X; views[i].Z = next.Z;
+            }
+        }
+        Assert.All(worked, value => Assert.True(value));
+    }
+
+    [Fact]
+    public void TerminalChoicePrefersProgressThenDistanceAndRespectsTwoSlots()
+    {
+        var view = Survivor(3); var brain = new SurvivorBrain(); var rng = new Random(1);
+        view.Team.Add(Ally(1, 41, 43)); view.Team.Add(Ally(2, 42, 44));
+        Step(brain, view, rng);
+        Assert.Equal(1, Read<int>(brain, "_terminal"));
+        view.Team.Clear();
+        for (int i = 0; i < 20; i++) Step(brain, view, rng);
+        Assert.Equal(0, Read<int>(brain, "_terminal"));
+        view.Terminals[1].Progress = 50;
+        for (int i = 0; i < 20; i++) Step(brain, view, rng);
+        Assert.Equal(1, Read<int>(brain, "_terminal"));
+        view.Terminals[1].Progress = 40;
+        for (int i = 0; i < 20; i++) Step(brain, view, rng);
+        Assert.Equal(0, Read<int>(brain, "_terminal"));
+    }
+
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 2)]
+    public void SightOrThreatTwoInterruptsHacking(bool visible, byte threat)
+    {
+        var view = Survivor(); var brain = new SurvivorBrain(); var rng = new Random(2);
+        bool hacked = false;
+        for (int i = 0; i < 300; i++) hacked |= Step(brain, view, rng).Interact;
+        Assert.True(hacked);
+        view.KillerVisible = visible; view.KillerX = 34; view.KillerZ = 43.5f; view.Threat = threat;
+        for (int i = 0; i < 20; i++) Step(brain, view, rng);
+        Assert.False(Step(brain, view, rng).Interact);
+        if (visible)
+            Assert.True(_map.SegmentBlocked(view.KillerX, view.KillerZ, Read<float>(brain, "_goalX"), Read<float>(brain, "_goalZ")));
+    }
+
+    [Theory]
+    [InlineData(60, 0, false, true)]
+    [InlineData(12, 2, true, true)]
+    [InlineData(5, 2, true, false)]
+    [InlineData(30, 2, true, false)]
+    public void RescueUsesArrivalHoldAndUrgency(float timer, byte threat, bool recentlySeen, bool expected)
+    {
+        var view = Survivor(); view.Threat = threat;
+        view.Team.Add(Ally(2, 45, 43, PlayerStatus.Lagging, timer));
+        if (recentlySeen) { view.KillerVisible = true; view.KillerX = 20; view.KillerZ = 20; }
+        var brain = new SurvivorBrain(); var rng = new Random(3);
+        Step(brain, view, rng);
+        if (recentlySeen) view.KillerVisible = false;
+        for (int i = 0; i < 15; i++) Step(brain, view, rng);
+        bool rescue = Math.Abs(Read<float>(brain, "_goalX") - 45) < .01f && Math.Abs(Read<float>(brain, "_goalZ") - 43) < .01f;
+        Assert.Equal(expected, rescue);
+    }
+
+    [Fact]
+    public void OnlyNearestEligibleNormalSurvivorRescues()
+    {
+        var view = Survivor(3); view.Team.Add(Ally(2, 45, 43, PlayerStatus.Lagging, 30));
+        view.Team.Add(Ally(1, 44, 43));
+        var brain = new SurvivorBrain(); var rng = new Random(3);
+        for (int i = 0; i < 200; i++) Step(brain, view, rng);
+        Assert.NotEqual(45, Read<float>(brain, "_goalX"));
+        Assert.True(Step(brain, view, rng).Interact || Read<int>(brain, "_terminal") >= 0);
+    }
+
+    [Fact]
+    public void NearestNormalHoldsMostAdvancedSwitchAndEveryoneHeadsToOpenExit()
+    {
+        var view = Survivor(); view.Team.Add(Ally(1, view.X, view.Z)); view.Team.Add(Ally(2, 10, 25));
+        view.Exits = new[] { new BotExit { X = 10, Z = 25, SwitchX = 10, SwitchZ = 25, Powered = true, Progress = 20 },
+            new BotExit { X = 45, Z = 44, SwitchX = 41, SwitchZ = 43, Powered = true, Progress = 80 } };
+        view.ExitCount = 2;
+        var brain = new SurvivorBrain(); var rng = new Random(1);
+        Assert.True(Step(brain, view, rng).Interact);
+        view.Exits[1].Open = true;
+        view.KillerVisible = true; view.KillerX = 42; view.KillerZ = 43; view.Threat = 3;
+        for (int i = 0; i < 20; i++) Step(brain, view, rng);
+        Assert.Equal(45, Read<float>(brain, "_goalX"));
+        Assert.Equal(44, Read<float>(brain, "_goalZ"));
+        Assert.False(Step(brain, view, rng).Interact);
+    }
+
+    [Theory]
+    [InlineData(100, true)]
+    [InlineData(8, false)]
+    public void CollapseAllowsOnlyCloseAffordableRescueBeforeEscape(float collapse, bool rescue)
+    {
+        var view = Survivor(); view.CollapseLeft = collapse;
+        view.Team.Add(Ally(2, 44, 43, PlayerStatus.Lagging, 30));
+        view.Exits = new[] { new BotExit { X = 48, Z = 44, Open = true, Powered = true } }; view.ExitCount = 1;
+        var brain = new SurvivorBrain(); var rng = new Random(2);
+        Step(brain, view, rng);
+        Assert.Equal(rescue ? 44 : 48, Read<float>(brain, "_goalX"));
+    }
+
+    [Theory]
+    [InlineData(SkillIds.TrafficOverload)]
+    [InlineData(SkillIds.StealthRelay)]
+    public void SurvivorUsesChaseAndHackSkills(byte skill)
+    {
+        var view = Survivor(); view.Skill = skill; view.SkillReady = true;
+        var brain = new SurvivorBrain(); var rng = new Random(1);
+        bool used = false;
+        for (int i = 0; i < 300; i++)
+        {
+            if (skill == SkillIds.TrafficOverload) { view.KillerVisible = true; view.KillerX = 43; view.KillerZ = 44; }
+            else view.Threat = 1;
+            used |= Step(brain, view, rng).UseSkill;
+        }
+        Assert.True(used);
+    }
+
+    private static KillerBotView Killer() => new()
+    {
+        X = 41, Z = 43, Speed = 4.6f, Yaw = 0,
+        Terminals = new[] { new KillerBotView.Terminal { X = 41, Z = 44 }, new KillerBotView.Terminal { X = 58, Z = 27 } }, TerminalCount = 2
+    };
+
+    [Fact]
+    public void PredictiveAimUsesAnonymousVelocityAndStopsExtrapolatingAfterOnePointFiveSeconds()
+    {
+        var view = Killer(); var brain = new KillerBrain(); var rng = new Random(1);
+        view.TerminalCount = 8; view.Terminals = new KillerBotView.Terminal[8];
+        for (int i = 0; i <= 20; i++)
+        {
+            view.Time = i * .05;
+            view.Blips.Clear(); view.Blips.Add(new KillerBotView.Blip { X = 41 + (float)view.Time * 2, Z = 44 });
+            brain.Update(view, _nav, _map, rng);
+        }
+        Assert.InRange(Read<float>(brain, "_velocityX"), 1.99f, 2.01f);
+        float observed = Read<float>(brain, "_observedX");
+        view.Blips.Clear(); view.Time = 1.4;
+        brain.Update(view, _nav, _map, rng);
+        Assert.True(Read<float>(brain, "_targetX") > observed);
+        view.Time = 3; brain.Update(view, _nav, _map, rng);
+        Assert.False(Read<bool>(brain, "_hasTarget"));
+        float target = Read<float>(brain, "_targetX");
+        view.Time = 3.2; brain.Update(view, _nav, _map, rng);
+        Assert.Equal(target, Read<float>(brain, "_targetX"));
+    }
+
+    [Fact]
+    public void PatrolRanksRecentSignalsThenDistanceAndForgetsThemAfterSixtySeconds()
+    {
+        var view = Killer(); var brain = new KillerBrain(); var rng = new Random(1);
+        view.Blips.Add(new KillerBotView.Blip { X = 58, Z = 27 });
+        brain.Update(view, _nav, _map, rng);
+        Assert.Equal(1, Read<int>(brain, "_patrol"));
+        view.Blips.Clear(); view.Time = 61;
+        brain.Update(view, _nav, _map, rng);
+        Assert.Equal(0, Read<int>(brain, "_patrol"));
+    }
+
+    [Fact]
+    public void KillerHoldsKickForTwoSecondsThenLeavesWithoutRevisitingLaggingBlips()
+    {
+        var view = Killer(); view.X = 41; view.Z = 44;
+        var brain = new KillerBrain(); var rng = new Random(1);
+        view.Blips.Add(new KillerBotView.Blip { X = 41, Z = 44, Lagging = true });
+        int held = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            view.Time = i * .05;
+            var intent = brain.Update(view, _nav, _map, rng);
+            if (intent.Interact) { held++; Assert.Equal(0, intent.DirX); Assert.Equal(0, intent.DirZ); }
+        }
+        Assert.InRange(held, 40, 46);
+        Assert.False(Read<bool>(brain, "_hasTarget"));
+        view.Time = 8; brain.Update(view, _nav, _map, rng);
+        Assert.Equal(1, Read<int>(brain, "_patrol"));
+    }
+
+    [Fact]
+    public void KillerGuardsMostAdvancedPoweredExit()
+    {
+        var view = Killer();
+        view.Exits = new[] { new BotExit { Powered = true, Progress = 10, SwitchX = 41, SwitchZ = 44 },
+            new BotExit { Powered = true, Progress = 80, SwitchX = 58, SwitchZ = 27 } }; view.ExitCount = 2;
+        var brain = new KillerBrain();
+        brain.Update(view, _nav, _map, new Random(1));
+        Assert.Equal(view.TerminalCount, Read<int>(brain, "_patrol"));
+        float dx = Read<float>(brain, "_patrolX") - 58, dz = Read<float>(brain, "_patrolZ") - 27;
+        Assert.InRange(dx * dx + dz * dz, 0, 9.01f);
+    }
+
+    [Fact]
+    public void KillerDoesNotKickWhileANormalSurvivorIsInSight()
+    {
+        var view = Killer(); view.X = 41; view.Z = 44;
+        view.Blips.Add(new KillerBotView.Blip { X = 41, Z = 40.5f });
+        var brain = new KillerBrain(); var rng = new Random(1);
+        for (int i = 0; i < 10; i++)
+        {
+            view.Time = i * .05;
+            Assert.False(brain.Update(view, _nav, _map, rng).Interact);
+        }
+    }
+
+    [Fact]
+    public void VisibleHatchIsUsedByTheLastSurvivorAndClosedByTheKiller()
+    {
+        var survivor = Survivor(); survivor.HatchVisible = true; survivor.HatchX = 41; survivor.HatchZ = 43;
+        Assert.True(Step(new SurvivorBrain(), survivor, new Random(1)).Interact);
+        var killer = Killer(); killer.HatchVisible = true; killer.HatchX = 41; killer.HatchZ = 43;
+        Assert.True(new KillerBrain().Update(killer, _nav, _map, new Random(1)).Interact);
+    }
+}
+

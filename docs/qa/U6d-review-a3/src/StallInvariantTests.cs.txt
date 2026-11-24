@@ -1,0 +1,52 @@
+using Xunit;
+using Xunit.Abstractions;
+
+namespace PingTheKiller.Tests.Core;
+
+// U6d-a3 progress invariant over every balance sweep configuration and both fixed seed sets (1-40 and 1001-1040):
+// a match never goes BotBalance.StallSeconds (150 s) without terminal or switch progress rising, a capture, a rescue,
+// an escape or a hatch event, and never ends on the time limit with no capture at all. "idle survivor + 6" is one idle
+// human survivor with six survivor bots and a killer bot (four of seven must escape to win).
+public sealed class StallInvariantTests
+{
+    private readonly ITestOutputHelper _output;
+    public StallInvariantTests(ITestOutputHelper output) { _output = output; }
+
+    public static IEnumerable<object[]> Configs()
+    {
+        foreach (int start in new[] { 1, 1001 })
+        {
+            yield return new object[] { "1v7", 7, start };
+            yield return new object[] { "1v3", 3, start };
+            yield return new object[] { "1v1", 1, start };
+            yield return new object[] { "idle killer + 7", 0, start };
+            yield return new object[] { "idle survivor + 6", -1, start };
+        }
+    }
+
+    internal static BotBalance.MatchStats Run(int survivors, int seed) => survivors switch
+    {
+        0 => BotBalance.RunIdleKiller(seed),
+        -1 => BotBalance.RunIdleSurvivor(seed),
+        _ => BotBalance.RunAllBots(seed, survivors),
+    };
+
+    [Theory]
+    [Trait("Category", "BalanceSweep")]
+    [MemberData(nameof(Configs))]
+    public void MatchesNeverStallAndNeverTimeOutSilently(string config, int survivors, int seedStart)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var runs = BotBalance.Sweep(Enumerable.Range(seedStart, BotBalanceTests.Seeds), seed => Run(survivors, seed));
+        foreach (var run in runs) _output.WriteLine(BotBalance.Detail(run));
+        int stalls = runs.Sum(r => r.StallWindows), stalled = runs.Count(r => r.StallWindows > 0);
+        var silent = runs.Where(r => r.SilentTimeUp).Select(r => r.Seed).ToList();
+        _output.WriteLine($"{config} seeds {seedStart}-{seedStart + BotBalanceTests.Seeds - 1}: stall windows {stalls} in {stalled} matches " +
+            $"(seeds {string.Join(", ", runs.Where(r => r.StallWindows > 0).Select(r => r.Seed))}); longest gap " +
+            $"{runs.Max(r => r.LongestStallSeconds):0} s; silent time-ups {silent.Count} ({string.Join(", ", silent)}); " +
+            $"sweep {watch.Elapsed.TotalSeconds:0.0} s");
+        Assert.Equal(BotBalanceTests.Seeds, runs.Count);
+        Assert.True(stalls == 0, $"{config}: {stalls} stall windows of {BotBalance.StallSeconds:0} s or more");
+        Assert.True(silent.Count == 0, $"{config}: {silent.Count} time-ups with no capture");
+    }
+}

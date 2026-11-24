@@ -1,0 +1,232 @@
+using System.Collections.Generic;
+using System.Globalization;
+using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
+using PingTheKiller.Shared.Game;
+using PingTheKiller.Shared.Packets;
+using UnityEngine;
+
+namespace PingTheKiller.Client.UI.RulesV2
+{
+    // HUD_SPEC 13.2 wiring, pure: S2C_SyncCheck / S2C_SyncResult in, the ring's SyncCheckState out. Elapsed is the local
+    // time since the check arrived. A check older than (or equal to) the last accepted CheckId is stale and ignored; a
+    // result for any CheckId other than the current one is ignored; a check without a result hides NoResultSeconds after
+    // its sweep ends. Clear drops the current check at once (the own status left Normal, the match ended, the link went).
+    public sealed class SyncCheckTracker
+    {
+        public const float NoResultSeconds = 1f;
+        private SyncCheckView view;
+        private double arrivedAt, resultAt = -1;
+        private bool current, anyId;
+        private uint lastId;
+        public SyncCheckState State { get; } = new SyncCheckState();
+        public bool Current => current;
+        public SyncCheckView View => view;
+        public byte TerminalId { get; private set; }
+
+        // True when the check became the current one.
+        public bool OnCheck(uint checkId, byte terminalId, float duration, float zoneStart, float zoneSize, float greatSize, double now)
+        {
+            if (anyId && checkId <= lastId) return false;
+            anyId = true; lastId = checkId;
+            current = true; arrivedAt = now; resultAt = -1; TerminalId = terminalId;
+            view = new SyncCheckView
+            {
+                CheckId = checkId, Duration = Finite(duration, GameConstants.SyncCheckDurationSeconds), ZoneStart = Finite(zoneStart, 0),
+                ZoneSize = Finite(zoneSize, 0), GreatSize = Finite(greatSize, 0)
+            };
+            State.Update(view, true, now);
+            return true;
+        }
+
+        public bool OnCheck(S2C_SyncCheck check, double now)
+            => OnCheck(check.CheckId, check.TerminalId, check.Duration, check.ZoneStart, check.ZoneSize, check.GreatSize, now);
+
+        // True when the result belongs to the current check and is its first.
+        public bool OnResult(uint checkId, byte result, double now)
+        {
+            if (!current || checkId != view.CheckId || view.Result.HasValue) return false;
+            view.Result = result <= (byte)SyncResult.Great ? (SyncResult)result : SyncResult.Fail;
+            resultAt = now;
+            State.Update(view, true, now);
+            return true;
+        }
+
+        // Every frame: the needle advances by local time; the result word holds for ResultSeconds, then the ring hides.
+        public void Tick(double now)
+        {
+            if (current)
+            {
+                view.Elapsed = (float)System.Math.Max(0, now - arrivedAt);
+                bool timedOut = !view.Result.HasValue && now - arrivedAt > view.Duration + NoResultSeconds;
+                bool shown = view.Result.HasValue && now - resultAt >= SyncCheckMath.ResultSeconds;
+                if (timedOut || shown) current = false;
+            }
+            State.Update(view, current, now);
+            if (!current && !State.Visible) State.Reset();
+        }
+
+        // Space / gamepad A (or the dev auto-sync): true when this press raised State.Press (once per check).
+        public bool TryPress() => State.TryPress();
+
+        // The own status left Normal: the check is gone, the next CheckId is still accepted.
+        public void Clear()
+        {
+            current = false; resultAt = -1; view = default;
+            State.Reset();
+        }
+
+        // MatchStart, GameResult, disconnect: everything, including the stale-id memory.
+        public void Reset()
+        {
+            Clear();
+            anyId = false; lastId = 0; TerminalId = 0;
+        }
+
+        private static float Finite(float value, float fallback) => float.IsNaN(value) || float.IsInfinity(value) ? fallback : value;
+    }
+
+    // Packet -> view model copies for the rules v2 HUD (HUD_SPEC 13). Pure.
+    public static class V2Wire
+    {
+        // WorldState exits in wire order (at most two). lockedLeft: the Killer's own FirewallBlock seconds left, applied to
+        // a Locked exit; negative when unknown (Survivors use the Killer-bound effect timing).
+        public static ExitView[] Exits(S2C_WorldState world, float lockedLeft = -1)
+        {
+            int count = world?.Exits == null ? 0 : Mathf.Min(2, world.Exits.Count);
+            var exits = new ExitView[count];
+            for (int i = 0; i < count; i++)
+            {
+                ExitState wire = world.Exits[i];
+                exits[i] = ExitView.FromWire(wire.Id, wire.Flags, wire.SwitchProgress);
+                if (exits[i].Locked && lockedLeft > 0) exits[i].LockedLeft = lockedLeft;
+            }
+            return exits;
+        }
+
+        // Firewall block has a target: an unopened Exit with switch progress (GDD v2 3, U6a R4).
+        public static bool SwitchInProgress(S2C_WorldState world)
+        {
+            ExitView[] exits = Exits(world);
+            foreach (ExitView exit in exits) if (!exit.Open && exit.SwitchProgress01 > 0) return true;
+            return false;
+        }
+
+        public static TerminalFlagsView Terminal(in TerminalState terminal) => TerminalFlagsView.FromWire(terminal.Id, terminal.Progress, terminal.Flags);
+
+        // Personal = SelfState.CollapseLeft (Survivor), global = WorldState.CollapseLeft; NaN reads as not running.
+        public static CollapseView Collapse(float globalLeft, float personalLeft, bool lagging)
+            => new CollapseView { GlobalLeft = Clock(globalLeft), PersonalLeft = Clock(personalLeft), Lagging = lagging };
+
+        // The Killer has no personal clock: its SelfState.CollapseLeft is the global one, shown only when the world has none.
+        public static CollapseView KillerCollapse(float worldLeft, float selfLeft)
+            => new CollapseView { GlobalLeft = Clock(worldLeft) >= 0 ? Clock(worldLeft) : Clock(selfLeft), PersonalLeft = -1 };
+
+        public static HoldActionView Hold(ISelfState self)
+        {
+            if (self == null || !self.Available) return default;
+            var kind = (HoldKind)(byte)self.ActionKind;
+            return kind == HoldKind.None ? default : new HoldActionView { Kind = kind, Progress01 = self.ActionProgress };
+        }
+
+        // Rows in lobby slot order; result ids missing from the lobby follow in ascending order. Names are lobby nicknames.
+        public static ResultV2View Result(S2C_GameResult result, S2C_LobbyState lobby, int ownId, Role ownRole)
+        {
+            var order = new List<int>();
+            if (lobby?.Slots != null)
+                foreach (Slot slot in lobby.Slots)
+                    if (slot != null && slot.PlayerId != 0 && !order.Contains(slot.PlayerId)) order.Add(slot.PlayerId);
+            var extra = new List<int>();
+            if (result.EscapedIds != null) foreach (int id in result.EscapedIds) if (!order.Contains(id) && !extra.Contains(id)) extra.Add(id);
+            if (result.EliminatedIds != null) foreach (int id in result.EliminatedIds) if (!order.Contains(id) && !extra.Contains(id)) extra.Add(id);
+            extra.Sort();
+            order.AddRange(extra);
+            return ResultV2View.FromIds(result.WinnerRole, result.Reason, result.EscapedIds, result.EliminatedIds, order, id => Nickname(lobby, id), ownId, ownRole);
+        }
+
+        public static string Nickname(S2C_LobbyState lobby, int id)
+        {
+            if (lobby?.Slots != null)
+                foreach (Slot slot in lobby.Slots)
+                    if (slot != null && slot.PlayerId == id && !string.IsNullOrEmpty(slot.Nickname)) return slot.Nickname;
+            return null;
+        }
+
+        private static float Clock(float value) => float.IsNaN(value) || value < 0 ? -1 : value;
+    }
+
+    // HUD_SPEC 13.3 interact prompts (before a hold starts): the exit switch and the hatch for Survivors, the kick and the
+    // hatch close for the Killer. Text null = no prompt.
+    public struct InteractPrompt
+    {
+        public string Text, Hint;
+        public bool Muted;
+    }
+
+    public static class InteractCopy
+    {
+        public const string HatchEscape = "Press [E] to escape through the Hatch";
+        public const string HatchClose = "Hold [E] to close the Hatch";
+        public const string HatchCloseHint = "Stand still · starts the collapse";
+        public const string KickHint = "Stand still · hacked Terminals only";
+
+        public static string SwitchOpen(in ExitView exit)
+            => "Hold [E] to open " + ExitCopy.Name(exit.Id) + " · " + HoldCopy.Percent(exit.SwitchProgress01).ToString(CultureInfo.InvariantCulture) + "% — you will be Signal";
+
+        public static string SwitchLocked(in ExitView exit) => ExitCopy.Name(exit.Id) + " is " + ExitCopy.State(exit) + " by the Killer";
+
+        public static string Kick(byte terminalId) => "Hold [E] to kick " + TerminalFlagCopy.Name(terminalId);
+
+        // Survivor, Normal: the hatch first (it ends the match for this Survivor at once), then the nearest switch in reach.
+        public static InteractPrompt Survivor(float x, float z, ExitView[] exits, IReadOnlyList<MapPoint> switches, bool hatchVisible, float hatchX, float hatchZ)
+        {
+            var prompt = new InteractPrompt();
+            if (hatchVisible && Distance(x, z, hatchX, hatchZ) <= GameConstants.HatchRadius) { prompt.Text = HatchEscape; return prompt; }
+            int nearest = NearestSwitch(x, z, exits, switches);
+            if (nearest < 0) return prompt;
+            ExitView exit = exits[nearest];
+            if (exit.Locked) { prompt.Text = SwitchLocked(exit); prompt.Muted = true; }
+            else prompt.Text = SwitchOpen(exit);
+            return prompt;
+        }
+
+        // Killer: the hatch close first, then the kick of the nearest unfinished terminal in reach.
+        public static InteractPrompt Killer(float x, float z, IReadOnlyList<TerminalState> terminals, bool hatchVisible, float hatchX, float hatchZ)
+        {
+            var prompt = new InteractPrompt();
+            if (hatchVisible && Distance(x, z, hatchX, hatchZ) <= GameConstants.HatchRadius)
+            {
+                prompt.Text = HatchClose; prompt.Hint = HatchCloseHint; return prompt;
+            }
+            int best = -1; float bestDistance = float.MaxValue;
+            if (terminals != null)
+                for (int i = 0; i < terminals.Count; i++)
+                {
+                    if (terminals[i].Progress >= 100) continue;
+                    float d = Distance(x, z, terminals[i].X, terminals[i].Z);
+                    if (d <= GameConstants.TerminalRadius && d < bestDistance) { bestDistance = d; best = i; }
+                }
+            if (best < 0) return prompt;
+            prompt.Text = Kick(terminals[best].Id); prompt.Hint = KickHint;
+            return prompt;
+        }
+
+        // Index into exits of the nearest powered, unopened exit whose switch is within ExitSwitchRadius, or -1. switches[i]
+        // is the switch of the exit with Id i (FixedMap.ExitSwitches).
+        public static int NearestSwitch(float x, float z, ExitView[] exits, IReadOnlyList<MapPoint> switches)
+        {
+            int best = -1; float bestDistance = float.MaxValue;
+            if (exits == null || switches == null) return best;
+            for (int i = 0; i < exits.Length; i++)
+            {
+                if (!exits[i].Powered || exits[i].Open || exits[i].Id >= switches.Count) continue;
+                MapPoint at = switches[exits[i].Id];
+                float d = Distance(x, z, at.X, at.Z);
+                if (d <= GameConstants.ExitSwitchRadius && d < bestDistance) { bestDistance = d; best = i; }
+            }
+            return best;
+        }
+
+        private static float Distance(float ax, float az, float bx, float bz) { float dx = ax - bx, dz = az - bz; return Mathf.Sqrt(dx * dx + dz * dz); }
+    }
+}

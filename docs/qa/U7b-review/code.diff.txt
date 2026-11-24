@@ -1,0 +1,535 @@
+diff --git a/Client/Assets/Resources/ClientUI.uss b/Client/Assets/Resources/ClientUI.uss
+index 1a2eda4..8e2b79e 100644
+--- a/Client/Assets/Resources/ClientUI.uss
++++ b/Client/Assets/Resources/ClientUI.uss
+@@ -131,10 +131,17 @@
+ .root .smeter-track.ally-outline { border-color: #3FB8AF; }
+ .root .sfill { height: 100%; width: 0; }
+ .root .sfill.fill-ally, .root .kbar.fill-ally { background-color: #3FB8AF; }
++.root .kbar.fill-signal { background-color: #FFB020; }
+ .root .sfill.fill-danger { background-color: #E5484D; }
+ .root .sfill.fill-signal { background-color: #FFB020; }
+ .root .sfill.fill-text { background-color: #E8E6E1; }
+ .root .sinfo { width: 160px; height: 70px; flex-shrink: 0; margin-left: 8px; padding-left: 8px; padding-right: 8px; justify-content: center; }
++/* HUD_SPEC 14.1a skill result line: 672x40 in the 13.1 stack, directly above the prompt row; one M line after a 4x18 bar. */
++.root .sresult {
++    width: 672px; height: 40px; padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;
++    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
++}
++.root .sresult .kbar { margin-right: 8px; }
+ .root .sprompt {
+     position: absolute; bottom: 104px; left: 50%; translate: -50% 0; width: 672px; height: 40px;
+     padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center;
+diff --git a/Client/Assets/Scripts/ClientApp.cs b/Client/Assets/Scripts/ClientApp.cs
+index 135cede..99e3c3d 100644
+--- a/Client/Assets/Scripts/ClientApp.cs
++++ b/Client/Assets/Scripts/ClientApp.cs
+@@ -49,6 +49,13 @@ namespace PingTheKiller.Client
+         private LaggingStutter stutter;
+         private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
+         private readonly ExitCache exitCache = new ExitCache(); // HUD_SPEC 13.4: one exit buffer per WorldState
++        // HUD_SPEC 14 skill feedback: the pooled world effects and skill sounds (kept across matches), the Survivor-side
++        // line, relay and refused-press state (the Killer side lives in KillerWorldLayer.Fx).
++        private SkillFx skillFx;
++        private readonly SurvivorFxState survivorFx = new SurvivorFxState();
++        private readonly List<FxRecord> fxOut = new List<FxRecord>();
++        private readonly HashSet<int> loggedFx = new HashSet<int>();
++        private bool reduceArg;
+         private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
+         private Role role;
+         private byte skillId;
+@@ -109,6 +116,10 @@ namespace PingTheKiller.Client
+             // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
+             screens.Survivor.Sync.State.Press += SendSyncPress;
+             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
++            var fxObject = new GameObject("Skill FX");
++            fxObject.transform.SetParent(transform, false);
++            skillFx = fxObject.AddComponent<SkillFx>();
++            reduceArg = devArgs.ReduceStutter;
+             stutter = gameObject.AddComponent<LaggingStutter>();
+             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
+             options = screens.Options;
+@@ -124,12 +135,14 @@ namespace PingTheKiller.Client
+                 dev.HostSend += packet => { if (IsHost()) link.Send(packet); };
+                 dev.PreviewResult += Preview;
+             }
++            if (dev != null) dev.Reroll += () => Disconnect(string.Empty); // -ptk-want-skill: leave and start a new offline match
+         }
+         // FOV, sensitivity and Invert Y are read by the rig each frame; the rest is pushed here at start and on every change.
+         private void ApplyOptions()
+         {
+             AudioListener.volume = options.Volume01;
+             stutter.SetReducedOption(options.ReducedMotion);
++            skillFx.Reduced = options.ReducedMotion || reduceArg; // HUD_SPEC 14.1 Reduced motion
+         }
+         private void OnApplicationQuit() => options?.Save();
+         private bool IsHost()
+@@ -201,6 +214,7 @@ namespace PingTheKiller.Client
+                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
+                     selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
+                     capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
++                    skillFx.Warm(SkillFxArt.Load()); skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
+                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
+                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
+                     rig.Begin(role); screens.ShowPlay(role, skillId);
+@@ -244,7 +258,13 @@ namespace PingTheKiller.Client
+                             if (nearest >= 0) hackingTerminal = new Vector3(state.Terminals[nearest].X, 0, state.Terminals[nearest].Z);
+                         }
+                     }
+-                    if (role == Role.Survivor) { CollectMates(state); OnOwnSnapshot(state.ThreatLevel, received.Time); }
++                    if (role == Role.Survivor)
++                    {
++                        CollectMates(state); OnOwnSnapshot(state.ThreatLevel, received.Time);
++                        survivorFx.OnWorld(Frame(), Spectating, received.Time, fxOut);
++                        foreach (FxRecord record in fxOut) PlayFx(record);
++                        fxOut.Clear();
++                    }
+                     else threat.SetLevel(0);
+                     dev?.OnWorld(state, playerId);
+                     break;
+@@ -267,9 +287,12 @@ namespace PingTheKiller.Client
+                     dev?.OnSyncResult(sync, matched);
+                     break;
+                 case S2C_SkillEffect effect:
+-                    killerLayer?.OnEffect(effect, received.Time);
++                    if (killerLayer != null) { killerLayer.OnEffect(effect, received.Time); PlayFx(killerLayer.LastEffect); }
+                     if (role == Role.Survivor && playing)
++                    {
+                         effects.Accept(effect.CasterId, effect.SkillId, effect.Duration, received.Time, playerId, IsSurvivorEntry(effect.CasterId));
++                        PlayFx(survivorFx.OnEffect(Frame(), Spectating, effect.CasterId, effect.SkillId, effect.X, effect.Z, effect.Duration, received.Time));
++                    }
+                     if (loggedEffects.Add(effect.SkillId)) Debug.Log("[net] SkillEffect skill=" + effect.SkillId + (role == Role.Killer ? " (killer HUD)" : " (survivor HUD)"));
+                     break;
+                 case S2C_GameResult result:
+@@ -282,6 +305,7 @@ namespace PingTheKiller.Client
+             bool wasPlaying = playing;
+             playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
++            skillFx.Clear(); survivorFx.Reset(); rig.KillerFovOffset = 0;
+             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
+             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
+             DestroyWorld();
+@@ -415,8 +439,10 @@ namespace PingTheKiller.Client
+                 screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
+             }
+             bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+-            if (SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill))
+-                link.Send(skill);
++            bool sent = SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill);
++            if (sent) link.Send(skill);
++            if (pressed) OnSkillPress(sent, now);
++            SkillFeedbackFrame(now, position);
+             // TODO: client-side prediction for the local camera (it renders 100 ms in the past).
+             if (located) rig.Place(position, dt);
+             if (survivor) world.SetLocalLook(facingYaw, rig.Dither);
+@@ -450,13 +476,81 @@ namespace PingTheKiller.Client
+             threat.SetLevel(ThreatVisual.Effective(threatLevel, own.Status));
+         }
+ 
++        // HUD_SPEC 14.3: a press the client consumes itself shows its reason at once; only a press sent while the client
++        // derived Ready arms the 0.5 s refused-press watch (never passive, not-Normal or cooldown presses).
++        private void OnSkillPress(bool sent, double now)
++        {
++            float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
++            bool survivor = role == Role.Survivor;
++            bool precondition = survivor ? skillId != SkillIds.EmergencyRestore || SurvivorReadout.RestoreHasTarget(own, mates)
++                : skillId != SkillIds.FirewallBlock || V2Wire.SwitchInProgress(lastWorld);
++            string reason = SkillFeedback.PressReason(role, skillId, localStatus, cooldown, precondition, out bool watch);
++            if (survivor)
++            {
++                // A reason the prompt row already shows steadily (4.8 Disabled) is not repeated on the result line.
++                if (reason != null && reason != screens.Survivor.PromptText) survivorFx.OnReason(reason, now);
++                survivorFx.Press.OnPress(now, sent && watch);
++            }
++            else if (killerLayer != null)
++            {
++                killerLayer.Fx.OnReason(reason, now);
++                killerLayer.Fx.Press.OnPress(now, sent && watch);
++            }
++            Debug.Log("[fx] skill press sent=" + sent + " watch=" + (sent && watch) + (reason != null ? " reason=\"" + reason + "\"" : string.Empty));
++        }
++
++        // Every playing frame: the refused-press inference, the result lines, the Recovering cue and the Overclock FOV.
++        private void SkillFeedbackFrame(double now, Vector3 position)
++        {
++            float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
++            if (role == Role.Survivor)
++            {
++                if (survivorFx.Press.Tick(now, cooldown)) { survivorFx.OnReason(SkillFeedback.SurvivorRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
++                screens.Survivor.SetResult(survivorFx.Line.Current(now));
++                return;
++            }
++            if (killerLayer == null) return;
++            KillerFxState fx = killerLayer.Fx;
++            if (fx.Press.Tick(now, cooldown)) { fx.OnReason(SkillFeedback.KillerRefused, now); Debug.Log("[fx] skill press refused (no effect or cooldown in 0.5 s)"); }
++            if (fx.TakeRecoverCue(now)) skillFx.Play(SkillFeedback.RecoverCue(), position);
++            rig.KillerFovOffset = fx.FovOffset(now, skillFx.Reduced);
++        }
++
++        private bool Spectating => own.Status == PlayerStatus.Eliminated || own.Status == PlayerStatus.Escaped;
++
++        private SurvivorFrame Frame() => new SurvivorFrame
++        {
++            OwnId = playerId, Own = own, Mates = mates, Names = NameOf,
++            ActionKind = selfState.Available ? (byte)selfState.ActionKind : (byte)0
++        };
++
++        // Resolves the record's anchor (HUD_SPEC 14.0: never a Killer position on a Survivor client) and plays it.
++        private void PlayFx(FxRecord record)
++        {
++            if (record.Viewer == FxViewer.None || world == null) return;
++            Vector3 at = new Vector3(record.Visual.X, 0, record.Visual.Z);
++            if (record.Visual.Anchor == FxAnchor.Own || (record.Sound.Positional && !record.Visual.Shown))
++            {
++                if (!world.LocalPosition(LinkClock.Now, out at)) at = new Vector3(own.X, 0, own.Z);
++                at.y = 0;
++            }
++            skillFx.Play(record, at);
++            dev?.OnSkillFx(record);
++            int key = (record.KillerSkill ? 100 : 0) + record.SkillId * 10 + (int)record.Viewer;
++            if (loggedFx.Add(key))
++                Debug.Log("[fx] " + (record.KillerSkill ? "killer" : "survivor") + " skill=" + record.SkillId + " viewer=" + record.Viewer
++                    + " line=\"" + record.Line.Text + "\" visual=" + record.Visual.Kind + (record.Visual.Prefab != FxPrefab.None ? "/" + record.Visual.Prefab : string.Empty)
++                    + " sound=" + record.Sound.Clip + (record.Sound.Positional ? " (positional)" : string.Empty) + " reduced=" + skillFx.Reduced);
++        }
++
+         // Survivor client only (HUD_SPEC 0.1: Survivors receive every Survivor): the others, for rescue and co-hacking prompts.
+         private void CollectMates(S2C_WorldState state)
+         {
+             mates.Clear();
+             foreach (PlayerState mate in state.Players)
+                 if (mate.Role == (byte)Role.Survivor && mate.Id != playerId)
+-                    mates.Add(new Mate { Id = mate.Id, X = mate.X, Z = mate.Z, Status = (PlayerStatus)mate.Status, Hacking = (mate.Flags & (byte)PlayerFlags.Hacking) != 0 });
++                    mates.Add(new Mate { Id = mate.Id, X = mate.X, Z = mate.Z, Status = (PlayerStatus)mate.Status, Hacking = (mate.Flags & (byte)PlayerFlags.Hacking) != 0,
++                        Stealthed = (mate.Flags & (byte)PlayerFlags.Stealthed) != 0 });
+         }
+         // Survivor client only: whether an effect's caster is a Survivor of the last snapshot (skill ids are role-local).
+         private bool IsSurvivorEntry(int casterId)
+@@ -524,6 +618,7 @@ namespace PingTheKiller.Client
+             Release();
+             playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
++            skillFx?.Clear(); survivorFx.Reset(); if (rig != null) rig.KillerFovOffset = 0;
+             DestroyWorld();
+             screens.ShowMenu(notice);
+         }
+diff --git a/Client/Assets/Scripts/Dev/DevArgs.cs b/Client/Assets/Scripts/Dev/DevArgs.cs
+index b9a8c10..2d60f79 100644
+--- a/Client/Assets/Scripts/Dev/DevArgs.cs
++++ b/Client/Assets/Scripts/Dev/DevArgs.cs
+@@ -69,11 +69,15 @@ namespace PingTheKiller.Client.Dev
+         public bool DevSwitch { get; private set; }
+         // Presses Space's path (SyncCheckTracker.TryPress) at the great part, inside the rest of the zone, or never.
+         public AutoSync AutoSync { get; private set; }
++        // HUD_SPEC 14 skill feedback shots: an offline match whose own skill is not this id is left at once and a new offline
++        // match is started (the server draws skills at random), at most WantSkillTries times.
++        public byte? WantSkill { get; private set; }
++        public const int WantSkillTries = 30;
+         public List<string> Errors { get; } = new List<string>();
+         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
+             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
+             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
+-            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None;
++            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None || WantSkill.HasValue;
+ 
+         public static DevArgs Parse(IReadOnlyList<string> args)
+         {
+@@ -93,7 +97,7 @@ namespace PingTheKiller.Client.Dev
+                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
+                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
+                     || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
+-                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync";
++                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync" || flag == "-ptk-want-skill";
+                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
+                 string value = i + 1 < args.Count ? args[i + 1] : null;
+                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
+@@ -142,6 +146,9 @@ namespace PingTheKiller.Client.Dev
+                 case "-ptk-menu":
+                     if (!Seconds(value, out float menu)) return false;
+                     Menu = menu; return true;
++                case "-ptk-want-skill":
++                    if (!byte.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out byte want) || want >= SkillIds.SurvivorSkillCount) return false;
++                    WantSkill = want; return true;
+                 case "-ptk-skill-at":
+                     if (!Seconds(value, out float skillAt)) return false;
+                     SkillAt = skillAt; return true;
+diff --git a/Client/Assets/Scripts/Dev/DevCapture.cs b/Client/Assets/Scripts/Dev/DevCapture.cs
+index cac4770..e239556 100644
+--- a/Client/Assets/Scripts/Dev/DevCapture.cs
++++ b/Client/Assets/Scripts/Dev/DevCapture.cs
+@@ -69,6 +69,10 @@ namespace PingTheKiller.Client.Dev
+         private double objectiveAt = -1, collapseSeenAt = -1;
+         public event Action<string> Join;
+         public event Action Offline;
++        // -ptk-want-skill: leave this offline match (ClientApp disconnects); Update then starts a new one.
++        public event Action Reroll;
++        private int rerolls;
++        private bool rerollPending;
+         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
+         public event Action<S2C_GameResult> PreviewResult;
+         public event Action<IPacket> HostSend;
+@@ -374,6 +378,23 @@ namespace PingTheKiller.Client.Dev
+             loggedPrompt = null; chaseTerminal = 0; world = null; loggedPhase = PilotPhase.Idle; objectiveAt = collapseSeenAt = captureSeenAt = -1; terminalPoints.Clear(); rescueFound = false;
+             shownThreat = 0; shownStatus = PlayerStatus.Normal; threatSince = capturedAt = eliminatedAt = killerSince = -1; killerSeen = killerLogged = false;
+             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
++            if (args.WantSkill.HasValue && args.Offline && skill != args.WantSkill.Value && rerolls < DevArgs.WantSkillTries)
++            {
++                rerolls++; rerollPending = true;
++                Debug.Log("[DEV] want skill " + args.WantSkill.Value + ", got " + skill + ": new offline match (" + rerolls + ")");
++            }
++        }
++
++        // HUD_SPEC 14 evidence: one shot per own role, skill, viewer and screen height, about 0.25 s after the record played
++        // (the one-shot is mid-flight and the result line shows).
++        public void OnSkillFx(FxRecord record)
++        {
++            if (args.Shots == null || record.Viewer == FxViewer.None || matchAt < 0 || rerollPending) return;
++            string name = "skillfx-" + (role == Role.Killer ? "killer" : "survivor") + "-" + (record.KillerSkill ? "k" : "s") + record.SkillId
++                + "-" + record.Viewer.ToString().ToLowerInvariant() + "-" + Screen.height + "p.png";
++            if (taken.Contains(name)) return;
++            int frames = Mathf.Clamp(Mathf.RoundToInt(.25f / Mathf.Max(.001f, Time.unscaledDeltaTime)), 1, 60);
++            EventShot(name, frames);
+         }
+ 
+         // Every WorldState of the match: event shots and the terminal/exit/status log.
+@@ -503,6 +524,12 @@ namespace PingTheKiller.Client.Dev
+             if (origin < 0) origin = Time.realtimeSinceStartupAsDouble; // engine start-up time does not count
+             if (capturing) return; // keep the scripted order: nothing happens while a shot is pending
+             double t = Now;
++            if (rerollPending)
++            {
++                rerollPending = false; joined = configured = started = false; lobbyAt = matchAt = -1; match = 0;
++                Reroll?.Invoke();
++                return;
++            }
+             bool shots = args.Shots != null;
+             if (shots && !menuShot && t >= 1) { menuShot = true; Shot("menu.png"); return; }
+             if (args.Settings && shots && menuShot && settingsStage < 3 && SettingsMenuShot(t)) return;
+diff --git a/Client/Assets/Scripts/Killer/KillerHudCopy.cs b/Client/Assets/Scripts/Killer/KillerHudCopy.cs
+index 0845456..9e1a809 100644
+--- a/Client/Assets/Scripts/Killer/KillerHudCopy.cs
++++ b/Client/Assets/Scripts/Killer/KillerHudCopy.cs
+@@ -61,8 +61,11 @@ namespace PingTheKiller.Client.Killer
+         public static string Seconds1(float seconds)
+             => (float.IsNaN(seconds) || seconds < 0 ? 0 : seconds).ToString("0.0", CultureInfo.InvariantCulture) + " s";
+ 
+-        public static string Overclock(float left) => "Overclock " + Dot + " " + Seconds1(left);
+-        public static string Recovering(float left) => "Recovering " + Dot + " " + Seconds1(left);
++        // HUD_SPEC 14.2: the 6.1c own-skill lines (tick for the effect's duration).
++        public static string Overclock(float left) => "Overclock: 1.5× speed " + Dot + " " + Seconds1(left);
++        public static string Recovering(float left) => "Recovering: cannot move " + Dot + " " + Seconds1(left);
++        public static string Scanned(float left) => "Nearest Survivor shown " + Dot + " " + Seconds1(left);
++        public static string Locked(int exit, float left) => (exit >= 0 ? "Exit " + (exit + 1) : "An Exit") + " switch locked " + Dot + " " + Seconds1(left);
+         public static string Slowed(float left) => "Slowed by traffic overload " + Dot + " " + Seconds1(left);
+ 
+         // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.
+diff --git a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+index 0c50f5c..4a29460 100644
+--- a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
++++ b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+@@ -45,7 +45,7 @@ namespace PingTheKiller.Client.Killer
+         private int playerId;
+         private byte skillId;
+         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
+-        private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
++        private double lockedEnd = double.NegativeInfinity;
+         private bool lockKnown;
+         private KillerAttackKick kick; // U4j: first-person attack feedback on the own capture
+         public int InView { get; private set; }
+@@ -101,19 +101,22 @@ namespace PingTheKiller.Client.Killer
+         // Overloaded alerts drawn this frame (on screen or at the edge).
+         public int Overloaded { get; private set; }
+ 
+-        // Own effects (CasterId = own id) drive the active arc, the Overclock line and the Exit lock seconds; the
+-        // Killer-bound TrafficOverload drives the slowed line. Only these fields are read.
++        // HUD_SPEC 14.0 Killer rule: own effects (CasterId = own id) drive the active arc, the 6.1c line and the Exit lock
++        // seconds; the Killer-bound TrafficOverload (CasterId 0) drives the slowed line. Anything else is ignored. The
++        // returned record (Viewer None when ignored) is played by SkillFx; its cue replaces skill_use (14.1 Sound).
++        public KillerFxState Fx { get; } = new KillerFxState();
++
++        public FxRecord LastEffect { get; private set; }
++
+         public void OnEffect(S2C_SkillEffect effect, double now)
+         {
+-            float duration = float.IsNaN(effect.Duration) || effect.Duration < 0 ? 0 : Mathf.Min(effect.Duration, 60);
+-            if (effect.CasterId == playerId)
++            LastEffect = Fx.OnEffect(playerId, effect.CasterId, effect.SkillId, effect.X, effect.Z, effect.Duration, now);
++            if (effect.CasterId == playerId && LastEffect.Viewer == FxViewer.Caster)
+             {
+-                cueRules.OnOwnEffect();
++                float duration = SkillFeedback.Clamp(effect.Duration);
+                 activeStart = now; activeEnd = now + duration;
+-                if (effect.SkillId == SkillIds.Overclock) overclockEnd = now + duration;
+                 if (effect.SkillId == SkillIds.FirewallBlock) { lockedEnd = now + duration; lockKnown = true; }
+             }
+-            else if (effect.SkillId == SkillIds.TrafficOverload) slowedEnd = now + duration;
+         }
+ 
+         // The nearest rendered instance, or the nearest one behind a wall (dev killer-look only).
+@@ -165,10 +168,8 @@ namespace PingTheKiller.Client.Killer
+             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
+             exitCache.For(last);
+             hud.SetSkill(skillId, exitCache.SwitchInProgress, self, active);
+-            if (now < slowedEnd) hud.SetEffect(KillerHudCopy.Slowed((float)(slowedEnd - now)), true);
+-            else if (now < overclockEnd) hud.SetEffect(KillerHudCopy.Overclock((float)(overclockEnd - now)), false);
+-            else if (now < overclockEnd + SkillIds.OverclockRecoverySeconds) hud.SetEffect(KillerHudCopy.Recovering((float)(overclockEnd + SkillIds.OverclockRecoverySeconds - now)), false);
+-            else hud.SetEffect(null, false);
++            FxLine line = Fx.Line(now);
++            hud.SetEffect(line.Text, line.Tone == LineTone.Danger, line.Tone == LineTone.Reason);
+             InteractPrompt interact = last == null ? default
+                 : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
+             hud.SetPrompt(interact, V2Wire.Hold(self));
+diff --git a/Client/Assets/Scripts/UI/KillerHud.cs b/Client/Assets/Scripts/UI/KillerHud.cs
+index 6035f9f..0310a4b 100644
+--- a/Client/Assets/Scripts/UI/KillerHud.cs
++++ b/Client/Assets/Scripts/UI/KillerHud.cs
+@@ -158,13 +158,19 @@ namespace PingTheKiller.Client.UI
+             oneMore.style.visibility = KillerHudCopy.OneMoreLine(done, needed) != null ? Visibility.Visible : Visibility.Hidden;
+         }
+ 
+-        public void SetEffect(string text, bool danger)
++        // muted: a HUD_SPEC 14.3 reason line (no bar, `muted` text).
++        public void SetEffect(string text, bool danger, bool muted = false)
+         {
+             Show(effect, !string.IsNullOrEmpty(text));
+             if (!string.IsNullOrEmpty(text) && effectText.text != text) effectText.text = text;
+             Show(effectBar, danger);
++            effectText.EnableInClassList("kmuted", muted && !danger);
+         }
+ 
++        public string EffectText => effect.style.display == DisplayStyle.None ? null : effectText.text;
++        public bool EffectMuted => effectText.ClassListContains("kmuted");
++        public bool EffectDanger => effectBar.style.display != DisplayStyle.None;
++
+         // HUD_SPEC 13.3: the hold block takes the prompt slot while a kick or a hatch close runs; otherwise the interact
+         // prompt (kick, hatch close) shows when in reach. Both hide while the play menu is open.
+         public void SetPrompt(InteractPrompt interact, in HoldActionView hold)
+diff --git a/Client/Assets/Scripts/UI/SettingsScreen.cs b/Client/Assets/Scripts/UI/SettingsScreen.cs
+index f4021a4..64f2e55 100644
+--- a/Client/Assets/Scripts/UI/SettingsScreen.cs
++++ b/Client/Assets/Scripts/UI/SettingsScreen.cs
+@@ -12,7 +12,7 @@ namespace PingTheKiller.Client.UI
+         public const string SurvivorFov = "Survivor field of view", KillerFov = "Killer field of view";
+         public const string Sensitivity = "Mouse sensitivity", InvertY = "Invert Y", ReducedMotion = "Reduced motion", Volume = "Master volume";
+         public const string FovNote = "Horizontal angle at 16:9. Applies at once.";
+-        public const string ReducedNote = "Lagging shows every frame instead of holding the picture at 8 Hz.";
++        public const string ReducedNote = "Lagging shows every frame instead of holding the picture at 8 Hz. Skill effects show as still rings.";
+         public const string Reset = "Reset to defaults", Done = "Done";
+         public static string Degrees(float value) => Math.Round(value).ToString("0", CultureInfo.InvariantCulture) + "°";
+         public static string Multiplier(float value) => value.ToString("0.00", CultureInfo.InvariantCulture) + "×";
+diff --git a/Client/Assets/Scripts/UI/SurvivorHud.cs b/Client/Assets/Scripts/UI/SurvivorHud.cs
+index 47fa5d5..a1322bb 100644
+--- a/Client/Assets/Scripts/UI/SurvivorHud.cs
++++ b/Client/Assets/Scripts/UI/SurvivorHud.cs
+@@ -14,10 +14,10 @@ namespace PingTheKiller.Client.UI
+     {
+         public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
+         private static readonly Color32 Danger = new Color32(229, 72, 77, 255);
+-        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar;
++        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar, result, resultBar;
+         private readonly VisualElement threatStrip;
+         private readonly VisualElement[] bands = new VisualElement[4]; // top, bottom, left, right (HUD_SPEC 4.2 level 3)
+-        private readonly Label skillName, word, tag, reason, time, terminals, promptText;
++        private readonly Label skillName, word, tag, reason, time, terminals, promptText, resultText;
+         private readonly SkillRing ring;
+         private readonly VisualElement[] bordered;
+         private readonly Texture2D[] noise = new Texture2D[5]; // strip + four bands, rebuilt only when the mask is re-rolled
+@@ -41,6 +41,11 @@ namespace PingTheKiller.Client.UI
+             stack = Box(root, "v2-survivor-stack");
+             SyncRing = new SyncCheckRing(Sync.State, font);
+             stack.Add(SyncRing);
++            // HUD_SPEC 14.1a: the skill result line, directly above the prompt row.
++            result = Box(stack, "sresult");
++            VisualElement resultLine = Box(result, "krow");
++            resultBar = Box(resultLine, "kbar");
++            resultText = Text(resultLine, string.Empty, "km");
+             prompt = Box(stack, "sprompt");
+             VisualElement promptLine = Box(prompt, "krow");
+             promptBar = Box(promptLine, "kbar");
+@@ -79,9 +84,10 @@ namespace PingTheKiller.Client.UI
+             time = Text(line1, "0:00", "km", "kbold");
+             terminals = Text(info, string.Empty, "km");
+ 
+-            bordered = new[] { cluster, prompt, meterTrack, Hold, Objective };
++            bordered = new[] { cluster, prompt, result, meterTrack, Hold, Objective };
+             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
+             Show(prompt, false);
++            Show(result, false);
+             SyncRing.Refresh();
+         }
+ 
+@@ -167,6 +173,7 @@ namespace PingTheKiller.Client.UI
+             V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
+             SetText(skillName, SurvivorReadout.SkillName(skillId));
+             Show(prompt, false);
++            Show(result, false);
+             Hold.Hide();
+             Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
+             Sync.Reset();
+@@ -331,6 +338,24 @@ namespace PingTheKiller.Client.UI
+             Fill(promptFill, p.Bar, p.Width);
+         }
+ 
++        // HUD_SPEC 14.1a result line: M `text` after a 4x18 u bar in the line's colour (none for a `muted` reason line).
++        public void SetResult(FxLine line)
++        {
++            Show(result, line.Shown);
++            if (!line.Shown) return;
++            SetText(resultText, line.Text);
++            resultText.EnableInClassList("kmuted", line.Tone == LineTone.Reason);
++            Show(resultBar, line.Tone == LineTone.Danger || line.Tone == LineTone.Signal || line.Tone == LineTone.Ally);
++            resultBar.EnableInClassList("danger", line.Tone == LineTone.Danger);
++            resultBar.EnableInClassList("fill-signal", line.Tone == LineTone.Signal);
++            resultBar.EnableInClassList("fill-ally", line.Tone == LineTone.Ally);
++        }
++
++        public string ResultText => result.style.display == DisplayStyle.None ? null : resultText.text;
++        public bool ResultBarHas(string kind) => resultBar.style.display != DisplayStyle.None && resultBar.ClassListContains(kind);
++        public bool ResultBarShown => resultBar.style.display != DisplayStyle.None;
++        public bool ResultMuted => resultText.ClassListContains("kmuted");
++
+         // Read-back for tests and the dev log.
+         public string Word => word.text;
+         public string Reason => reason.text;
+@@ -349,6 +374,7 @@ namespace PingTheKiller.Client.UI
+         {
+             float height = Height;
+             if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
++            if (result.style.display != DisplayStyle.None) height += PromptHeight + Gap;
+             if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
+             if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;
+             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);
+diff --git a/Client/Assets/Scripts/UI/SurvivorReadout.cs b/Client/Assets/Scripts/UI/SurvivorReadout.cs
+index 88630d9..a52d7fe 100644
+--- a/Client/Assets/Scripts/UI/SurvivorReadout.cs
++++ b/Client/Assets/Scripts/UI/SurvivorReadout.cs
+@@ -25,6 +25,7 @@ namespace PingTheKiller.Client.UI
+         public float X, Z;
+         public PlayerStatus Status;
+         public bool Hacking;
++        public bool Stealthed; // HUD_SPEC 14.2.6: the Stealth relay count
+     }
+ 
+     // HUD_SPEC 4.1 transmit meter: row A word + capture tag, row B reason, row C bar.
+diff --git a/Client/Assets/Scripts/World/RoleCamera.cs b/Client/Assets/Scripts/World/RoleCamera.cs
+index 7134048..a72be2b 100644
+--- a/Client/Assets/Scripts/World/RoleCamera.cs
++++ b/Client/Assets/Scripts/World/RoleCamera.cs
+@@ -21,6 +21,8 @@ namespace PingTheKiller.Client.World
+         // Survivor only: the boom is shorter than 1 m, so the own character is drawn dithered.
+         public bool Dither => role == Role.Survivor && orbit.Dither;
+         public RoleCamera(Camera camera) { this.camera = camera; }
++        // HUD_SPEC 14.2.2: the Overclock widening (vertical degrees), added to the Killer view only; 0 otherwise.
++        public float KillerFovOffset { get; set; }
+         public void Begin(Role value)
+         {
+             role = value; Yaw = 0;
+@@ -56,7 +58,7 @@ namespace PingTheKiller.Client.World
+         // ground = the own character's position (y ignored).
+         public void Place(Vector3 ground, float dt)
+         {
+-            orbit.Fov = Options.SurvivorVerticalFov; eye.Fov = Options.KillerVerticalFov;
++            orbit.Fov = Options.SurvivorVerticalFov; eye.Fov = Options.KillerVerticalFov + KillerFovOffset;
+             Pose = role == Role.Survivor ? orbit.Place(camera, Yaw, ground, dt) : eye.Place(camera, Yaw, ground);
+         }
+     }

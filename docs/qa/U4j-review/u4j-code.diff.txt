@@ -1,0 +1,2061 @@
+diff --git a/Client/Assets/Editor/Setup/MotionSetup.cs b/Client/Assets/Editor/Setup/MotionSetup.cs
+new file mode 100644
+index 0000000..46c9cf2
+--- /dev/null
++++ b/Client/Assets/Editor/Setup/MotionSetup.cs
+@@ -0,0 +1,594 @@
++using System;
++using System.Collections.Generic;
++using System.Globalization;
++using System.IO;
++using System.Text;
++using PingTheKiller.Client.World;
++using UnityEditor;
++using UnityEditor.Animations;
++using UnityEngine;
++
++namespace PingTheKiller.Editor.Setup
++{
++    // Runs after CharacterArtSetup (order 0) so the Idle/Walk/Run clips it copies exist.
++    public sealed class MotionBuildSetup : UnityEditor.Build.IPreprocessBuildWithReport
++    {
++        public int callbackOrder => 1;
++        public void OnPreprocessBuild(UnityEditor.Build.Reporting.BuildReport report) => MotionSetup.Run();
++    }
++
++    // U4j: imports the Mixamo clips as Humanoid (one source avatar, copied to the others; loop flags; root motion baked
++    // into the pose) and builds Resources/Motion/Motion.controller (locomotion + state clips + an upper-body action layer).
++    // Idempotent: importer settings are written only when they differ, and controller states are found by name.
++    public static class MotionSetup
++    {
++        public const string Folder = "Assets/Art/Characters/Mixamo";
++        public const string ControllerPath = "Assets/Resources/Motion/Motion.controller";
++        public const string MaskPath = Folder + "/UpperBody.mask";
++        private const string Locomotion = "Assets/Art/Characters/";
++
++        public static string ClipPath(string file) => Folder + "/Mixamo@" + file + ".fbx";
++
++        [MenuItem("Ping the Killer/Setup Character Motion")]
++        public static void Run()
++        {
++            AssetDatabase.Refresh();
++            Import(MotionLibrary.AvatarSource, null);
++            Avatar avatar = SourceAvatar();
++            foreach (MotionLibrary.Entry entry in MotionLibrary.Clips)
++                if (entry.File != MotionLibrary.AvatarSource) Import(entry.File, avatar);
++            Controller();
++            AssetDatabase.SaveAssets();
++            Debug.Log("[MotionSetup] Mixamo clips imported as Humanoid and Motion.controller ready.");
++        }
++
++        // -executeMethod PingTheKiller.Editor.Setup.MotionSetup.Batch
++        public static void Batch()
++        {
++            int code = 0;
++            try { Run(); Analyze(); string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U4j-screens"; Sheets(folder); Shots(folder); }
++            catch (Exception error) { Debug.LogException(error); code = 1; }
++            EditorApplication.Exit(code);
++        }
++
++        public static Avatar SourceAvatar()
++        {
++            foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(ClipPath(MotionLibrary.AvatarSource)))
++                if (asset is Avatar avatar) return avatar;
++            throw new InvalidOperationException("No avatar imported from " + ClipPath(MotionLibrary.AvatarSource));
++        }
++
++        public static AnimationClip LoadClip(string file)
++        {
++            foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(ClipPath(file)))
++                if (asset is AnimationClip clip && !clip.name.StartsWith("__preview__")) return clip;
++            throw new InvalidOperationException("No clip imported from " + ClipPath(file));
++        }
++
++        private static void Import(string file, Avatar source)
++        {
++            string path = ClipPath(file);
++            var importer = AssetImporter.GetAtPath(path) as ModelImporter;
++            if (importer == null) throw new InvalidOperationException("Missing Mixamo clip " + path);
++            MotionLibrary.Entry entry = Array.Find(MotionLibrary.Clips, x => x.File == file);
++            bool changed = false;
++            if (importer.animationType != ModelImporterAnimationType.Human) { importer.animationType = ModelImporterAnimationType.Human; changed = true; }
++            ModelImporterAvatarSetup setup = source == null ? ModelImporterAvatarSetup.CreateFromThisModel : ModelImporterAvatarSetup.CopyFromOther;
++            if (importer.avatarSetup != setup) { importer.avatarSetup = setup; changed = true; }
++            if (source != null && importer.sourceAvatar != source) { importer.sourceAvatar = source; changed = true; }
++            if (importer.materialImportMode != ModelImporterMaterialImportMode.None) { importer.materialImportMode = ModelImporterMaterialImportMode.None; changed = true; }
++            if (importer.importCameras || importer.importLights) { importer.importCameras = false; importer.importLights = false; changed = true; }
++            if (!importer.importAnimation) { importer.importAnimation = true; changed = true; }
++            if (changed) importer.SaveAndReimport();
++
++            ModelImporterClipAnimation[] clips = importer.clipAnimations;
++            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
++            if (clips == null || clips.Length == 0) throw new InvalidOperationException("No take in " + path);
++            ModelImporterClipAnimation clip = clips[0];
++            // Root motion is never applied (positions are server-owned), so every component is baked into the pose and
++            // kept as in the source: the body falls, lies and rises where the clip puts it, and in-place clips stay put.
++            bool same = importer.clipAnimations != null && importer.clipAnimations.Length == 1 && clip.name == file
++                && clip.loopTime == entry.Loop && !clip.loopPose && clip.lockRootRotation && clip.keepOriginalOrientation
++                && clip.lockRootHeightY && clip.keepOriginalPositionY && !clip.heightFromFeet && clip.lockRootPositionXZ && clip.keepOriginalPositionXZ;
++            if (same) return;
++            clip.name = file; clip.loopTime = entry.Loop; clip.loopPose = false;
++            clip.lockRootRotation = true; clip.keepOriginalOrientation = true;
++            clip.lockRootHeightY = true; clip.keepOriginalPositionY = true; clip.heightFromFeet = false;
++            clip.lockRootPositionXZ = true; clip.keepOriginalPositionXZ = true;
++            importer.clipAnimations = new[] { clip };
++            importer.SaveAndReimport();
++        }
++
++        private static AvatarMask UpperBody()
++        {
++            var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(MaskPath);
++            if (mask == null) { mask = new AvatarMask(); AssetDatabase.CreateAsset(mask, MaskPath); }
++            for (AvatarMaskBodyPart part = 0; part < AvatarMaskBodyPart.LastBodyPart; part++)
++            {
++                bool upper = part == AvatarMaskBodyPart.Body || part == AvatarMaskBodyPart.Head || part == AvatarMaskBodyPart.LeftArm
++                    || part == AvatarMaskBodyPart.RightArm || part == AvatarMaskBodyPart.LeftFingers || part == AvatarMaskBodyPart.RightFingers
++                    || part == AvatarMaskBodyPart.LeftHandIK || part == AvatarMaskBodyPart.RightHandIK;
++                if (mask.GetHumanoidBodyPartActive(part) != upper) mask.SetHumanoidBodyPartActive(part, upper);
++            }
++            EditorUtility.SetDirty(mask);
++            return mask;
++        }
++
++        private static AnimationClip Shared(string name)
++            => AssetDatabase.LoadAssetAtPath<AnimationClip>(Locomotion + name + ".anim")
++               ?? throw new InvalidOperationException("Run CharacterArtSetup first: missing " + name + ".anim");
++
++        public static AnimatorController Controller()
++        {
++            Directory.CreateDirectory(Path.GetDirectoryName(ControllerPath));
++            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
++            if (controller == null) controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
++            if (controller.parameters.Length != 1 || controller.parameters[0].name != MotionStates.SpeedParameter)
++                controller.parameters = new[] { new AnimatorControllerParameter { name = MotionStates.SpeedParameter, type = AnimatorControllerParameterType.Float } };
++
++            AnimationClip idle = Shared("Idle"), walk = Shared("Walk"), run = Shared("Run");
++            AnimatorStateMachine body = controller.layers[0].stateMachine;
++            AnimatorState locomotion = State(body, MotionStates.Locomotion, Tree(controller, "Idle Walk Run", new[]
++            {
++                new ChildMotion { motion = idle, threshold = .49f, timeScale = 1 },
++                new ChildMotion { motion = walk, threshold = .5f, timeScale = 1 },
++                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
++                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
++            }), 1);
++            // Injured (survivor view only): the limp when still or slow; the normal walk/run cycle at full speed.
++            State(body, MotionStates.Injured, Tree(controller, "Injured", new[]
++            {
++                new ChildMotion { motion = LoadClip("InjuredIdle"), threshold = .49f, timeScale = 1 },
++                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = .5f, timeScale = 1 },
++                new ChildMotion { motion = LoadClip("InjuredWalk"), threshold = 2f, timeScale = 1 },
++                new ChildMotion { motion = walk, threshold = 2.5f, timeScale = 1 },
++                new ChildMotion { motion = walk, threshold = 4, timeScale = 1 },
++                new ChildMotion { motion = run, threshold = 4.1f, timeScale = 1 }
++            }), 1);
++            // Lagging states run under CharacterInstance's 0.55 Lagging time scale; the speed undoes it so the knock-down
++            // takes its real length (the 8 Hz stepping stays).
++            float lagging = 1 / MotionTiming.LaggingRate;
++            State(body, MotionStates.Hit, LoadClip("HitReaction"), lagging);
++            State(body, MotionStates.KnockedDown, LoadClip("KnockedDown"), lagging);
++            // Crawl rate follows the Speed parameter (min(speed, 1) while Lagging): 0 when still freezes the last crawl pose.
++            AnimatorState crawl = State(body, MotionStates.Crawl, LoadClip("Crawling"), lagging / MotionTiming.CrawlMetresPerSecond);
++            if (!crawl.speedParameterActive || crawl.speedParameter != MotionStates.SpeedParameter)
++            {
++                crawl.speedParameterActive = true; crawl.speedParameter = MotionStates.SpeedParameter;
++            }
++            State(body, MotionStates.GettingUp, LoadClip("GettingUp"), 1);
++            State(body, MotionStates.Death, LoadClip("FallingBackDeath"), 1);
++            State(body, MotionStates.Working, LoadClip("ButtonPushing"), 1);
++            if (body.defaultState != locomotion) body.defaultState = locomotion;
++
++            AnimatorControllerLayer[] layers = controller.layers;
++            if (layers.Length < 2)
++            {
++                controller.AddLayer(MotionStates.ActionLayer);
++                layers = controller.layers;
++            }
++            AnimatorControllerLayer action = layers[1];
++            action.name = MotionStates.ActionLayer;
++            action.avatarMask = UpperBody();
++            action.blendingMode = AnimatorLayerBlendingMode.Override;
++            action.defaultWeight = 0; // the driver raises it only while an attack plays
++            controller.layers = layers;
++            AnimatorStateMachine upper = controller.layers[1].stateMachine;
++            AnimatorState empty = State(upper, MotionStates.Empty, null, 1);
++            empty.writeDefaultValues = false;
++            State(upper, MotionStates.Swipe, LoadClip("KillerSwipe"), 1);
++            State(upper, MotionStates.Punch, LoadClip("KillerPunch"), 1);
++            if (upper.defaultState != empty) upper.defaultState = empty;
++            EditorUtility.SetDirty(controller);
++            return controller;
++        }
++
++        private static BlendTree Tree(AnimatorController controller, string name, ChildMotion[] children)
++        {
++            BlendTree tree = null;
++            foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(ControllerPath))
++                if (asset is BlendTree existing && existing.name == name) tree = existing;
++            if (tree == null)
++            {
++                tree = new BlendTree { name = name, hideFlags = HideFlags.HideInHierarchy };
++                AssetDatabase.AddObjectToAsset(tree, controller);
++            }
++            tree.blendParameter = MotionStates.SpeedParameter;
++            tree.blendType = BlendTreeType.Simple1D;
++            tree.useAutomaticThresholds = false;
++            tree.children = children;
++            EditorUtility.SetDirty(tree);
++            return tree;
++        }
++
++        private static AnimatorState State(AnimatorStateMachine machine, string name, Motion motion, float speed)
++        {
++            AnimatorState state = null;
++            foreach (ChildAnimatorState child in machine.states) if (child.state.name == name) state = child.state;
++            if (state == null) state = machine.AddState(name);
++            if (state.motion != motion) state.motion = motion;
++            if (!Mathf.Approximately(state.speed, speed)) state.speed = speed;
++            // Foot IK puts the feet where the source rig had them relative to the body (Rio's and Kyle's legs differ).
++            bool footIk = Environment.GetEnvironmentVariable("PTK_FOOTIK") != "0";
++            if (state.iKOnFeet != footIk) state.iKOnFeet = footIk;
++            EditorUtility.SetDirty(state);
++            return state;
++        }
++
++        // Batch evidence: for each state on Rio and Kyle, the clip length, the lowest skinned vertex over the clip (floor
++        // sinking), the lowest hand / knee / foot bone, the hips start/end and facing, and for the in-place loops the
++        // ground speed of the planted limbs.
++        public static void Analyze()
++        {
++            CharacterArt art = AssetDatabase.LoadAssetAtPath<CharacterArt>("Assets/Resources/CharacterArt.asset");
++            var log = new StringBuilder("[MotionSetup] analysis\n");
++            var parts = new[] { HumanBodyBones.LeftHand, HumanBodyBones.RightHand, HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg,
++                HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes, HumanBodyBones.Head };
++            foreach (GameObject prefab in new[] { art.SurvivorPrefab, art.KillerPrefab })
++            {
++                var actor = new Actor(prefab, null, Vector3.zero, 0);
++                try
++                {
++                    Animator animator = actor.Animator;
++                    var skinned = actor.Root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
++                    var mesh = new Mesh();
++                    actor.Pose(MotionStates.Locomotion, 0);
++                    log.Append(prefab.name).Append(" idle ground=").Append(F(actor.Motion.GroundOffset)).Append(" minY=").Append(F(Lowest(skinned, mesh))).Append('\n');
++                    foreach (MotionLibrary.Entry entry in MotionLibrary.Clips)
++                    {
++                        if (entry.State == MotionStates.InjuredIdle || entry.State == MotionStates.InjuredWalk) continue;
++                        AnimationClip clip = LoadClip(entry.File);
++                        const int samples = 60;
++                        float minY = float.MaxValue, minAt = 0;
++                        var limbs = new Vector3[samples + 1, parts.Length];
++                        var lowestLimb = new float[parts.Length];
++                        for (int k = 0; k < parts.Length; k++) lowestLimb[k] = float.MaxValue;
++                        Vector3 hipsStart = default, hipsEnd = default;
++                        float faceStart = 0, faceEnd = 0;
++                        string layerInfo = string.Empty;
++                        float rawMin = float.MaxValue, offsetMin = float.MaxValue, offsetMax = float.MinValue;
++                        for (int i = 0; i <= samples; i++)
++                        {
++                            float t = i / (float)samples;
++                            actor.Grounded = false;
++                            actor.Pose(entry.State, t);
++                            rawMin = Mathf.Min(rawMin, Lowest(skinned, mesh));
++                            actor.Motion.GroundAs(Actor.PoseOf(entry.State));
++                            offsetMin = Mathf.Min(offsetMin, actor.Motion.GroundOffset); offsetMax = Mathf.Max(offsetMax, actor.Motion.GroundOffset);
++                            if (i == samples / 2 && (entry.State == MotionStates.Swipe || entry.State == MotionStates.Punch))
++                            {
++                                AnimatorStateInfo info = animator.GetCurrentAnimatorStateInfo(1);
++                                layerInfo = " layer1 weight=" + F(animator.GetLayerWeight(1)) + " state=" + (info.shortNameHash == Animator.StringToHash(entry.State)) + " t=" + F(info.normalizedTime)
++                                    + " rightHand=" + V(animator.GetBoneTransform(HumanBodyBones.RightHand).position);
++                            }
++                            float lowest = Lowest(skinned, mesh);
++                            if (lowest < minY) { minY = lowest; minAt = t; }
++                            for (int k = 0; k < parts.Length; k++)
++                            {
++                                limbs[i, k] = animator.GetBoneTransform(parts[k]).position;
++                                lowestLimb[k] = Mathf.Min(lowestLimb[k], limbs[i, k].y);
++                            }
++                            Vector3 hips = animator.GetBoneTransform(HumanBodyBones.Hips).position;
++                            if (i == 0) { hipsStart = hips; faceStart = FaceUp(animator); }
++                            if (i == samples) { hipsEnd = hips; faceEnd = FaceUp(animator); }
++                        }
++                        var planted = new List<float>();
++                        if (entry.Loop)
++                            for (int k = 0; k < 8; k++)
++                                for (int i = 1; i <= samples; i++)
++                                    if (limbs[i, k].y < lowestLimb[k] + .03f && limbs[i - 1, k].y < lowestLimb[k] + .03f)
++                                        planted.Add(-(limbs[i, k].z - limbs[i - 1, k].z) / (clip.length / samples));
++                        planted.Sort();
++                        log.Append(prefab.name).Append(' ').Append(entry.State).Append(" length=").Append(F(clip.length)).Append(" loop=").Append(clip.isLooping)
++                            .Append(" human=").Append(clip.isHumanMotion).Append(" rawMinY=").Append(F(rawMin)).Append(" ground=").Append(F(offsetMin)).Append("..").Append(F(offsetMax)).Append(" minY=").Append(F(minY)).Append('@').Append(F(minAt))
++                            .Append(" hands=").Append(F(Mathf.Min(lowestLimb[0], lowestLimb[1]))).Append(" knees=").Append(F(Mathf.Min(lowestLimb[2], lowestLimb[3])))
++                            .Append(" feet=").Append(F(Mathf.Min(lowestLimb[4], lowestLimb[5]))).Append(" toes=").Append(F(Mathf.Min(lowestLimb[6], lowestLimb[7]))).Append(" head=").Append(F(lowestLimb[8]))
++                            .Append(" hipsStart=").Append(V(hipsStart)).Append(" hipsEnd=").Append(V(hipsEnd))
++                            .Append(" faceDownStart=").Append(F(faceStart)).Append(" faceDownEnd=").Append(F(faceEnd)).Append(layerInfo);
++                        if (planted.Count > 0) log.Append(" plantedSpeed p25/50/75=").Append(F(planted[planted.Count / 4])).Append('/').Append(F(planted[planted.Count / 2])).Append('/').Append(F(planted[planted.Count * 3 / 4])).Append(" n=").Append(planted.Count);
++                        log.Append('\n');
++                    }
++                    UnityEngine.Object.DestroyImmediate(mesh);
++                }
++                finally { UnityEngine.Object.DestroyImmediate(actor.Root); }
++            }
++            Debug.Log(log.ToString());
++        }
++
++
++        // The lowest skinned vertex in world space (BakeMesh with scale, then position and rotation only).
++        public static float Lowest(SkinnedMeshRenderer[] skinned, Mesh mesh)
++        {
++            float lowest = float.MaxValue;
++            foreach (SkinnedMeshRenderer renderer in skinned)
++            {
++                renderer.BakeMesh(mesh, true);
++                Matrix4x4 m = Matrix4x4.TRS(renderer.transform.position, renderer.transform.rotation, Vector3.one);
++                foreach (Vector3 v in mesh.vertices) lowest = Mathf.Min(lowest, m.MultiplyPoint3x4(v).y);
++            }
++            return lowest;
++        }
++
++        private static string F(float value) => value.ToString("0.000", CultureInfo.InvariantCulture);
++        private static string V(Vector3 v) => "(" + F(v.x) + "," + F(v.y) + "," + F(v.z) + ")";
++
++        // The y of the chest's front normal: +1 lying face up, -1 face down, about 0 upright.
++        private static float FaceUp(Animator animator)
++        {
++            Vector3 up = animator.GetBoneTransform(HumanBodyBones.Head).position - animator.GetBoneTransform(HumanBodyBones.Hips).position;
++            Vector3 across = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm).position - animator.GetBoneTransform(HumanBodyBones.RightUpperArm).position;
++            return Vector3.Cross(across, up).normalized.y;
++        }
++
++        // Single 1280x720 editor frames at gameplay-like distance: the Killer mid-swipe over a survivor taking the hit, the
++        // knock-down, the crawl, the get-up, button pushing at the imported terminal, and the death (mid fall and held).
++        private static void Shots(string folder)
++        {
++            CharacterArt art = AssetDatabase.LoadAssetAtPath<CharacterArt>("Assets/Resources/CharacterArt.asset");
++            using (var stage = new Stage(Width, Height))
++            {
++                stage.Camera.fieldOfView = 45;
++                var eye = new Vector3(3.2f, 2.1f, -2.6f);
++                var killer = new Actor(art.KillerPrefab, stage.Root.transform, Vector3.zero, 0);
++                var victim = new Actor(art.SurvivorPrefab, stage.Root.transform, new Vector3(0, 0, .95f), 180);
++                killer.Pose(MotionStates.Swipe, .5f); victim.Pose(MotionStates.Hit, .45f);
++                killer.Bake(); victim.Bake();
++                Shot(stage, folder, "shot-swipe.png", eye, new Vector3(0, .9f, .45f));
++                killer.Unbake(); UnityEngine.Object.DestroyImmediate(killer.Root);
++
++                var plan = new (string State, float T, string Name)[]
++                {
++                    (MotionStates.KnockedDown, .45f, "shot-knockdown.png"), (MotionStates.Crawl, .5f, "shot-crawl.png"),
++                    (MotionStates.GettingUp, .55f, "shot-getup.png"), (MotionStates.Death, .45f, "shot-death.png"),
++                    (MotionStates.Death, 1f, "shot-death-held.png"),
++                };
++                victim.Root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(0, 200, 0));
++                foreach (var item in plan)
++                {
++                    victim.Pose(item.State, item.T); victim.Bake();
++                    Shot(stage, folder, item.Name, eye, new Vector3(0, .45f, -.3f));
++                }
++                victim.Unbake();
++
++                // Loaded after the stage: NewScene unloads unreferenced assets.
++                WorldArt world = AssetDatabase.LoadAssetAtPath<WorldArt>("Assets/Resources/WorldArt.asset");
++                GameObject terminal = world != null && world.Terminal != null ? UnityEngine.Object.Instantiate(world.Terminal, stage.Root.transform) : null;
++                victim.Root.transform.SetPositionAndRotation(new Vector3(0, 0, -.72f), Quaternion.identity);
++                victim.Pose(MotionStates.Working, .4f); victim.Bake();
++                Shot(stage, folder, "shot-button.png", new Vector3(2.3f, 1.6f, -1.9f), new Vector3(0, .75f, -.45f));
++                victim.Unbake();
++                if (terminal == null) Debug.LogWarning("[MotionSetup] no WorldArt terminal; shot-button.png has no device");
++            }
++        }
++
++        public static void RenderShots()
++        {
++            int code = 0;
++            try { Shots(Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U4j-screens"); }
++            catch (Exception error) { Debug.LogException(error); code = 1; }
++            EditorApplication.Exit(code);
++        }
++
++        private static void Shot(Stage stage, string folder, string name, Vector3 eye, Vector3 target)
++        {
++            Texture2D image = stage.Render(eye, target);
++            Save(image, folder, name);
++        }
++
++        // ---- QA renders (editor batch only; -executeMethod PingTheKiller.Editor.Setup.MotionSetup.RenderSheets) -------------
++
++        private const int Width = 1280, Height = 720;
++
++        public static void RenderSheets()
++        {
++            int code = 0;
++            try { string folder = Environment.GetEnvironmentVariable("PTK_RENDER_DIR") ?? "../docs/qa/U4j-screens"; Sheets(folder); Shots(folder); }
++            catch (Exception error) { Debug.LogException(error); code = 1; }
++            EditorApplication.Exit(code);
++        }
++
++        private sealed class Stage : IDisposable
++        {
++            public readonly GameObject Root;
++            public readonly Camera Camera;
++            public readonly RenderTexture Target;
++            public Stage(int width, int height)
++            {
++                UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.EmptyScene, UnityEditor.SceneManagement.NewSceneMode.Single);
++                Root = new GameObject("Motion render stage");
++                SceneLighting.Apply(Root.transform);
++                RenderSettings.fog = false;
++                GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
++                floor.transform.SetParent(Root.transform, false);
++                floor.transform.localScale = new Vector3(4, 1, 4);
++                var lit = AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/WorldLit.mat");
++                var floorMaterial = new Material(lit) { color = new Color32(70, 74, 80, 255) };
++                floor.GetComponent<Renderer>().sharedMaterial = floorMaterial;
++                // 0.5 m grid lines on the floor, so a sliding foot or a sinking hand is visible against them.
++                for (int i = -8; i <= 8; i++)
++                {
++                    Line(new Vector3(i * .5f, .002f, 0), new Vector3(.012f, .001f, 8), lit);
++                    Line(new Vector3(0, .002f, i * .5f), new Vector3(8, .001f, .012f), lit);
++                }
++                var cameraObject = new GameObject("Render camera", typeof(Camera));
++                cameraObject.transform.SetParent(Root.transform, false);
++                Camera = cameraObject.GetComponent<Camera>();
++                Camera.clearFlags = CameraClearFlags.SolidColor;
++                Camera.backgroundColor = SceneLighting.Background;
++                Camera.fieldOfView = 40;
++                Target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
++                Camera.targetTexture = Target;
++            }
++
++            private void Line(Vector3 at, Vector3 scale, Material lit)
++            {
++                GameObject line = GameObject.CreatePrimitive(PrimitiveType.Cube);
++                line.transform.SetParent(Root.transform, false);
++                line.transform.localPosition = at; line.transform.localScale = scale;
++                line.GetComponent<Renderer>().sharedMaterial = new Material(lit) { color = new Color32(110, 116, 124, 255) };
++                UnityEngine.Object.DestroyImmediate(line.GetComponent<Collider>());
++            }
++
++            public Texture2D Render(Vector3 eye, Vector3 target)
++            {
++                Camera.aspect = Target.width / (float)Target.height;
++                Camera.transform.position = eye;
++                Camera.transform.LookAt(target);
++                Camera.Render();
++                Camera.Render(); // the first render after a material change can still show the fallback shader
++                RenderTexture previous = RenderTexture.active;
++                RenderTexture.active = Target;
++                var image = new Texture2D(Target.width, Target.height, TextureFormat.RGB24, false);
++                image.ReadPixels(new Rect(0, 0, Target.width, Target.height), 0, 0);
++                image.Apply();
++                RenderTexture.active = previous;
++                return image;
++            }
++
++            public void Dispose()
++            {
++                Camera.targetTexture = null;
++                Target.Release();
++                UnityEngine.Object.DestroyImmediate(Root);
++            }
++        }
++
++        public sealed class Actor
++        {
++            public GameObject Root;
++            public Animator Animator;
++            public CharacterMotion Motion;
++            public bool Grounded = true;
++            public Actor(GameObject prefab, Transform parent, Vector3 at, float yaw)
++            {
++                Root = UnityEngine.Object.Instantiate(prefab, parent);
++                Root.transform.SetPositionAndRotation(at, Quaternion.Euler(0, yaw, 0));
++                Motion = CharacterMotion.Attach(Root, MotionView.Survivor);
++                Animator = Root.GetComponentInChildren<Animator>(true);
++                Animator.applyRootMotion = false;
++                Animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
++                Animator.Rebind();
++            }
++
++            // Evaluates one state at a normalized time the way the game does: Play at 0, then one Animator.Update over the
++            // elapsed clip time at the state's rate (so Foot IK runs with a real time step), then the grounding.
++            public void Pose(string state, float normalized, float speed = -1)
++            {
++                bool action = state == MotionStates.Swipe || state == MotionStates.Punch;
++                AnimatorState found = FindState(state);
++                float length = found != null && found.motion != null ? found.motion.averageDuration : 1;
++                float stateSpeed = found != null ? found.speed : 1;
++                if (speed < 0) speed = found != null && found.speedParameterActive ? 1 / stateSpeed : 0; // crawl: rate 1
++                float rate = stateSpeed * (found != null && found.speedParameterActive ? speed : 1);
++                Animator.SetFloat(MotionStates.SpeedParameter, speed);
++                Animator.SetLayerWeight(1, action ? 1 : 0);
++                Animator.Play(action ? MotionStates.Locomotion : state, 0, 0);
++                Animator.Play(action ? state : MotionStates.Empty, 1, 0);
++                Animator.Update(0);
++                Animator.Update(Mathf.Max(.0001f, Mathf.Min(normalized, .999f) * length / Mathf.Max(.01f, rate)));
++                if (Grounded) Motion.GroundAs(PoseOf(state));
++            }
++
++            // Batch-mode Camera.Render does not re-skin after a manual Animator.Update, so the renders draw a baked copy of
++            // every skinned mesh (BakeMesh with scale, placed with position and rotation only) and hide the skinned renderers.
++            private readonly List<GameObject> baked = new List<GameObject>();
++
++            public void Bake()
++            {
++                Unbake();
++                foreach (SkinnedMeshRenderer renderer in Root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
++                {
++                    if (!renderer.gameObject.activeInHierarchy) continue;
++                    var mesh = new Mesh();
++                    renderer.BakeMesh(mesh, true);
++                    var copy = new GameObject("Baked " + renderer.name, typeof(MeshFilter), typeof(MeshRenderer));
++                    copy.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
++                    copy.GetComponent<MeshFilter>().sharedMesh = mesh;
++                    copy.GetComponent<MeshRenderer>().sharedMaterials = renderer.sharedMaterials;
++                    renderer.enabled = false;
++                    baked.Add(copy);
++                }
++            }
++
++            public void Unbake()
++            {
++                foreach (GameObject copy in baked)
++                {
++                    UnityEngine.Object.DestroyImmediate(copy.GetComponent<MeshFilter>().sharedMesh);
++                    UnityEngine.Object.DestroyImmediate(copy);
++                }
++                baked.Clear();
++                foreach (SkinnedMeshRenderer renderer in Root.GetComponentsInChildren<SkinnedMeshRenderer>(true)) renderer.enabled = true;
++            }
++
++            public static MotionPose PoseOf(string state)
++            {
++                switch (state)
++                {
++                    case MotionStates.Hit: return MotionPose.Hit;
++                    case MotionStates.KnockedDown: return MotionPose.KnockedDown;
++                    case MotionStates.Crawl: return MotionPose.Crawl;
++                    case MotionStates.GettingUp: return MotionPose.GettingUp;
++                    case MotionStates.Death: return MotionPose.Death;
++                    case MotionStates.Working: return MotionPose.Working;
++                    case MotionStates.Injured: return MotionPose.Injured;
++                    default: return MotionPose.Locomotion;
++                }
++            }
++
++            private static AnimatorState FindState(string name)
++            {
++                var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
++                foreach (AnimatorControllerLayer layer in controller.layers)
++                    foreach (ChildAnimatorState child in layer.stateMachine.states)
++                        if (child.state.name == name) return child.state;
++                return null;
++            }
++        }
++
++        private static void Save(Texture2D image, string folder, string name)
++        {
++            Directory.CreateDirectory(folder);
++            string path = Path.GetFullPath(Path.Combine(folder, name));
++            File.WriteAllBytes(path, image.EncodeToPNG());
++            UnityEngine.Object.DestroyImmediate(image);
++            Debug.Log("[MotionSetup] render " + path);
++        }
++
++        // One 1280x720 contact sheet per state (3 x 2 tiles of 426x360): top = a raised three-quarter view, bottom = a
++        // floor-level side view (a gap under a sole, or a hand cut off by the floor, shows there), at 3 normalized times.
++        private static void Sheets(string folder)
++        {
++            CharacterArt art = AssetDatabase.LoadAssetAtPath<CharacterArt>("Assets/Resources/CharacterArt.asset");
++            float[] times = { .2f, .55f, 1f };
++            using (var stage = new Stage(426, 360))
++            {
++                foreach (MotionLibrary.Entry entry in MotionLibrary.Clips)
++                {
++                    bool killer = entry.State == MotionStates.Swipe || entry.State == MotionStates.Punch;
++                    bool injured = entry.State == MotionStates.InjuredIdle || entry.State == MotionStates.InjuredWalk;
++                    var actor = new Actor(killer ? art.KillerPrefab : art.SurvivorPrefab, stage.Root.transform, Vector3.zero, 0);
++                    var sheet = new Texture2D(Width, Height, TextureFormat.RGB24, false);
++                    sheet.SetPixels(new Color[Width * Height]);
++                    for (int i = 0; i < 6; i++)
++                    {
++                        bool strip = killer || entry.State == MotionStates.Working; // 6 times, all from above
++                        float t = strip ? .1f + .15f * i : times[i % 3];
++                        if (injured) actor.Pose(MotionStates.Injured, t, entry.State == MotionStates.InjuredIdle ? 0 : 1.2f);
++                        else actor.Pose(entry.State, t);
++                        actor.Bake();
++                        stage.Camera.fieldOfView = i < 3 || strip ? 50 : 36;
++                        Texture2D tile = i < 3 || strip ? stage.Render(new Vector3(2.4f, 1.5f, 1.6f), new Vector3(0, .55f, -.4f))
++                            : stage.Render(new Vector3(3.4f, .04f, -.4f), new Vector3(0, .04f, -.4f));
++                        sheet.SetPixels((i % 3) * 426, (1 - i / 3) * 360, 426, 360, tile.GetPixels());
++                        UnityEngine.Object.DestroyImmediate(tile);
++                    }
++                    actor.Unbake();
++                    sheet.Apply();
++                    Save(sheet, folder, "sheet-" + entry.File + ".png");
++                    UnityEngine.Object.DestroyImmediate(actor.Root);
++                }
++            }
++        }
++    }
++}
+diff --git a/Client/Assets/Scripts/Dev/DevArgs.cs b/Client/Assets/Scripts/Dev/DevArgs.cs
+index fbcbbe1..18b9549 100644
+--- a/Client/Assets/Scripts/Dev/DevArgs.cs
++++ b/Client/Assets/Scripts/Dev/DevArgs.cs
+@@ -1,6 +1,7 @@
+ using System.Collections.Generic;
+ using System.Globalization;
+ using PingTheKiller.Client.Net;
++using PingTheKiller.Client.World;
+ using PingTheKiller.Shared.Game;
+ 
+ namespace PingTheKiller.Client.Dev
+@@ -48,10 +49,14 @@ namespace PingTheKiller.Client.Dev
+         // HUD_SPEC 4.5 / 11 Q12: the reduced Lagging stutter (blend only, no frame hold). A player option, not a dev capture
+         // flag, so it does not make the dev component active.
+         public bool ReduceStutter { get; private set; }
++        // U4j, screenshots only: -ptk-preview-motion <clip> (MotionPreview.Names). A Survivor client scripts its own
++        // character's motion inputs (or the injected Killer model attacks once) and DevCapture shoots motion-<clip>.png;
++        // killer-down shoots a Killer-view frame 1.2 s after a real capture. Nothing is sent.
++        public MotionPreviewClip PreviewMotion { get; private set; }
+         public List<string> Errors { get; } = new List<string>();
+         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
+             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
+-            || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0;
++            || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None;
+ 
+         public static DevArgs Parse(IReadOnlyList<string> args)
+         {
+@@ -68,7 +73,7 @@ namespace PingTheKiller.Client.Dev
+                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }
+                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
+                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
+-                    || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer";
++                    || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion";
+                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
+                 string value = i + 1 < args.Count ? args[i + 1] : null;
+                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
+@@ -128,6 +133,9 @@ namespace PingTheKiller.Client.Dev
+                     FakeKiller = metres; return true;
+                 case "-ptk-shots":
+                     Shots = value; return true;
++                case "-ptk-preview-motion":
++                    if (!MotionPreview.TryParse(value, out MotionPreviewClip clip)) return false;
++                    PreviewMotion = clip; return true;
+                 case "-ptk-quit-after":
+                     if (!Seconds(value, out float quit)) return false;
+                     QuitAfter = quit; return true;
+diff --git a/Client/Assets/Scripts/Dev/DevCapture.cs b/Client/Assets/Scripts/Dev/DevCapture.cs
+index 29905c0..6c21c03 100644
+--- a/Client/Assets/Scripts/Dev/DevCapture.cs
++++ b/Client/Assets/Scripts/Dev/DevCapture.cs
+@@ -68,6 +68,7 @@ namespace PingTheKiller.Client.Dev
+             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
+             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
+             if (args.Chase > 0 || args.Rescue) nav = new NavGrid(SharedMap.Map);
++            MotionPreview.Active = args.PreviewMotion; // U4j: read by CharacterViews (own Survivor) only
+         }
+ 
+         private bool Wandering => match == 1 && role == Role.Survivor && args.Wander > 0 && InWindow(args.Wander);
+@@ -78,7 +79,12 @@ namespace PingTheKiller.Client.Dev
+             return t >= 2 && t < 2 + seconds;
+         }
+ 
+-        private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0;
++        private bool Chasing => role == Role.Killer && args.Chase > 0 && InWindow(args.Chase) && located && resultAt < 0 && !KillerDownStaging;
++        // -ptk-preview-motion killer-down (U4j): after the first capture the chase stops; the Killer walks away from the
++        // nearest instance for RetreatSeconds, then turns to face it, so the downed Survivor is framed at a few metres.
++        private const double RetreatSeconds = 1.3, KillerDownShotSeconds = 2.4;
++        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && graceSeenAt >= 0 && resultAt < 0;
++        private bool Retreating => KillerDownStaging && Now - graceSeenAt < RetreatSeconds;
+         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
+         private const float RescueStop = 1f;
+         // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
+@@ -87,7 +93,7 @@ namespace PingTheKiller.Client.Dev
+ 
+         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
+         // -ptk-chase and -ptk-rescue walk through the same path.
+-        public bool HoldForward => RescueWalk || Chasing || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
++        public bool HoldForward => RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+ 
+         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
+         public bool Steer(float currentYaw, float dt, out float yaw)
+@@ -152,6 +158,12 @@ namespace PingTheKiller.Client.Dev
+         {
+             yaw = 0;
+             if (Chasing) return Chase(hasTarget, target, out yaw);
++            if (KillerDownStaging)
++            {
++                if (!hasTarget) return false;
++                yaw = Mathf.Atan2(target.x - from.x, target.z - from.z) * Mathf.Rad2Deg + (Retreating ? 180 : 0);
++                return true;
++            }
+             if (args.Look == KillerLook.None || role != Role.Killer || matchAt < 0 || (aimAt >= 0 && Now - aimAt < .5)) return false;
+             if (args.Look == KillerLook.Fixed || (args.Look == KillerLook.Occluded && !hasTarget)) yaw = args.LookYaw;
+             else
+@@ -215,6 +227,7 @@ namespace PingTheKiller.Client.Dev
+                 maxTracked = tracked;
+                 Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " blips tracked max=" + tracked);
+             }
++            lastInView = inView;
+             if (prompt != loggedPrompt)
+             {
+                 loggedPrompt = prompt;
+@@ -393,6 +406,7 @@ namespace PingTheKiller.Client.Dev
+                 if (args.Menu > 0 && !taken.Contains("play-menu.png") && t >= matchAt + args.Menu + .5 && taken.Add("play-menu.png")) { Shot("play-menu.png"); return; }
+             }
+             if (SelfShots(t)) return;
++            if (MotionShots(t)) return;
+             // Movement evidence for every first match: the local position at 1 s and how far it moved by 5 s.
+             if (match == 1 && matchAt >= 0 && resultAt < 0 && located && movedLogged < 2 && t >= matchAt + (movedLogged == 0 ? 1 : 5)) LogMoved(t - matchAt);
+             // The countdown is only on screen while the match runs; a capture that ends the match leaves no lagging shot.
+@@ -458,6 +472,32 @@ namespace PingTheKiller.Client.Dev
+             return false;
+         }
+ 
++        // -ptk-preview-motion: motion-<clip>.png at MotionPreview.ShotTimes (Survivor, first match; the second Death shot is
++        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first execution grace (1.3 s walking away, then facing it), with an
++        // instance in view (the captured Survivor knocked down / crawling, Killer view).
++        private double graceSeenAt = -1;
++        private int lastInView;
++        private bool MotionShots(double t)
++        {
++            MotionPreviewClip clip = args.PreviewMotion;
++            if (clip == MotionPreviewClip.None || args.Shots == null || match != 1 || matchAt < 0 || resultAt >= 0) return false;
++            if (clip == MotionPreviewClip.KillerDown)
++            {
++                if (role != Role.Killer || self == null || !self.Available) return false;
++                if (graceSeenAt < 0 && self.ExecutionGraceLeft > 0) { graceSeenAt = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " motion preview: capture seen (grace)"); }
++                if (graceSeenAt >= 0 && t >= graceSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
++                return false;
++            }
++            if (role != Role.Survivor || !located) return false;
++            double[] times = MotionPreview.ShotTimes(clip);
++            for (int i = 0; i < times.Length; i++)
++            {
++                string name = "motion-" + MotionPreview.Name(clip) + (i == 0 ? string.Empty : "-held") + ".png";
++                if (t >= matchAt + times[i] && !taken.Contains(name)) { EventShot(name, 0); return true; }
++            }
++            return false;
++        }
++
+         private void LogMoved(double m)
+         {
+             if (movedLogged++ == 0) movedFrom = position;
+diff --git a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+index 7e1885e..9d9770e 100644
+--- a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
++++ b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+@@ -20,6 +20,7 @@ namespace PingTheKiller.Client.Killer
+             public GameObject Root, Pose;
+             public Transform Hull;
+             public CharacterInstance Art;
++            public CharacterMotion Motion; // U4j: Status + matched speed only (HUD_SPEC 6.3)
+         }
+         private readonly Dictionary<int, Character> characters = new Dictionary<int, Character>();
+         private readonly Stack<Character> pool = new Stack<Character>();
+@@ -44,6 +45,7 @@ namespace PingTheKiller.Client.Killer
+         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
+         private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
+         private bool lockKnown;
++        private KillerAttackKick kick; // U4j: first-person attack feedback on the own capture
+         public int InView { get; private set; }
+         public int Occluded { get; private set; }
+         public int Edges { get; private set; }
+@@ -62,6 +64,7 @@ namespace PingTheKiller.Client.Killer
+             else Debug.LogWarning("[killer] outline shader missing; in-view Survivors are drawn without the signal outline");
+             hud.Begin(skillId);
+             cueRules.Begin(now);
++            kick = gameObject.AddComponent<KillerAttackKick>();
+         }
+ 
+         private Material Lit(Color color)
+@@ -79,6 +82,7 @@ namespace PingTheKiller.Client.Killer
+             scene.Accept(state, now);
+             last = state;
+             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
++            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) kick.Play();
+             cueRules.OnWorld(state.TimeLeft, state.ExitOpen != 0);
+             cueRules.OnSignalCount(scene.Blips.Count, now);
+             lastTarget = scene.NearestLagging(out lastDistance);
+@@ -219,6 +223,8 @@ namespace PingTheKiller.Client.Killer
+             {
+                 bool lagging = view.Status == BlipStatus.Lagging;
+                 Character character = Get(view.Handle);
++                // U4j: the motion tracks every matched instance (also undrawn) from its Status and matched speed only.
++                character.Motion?.Observe(now, (byte)view.Status, 0, 0, character.Art != null ? character.Art.Speed : 0);
+                 bool drawn = view.ModelVisible;
+                 if (character.Root.activeSelf != drawn) character.Root.SetActive(drawn);
+                 if (drawn)
+@@ -314,7 +320,11 @@ namespace PingTheKiller.Client.Killer
+             if (character.Art != null)
+             {
+                 character.Pose.transform.localRotation = Quaternion.Euler(lagging ? LaggingTilt : 0, 0, 0);
++                // U4j: the knock-down / crawl clips replace the Lagging lean (a crawling body tilted 25 deg sinks its head).
++                if (character.Motion != null && character.Motion.Drives) character.Pose.transform.localRotation = Quaternion.identity;
++                character.Motion?.Drive(now);
+                 character.Art.Animate(view.Position, now, lagging, true, view.Walking);
++                character.Motion?.Ground();
+                 return position;
+             }
+             float bob = view.Walking ? Mathf.Abs(Mathf.Sin((float)(t * 2 * System.Math.PI * 1.6))) * .05f : 0;
+@@ -343,6 +353,7 @@ namespace PingTheKiller.Client.Killer
+                 Character reused = pool.Pop();
+                 reused.Root.SetActive(true);
+                 reused.Art?.ResetMotion();
++                reused.Motion?.Reset();
+                 reused.Root.SetActive(false);
+                 characters.Add(handle, reused);
+                 return reused;
+@@ -354,6 +365,7 @@ namespace PingTheKiller.Client.Killer
+             if (art != null && art.SurvivorPrefab != null)
+             {
+                 GameObject model = Instantiate(art.SurvivorPrefab, pose.transform);
++                CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Killer); // U4j: before CharacterInstance binds it
+                 var instance = new CharacterInstance(model, true);
+                 foreach (Renderer renderer in instance.Renderers)
+                 {
+@@ -376,6 +388,7 @@ namespace PingTheKiller.Client.Killer
+                 }
+                 root.SetActive(false);
+                 var imported = new Character { Root = root, Pose = pose, Art = instance };
++                imported.Motion = motion;
+                 characters.Add(handle, imported);
+                 return imported;
+             }
+@@ -406,6 +419,8 @@ namespace PingTheKiller.Client.Killer
+             audioOut?.Silence();
+             if (markers != null) { markers.Clear(MarkerLayer.Static); markers.Commit(MarkerLayer.Static); markers.Clear(MarkerLayer.Signals); markers.Commit(MarkerLayer.Signals); }
+             foreach (Material material in materials) if (material != null) Destroy(material);
++            foreach (Character character in characters.Values) character.Motion?.Dispose();
++            foreach (Character character in pool) character.Motion?.Dispose();
+         }
+     }
+ }
+diff --git a/Client/Assets/Scripts/World/CharacterMotion.cs b/Client/Assets/Scripts/World/CharacterMotion.cs
+new file mode 100644
+index 0000000..8bfa9b1
+--- /dev/null
++++ b/Client/Assets/Scripts/World/CharacterMotion.cs
+@@ -0,0 +1,455 @@
++using System;
++using PingTheKiller.Shared.Game;
++using UnityEngine;
++
++namespace PingTheKiller.Client.World
++{
++    // Motion.controller names (built by Editor/Setup/MotionSetup).
++    public static class MotionStates
++    {
++        public const string SpeedParameter = "Speed", ActionLayer = "Action";
++        public const string Locomotion = "Locomotion", Injured = "Injured", Hit = "Hit", KnockedDown = "KnockedDown", Crawl = "Crawl";
++        public const string GettingUp = "GettingUp", Death = "Death", Working = "ButtonPushing";
++        public const string Empty = "Empty", Swipe = "Swipe", Punch = "Punch";
++        // Clips used only inside the Injured blend tree.
++        public const string InjuredIdle = "InjuredIdle", InjuredWalk = "InjuredWalk";
++    }
++
++    public static class MotionTiming
++    {
++        // CharacterInstance.Animate advances a Lagging character at this rate (stepped at 8 Hz in the Killer view).
++        public const float LaggingRate = .55f;
++        // Ground speed of the in-place Crawling clip at rate 1 (measured from its planted hands and knees).
++        public const float CrawlMetresPerSecond = .47f;
++        // HitReaction plays this long before it blends into KnockedDown (the first part of the capture reaction).
++        public const float HitSeconds = .3f;
++        // Imported clip lengths (CharacterMotionTests checks them against the assets).
++        public const float KnockedDownSeconds = 2.133f, GettingUpSeconds = 2.7f, DeathSeconds = 2.6f, SwipeSeconds = 2.667f, PunchSeconds = 3.833f;
++        // An eliminated body stays on the ground this long after the fall started, then despawns (Survivor view).
++        public const float DeathShownSeconds = 6;
++        // "Speed about 0": below this measured speed a hacking Survivor plays ButtonPushing.
++        public const float StillSpeed = .3f;
++    }
++
++    // The Mixamo clips (Art/Characters/Mixamo/Mixamo@<File>.fbx) and the Motion.controller state each one drives.
++    public static class MotionLibrary
++    {
++        public struct Entry
++        {
++            public readonly string File, State;
++            public readonly bool Loop;
++            public Entry(string file, string state, bool loop) { File = file; State = state; Loop = loop; }
++        }
++
++        public const string ControllerResource = "Motion/Motion";
++        // The clip whose imported Humanoid avatar every other Mixamo clip copies.
++        public const string AvatarSource = "HitReaction";
++        public static readonly Entry[] Clips =
++        {
++            new Entry("KillerSwipe", MotionStates.Swipe, false),
++            new Entry("KillerPunch", MotionStates.Punch, false),
++            new Entry("HitReaction", MotionStates.Hit, false),
++            new Entry("KnockedDown", MotionStates.KnockedDown, false),
++            new Entry("Crawling", MotionStates.Crawl, true),
++            new Entry("InjuredIdle", MotionStates.InjuredIdle, true),
++            new Entry("InjuredWalk", MotionStates.InjuredWalk, true),
++            new Entry("FallingBackDeath", MotionStates.Death, false),
++            new Entry("GettingUp", MotionStates.GettingUp, false),
++            new Entry("ButtonPushing", MotionStates.Working, true),
++        };
++    }
++
++    public enum MotionView : byte { Survivor, Killer }
++    public enum MotionPose : byte { Locomotion, Injured, Working, Hit, KnockedDown, Crawl, GettingUp, Death }
++
++    // The trigger logic for one character, from state the viewing client already has. Plain C# (no Unity types).
++    //
++    // Survivor view (full state): Normal -> Lagging = Hit, KnockedDown, then Crawl while Lagging (the Crawl state's rate
++    // follows the speed, so a still Survivor holds the last crawl pose); Lagging -> Normal = GettingUp, then locomotion;
++    // Eliminated = Death once, the last pose held until DeathShownSeconds (then the body despawns); Hacking and still =
++    // ButtonPushing; CaptureCount >= 1 = the injured locomotion.
++    //
++    // Killer view (HUD_SPEC 6.3): only Status and the matched speed are read. Flags and CaptureCount are discarded on
++    // entry, so a decoy, an afterimage, a hacking, rescuing or injured Survivor all animate exactly like a Normal one. The
++    // poses are Locomotion, and Hit + KnockedDown + Crawl on a matched Normal -> Lagging change; nothing else (no getting
++    // up, no hacking, no injured limp). Eliminated entries never reach the Killer, and an unmatched blip despawns at once
++    // (the caller drops it), so no death clip plays there.
++    public sealed class MotionTracker
++    {
++        public readonly MotionView View;
++        private bool known, fell, rose, died;
++        private byte status;
++        private double changedAt = double.NegativeInfinity;
++        public MotionPose Pose { get; private set; }
++        // When the current pose began (a pose that was already running when the character was first seen: -infinity).
++        public double PoseSince { get; private set; } = double.NegativeInfinity;
++        // True only on the update that saw a capture: Normal -> Lagging, or Normal -> Eliminated (GDD v2 §4: a capture of
++        // an already-captured Survivor eliminates). Execution, timeout, rescue and escape are not captures.
++        public bool CaptureEdge { get; private set; }
++
++        public MotionTracker(MotionView view) { View = view; }
++
++        public void Reset()
++        {
++            known = fell = rose = died = false; status = 0; changedAt = double.NegativeInfinity;
++            Pose = MotionPose.Locomotion; PoseSince = double.NegativeInfinity; CaptureEdge = false;
++        }
++
++        public MotionPose Update(double now, byte newStatus, byte flags, byte captureCount, float speed)
++        {
++            if (View == MotionView.Killer)
++            {
++                // HUD_SPEC 6.3 rule 1: never Flags (Hacking, Rescuing, Afterimage) or CaptureCount; BlipStatus is Normal/Lagging.
++                flags = 0; captureCount = 0;
++                newStatus = newStatus == (byte)PlayerStatus.Lagging ? (byte)PlayerStatus.Lagging : (byte)PlayerStatus.Normal;
++            }
++            CaptureEdge = false;
++            if (!known)
++            {
++                // First sight: the current state as it already is, with no transition clip (no spawn animation).
++                known = true; status = newStatus; changedAt = double.NegativeInfinity;
++            }
++            else if (newStatus != status)
++            {
++                bool wasNormal = status == (byte)PlayerStatus.Normal;
++                CaptureEdge = wasNormal && (newStatus == (byte)PlayerStatus.Lagging || newStatus == (byte)PlayerStatus.Eliminated);
++                fell = wasNormal && newStatus == (byte)PlayerStatus.Lagging;
++                rose = View == MotionView.Survivor && status == (byte)PlayerStatus.Lagging && newStatus == (byte)PlayerStatus.Normal;
++                died = newStatus == (byte)PlayerStatus.Eliminated;
++                status = newStatus; changedAt = now;
++            }
++            MotionPose next = Resolve(now, flags, captureCount, speed, out double since);
++            if (next != Pose) { Pose = next; PoseSince = since; }
++            return Pose;
++        }
++
++        private MotionPose Resolve(double now, byte flags, byte captureCount, float speed, out double since)
++        {
++            double elapsed = now - changedAt;
++            since = now;
++            switch ((PlayerStatus)status)
++            {
++                case PlayerStatus.Lagging:
++                    if (fell && elapsed < MotionTiming.HitSeconds) { since = changedAt; return MotionPose.Hit; }
++                    if (fell && elapsed < MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds) { since = changedAt + MotionTiming.HitSeconds; return MotionPose.KnockedDown; }
++                    if (!fell) since = double.NegativeInfinity;
++                    return MotionPose.Crawl;
++                case PlayerStatus.Eliminated:
++                    since = died ? changedAt : double.NegativeInfinity;
++                    return MotionPose.Death;
++                default:
++                    if (rose && elapsed < MotionTiming.GettingUpSeconds) { since = changedAt; return MotionPose.GettingUp; }
++                    if (View == MotionView.Survivor && status == (byte)PlayerStatus.Normal)
++                    {
++                        if ((flags & (byte)PlayerFlags.Hacking) != 0 && speed < MotionTiming.StillSpeed) return MotionPose.Working;
++                        if (captureCount >= 1) return MotionPose.Injured;
++                    }
++                    return MotionPose.Locomotion;
++            }
++        }
++
++        // Survivor view: an eliminated body is drawn while its fall plays and its last pose holds, then it despawns. A
++        // Survivor first seen already eliminated is not drawn.
++        public bool DeathShown(double now)
++            => status != (byte)PlayerStatus.Eliminated || (died && now - changedAt < MotionTiming.DeathShownSeconds);
++    }
++
++    // The Killer model's attack (Survivor view): one swipe or punch per capture, alternating, only while the model is drawn.
++    public sealed class AttackTracker
++    {
++        private double startedAt = double.NegativeInfinity;
++        public int Count { get; private set; }
++        public bool Punch { get; private set; }
++        public float Length => Punch ? MotionTiming.PunchSeconds : MotionTiming.SwipeSeconds;
++
++        public void Reset() { startedAt = double.NegativeInfinity; Count = 0; Punch = false; }
++
++        // A capture seen this frame. Not drawn: nothing plays (the Survivor cannot see the Killer, HUD_SPEC 4.10).
++        public bool Trigger(double now, bool drawn, bool? punch = null)
++        {
++            if (!drawn) return false;
++            Punch = punch ?? (Count % 2 == 1); // swipe first, then alternate
++            Count++; startedAt = now;
++            return true;
++        }
++
++        public bool Active(double now) => now >= startedAt && now - startedAt < Length;
++        public double Elapsed(double now) => now - startedAt;
++
++        // The upper-body layer weight: 0.08 s in, 0.2 s out.
++        public float Weight(double now)
++        {
++            double t = now - startedAt;
++            if (t < 0 || t >= Length) return 0;
++            return Mathf.Clamp01(Mathf.Min((float)t / .08f, (float)(Length - t) / .2f));
++        }
++    }
++
++    // Thin Animator driver over MotionTracker / AttackTracker: assigns Resources/Motion/Motion.controller and cross-fades
++    // to the tracked pose. Call Observe every frame (also while the character is hidden: status changes still count), and
++    // Drive before CharacterInstance.Animate while the character is drawn (Animate advances the Animator, with the Lagging
++    // 0.55 rate and the 8 Hz stepping unchanged).
++    public sealed class CharacterMotion
++    {
++        private static RuntimeAnimatorController controller;
++        private static bool loaded;
++        private static readonly int[] PoseHashes =
++        {
++            Animator.StringToHash(MotionStates.Locomotion), Animator.StringToHash(MotionStates.Injured), Animator.StringToHash(MotionStates.Working),
++            Animator.StringToHash(MotionStates.Hit), Animator.StringToHash(MotionStates.KnockedDown), Animator.StringToHash(MotionStates.Crawl),
++            Animator.StringToHash(MotionStates.GettingUp), Animator.StringToHash(MotionStates.Death)
++        };
++        private static readonly int SwipeHash = Animator.StringToHash(MotionStates.Swipe), PunchHash = Animator.StringToHash(MotionStates.Punch);
++        private static readonly int EmptyHash = Animator.StringToHash(MotionStates.Empty);
++
++        public readonly MotionTracker Tracker;
++        public readonly AttackTracker Attack = new AttackTracker();
++        private readonly Animator animator;
++        private bool shown, attackShown;
++        private MotionPose shownPose;
++
++        public static RuntimeAnimatorController Controller
++        {
++            get
++            {
++                if (!loaded) { controller = Resources.Load<RuntimeAnimatorController>(MotionLibrary.ControllerResource); loaded = true; }
++                return controller;
++            }
++        }
++
++        // Puts Motion.controller on the model's Humanoid Animator and measures its rest pose for the grounding. Call it
++        // right after Instantiate, before CharacterInstance binds the Animator. Without a Humanoid Animator or the
++        // controller, the returned motion only tracks (Drives = false) and the model keeps Locomotion.controller.
++        public static CharacterMotion Attach(GameObject model, MotionView view)
++        {
++            Animator found = model != null ? model.GetComponentInChildren<Animator>(true) : null;
++            if (found == null || found.avatar == null || !found.avatar.isHuman || Controller == null) return new CharacterMotion(null, view);
++            found.runtimeAnimatorController = Controller;
++            return new CharacterMotion(found, view) { grounding = MotionGrounding.Create(found) };
++        }
++
++        public CharacterMotion(Animator animator, MotionView view)
++        {
++            this.animator = animator != null && animator.runtimeAnimatorController == Controller && Controller != null ? animator : null;
++            Tracker = new MotionTracker(view);
++        }
++
++        private MotionGrounding grounding;
++
++        // After CharacterInstance.Animate: keeps the lowest body contact on the floor (see MotionGrounding).
++        public void Ground() => GroundAs(Tracker.Pose);
++
++        // Grounds the current Animator pose as the given tracked pose would be (editor renders and tests).
++        public void GroundAs(MotionPose pose)
++        {
++            if (animator == null || grounding == null) return;
++            grounding.Apply(pose == MotionPose.KnockedDown || pose == MotionPose.Crawl || pose == MotionPose.GettingUp || pose == MotionPose.Death);
++        }
++
++        public void Dispose() => grounding?.Dispose();
++        public float GroundOffset => grounding?.Offset ?? 0;
++
++        // True when the Animator plays the motion states (the caller then drops its own Lagging tilt).
++        public bool Drives => animator != null;
++
++        public void Reset() { Tracker.Reset(); Attack.Reset(); shown = attackShown = false; }
++
++        public MotionPose Observe(double now, byte status, byte flags, byte captureCount, float speed)
++            => Tracker.Update(now, status, flags, captureCount, speed);
++
++        public void Drive(double now)
++        {
++            if (animator == null || !animator.isActiveAndEnabled) return;
++            MotionPose pose = Tracker.Pose;
++            int hash = PoseHashes[(int)pose];
++            // Re-enabling a GameObject resets its Animator to the default state: put the tracked pose back.
++            bool lost = shown && !animator.IsInTransition(0) && animator.GetCurrentAnimatorStateInfo(0).shortNameHash != hash;
++            if (!shown || pose != shownPose || lost)
++            {
++                double since = Tracker.PoseSince;
++                if (double.IsNegativeInfinity(since))
++                    animator.Play(hash, 0, pose == MotionPose.Crawl ? 0 : 1); // already in that state when first seen: no clip replay
++                else
++                {
++                    float offset = (float)Math.Max(0, now - since) * Rate(pose);
++                    if (shown && !lost) animator.CrossFadeInFixedTime(hash, Fade(shownPose, pose), 0, offset);
++                    else animator.PlayInFixedTime(hash, 0, offset);
++                }
++                shown = true; shownPose = pose;
++            }
++            float weight = Attack.Weight(now);
++            if (weight > 0 && !attackShown)
++            {
++                animator.PlayInFixedTime(Attack.Punch ? PunchHash : SwipeHash, 1, (float)Math.Max(0, Attack.Elapsed(now)));
++                attackShown = true;
++            }
++            else if (weight <= 0 && attackShown)
++            {
++                animator.Play(EmptyHash, 1, 0);
++                attackShown = false;
++            }
++            animator.SetLayerWeight(1, weight);
++        }
++
++        // Clip seconds per real second for a pose (the state speeds MotionSetup writes cancel the Lagging rate).
++        private static float Rate(MotionPose pose) => 1;
++
++        private static float Fade(MotionPose from, MotionPose to)
++        {
++            switch (to)
++            {
++                case MotionPose.Hit: return .08f;
++                case MotionPose.KnockedDown: return .25f;
++                case MotionPose.Crawl: return from == MotionPose.KnockedDown ? .35f : .2f;
++                case MotionPose.GettingUp: return .2f;
++                case MotionPose.Death: return .12f;
++                default: return from == MotionPose.GettingUp ? .3f : .25f;
++            }
++        }
++    }
++
++    // Rio and Kyle are retargeted from rigs with other proportions, and the prefabs were placed on padded renderer
++    // bounds, so an unmodified Humanoid pose leaves the soles about 0.1 m above the floor, and a lying or crawling pose
++    // can put a hand, the bag or a boot under it. After each Animator update this moves the model (its Animator
++    // transform, under the character root) vertically, never sideways, so the body touches the floor:
++    // - upright poses: the lower sole (foot and toe bones less their rest heights above the rest pose's lowest vertex);
++    // - lying, falling, crawling and rising poses: the lowest skinned vertex (baked mesh; no allocation per frame).
++    public sealed class MotionGrounding
++    {
++        private static readonly HumanBodyBones[] Soles = { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes };
++        public const float MaxOffset = .3f;
++        private readonly Transform rig, space;
++        private readonly Vector3 rest;
++        private readonly Transform[] bones;
++        private readonly float[] margins;
++        private readonly SkinnedMeshRenderer[] skins;
++        private readonly Mesh baked = new Mesh();
++        private readonly System.Collections.Generic.List<Vector3> vertices = new System.Collections.Generic.List<Vector3>();
++        public float Offset { get; private set; }
++
++        private MotionGrounding(Transform rig, Transform[] bones, float[] margins, SkinnedMeshRenderer[] skins)
++        {
++            this.rig = rig; space = rig.parent; rest = rig.localPosition; this.bones = bones; this.margins = margins; this.skins = skins;
++        }
++
++        // Measures the rest pose: call before the Animator first evaluates. Null without a parent or a skinned mesh.
++        public static MotionGrounding Create(Animator animator)
++        {
++            Transform rig = animator.transform, space = rig.parent;
++            if (space == null) return null;
++            SkinnedMeshRenderer[] skins = space.GetComponentsInChildren<SkinnedMeshRenderer>(true);
++            if (skins.Length == 0) return null;
++            var grounding = new MotionGrounding(rig, new Transform[Soles.Length], new float[Soles.Length], skins);
++            float sole = grounding.Lowest();
++            for (int i = 0; i < Soles.Length; i++)
++            {
++                Transform bone = animator.GetBoneTransform(Soles[i]); // toes are optional in a Humanoid avatar
++                grounding.bones[i] = bone;
++                if (bone != null) grounding.margins[i] = Mathf.Max(0, space.InverseTransformPoint(bone.position).y - sole);
++            }
++            return grounding;
++        }
++
++        // The lowest skinned vertex in the character root's space.
++        public float Lowest()
++        {
++            float lowest = float.PositiveInfinity;
++            Matrix4x4 toSpace = space.worldToLocalMatrix;
++            for (int s = 0; s < skins.Length; s++)
++            {
++                SkinnedMeshRenderer skin = skins[s];
++                if (skin == null || skin.sharedMesh == null) continue;
++                skin.BakeMesh(baked, true);
++                baked.GetVertices(vertices);
++                Matrix4x4 m = toSpace * Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
++                for (int i = 0; i < vertices.Count; i++)
++                {
++                    float y = m.m10 * vertices[i].x + m.m11 * vertices[i].y + m.m12 * vertices[i].z + m.m13;
++                    if (y < lowest) lowest = y;
++                }
++            }
++            return lowest;
++        }
++
++        public void Apply(bool wholeBody)
++        {
++            if (rig == null || space == null) return;
++            rig.localPosition = rest;
++            float lowest = float.PositiveInfinity;
++            if (wholeBody) lowest = Lowest();
++            else
++                for (int i = 0; i < bones.Length; i++)
++                    if (bones[i] != null) lowest = Mathf.Min(lowest, space.InverseTransformPoint(bones[i].position).y - margins[i]);
++            Offset = float.IsInfinity(lowest) ? 0 : Mathf.Clamp(-lowest, -MaxOffset, MaxOffset);
++            rig.localPosition = rest + Vector3.up * Offset;
++        }
++
++        public void Dispose()
++        {
++            if (Application.isPlaying) UnityEngine.Object.Destroy(baked); else UnityEngine.Object.DestroyImmediate(baked);
++        }
++    }
++
++    // -ptk-preview-motion <clip> (dev screenshots only, set by DevCapture): the own Survivor's motion inputs follow a
++    // scripted status change at StartSeconds, or the Killer model attacks once; nothing is sent. KillerDown takes a Killer
++    // view shot after a real capture (no override).
++    public enum MotionPreviewClip : byte { None, Swipe, Punch, Hit, KnockDown, Crawl, GetUp, Death, Button, Injured, KillerDown }
++
++    public static class MotionPreview
++    {
++        public const double StartSeconds = 3;
++        public static readonly string[] Names = { "none", "swipe", "punch", "hit", "knockdown", "crawl", "getup", "death", "button", "injured", "killer-down" };
++        public static MotionPreviewClip Active { get; set; }
++
++        public static bool TryParse(string value, out MotionPreviewClip clip)
++        {
++            clip = MotionPreviewClip.None;
++            if (value == null) return false;
++            int index = Array.IndexOf(Names, value.Trim().ToLowerInvariant());
++            if (index <= 0) return false;
++            clip = (MotionPreviewClip)index;
++            return true;
++        }
++
++        public static string Name(MotionPreviewClip clip) => Names[(int)clip];
++
++        // The own Survivor's scripted inputs at t seconds after the views started (the real values otherwise).
++        public static void Inputs(MotionPreviewClip clip, double t, ref byte status, ref byte flags, ref byte captureCount)
++        {
++            bool after = t >= StartSeconds;
++            switch (clip)
++            {
++                case MotionPreviewClip.Hit:
++                case MotionPreviewClip.KnockDown:
++                case MotionPreviewClip.Crawl:
++                    status = (byte)(after ? PlayerStatus.Lagging : PlayerStatus.Normal); break;
++                case MotionPreviewClip.GetUp:
++                    status = (byte)(after ? PlayerStatus.Normal : PlayerStatus.Lagging); break;
++                case MotionPreviewClip.Death:
++                    status = (byte)(after ? PlayerStatus.Eliminated : PlayerStatus.Normal); break;
++                case MotionPreviewClip.Button:
++                    status = (byte)PlayerStatus.Normal; flags |= (byte)PlayerFlags.Hacking; break;
++                case MotionPreviewClip.Injured:
++                    status = (byte)PlayerStatus.Normal; captureCount = 1; break;
++            }
++        }
++
++        // Match seconds of the preview shots (mid-clip; Death also once the last pose holds).
++        public static double[] ShotTimes(MotionPreviewClip clip)
++        {
++            switch (clip)
++            {
++                case MotionPreviewClip.Swipe: return new[] { StartSeconds + MotionTiming.SwipeSeconds * .4 };
++                case MotionPreviewClip.Punch: return new[] { StartSeconds + MotionTiming.PunchSeconds * .45 };
++                case MotionPreviewClip.Hit: return new[] { StartSeconds + MotionTiming.HitSeconds * .6 };
++                case MotionPreviewClip.KnockDown: return new[] { StartSeconds + MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds * .45 };
++                case MotionPreviewClip.Crawl: return new[] { StartSeconds + MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds + 1.5 };
++                case MotionPreviewClip.GetUp: return new[] { StartSeconds + MotionTiming.GettingUpSeconds * .45 };
++                case MotionPreviewClip.Death: return new[] { StartSeconds + MotionTiming.DeathSeconds * .5, StartSeconds + MotionTiming.DeathSeconds + 1 };
++                case MotionPreviewClip.Button:
++                case MotionPreviewClip.Injured: return new[] { StartSeconds + 1.2 };
++                default: return Array.Empty<double>();
++            }
++        }
++    }
++}
+diff --git a/Client/Assets/Scripts/World/CharacterViews.cs b/Client/Assets/Scripts/World/CharacterViews.cs
+index 1cc0160..1708100 100644
+--- a/Client/Assets/Scripts/World/CharacterViews.cs
++++ b/Client/Assets/Scripts/World/CharacterViews.cs
+@@ -16,13 +16,15 @@ namespace PingTheKiller.Client.World
+             public GameObject Root;
+             public CharacterInstance Art;
+             public Renderer Head;
++            public CharacterMotion Motion;
+         }
+         private sealed class Avatar
+         {
+             public GameObject Root;
+             public CharacterInstance Art;
+             public Color Tint;
+-            public byte Status;
++            public byte Status, Flags, CaptureCount;
++            public CharacterMotion Motion;
+         }
+ 
+         public static readonly Vector3 KillerBodyScale = new Vector3(CharacterLook.Width, CharacterLook.Height * .55f, CharacterLook.Width);
+@@ -39,6 +41,7 @@ namespace PingTheKiller.Client.World
+         private KillerModel killerModel;
+         private float localFacing;
+         private bool localDither;
++        private double startedAt = double.NaN;
+ 
+         // Alpha the Killer model was drawn with in the last Render (0 = hidden); read by the dev capture.
+         public float KillerAlpha { get; private set; }
+@@ -72,7 +75,8 @@ namespace PingTheKiller.Client.World
+             {
+                 GameObject model = Object.Instantiate(art.KillerPrefab, transform);
+                 model.name = "Killer (line of sight)";
+-                var instance = new KillerModel { Root = model, Art = new CharacterInstance(model), Head = model.transform.Find("Killer visor")?.GetComponent<Renderer>() };
++                CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor); // U4j: locomotion + the attack layer
++                var instance = new KillerModel { Root = model, Art = new CharacterInstance(model), Head = model.transform.Find("Killer visor")?.GetComponent<Renderer>(), Motion = motion };
+                 model.SetActive(false);
+                 return instance;
+             }
+@@ -88,22 +92,36 @@ namespace PingTheKiller.Client.World
+             root.SetActive(false);
+             return new KillerModel
+             {
+-                Root = root, Art = new CharacterInstance(root), Head = visor.GetComponent<Renderer>()
++                Root = root, Art = new CharacterInstance(root), Head = visor.GetComponent<Renderer>(),
++                Motion = new CharacterMotion(null, MotionView.Survivor) // capsule: attacks counted, not animated
+             };
+         }
+ 
+         // Survivor client: the Killer model from the Killer entry only (present, held + fading, or hidden); never while the
+         // own Survivor is spectating.
+-        private void RenderKiller(double now, SnapshotBuffer snapshots)
++        // U4j: a capture seen this frame (any Survivor's Normal -> Lagging / Normal -> Eliminated) plays the swipe (then the
++        // punch, alternating) on the Killer model, only if the model is drawn now (HUD_SPEC 4.10: line of sight).
++        private void RenderKiller(double now, SnapshotBuffer snapshots, bool captured)
+         {
+             KillerAlpha = 0; KillerVisorAlpha = 0;
+             if (killerModel == null) return;
+             bool seen = snapshots.SampleKiller(now, out Vector3 position, out float yaw, out float alpha)
+                 && KillerDrawable(avatars.TryGetValue(localId, out Avatar self) ? self.Status : (byte)PlayerStatus.Normal);
+             if (killerModel.Root.activeSelf != seen) killerModel.Root.SetActive(seen);
++            AttackTracker attack = killerModel.Motion.Attack;
++            if (captured) attack.Trigger(now, seen);
++            if (MotionPreview.Active == MotionPreviewClip.Swipe || MotionPreview.Active == MotionPreviewClip.Punch)
++            {
++                // Dev preview: one attack per showing of the (injected) Killer model, from StartSeconds on.
++                if (seen && now - startedAt >= MotionPreview.StartSeconds && !attack.Active(now) && attack.Count == 0)
++                    attack.Trigger(now, true, MotionPreview.Active == MotionPreviewClip.Punch);
++            }
+             if (!seen) return;
+             killerModel.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, yaw, 0));
++            killerModel.Motion.Observe(now, (byte)PlayerStatus.Normal, 0, 0, killerModel.Art.Speed);
++            killerModel.Motion.Drive(now);
+             killerModel.Art.Animate(new Vector3(position.x, 0, position.z), now, false, false);
++            killerModel.Motion.Ground();
+             Camera camera = Camera.main;
+             bool close = camera != null && killerModel.Art.NearCamera(camera.transform.position);
+             killerModel.Art.Look(Killer, alpha, close);
+@@ -119,8 +137,9 @@ namespace PingTheKiller.Client.World
+                 if (role == Role.Killer) break; // the Killer view never builds a character from an entry (no Ids, no body)
+                 if (avatars.TryGetValue(player.Id, out Avatar known))
+                 {
+-                    // Status is the latest authoritative value; it is not interpolated.
+-                    known.Status = player.Status;
++                    // Status is the latest authoritative value; it is not interpolated. So are the flags and the capture
++                    // count the motion reads (Survivor view: full state, U4j).
++                    known.Status = player.Status; known.Flags = player.Flags; known.CaptureCount = player.CaptureCount;
+                     continue;
+                 }
+                 Color tint = player.Role == (byte)Role.Killer ? Killer : Survivor;
+@@ -128,7 +147,8 @@ namespace PingTheKiller.Client.World
+                 {
+                     GameObject model = Object.Instantiate(art.SurvivorPrefab, transform);
+                     model.name = "Player " + player.Id;
+-                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status };
++                    CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor); // U4j: before CharacterInstance binds it
++                    var imported = new Avatar { Root = model, Art = new CharacterInstance(model), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount, Motion = motion };
+                     model.SetActive(false);
+                     avatars.Add(player.Id, imported);
+                     continue;
+@@ -141,7 +161,8 @@ namespace PingTheKiller.Client.World
+                 GameObject visor = FallbackPart("Visor", PrimitiveType.Cube, CharacterLook.VisorScale, CharacterLook.Visor);
+                 visor.transform.SetParent(root.transform, false);
+                 visor.transform.localPosition = CharacterLook.VisorOffset;
+-                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status };
++                var avatar = new Avatar { Root = root, Art = new CharacterInstance(root), Tint = tint, Status = player.Status, Flags = player.Flags, CaptureCount = player.CaptureCount,
++                    Motion = new CharacterMotion(null, MotionView.Survivor) }; // capsule: tracked, not animated
+                 root.SetActive(false);
+                 avatars.Add(player.Id, avatar);
+             }
+@@ -156,31 +177,50 @@ namespace PingTheKiller.Client.World
+         public void Render(double now, SnapshotBuffer snapshots)
+         {
+             Camera camera = Camera.main;
++            if (double.IsNaN(startedAt)) startedAt = now;
++            bool captured = false;
+             foreach (var entry in avatars)
+             {
+                 Avatar avatar = entry.Value;
+                 bool own = entry.Key == localId;
+-                bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha)
+-                    && avatar.Status != (byte)PlayerStatus.Escaped && avatar.Status != (byte)PlayerStatus.Eliminated;
++                // U4j motion (Survivor view, full state): tracked every frame, also while the character is not drawn, so a
++                // status change is never missed. The dev preview (-ptk-preview-motion) scripts only the own character's inputs.
++                byte status = avatar.Status, flags = avatar.Flags, count = avatar.CaptureCount;
++                if (own && MotionPreview.Active != MotionPreviewClip.None) MotionPreview.Inputs(MotionPreview.Active, now - startedAt, ref status, ref flags, ref count);
++                avatar.Motion.Observe(now, status, flags, count, avatar.Art.Speed);
++                captured |= avatar.Motion.Tracker.CaptureEdge;
++                // An eliminated Survivor stays drawn while the fall plays and its last pose holds (MotionTiming.DeathShownSeconds),
++                // then despawns; without the imported character (capsules) it vanishes at once, as before.
++                bool body = avatar.Status != (byte)PlayerStatus.Escaped && (avatar.Status != (byte)PlayerStatus.Eliminated
++                    || (avatar.Motion.Drives && avatar.Motion.Tracker.Pose == MotionPose.Death && avatar.Motion.Tracker.DeathShown(now)));
++                bool visible = snapshots.Sample(entry.Key, now, out Vector3 position, out float yaw, out float alpha) && body;
+                 avatar.Root.SetActive(visible);
+                 if (!visible) continue;
+                 avatar.Root.transform.SetPositionAndRotation(new Vector3(position.x, 0, position.z), Quaternion.Euler(0, own ? localFacing : yaw, 0));
+                 // Lagging Survivors use the Signal amber so the team can find them to rescue (team info). The own
+                 // character carries no state tint (HUD_SPEC 4.10: the meter is the only indicator).
+                 Color color = !own && avatar.Status == (byte)PlayerStatus.Lagging ? Signal : avatar.Tint;
+-                bool lagging = avatar.Status == (byte)PlayerStatus.Lagging;
++                bool lagging = status == (byte)PlayerStatus.Lagging;
++                avatar.Motion.Drive(now);
+                 avatar.Art.Animate(avatar.Root.transform.position, now, lagging, false);
+-                avatar.Root.transform.rotation *= Quaternion.Euler(lagging ? 12 : 0, 0, 0);
++                avatar.Motion.Ground();
++                // The knock-down / crawl clips replace the old Lagging lean; the capsule fallback keeps it.
++                avatar.Root.transform.rotation *= Quaternion.Euler(lagging && !avatar.Motion.Drives ? 12 : 0, 0, 0);
+                 bool close = !own && camera != null && avatar.Art.NearCamera(camera.transform.position);
+                 avatar.Art.Look(color, alpha, own ? localDither : close);
+             }
+-            RenderKiller(now, snapshots);
++            RenderKiller(now, snapshots, captured);
+         }
+ 
++        // Dev capture / tests: the Killer model's attacks so far and whether one plays now.
++        public int KillerAttacks => killerModel?.Motion.Attack.Count ?? 0;
++        public bool KillerAttacking(double now) => killerModel != null && killerModel.Motion.Attack.Active(now);
++
+         public void Dispose()
+         {
+             killerModel?.Art.Dispose();
+-            foreach (Avatar avatar in avatars.Values) avatar.Art.Dispose();
++            killerModel?.Motion.Dispose();
++            foreach (Avatar avatar in avatars.Values) { avatar.Art.Dispose(); avatar.Motion.Dispose(); }
+         }
+ 
+         private GameObject FallbackPart(string label, PrimitiveType type, Vector3 scale, Color color, bool transparent = false)
+diff --git a/Client/Assets/Scripts/World/KillerAttackKick.cs b/Client/Assets/Scripts/World/KillerAttackKick.cs
+new file mode 100644
+index 0000000..b6306c3
+--- /dev/null
++++ b/Client/Assets/Scripts/World/KillerAttackKick.cs
+@@ -0,0 +1,77 @@
++using System;
++using System.Collections;
++using UnityEngine;
++
++namespace PingTheKiller.Client.World
++{
++    // U4j: the first-person Killer's attack feedback on its own capture (KillerScene's CaptureConfirm). The Killer has no
++    // body or hands (HUD_SPEC 6.0), so a capture gives a short lunge of the view: the vertical FOV narrows by FovDegrees and
++    // the eye moves PushMetres forward, rising in 20 % of Seconds and easing out by Seconds (0.22 s). The offset is applied
++    // after the rig places the camera (LateUpdate) and removed again at the end of the frame, so KillerViewRig / RoleCamera
++    // and the next frame's placement never see it. Reduced motion (the -ptk-reduce-stutter option, later the settings
++    // toggle): no kick at all.
++    public sealed class KillerAttackKick : MonoBehaviour
++    {
++        public const float Seconds = .22f, FovDegrees = 4, PushMetres = .12f;
++        public const string ReduceFlag = "-ptk-reduce-stutter";
++        // The process-wide reduced-motion option; read once from the command line. A settings screen may set it.
++        public static bool ReducedMotion { get; set; } = Array.IndexOf(Environment.GetCommandLineArgs(), ReduceFlag) >= 0;
++
++        private double startedAt = double.NegativeInfinity;
++        private Camera applied;
++        private float appliedFov;
++        private Vector3 appliedPush;
++        private readonly WaitForEndOfFrame endOfFrame = new WaitForEndOfFrame();
++        public int Played { get; private set; }
++
++        // A capture by the local Killer. False (and nothing changes) with reduced motion on.
++        public bool Play() => Play(Time.unscaledTimeAsDouble);
++
++        public bool Play(double now)
++        {
++            if (ReducedMotion) return false;
++            startedAt = now; Played++;
++            return true;
++        }
++
++        // 0..1: linear rise over the first 20 %, quadratic ease-out to 0 at Seconds; 0 outside.
++        public static float Envelope(double elapsed)
++        {
++            if (elapsed < 0 || elapsed >= Seconds) return 0;
++            float x = (float)(elapsed / Seconds);
++            if (x < .2f) return x / .2f;
++            float d = (1 - x) / .8f;
++            return d * d;
++        }
++
++        // The camera offset at `elapsed` seconds after Play: the FOV change (degrees, negative = narrower) and the forward push.
++        public static void Offset(double elapsed, bool reduced, out float fov, out float push)
++        {
++            float e = reduced ? 0 : Envelope(elapsed);
++            fov = -FovDegrees * e; push = PushMetres * e;
++        }
++
++        public bool Active(double now) => !ReducedMotion && Envelope(now - startedAt) > 0;
++
++        private void LateUpdate()
++        {
++            Offset(Time.unscaledTimeAsDouble - startedAt, ReducedMotion, out float fov, out float push);
++            if (fov == 0 && push == 0) return;
++            Camera camera = Camera.main;
++            if (camera == null) return;
++            applied = camera; appliedFov = fov; appliedPush = camera.transform.forward * push;
++            camera.fieldOfView += appliedFov;
++            camera.transform.position += appliedPush;
++            StartCoroutine(Restore());
++        }
++
++        private IEnumerator Restore()
++        {
++            yield return endOfFrame;
++            if (applied == null) yield break;
++            applied.fieldOfView -= appliedFov;
++            applied.transform.position -= appliedPush;
++            applied = null;
++        }
++    }
++}
+diff --git a/Client/Assets/Tests/EditMode/CharacterMotionTests.cs b/Client/Assets/Tests/EditMode/CharacterMotionTests.cs
+new file mode 100644
+index 0000000..085ce1a
+--- /dev/null
++++ b/Client/Assets/Tests/EditMode/CharacterMotionTests.cs
+@@ -0,0 +1,510 @@
++using System;
++using System.Collections.Generic;
++using NUnit.Framework;
++using PingTheKiller.Client.Dev;
++using PingTheKiller.Client.World;
++using PingTheKiller.Shared.Game;
++using PingTheKiller.Shared.Packets;
++using UnityEditor;
++using UnityEditor.Animations;
++using UnityEngine;
++using Object = UnityEngine.Object;
++
++namespace PingTheKiller.Client.Tests
++{
++    // U4j: the motion trigger tracker, the Killer-view filtering, the Killer model's attack, the first-person kick and
++    // the Mixamo import / controller.
++    public sealed class CharacterMotionTests
++    {
++        private const byte N = (byte)PlayerStatus.Normal, L = (byte)PlayerStatus.Lagging, E = (byte)PlayerStatus.Eliminated, X = (byte)PlayerStatus.Escaped;
++        private const byte Hacking = (byte)PlayerFlags.Hacking, Rescuing = (byte)PlayerFlags.Rescuing, Afterimage = (byte)PlayerFlags.Afterimage;
++        private const byte Signal = (byte)PlayerFlags.Signal, Stealthed = (byte)PlayerFlags.Stealthed;
++        private const double Hit = MotionTiming.HitSeconds, Down = MotionTiming.HitSeconds + MotionTiming.KnockedDownSeconds;
++
++        private static MotionTracker Seen(MotionView view, byte status, byte flags = 0, byte count = 0)
++        {
++            var tracker = new MotionTracker(view);
++            tracker.Update(0, status, flags, count, 0);
++            return tracker;
++        }
++
++        // ---- trigger state machine (Survivor view) -------------------------------------------------------------------
++
++        [Test]
++        public void ACaptureHitsThenKnocksDownThenCrawlsOrHoldsWhileLagging()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, N);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion));
++            Assert.That(t.CaptureEdge, Is.False);
++            t.Update(10, L, Signal, 1, 0);
++            Assert.That(t.CaptureEdge, Is.True, "Normal -> Lagging is a capture");
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Hit));
++            Assert.That(t.PoseSince, Is.EqualTo(10));
++            t.Update(10 + Hit - .01, L, Signal, 1, 0);
++            Assert.That(t.CaptureEdge, Is.False, "the capture edge lasts one update");
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Hit));
++            t.Update(10 + Hit + .01, L, Signal, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.KnockedDown));
++            Assert.That(t.PoseSince, Is.EqualTo(10 + Hit).Within(1e-9), "KnockedDown starts where HitReaction blends out");
++            t.Update(10 + Down + .01, L, Signal, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl), "held down: the crawl state (frozen at speed 0)");
++            t.Update(20, L, Signal, 1, 1f);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl), "moving while Lagging: crawl");
++            t.Update(30, L, Hacking | Rescuing, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl), "no hacking or rescue clip while Lagging");
++        }
++
++        [Test]
++        public void ARescueGetsUpThenReturnsToLocomotionWithoutASwipe()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, L, 0, 1);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl), "first seen Lagging: already down, no knock-down replay");
++            Assert.That(double.IsNegativeInfinity(t.PoseSince), Is.True);
++            t.Update(5, N, Signal, 1, 0);
++            Assert.That(t.CaptureEdge, Is.False);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.GettingUp));
++            Assert.That(t.PoseSince, Is.EqualTo(5));
++            t.Update(5 + MotionTiming.GettingUpSeconds - .01, N, 0, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.GettingUp));
++            t.Update(5 + MotionTiming.GettingUpSeconds + .01, N, 0, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Injured), "CaptureCount >= 1 in the Survivor view: injured locomotion");
++            t.Update(9, N, 0, 0, 4);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion));
++        }
++
++        [Test]
++        public void EliminationPlaysTheDeathOnceAndHoldsItUntilTheBodyDespawns()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, L, 0, 1);
++            t.Update(40, E, 0, 1, 0);
++            Assert.That(t.CaptureEdge, Is.False, "Lagging -> Eliminated (execution or timeout) is not a capture");
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Death));
++            Assert.That(t.PoseSince, Is.EqualTo(40));
++            Assert.That(t.DeathShown(40 + 1), Is.True);
++            Assert.That(t.DeathShown(40 + MotionTiming.DeathShownSeconds - .01), Is.True, "the last pose holds");
++            t.Update(40 + MotionTiming.DeathSeconds + 1, E, 0, 1, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Death));
++            Assert.That(t.PoseSince, Is.EqualTo(40), "the fall is not replayed");
++            Assert.That(t.DeathShown(40 + MotionTiming.DeathShownSeconds + .01), Is.False, "then the body despawns");
++            Assert.That(MotionTiming.DeathShownSeconds, Is.GreaterThan(MotionTiming.DeathSeconds + 1));
++        }
++
++        [Test]
++        public void ASecondCaptureFromNormalIsACaptureAndPlaysTheDeath()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, N, 0, 1);
++            t.Update(3, E, 0, 1, 0);
++            Assert.That(t.CaptureEdge, Is.True, "GDD v2 §4: a capture of an already-captured Survivor eliminates");
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Death));
++        }
++
++        [TestCase(L, N)]
++        [TestCase(L, E)]
++        [TestCase(N, X)]
++        [TestCase(E, N)]
++        public void NoSwipeOnAStatusChangeThatIsNotACapture(byte from, byte to)
++        {
++            foreach (MotionView view in new[] { MotionView.Survivor, MotionView.Killer })
++            {
++                MotionTracker t = Seen(view, from);
++                t.Update(1, to, 0, 0, 0);
++                Assert.That(t.CaptureEdge, Is.False, view + " " + from + " -> " + to);
++                t.Update(2, to, 0, 0, 0);
++                Assert.That(t.CaptureEdge, Is.False);
++            }
++        }
++
++        [Test]
++        public void NoSwipeWithoutAStatusChange()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, N);
++            for (int i = 1; i < 20; i++) { t.Update(i * .05, N, (byte)(i % 2 == 0 ? Hacking : 0), (byte)(i / 10), i % 3); Assert.That(t.CaptureEdge, Is.False); }
++            MotionTracker first = new MotionTracker(MotionView.Survivor);
++            first.Update(0, L, 0, 0, 0);
++            Assert.That(first.CaptureEdge, Is.False, "first sight of a Lagging Survivor is not a capture");
++        }
++
++        [Test]
++        public void HackingLoopsButtonPushingOnlyWhileStillInTheSurvivorView()
++        {
++            MotionTracker t = Seen(MotionView.Survivor, N);
++            t.Update(1, N, Hacking | Signal, 0, .1f);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Working));
++            t.Update(2, N, Hacking | Signal, 0, 3f);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion), "moving: locomotion even with the flag");
++            t.Update(3, N, Hacking | Signal, 2, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Working), "hacking wins over the injured idle");
++            t.Update(4, N, Signal, 0, 0);
++            Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion), "flag off: locomotion");
++        }
++
++        // ---- Killer view (HUD_SPEC 6.3) ------------------------------------------------------------------------------
++
++        private static readonly MotionPose[] KillerAllowed = { MotionPose.Locomotion, MotionPose.Hit, MotionPose.KnockedDown, MotionPose.Crawl };
++
++        [Test]
++        public void HackingRescuingAndCapturedSurvivorsGetOnlyLocomotionCrawlOrKnockDownInTheKillerView()
++        {
++            byte[] flagSets = { Hacking, Rescuing, (byte)(Hacking | Signal), (byte)(Rescuing | Signal), Afterimage, Stealthed, 0xFF };
++            foreach (byte flags in flagSets)
++                for (byte count = 0; count <= 3; count++)
++                    foreach (float speed in new[] { 0f, .1f, 1f, 4f })
++                    {
++                        MotionTracker t = Seen(MotionView.Killer, N, flags, count);
++                        t.Update(1, N, flags, count, speed);
++                        Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion), "flags=" + flags + " count=" + count + " speed=" + speed);
++                        t.Update(2, L, flags, count, speed);
++                        Assert.That(KillerAllowed, Does.Contain(t.Pose));
++                        t.Update(9, L, flags, count, speed);
++                        Assert.That(t.Pose, Is.EqualTo(MotionPose.Crawl));
++                        t.Update(10, N, flags, count, speed);
++                        Assert.That(t.Pose, Is.EqualTo(MotionPose.Locomotion), "no getting-up clip in the Killer view (rescue)");
++                    }
++        }
++
++        [Test]
++        public void TheKillerViewKnocksDownATrackedBlipButNotASpawnedOne()
++        {
++            MotionTracker tracked = Seen(MotionView.Killer, N);
++            tracked.Update(1, L, 0, 0, 0);
++            Assert.That(tracked.Pose, Is.EqualTo(MotionPose.Hit));
++            tracked.Update(1 + Hit + .01, L, 0, 0, 0);
++            Assert.That(tracked.Pose, Is.EqualTo(MotionPose.KnockedDown));
++            tracked.Update(1 + Down + .01, L, 0, 0, 1);
++            Assert.That(tracked.Pose, Is.EqualTo(MotionPose.Crawl));
++            MotionTracker spawned = Seen(MotionView.Killer, L);
++            Assert.That(spawned.Pose, Is.EqualTo(MotionPose.Crawl), "an unmatched new entry spawns in place, no animation");
++            // Eliminated / Escaped never reach the Killer; if they did, they would not play a death.
++            MotionTracker odd = Seen(MotionView.Killer, N);
++            odd.Update(1, E, 0, 0, 0);
++            Assert.That(odd.Pose, Is.EqualTo(MotionPose.Locomotion));
++        }
++
++        [Test]
++        public void DecoysAndAfterimagesAnimateExactlyLikeRealSurvivorsInTheKillerView()
++        {
++            var random = new System.Random(4);
++            var real = new MotionTracker(MotionView.Killer);
++            var decoy = new MotionTracker(MotionView.Killer);
++            var afterimage = new MotionTracker(MotionView.Killer);
++            byte status = N;
++            for (int i = 0; i < 600; i++)
++            {
++                double now = i * .05;
++                if (random.Next(40) == 0) status = status == N ? L : N;
++                float speed = random.Next(3) == 0 ? 0 : (float)random.NextDouble() * 4;
++                real.Update(now, status, (byte)random.Next(256), (byte)random.Next(3), speed);
++                decoy.Update(now, status, Signal, 0, speed);
++                afterimage.Update(now, status, Afterimage | Signal, 0, speed);
++                Assert.That(real.Pose, Is.EqualTo(decoy.Pose), "step " + i);
++                Assert.That(afterimage.Pose, Is.EqualTo(decoy.Pose), "step " + i);
++                Assert.That(real.PoseSince, Is.EqualTo(decoy.PoseSince));
++                Assert.That(real.CaptureEdge, Is.EqualTo(decoy.CaptureEdge));
++                Assert.That(KillerAllowed, Does.Contain(real.Pose));
++            }
++        }
++
++        // ---- the Killer model's attack and the first-person kick -----------------------------------------------------
++
++        [Test]
++        public void TheKillerModelAttacksOnlyWhileDrawnAndAlternatesSwipeAndPunch()
++        {
++            var attack = new AttackTracker();
++            Assert.That(attack.Trigger(1, false), Is.False, "not drawn: the Survivor sees nothing");
++            Assert.That(attack.Active(1.1), Is.False);
++            Assert.That(attack.Trigger(2, true), Is.True);
++            Assert.That(attack.Punch, Is.False, "the swipe first");
++            Assert.That(attack.Active(2.5), Is.True);
++            Assert.That(attack.Weight(2.5), Is.EqualTo(1));
++            Assert.That(attack.Active(2 + MotionTiming.SwipeSeconds + .01), Is.False);
++            Assert.That(attack.Weight(2 + MotionTiming.SwipeSeconds + .01), Is.Zero);
++            attack.Trigger(10, true);
++            Assert.That(attack.Punch, Is.True, "then the punch");
++            attack.Trigger(20, true);
++            Assert.That(attack.Punch, Is.False);
++            Assert.That(attack.Count, Is.EqualTo(3));
++        }
++
++        [Test]
++        public void ReducedMotionDisablesTheKick()
++        {
++            bool saved = KillerAttackKick.ReducedMotion;
++            var host = new GameObject("kick");
++            try
++            {
++                var kick = host.AddComponent<KillerAttackKick>();
++                KillerAttackKick.ReducedMotion = true;
++                Assert.That(kick.Play(1), Is.False);
++                Assert.That(kick.Played, Is.Zero);
++                Assert.That(kick.Active(1.05), Is.False);
++                for (double t = 0; t < .3; t += .01)
++                {
++                    KillerAttackKick.Offset(t, true, out float fov, out float push);
++                    Assert.That(fov, Is.Zero); Assert.That(push, Is.Zero);
++                }
++                KillerAttackKick.ReducedMotion = false;
++                Assert.That(kick.Play(1), Is.True);
++                Assert.That(kick.Active(1.05), Is.True);
++            }
++            finally { KillerAttackKick.ReducedMotion = saved; Object.DestroyImmediate(host); }
++        }
++
++        [Test]
++        public void TheKickIsShortAndReturnsToZero()
++        {
++            Assert.That(KillerAttackKick.Seconds, Is.LessThanOrEqualTo(.25f));
++            Assert.That(KillerAttackKick.Envelope(-.01), Is.Zero);
++            Assert.That(KillerAttackKick.Envelope(KillerAttackKick.Seconds * .2), Is.EqualTo(1).Within(1e-4));
++            Assert.That(KillerAttackKick.Envelope(KillerAttackKick.Seconds), Is.Zero);
++            float previous = 1;
++            for (double t = KillerAttackKick.Seconds * .2; t < KillerAttackKick.Seconds; t += .005)
++            {
++                float e = KillerAttackKick.Envelope(t);
++                Assert.That(e, Is.LessThanOrEqualTo(previous + 1e-6f));
++                previous = e;
++            }
++            KillerAttackKick.Offset(KillerAttackKick.Seconds * .2, false, out float fov, out float push);
++            Assert.That(fov, Is.EqualTo(-KillerAttackKick.FovDegrees).Within(1e-4));
++            Assert.That(push, Is.EqualTo(KillerAttackKick.PushMetres).Within(1e-4));
++        }
++
++        // ---- import and controller -----------------------------------------------------------------------------------
++
++        private const string Folder = "Assets/Art/Characters/Mixamo/";
++
++        private static AnimationClip ClipOf(string file)
++        {
++            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(Folder + "Mixamo@" + file + ".fbx"))
++                if (asset is AnimationClip clip && !clip.name.StartsWith("__preview__")) return clip;
++            return null;
++        }
++
++        [Test]
++        public void EveryMixamoClipImportsAsHumanoidWithTheExpectedLoopFlags()
++        {
++            Avatar source = null;
++            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(Folder + "Mixamo@" + MotionLibrary.AvatarSource + ".fbx"))
++                if (asset is Avatar avatar) source = avatar;
++            Assert.That(source, Is.Not.Null);
++            Assert.That(source.isHuman && source.isValid, Is.True);
++            Assert.That(MotionLibrary.Clips.Length, Is.EqualTo(10));
++            foreach (MotionLibrary.Entry entry in MotionLibrary.Clips)
++            {
++                string path = Folder + "Mixamo@" + entry.File + ".fbx";
++                var importer = AssetImporter.GetAtPath(path) as ModelImporter;
++                Assert.That(importer, Is.Not.Null, path);
++                Assert.That(importer.animationType, Is.EqualTo(ModelImporterAnimationType.Human), path);
++                if (entry.File == MotionLibrary.AvatarSource) Assert.That(importer.avatarSetup, Is.EqualTo(ModelImporterAvatarSetup.CreateFromThisModel));
++                else
++                {
++                    Assert.That(importer.avatarSetup, Is.EqualTo(ModelImporterAvatarSetup.CopyFromOther), path);
++                    Assert.That(importer.sourceAvatar, Is.SameAs(source), path);
++                }
++                Assert.That(importer.clipAnimations.Length, Is.EqualTo(1), path);
++                ModelImporterClipAnimation settings = importer.clipAnimations[0];
++                Assert.That(settings.loopTime, Is.EqualTo(entry.Loop), path);
++                Assert.That(settings.lockRootRotation && settings.lockRootHeightY && settings.lockRootPositionXZ, Is.True, path + ": root motion baked into the pose");
++                AnimationClip clip = ClipOf(entry.File);
++                Assert.That(clip, Is.Not.Null, path);
++                Assert.That(clip.isHumanMotion, Is.True, path);
++                Assert.That(clip.isLooping, Is.EqualTo(entry.Loop), path);
++                Assert.That(clip.frameRate, Is.EqualTo(30).Within(.01f), path);
++            }
++        }
++
++        [Test]
++        public void TimingConstantsMatchTheImportedClips()
++        {
++            Assert.That(ClipOf("KnockedDown").length, Is.EqualTo(MotionTiming.KnockedDownSeconds).Within(.02f));
++            Assert.That(ClipOf("GettingUp").length, Is.EqualTo(MotionTiming.GettingUpSeconds).Within(.02f));
++            Assert.That(ClipOf("FallingBackDeath").length, Is.EqualTo(MotionTiming.DeathSeconds).Within(.02f));
++            Assert.That(ClipOf("KillerSwipe").length, Is.EqualTo(MotionTiming.SwipeSeconds).Within(.02f));
++            Assert.That(ClipOf("KillerPunch").length, Is.EqualTo(MotionTiming.PunchSeconds).Within(.02f));
++            Assert.That(ClipOf("HitReaction").length, Is.GreaterThan(MotionTiming.HitSeconds));
++        }
++
++        private static AnimatorState Find(AnimatorController controller, int layer, string name)
++        {
++            foreach (ChildAnimatorState child in controller.layers[layer].stateMachine.states)
++                if (child.state.name == name) return child.state;
++            return null;
++        }
++
++        [Test]
++        public void TheMotionControllerHasEveryStateAndAnUpperBodyAttackLayer()
++        {
++            var controller = Resources.Load<RuntimeAnimatorController>(MotionLibrary.ControllerResource) as AnimatorController;
++            Assert.That(controller, Is.Not.Null, "Run MotionSetup.Run (Ping the Killer/Setup Character Motion)");
++            Assert.That(controller, Is.Not.SameAs(CharacterArt.Load().Controller), "a new controller; Locomotion.controller stays");
++            Assert.That(controller.layers.Length, Is.EqualTo(2));
++            foreach (string state in new[] { MotionStates.Locomotion, MotionStates.Injured, MotionStates.Hit, MotionStates.KnockedDown, MotionStates.Crawl,
++                MotionStates.GettingUp, MotionStates.Death, MotionStates.Working })
++            {
++                AnimatorState found = Find(controller, 0, state);
++                Assert.That(found, Is.Not.Null, state);
++                Assert.That(found.motion, Is.Not.Null, state);
++            }
++            Assert.That(Find(controller, 0, MotionStates.Hit).speed, Is.EqualTo(1 / MotionTiming.LaggingRate).Within(1e-4), "undoes the Lagging rate");
++            AnimatorState crawl = Find(controller, 0, MotionStates.Crawl);
++            Assert.That(crawl.speedParameterActive && crawl.speedParameter == MotionStates.SpeedParameter, Is.True, "crawl rate follows the speed");
++            Assert.That(controller.layers[1].name, Is.EqualTo(MotionStates.ActionLayer));
++            Assert.That(controller.layers[1].avatarMask, Is.Not.Null);
++            Assert.That(controller.layers[1].avatarMask.GetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftLeg), Is.False, "legs keep their locomotion");
++            Assert.That(controller.layers[1].avatarMask.GetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm), Is.True);
++            Assert.That(Find(controller, 1, MotionStates.Swipe), Is.Not.Null);
++            Assert.That(Find(controller, 1, MotionStates.Punch), Is.Not.Null);
++            Assert.That(controller.layers[1].defaultWeight, Is.Zero);
++        }
++
++        // ---- the driver on the real characters -------------------------------------------------------------------------
++
++        [Test]
++        public void ACaptureDrivesRiosAnimatorThroughTheKnockDownAndKeepsTheBodyOnTheFloor()
++        {
++            GameObject model = Object.Instantiate(CharacterArt.Load().SurvivorPrefab);
++            CharacterMotion motion = CharacterMotion.Attach(model, MotionView.Survivor);
++            var instance = new CharacterInstance(model, true);
++            try
++            {
++                Assert.That(motion.Drives, Is.True);
++                Assert.That(instance.Animator.runtimeAnimatorController, Is.SameAs(CharacterMotion.Controller));
++                double now = 0;
++                void Step(byte status, double until)
++                {
++                    for (; now < until; now += 1 / 30.0)
++                    {
++                        motion.Observe(now, status, 0, 0, instance.Speed);
++                        motion.Drive(now);
++                        instance.Animate(Vector3.zero, now, status == L, false);
++                        motion.Ground();
++                    }
++                }
++                Step(N, 1);
++                Assert.That(StateIs(instance.Animator, MotionStates.Locomotion), Is.True);
++                float sole = Lowest(model);
++                Assert.That(sole, Is.EqualTo(0).Within(.03f), "standing: the soles on the floor");
++                Step(L, 1 + Hit + .5);
++                Assert.That(StateIs(instance.Animator, MotionStates.KnockedDown), Is.True);
++                Step(L, 1 + Down + 1);
++                Assert.That(StateIs(instance.Animator, MotionStates.Crawl), Is.True);
++                Assert.That(Lowest(model), Is.EqualTo(0).Within(.005f), "down: the lowest point touches the floor");
++                Step(N, now + 1);
++                Assert.That(StateIs(instance.Animator, MotionStates.GettingUp), Is.True);
++                Step(E, now + MotionTiming.DeathSeconds + .5);
++                Assert.That(StateIs(instance.Animator, MotionStates.Death), Is.True);
++                Assert.That(Lowest(model), Is.EqualTo(0).Within(.005f));
++            }
++            finally { motion.Dispose(); instance.Dispose(); Object.DestroyImmediate(model); }
++        }
++
++        private static bool StateIs(Animator animator, string state)
++            => animator.GetCurrentAnimatorStateInfo(0).shortNameHash == Animator.StringToHash(state)
++               || (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).shortNameHash == Animator.StringToHash(state));
++
++        private static float Lowest(GameObject model)
++        {
++            float lowest = float.PositiveInfinity;
++            var mesh = new Mesh();
++            foreach (SkinnedMeshRenderer skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
++            {
++                skin.BakeMesh(mesh, true);
++                Matrix4x4 m = model.transform.worldToLocalMatrix * Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
++                foreach (Vector3 v in mesh.vertices) lowest = Mathf.Min(lowest, m.MultiplyPoint3x4(v).y);
++            }
++            Object.DestroyImmediate(mesh);
++            return lowest;
++        }
++
++        [Test]
++        public void TheKillerModelSwipesWhenASurvivorIsCapturedInSight()
++        {
++            CharacterArt art = CharacterArt.Load();
++            var root = new GameObject("motion views");
++            var characters = new CharacterViews(new WorldMaterials(root.transform), 1, Role.Survivor, art);
++            try
++            {
++                characters.Initialize();
++                var snapshots = new SnapshotBuffer();
++                for (int tick = 1; tick <= 40; tick++)
++                {
++                    var state = new S2C_WorldState { Tick = (uint)tick };
++                    byte mate = tick < 20 ? N : L;
++                    state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Survivor, X = 2, Z = 2 });
++                    state.Players.Add(new PlayerState { Id = 2, Role = (byte)Role.Survivor, Status = mate, X = 3, Z = 3, CaptureCount = (byte)(mate == L ? 1 : 0) });
++                    state.Players.Add(new PlayerState { Id = 99, Role = (byte)Role.Killer, X = 3.5f, Z = 3.5f });
++                    double at = tick * .05;
++                    snapshots.Add(state, at);
++                    characters.Accept(state);
++                    characters.Render(at + .15, snapshots);
++                }
++                Assert.That(characters.KillerAttacks, Is.EqualTo(1), "one capture in sight: one swipe");
++                Assert.That(characters.KillerAttacking(40 * .05 + .15), Is.True);
++                Transform mate2 = root.transform.Find("Player 2");
++                Assert.That(mate2.gameObject.activeSelf, Is.True);
++                Assert.That(Vector3.Angle(mate2.up, Vector3.up), Is.LessThan(.01f), "the knock-down replaces the old Lagging lean");
++            }
++            finally { characters.Dispose(); Object.DestroyImmediate(root); }
++        }
++
++        [Test]
++        public void AnEliminatedSurvivorStaysDownForTheDeathThenDespawns()
++        {
++            var root = new GameObject("death views");
++            var characters = new CharacterViews(new WorldMaterials(root.transform), 1, Role.Survivor, CharacterArt.Load());
++            try
++            {
++                var snapshots = new SnapshotBuffer();
++                double at = 0;
++                for (int tick = 1; tick <= 200; tick++)
++                {
++                    var state = new S2C_WorldState { Tick = (uint)tick };
++                    state.Players.Add(new PlayerState { Id = 1, Role = (byte)Role.Survivor, X = 2, Z = 2 });
++                    state.Players.Add(new PlayerState { Id = 2, Role = (byte)Role.Survivor, Status = tick < 10 ? L : E, X = 3, Z = 3 });
++                    at = tick * .05;
++                    snapshots.Add(state, at);
++                    characters.Accept(state);
++                    characters.Render(at + .15, snapshots);
++                    if (tick == 20) Assert.That(root.transform.Find("Player 2").gameObject.activeSelf, Is.True, "falling");
++                    if (tick == 100) Assert.That(root.transform.Find("Player 2").gameObject.activeSelf, Is.True, "holding the last pose");
++                }
++                Assert.That(root.transform.Find("Player 2").gameObject.activeSelf, Is.False, "despawned after DeathShownSeconds");
++            }
++            finally { characters.Dispose(); Object.DestroyImmediate(root); }
++        }
++
++        // ---- dev flag ----------------------------------------------------------------------------------------------------
++
++        [Test]
++        public void ThePreviewMotionFlagParsesKnownClipsOnly()
++        {
++            DevArgs args = DevArgs.Parse(new[] { "x.exe", "-ptk-preview-motion", "knockdown" });
++            Assert.That(args.PreviewMotion, Is.EqualTo(MotionPreviewClip.KnockDown));
++            Assert.That(args.Active, Is.True);
++            Assert.That(args.Errors, Is.Empty);
++            args = DevArgs.Parse(new[] { "x.exe", "-ptk-preview-motion", "killer-down" });
++            Assert.That(args.PreviewMotion, Is.EqualTo(MotionPreviewClip.KillerDown));
++            args = DevArgs.Parse(new[] { "x.exe", "-ptk-preview-motion", "dance" });
++            Assert.That(args.PreviewMotion, Is.EqualTo(MotionPreviewClip.None));
++            Assert.That(args.Errors, Is.Not.Empty);
++            Assert.That(DevArgs.Parse(new string[0]).PreviewMotion, Is.EqualTo(MotionPreviewClip.None));
++            foreach (string name in MotionPreview.Names)
++                if (name != "none") Assert.That(MotionPreview.TryParse(name, out _), Is.True, name);
++        }
++
++        [Test]
++        public void ThePreviewScriptsOnlyTheInputsItNames()
++        {
++            byte status = N, flags = Signal, count = 0;
++            MotionPreview.Inputs(MotionPreviewClip.KnockDown, MotionPreview.StartSeconds - .1, ref status, ref flags, ref count);
++            Assert.That(status, Is.EqualTo(N));
++            MotionPreview.Inputs(MotionPreviewClip.KnockDown, MotionPreview.StartSeconds, ref status, ref flags, ref count);
++            Assert.That(status, Is.EqualTo(L));
++            status = N;
++            MotionPreview.Inputs(MotionPreviewClip.Button, 10, ref status, ref flags, ref count);
++            Assert.That(flags & Hacking, Is.EqualTo(Hacking));
++            Assert.That(flags & Signal, Is.EqualTo(Signal));
++            Assert.That(MotionPreview.ShotTimes(MotionPreviewClip.Death).Length, Is.EqualTo(2));
++            Assert.That(MotionPreview.ShotTimes(MotionPreviewClip.KillerDown), Is.Empty);
++        }
++    }
++}

@@ -1,0 +1,199 @@
+diff --git a/docs/ui/HUD_SPEC.md b/docs/ui/HUD_SPEC.md
+index 45e27c1..b50af2c 100644
+--- a/docs/ui/HUD_SPEC.md
++++ b/docs/ui/HUD_SPEC.md
+@@ -195,7 +195,7 @@ The server simulates from MatchStart (no pre-match freeze — decided against fo
+   - S `muted`, 2 lines: `Moving or hacking makes you Signal. Stand still to stay Silent.` / `Hack 3 terminals, then reach the Exit.` (number = `TerminalsRequired`; the second line is omitted until it is known)
+   - Worst-case height: 12 + 34 + 4 + 2 × 23 + 4 + 2 × 18 + 12 = 148 ≤ 160.
+ - **Killer:** block 6.1e, 320×208 u, at the top of the bottom-left cluster (§6.1); the info and skill blocks stay visible. Inner width 296 u (≈ 35 S characters per line).
+-  - L 600 `You are the Killer` [4]; M skill name (1 line; longest `Packet afterimage`, 17 characters ≈ 168 u) [4]; S `text` effect line from §8, max 3 lines [4]; S `muted`, max 3 lines: `Only Signal Survivors show, even through walls. Catch every Survivor before one reaches the Exit.` (97 characters → 3 lines at 35 per line: 32 / 35 / 28)
++  - L 600 `You are the Killer` [4]; M skill name (1 line; longest `Packet afterimage`, 17 characters ≈ 168 u) [4]; S `text` effect line from §8, max 3 lines [4]; S `muted`, max 3 lines: `Only Signal Survivors show, even through walls. Eliminate more than half of the Survivors to win.` (97 characters → 3 lines at 35 per line; **U6c-wire:** rules v2 wording)
+   - Worst-case height: 12 + 34 + 4 + 23 + 4 + 3 × 18 + 4 + 3 × 18 + 12 = 201 ≤ 208. (The longest Killer effect line, Packet afterimage, is 60 characters → 2 lines.)
+ 
+ Sound: `match_start` (one low tone, 400 ms).
+@@ -218,7 +218,7 @@ Anchor bottom-center, 24 u above the bottom edge. Width 672 u, height 72 u, fill
+  └──────────────────────┴──────────────────────────────────┴──────────────────────┘
+  8 + 168 + 8 + 304 + 8 + 168 + 8 = 672 u   (42 % of 1600, 35 % of 1920)
+ ```
+-Info block (168×72, padding 8 left/right, 0 top/bottom): three M lines, 3 × 23 = 69 ≤ 70 inner height; inner width 152 u. Widest lines at M (9.9 u per character): `Terminals 1/3` 129 u; line 3 (§4.7) `Exit Locked` 109 u, bar + gap + `Exit Open` 4 + 4 + 89 = 97 u, bar + gap + `Locked 4 s` 4 + 4 + 99 = 107 u. All ≤ 152.
++Info block (168×72, padding 8 left/right, 0 top/bottom): two M lines (the v1 exit line 3 is gone, §13.1); inner width 152 u. Widest line at M (9.9 u per character): `Terminals 1/3` 129 u ≤ 152.
+ **(10/30) Block widths changed (U4e Q-02):** skill **176** and info **160** (8 + 176 + 8 + 304 + 8 + 160 + 8 = 672 u, unchanged overall). The skill name column is 100 u (padding 8 + ring area 64 + gap 4 + 100, no right padding), so the longest skill word, `Emergency` at S 600 (≈ 84 u at 14 u, ≈ 90 u at the 15 u floor, Inter with synthesized bold), fits and names wrap only at spaces. The info block's inner width becomes 144 u; its widest line, `Terminals 4/4` at M 600, is ≈ 135 u.
+ At 720p the cluster is 538×58 px; at 1080p 672×72 px. Nothing else is in screen space except the §4.2 level-3 band, §4.6 markers and the play menu (§5).
+ 
+@@ -250,17 +250,19 @@ Capture tag (row A, right), first match wins:
+ Either tag is at most 15 characters (≈ 125 u) next to the longest word, `Lagging` (≈ 70 u at M). That fits 288 u.
+ Fills are steady (no pulse). Sounds: none on Signal/Silent; `stealth_on` (soft, 150 ms) when `Stealthed` sets; `captured` (low hit, 250 ms) on entering Lagging.
+ 
+-**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 66 characters ≈ 540 u, fits the 656 u row). It is shown once per capture and removed early when the status leaves Lagging. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
++**(10/30) Capture banner.** On the own `Status` going Normal → Lagging (never on the first snapshot of a match, so a reconnect into Lagging shows nothing), the prompt row (§4.3) shows for 3 s, ahead of every other prompt, M `text` with a 4×18 u `danger` bar before it: `Lagging. A Survivor within 1.5 m for 3 s rescues you · 60 s left` (numbers from `RescueRadius`, `RescueTimeSeconds`, `LaggingTimeoutSeconds`; 66 characters ≈ 540 u, fits the 656 u row). It is shown once per capture and removed early when the status leaves Lagging. **(U6c-wire a2)** The seconds follow the Lagging stage (the meter's `LaggingTotal`): on the second capture, and when the first stage runs out and the server escalates (`CaptureCount` 1 → 2 while Lagging, which shows the banner once more), it reads `Lagging. A Survivor within 1.5 m for 3 s rescues you · 30 s left`. The brief's draft wording (`Caught … ally …`) was changed to SLOP §6 vocabulary (`Survivor`). **(10/30, U4e attempt 2)** The banner starts with the meter's state word, `Lagging.` (it was `Captured.` in attempt 1), so the banner and the meter name the same state; the `captured` sound name is unchanged.
+ 
+ **(10/30) Elimination reason** (*derived* from the own entry in the snapshot before `Status = Eliminated`):
+ 
+ | Previous own status | Condition | Reason line |
+ |---|---|---|
+-| Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue within 60 s.` |
+-| Lagging | last `StatusTimer > 0.2` | `Executed: the Killer touched you while Lagging.` |
+-| Normal | `CaptureCount ≥ 1` | `Executed: caught a second time.` |
++| Lagging | last `StatusTimer ≤ 0.2` | `Disconnected: no rescue in the second Lagging stage (30 s).` |
++| Normal | `CaptureCount ≥ 2` | `Disconnected: caught a third time.` |
++| anything else, a collapse clock running | — | `Disconnected: the collapse reached you.` |
+ | anything else | — | none (the meter keeps `Watching until the match ends.`) |
+ 
++**(U6c-wire)** Rules v2 has no execution: the two `Executed: …` lines are gone. A Survivor is eliminated by the third capture, by the second Lagging stage running out (`SecondLaggingTimeoutSeconds` 30 s), or by the collapse clock. The Lagging meter's full scale follows the stage: 60 s on the first capture, 30 s on the second; the tag reads `Captured twice` from the second capture.
++
+ While Eliminated the meter shows `Eliminated` (row A) and the reason in S `text` in rows B–C, wrapped to at most two lines in 288×38 u, with no bar. The same reason follows the §7.2 outcome line.
+ 
+ ### 4.2 Threat cue (GDD §3.2)
+@@ -279,7 +281,7 @@ The noise mask is static (never animated); it is re-rolled once on each level ch
+ 
+ **(10/30) Strip size (orchestrator ruling, U4e Q-01):** the meter-edge strip at levels 1 and 2 is **8 u tall at 45 % density** (it was 4 u at 30 %, which read too faint). It still covers 1/3 (level 1) and 2/3 (level 2) of the meter width from the right, lies inside the meter's top padding and the blank top of row A (it reaches no glyph), stays static and is re-rolled once per level change. `danger` stays a non-text color only. The level-3 band is unchanged: 24 u at 30 %.
+ 
+-**(10/30) Build notes.** One mask texel is 2×2 u in both the 8 u strip (four rows of noise) and the 24 u band, point-filtered, so the noise stays crisp at both canvas sizes. `threat_scratch` plays once on entering level 2 (from any other level). The hidden rule applies to the beep too: while Eliminated or Escaped the beep is fed level 0. A `ThreatLevel` outside 0–3 reads as 0.
++**(10/30) Build notes.** One mask texel is 2×2 u in both the 8 u strip (four rows of noise) and the 24 u band, point-filtered, so the noise stays crisp at both canvas sizes. **(U6c-wire B1)** In the 8 u strip each column of the mask is stacked from the bottom (same cells per column, same 45 % density): a flat 2D mask pressed against the cluster's top border read as a clipped line of red text at 1080p; the stacked columns read as a ragged bar rising off the meter. `threat_scratch` plays once on entering level 2 (from any other level). The hidden rule applies to the beep too: while Eliminated or Escaped the beep is fed level 0. A `ThreatLevel` outside 0–3 reads as 0.
+ 
+ ### 4.3 Terminals, hacking, "hold E"
+ Sources: `S2C_WorldState.Terminals[]{Id, X, Z, Progress}`, `TerminalsRequired`; own `Flags.Hacking` and position; static `TerminalRadius` 1.5 m. Display number = `Id + 1`.
+@@ -336,14 +338,8 @@ Sources: Survivors' `X/Z`, `Status`; static Exit position; `ExitOpen`, `ExitLock
+ 
+ Placement and pointing follow the §6.2 edge-indicator rule (safe rectangle inset 24 u; keep-out = cluster, prompt row and, while shown, intro, expanded by 8 u). At most 7 markers. No marker or element ever concerns the Killer.
+ 
+-### 4.7 Exit (info block line 3)
+-Sources: `ExitOpen`, `ExitLocked`; FirewallBlock `S2C_SkillEffect.Duration` (sent to everyone, X/Z = exit).
+-
+-| State | Trigger | Text (M) | Mark (non-text) | Sound |
+-|---|---|---|---|---|
+-| Locked | `ExitOpen = 0` | `Exit Locked` (`muted`) | world ring 1 u dashed `muted` | — |
+-| Open | `ExitOpen = 1`, `ExitLocked = 0` | `Exit Open` (`text`) | 4×18 u bar `ally` before the text; world ring solid `ally` | `exit_open` (three notes, 600 ms) on 0 → 1; the Exit edge marker appears |
+-| Locked by the Killer | `ExitOpen = 1`, `ExitLocked = 1` | `Locked 4 s` (`text`; the bar marks it as the Exit line; seconds derived from FirewallBlock `Duration`; with no effect received, e.g. after a reconnect: `Exit Locked`) | 4×18 u bar `danger`; world ring solid `danger` with a bar across | `exit_locked` (short buzz) on `ExitLocked` 0 → 1 |
++### 4.7 Exit (info block line 3) — removed in v2
++**(U6c-wire)** The v1 single-exit line (`Exit Locked` / `Exit Open` / `Locked 4 s`) is removed. Both exits are read on the objective row (§13.1, §13.4); the switch and hatch prompts are in §13.3.
+ 
+ ### 4.8 Skill block (left block, 168×72)
+ Sources: `S2C_MatchStart.SkillId`; own `S2C_SelfState.SkillCooldown` (seconds left, protocol v0.3, U2c — §11 Q5); own `S2C_SkillEffect` (`CasterId` = own id) for the active duration; static `SurvivorSkillCooldownSeconds` 15 s (the ring's full scale) and the §8 durations; own `Status`; Survivor positions.
+@@ -423,10 +419,10 @@ Anchor bottom-left, margin 24 u, width 320 u. Each block has a `panel` fill and
+ | # | Block | Source | Content | Size |
+ |---|---|---|---|---|
+ | 6.1e | Intro | §3 | §3 Killer intro | 320×208 [8] |
+-| 6.1p | Prompt | §6.4 | execution guidance, 2 S lines | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
+-| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more opens the Exit.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
++| 6.1p | Prompt | §13.3 | interact prompt (kick, hatch close), 2 S lines; replaced by the 13.3 hold block while holding | 320×56, padding 8; 1 + 8 + 2 × 18 + 8 + 1 = 54 ≤ 56 [8] |
++| 6.1a | Info | `TimeLeft`, `Terminals[].Progress`, `TerminalsRequired` | line 1 `9:42` (M 600 tabular `text`; last 60 s: 4×18 u `text` bar left of it); line 2 `Terminals 1 of 3` (M); line 3, only when done = needed − 1: `One more powers the Exits.` (S `text`) | 320×72, padding 8 left/right, 0 top/bottom; 1 + 23 + 23 + 23 + 1 = 71 ≤ 72 (line 3 budgeted at the M line height) [8] |
+ | 6.1c | Effect line | own Overclock effect; Killer-bound TrafficOverload effect | `Overclock · 2.1 s`, then `Recovering · 0.8 s` (static 1 s after `Duration`); `Slowed by traffic overload · 1.6 s` with a 4×18 u `danger` bar. Hidden when none. | 320×32 (S, padding 4); 1 + 4 + 18 + 4 + 1 = 28 ≤ 32 [8] |
+-| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `After the Exit opens` (FirewallBlock while `ExitOpen = 0`, disabled) | 320×72 |
++| 6.1d | Skill block | `MatchStart.SkillId`, own `S2C_SelfState.SkillCooldown` (v0.3), own `S2C_SkillEffect`, static `KillerSkillCooldownSeconds` 12 s (ring scale), `ExitOpen` | Ring and icon as in §4.8 (64 u area, 56 u ring, 64 u active arc); name M 600 to the right; state line S `muted`: `Ready` / `Cooldown 7 s` (`ceil(SkillCooldown)`) / `Passive — always on` (PacketAfterimage: no ring, no key glyph) / `Needs an Exit switch in progress` (FirewallBlock while no unopened exit has switch progress, disabled) | 320×72 |
+ 
+ Width checks:
+ - Skill block text area: 320 − 8 − 64 − 8 − 8 = 232 u. The longest name, `Packet afterimage`, is ≈ 168 u, and the longest state line, `Passive — always on`, is ≈ 158 u.
+@@ -474,9 +470,7 @@ Decoys are classified and rendered by exactly the same rules (§6.3).
+ - A completed terminal gets no marker; its 3D model shows a done state (art).
+ 
+ **Exit.** Always shown as a through-wall marker 2.5 m above the exit:
+-- Not open: 16 u ring, 1 u dashed `muted`, tag `Exit Locked` (`muted`).
+-- Open: solid `text` ring, tag `Exit Open` (`text`).
+-- Locked by the Killer: solid ring with a bar across, tag `Exit Locked 4 s` (`text`; seconds from the Killer's own FirewallBlock `Duration`; with no effect received, e.g. after a reconnect: `Exit Locked`).
++- **(U6c-wire)** One marker per exit, as specified in §13.4 (`Exit 1 · Powered`, `Exit 2 · Locked 3 s`, …). The v1 single `Exit Locked` / `Exit Open` tag is gone.
+ 
+ **Draw order**, back to front: terminal and exit markers, Signal markers and edge indicators, then the cluster. Markers never use glow (SLOP V3). Only Survivors get the `signal` outline.
+ 
+@@ -503,24 +497,8 @@ Decoys are `PlayerState` entries shaped like a Normal Signal Survivor that borro
+    - **(11/03, U4j) Character motion in the Killer view.** The motion reads only `Status` and the matched speed, the same for real entries, afterimages and decoys. Allowed: locomotion; on a matched Normal → Lagging change, the hit flinch blending into the knock-down; while Lagging, the crawl (frozen when still), stepped at 8 Hz. Never: hacking/button pushing, rescuing, getting up, the injured limp or anything from `CaptureCount`. An unmatched new Lagging entry spawns already down (no knock-down). The knock-down falls in place over the entry's position. While the body is down, the `Lagging` tag sits just above it (0.7–0.9 m), not at standing head height. An unmatched old blip still despawns at once; **no death clip plays in the Killer view** (Eliminated entries never reach it).
+    - The Killer's own capture (`CaptureConfirm`, §6.5) gives a 0.22 s first-person lunge: vertical FOV −4° and the eye 0.12 m forward, easing out. None with reduced motion (`-ptk-reduce-stutter`, later the settings toggle).
+ 
+-### 6.4 Execution guidance (GDD §3.3, execution grace added 2026-10-27)
+-Rule (server, `GameServer.Rules.cs`): after a capture, the Lagging Survivor cannot be eliminated for 2 s; a touch during those 2 s is spent and does nothing; elimination needs the Killer to be out of contact (> `CaptureRadius` 1.2 m) at some tick and then touch them after the grace.
+-
+-Sources: own `S2C_SelfState.ExecutionGraceLeft` (Killer only, protocol v0.3, U2c — §11.1 N5): seconds of grace left for the nearest Lagging Survivor within 3 m of the Killer, 0 when none or when its grace is over. Killer-bound Lagging instances (§6.3) and the Killer's own position.
+-
+-The **target** is the nearest Lagging instance within 3 m (the same rule the server uses for `ExecutionGraceLeft`). The client keeps one derived flag for it, mirroring the server's re-arm rule:
+-- `armed = false` when an instance becomes the target (a new capture, a reconnect, or a different instance becoming nearest). This is the safe default: at worst it asks for one extra step back.
+-- Each snapshot: if the Killer is more than 1.2 m from the target, `armed = true`; otherwise, if `ExecutionGraceLeft > 0`, `armed = false` (the in-grace touch is spent).
+-
+-Prompt block 6.1p (two S lines; line 1 S 600) is shown while a target exists:
+-
+-| State | Trigger | Line 1 | Line 2 |
+-|---|---|---|---|
+-| Grace | `ExecutionGraceLeft > 0` | `Lagging Survivor` | `Wait 1.6 s, step back, touch again.` (seconds = `ExecutionGraceLeft`, one decimal, tabular) |
+-| Step back | `ExecutionGraceLeft = 0`, `armed` false | `Lagging Survivor` | `Step back 1.2 m, then touch again.` |
+-| Ready | `ExecutionGraceLeft = 0`, `armed` true | `Lagging Survivor` | `Touch again to eliminate.` |
+-
+-Line 2 is at most 35 characters (≈ 290 u), which fits the 302 u inner width (320 − 2 × 1 border − 2 × 8 padding). Decoys are never Lagging, so the prompt cannot expose one, and `ExecutionGraceLeft` only concerns Lagging Survivors, who are always visible. The server decides; the prompt is guidance. Until U2c lands, this element cannot be built as specified.
++### 6.4 Execution guidance — removed in v2
++**(U6c-wire)** GDD v2 has no execution and protocol v0.4 has no `ExecutionGraceLeft`. The 6.1p prompt slot now shows the §13.3 Killer interact prompt (kick, hatch close), and the hold block while holding.
+ 
+ ### 6.5 Killer sounds
+ | Cue | Trigger (all observable in the Killer view) |
+@@ -590,8 +568,8 @@ Layout: menu style, left column, margin 48 u, full `bg` behind (the 3D view is n
+ | # | Element | Content | Style |
+ |---|---|---|---|
+ | 7.1 | Headline | `Survivors win` / `Killer wins` | L 600 `text` [8] |
+-| 7.2 | Your outcome | Survivor, in `EscapedIds`: `You reached the Exit.` · Survivor, not escaped, Survivors win: `Your team escaped.` · Survivor, Killer wins: `You did not escape.` · Killer, `AllSurvivorsDown`: `You stopped every Survivor.` · Killer, `TimeUp`: `Time ran out before the Survivors escaped.` · Killer, `SurvivorEscaped`: `A Survivor reached the Exit.` · **(10/30)** Survivor, eliminated with a §4.1 reason: `You were eliminated. ` + the reason line (e.g. `You were eliminated. Executed: caught a second time.`) | M `text` [8] |
+-| 7.3 | Reason | `SurvivorEscaped`: `Mina reached the Exit with 4:12 left.` (names from `EscapedIds`, joined by `, `) · `AllSurvivorsDown`: `Every Survivor was Lagging or eliminated.` · `TimeUp`: `Time ran out with the Exit closed.` / `Time ran out with the Exit open.` | S `muted` [24] |
++| 7.2 | Your outcome (v1, replaced by §13.7) | Survivor, in `EscapedIds`: `You reached the Exit.` · Survivor, not escaped, Survivors win: `Your team escaped.` · Survivor, Killer wins: `You did not escape.` · Killer, `AllSurvivorsDown`: `You stopped every Survivor.` · Killer, `TimeUp`: `Time ran out before the Survivors escaped.` · Killer, `SurvivorEscaped`: `A Survivor reached the Exit.` · **(10/30)** Survivor, eliminated with a §4.1 reason: `You were eliminated. ` + the reason line (e.g. `You were eliminated. Disconnected: caught a third time.`) | M `text` [8] |
++| 7.3 | Reason (v1, replaced by §13.7) | `SurvivorEscaped`: `Mina reached the Exit with 4:12 left.` (names from `EscapedIds`, joined by `, `) · `AllSurvivorsDown`: `Every Survivor was Lagging or eliminated.` · `TimeUp`: `Time ran out with the Exit closed.` / `Time ran out with the Exit open.` | S `muted` [24] |
+ | 7.4 | Fact | `Terminals hacked: 4 (3 needed)` — the done count and `TerminalsRequired`, both known to both roles. Captures and rescues are not in the protocol (§11 Q7). | M `text` [32] |
+ | 7.5 | **Back to lobby** (primary) | → Lobby with the stored state | 280×48 |
+ | 7.6 | Leave | disconnect → Main menu (offline or hosting: stops the in-process server) | secondary 160×40, right of 7.5, gap 16 |
+@@ -609,7 +587,7 @@ Focus: 7.5 → 7.6. Initial 7.5. Esc / B = 7.5.
+ | Killer | 0 | Ping scanner | `Shows the nearest Survivor for 1.5 s.` | three concentric arcs from a point toward a small dot |
+ | Killer | 1 | Overclock | `1.5× speed for 3 s, then 1 s unable to move.` | two right chevrons followed by a vertical stop bar |
+ | Killer | 2 | Packet afterimage | `Passive: Survivors stay visible 1 s after their Signal ends.` | a solid dot with two hollow dots trailing behind |
+-| Killer | 3 | Firewall block | `Locks the open Exit for 5 s.` | a ring with a horizontal bar through it |
++| Killer | 3 | Firewall block | `Locks the Exit switch in progress for 5 s.` | a ring with a horizontal bar through it |
+ | Survivor | 0 | Dummy packet | `A fake Signal where you stand, 3 s.` | a dashed-outline dot |
+ | Survivor | 1 | Stealth relay | `You and Survivors within 5 m stay Silent for 2 s, even while moving.` | a dot inside a circle, a wave line crossed out |
+ | Survivor | 2 | Traffic overload | `You are Signal for 2 s; the Killer moves at half speed for 2 s.` | a dot emitting two arcs, a down chevron beside it |
+@@ -662,7 +640,7 @@ Focus: Back to menu only, when shown. Esc / B = Back to menu.
+ | Killer model (Survivor view) **(10/30)** | the Killer entry `PlayerState.{Role = Killer, X, Z, Yaw}`, present only in line of sight (§0.1, §4.10) |
+ | Capture banner, elimination reason **(10/30)** | own `PlayerState.{Status, StatusTimer, CaptureCount}` transitions (§4.1) |
+ | Terminal and Exit markers (Killer) | `Terminals[].{Id, X, Z, Progress = 100}` (done only, no percentage), `ExitOpen`, `ExitLocked`, FirewallBlock `Duration`; static positions |
+-| Execution guidance | own `S2C_SelfState.ExecutionGraceLeft` (Killer, v0.3) + derived `armed` from own position and the Lagging target (§6.4) |
++| Killer prompt slot | own position, `Terminals[]` (kick within `TerminalRadius`), `HatchVisible/X/Z` (close within `HatchRadius`); own `SelfState.ActionKind/ActionProgress` for the hold block (§13.3) |
+ | Positional Survivor sound (Killer) | per anonymous instance: rendered position, matched speed, `Status`; static walls for occlusion (§6.5.1) |
+ | Result | `S2C_GameResult.{WinnerRole, Reason, EscapedIds}` + the last WorldState |
+ | Connection band | socket, `S2C_Pong`, `S2C_JoinResult.Result` |
+@@ -763,7 +741,8 @@ Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, Grea
+   - Track: 10 u `line` at radius 56, clearly darker than the zone.
+   - Good zone: 10 u `text` over the full band width, from `ZoneStart` to `ZoneStart + ZoneSize`.
+   - Great part: **22 u** `text`, the first `GreatSize` of the zone, standing 6 u out of the band on both sides. It differs from Good by shape; no glow, and no `signal` (amber means visible to the Killer).
+-  - Needle: 3 u `text` on a 6 u `bg` keyline, radius 40–70.
++  - Needle **(U6c-wire a2)**: the moving hand, 3 u `text` from radius 30 (inside the band) to radius 80 (8 u past the disc edge, inside the 8 u stack gap), on a 7 u `bg` keyline. At 50 u it is more than twice as long as the Great head is thick.
++  - A 2 u `panel` cut separates the Great part from the Good part, so the zone reads as two blocks, not one tapered arrow.
+   - At 720p (scale 0.8) the default zone (0.12) is an arc ≈ 34 px long and 8 px thick; the great part (0.035) is ≈ 10 px long and 18 px thick.
+   - Angles: fraction 0 is 12 o'clock; the needle turns clockwise; `needle = clamp01(Elapsed / Duration)`.
+ - **Centre:**
+@@ -778,6 +757,7 @@ Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, Grea
+ - **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3).
+ - **No flashing:** one change only, the centre word, with no colour flash and no shake.
+ - **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
++- **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The ring clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.
+ 
+ ### 13.3 Hold action (Survivor exit switch, Killer kick and hatch close)
+ Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0–1, and the percentage is `floor(progress × 100)`, so the row never shows 100 % before the server finishes.
+@@ -790,6 +770,18 @@ Source: `S2C_SelfState {ActionKind, ActionProgress}`. `Progress` is clamped to 0
+ 
+ `ActionKind = 0` hides the row or block.
+ 
++**Interact prompts (U6c-wire).** Before a hold starts, the same row or block shows what E would do. The hold row or block replaces the prompt while `ActionKind ≠ 0`. Survivor prompts apply only when no §4.3/§4.4 prompt (other than a muted one) or banner is showing and the own `Status = Normal`; the Killer's are hidden while the play menu is open.
++
++| Role | Condition (first match wins) | Line 1 | Line 2 (Killer, S `muted`) |
++|---|---|---|---|
++| Survivor | `HatchVisible` and within `HatchRadius` 1.5 m | `Press [E] to escape through the Hatch` | — |
++| Survivor | nearest exit switch within `ExitSwitchRadius` 1.5 m, exit Powered, not Open, not Locked | `Hold [E] to open Exit 1 · 62% — you will be Signal` | — |
++| Survivor | the same switch while Locked | `Exit 1 is Locked 3 s by the Killer` (`muted`; seconds from the own FirewallBlock knowledge, else `Exit 1 is Locked by the Killer`) | — |
++| Killer | `HatchVisible` and within `HatchRadius` | `Hold [E] to close the Hatch` | `Stand still · starts the collapse` |
++| Killer | an unfinished terminal within `TerminalRadius` 1.5 m (Killer `Progress` is 0/100 only, N9) | `Hold [E] to kick Terminal 3` | `Stand still · hacked Terminals only` |
++
++Every Killer line is at most 38 characters and fits the 302 u inner width at S. The server decides every action; the prompt is guidance.
++
+ ### 13.4 Exit status
+ Source: `WorldState` exits `{Id, Flags (Powered 1, Open 2, Locked 4), SwitchProgress}`; FirewallBlock `S2C_SkillEffect.Duration` gives the lock seconds. The name is `Exit N`, with N = `Id + 1`.
+ 
+@@ -824,7 +816,7 @@ Source: `WorldState.CollapseLeft` (global) and `SelfState.CollapseLeft` (persona
+ ### 13.6 Terminal flags
+ Source: `TerminalState.Flags` (Regressing 1, Overloaded 2).
+ - **Regressing** (both roles) replaces the terminal's world tag:
+-  - Survivor: `Terminal 3 · 40% · Regressing`, with a 2 u `danger` left bar.
++  - Survivor: `Terminal 3 · 40% · Regressing`, with a 2 u `danger` left bar. **(U6c-wire a2)** Survivors have no other terminal tag, so this one is drawn by the Survivor HUD's own v2 marker layer: above the terminal's 1.5 m point, only while that point is on screen (no edge indicator), clamped out of the cluster and stack keep-out.
+   - Killer: `Terminal 3 · Regressing`, with no percentage (N9) and a 2 u `text` left bar.
+ - **Overloaded** (Killer alert, shown while the flag is set, about 2 s):
+   - On screen: a 16 u filled `signal` square at the terminal (1.5 m), drawn through walls, with a 1 u `bg` keyline.

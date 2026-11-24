@@ -1,0 +1,478 @@
+diff --git a/Server.Tests/Core/BotBalance.cs b/Server.Tests/Core/BotBalance.cs
+index 13ac8cd..c445fca 100644
+--- a/Server.Tests/Core/BotBalance.cs
++++ b/Server.Tests/Core/BotBalance.cs
+@@ -1,4 +1,5 @@
+ using System.Collections.Concurrent;
++using System.Reflection;
+ using System.Text;
+ using PingTheKiller.ServerCore;
+ using PingTheKiller.Shared.Game;
+@@ -20,18 +21,71 @@ internal static class BotBalance
+         internal string Reason = "";
+         internal int Terminals, Required;
+         internal int Captures, Rescues, Executions, SecondCaptures, LagTimeouts, Escaped;
++        internal int ExitEscapes, CollapseLosses;
++        // U6d-a3 progress invariant: windows of StallSeconds or more without any progress event, the longest gap, and
++        // the match time at which the first such window started (-1 when none).
++        internal int StallWindows;
++        internal double LongestStallSeconds, FirstStallAt = -1;
++        internal double PoweredAt = -1, OpenAt = -1;
+         internal double Seconds => Ticks / (double)GameConstants.TickRate;
+         internal bool SurvivorWin => Winner == "Survivor";
+         internal bool TimeUp => Reason == "TimeUp";
++        internal bool SilentTimeUp => TimeUp && Captures == 0;
++    }
++
++    // A match keeps moving: no StallSeconds window passes without terminal or switch progress rising, a capture, a
++    // rescue, an escape or a hatch event. Terminal and switch progress are not in the log, so they are sampled from the
++    // server state after every tick (test code only).
++    internal const double StallSeconds = 150;
++    private static readonly FieldInfo TerminalProgressField =
++        typeof(GameServer).GetField("_progress", BindingFlags.NonPublic | BindingFlags.Instance)!;
++    private static readonly FieldInfo SwitchSecondsField =
++        typeof(GameServer).GetField("_switchSeconds", BindingFlags.NonPublic | BindingFlags.Instance)!;
++
++    private sealed class ProgressWatch
++    {
++        private double[] _terminals = Array.Empty<double>(), _switches = Array.Empty<double>();
++        private int _lastTick;
++
++        internal void Mark(MatchStats stats, int tick)
++        {
++            double gap = (tick - _lastTick) / (double)GameConstants.TickRate;
++            if (gap > stats.LongestStallSeconds) stats.LongestStallSeconds = gap;
++            if (gap >= StallSeconds && stats.StallWindows++ == 0) stats.FirstStallAt = _lastTick / (double)GameConstants.TickRate;
++            _lastTick = tick;
++        }
++
++        internal void Sample(GameServer server, MatchStats stats, int tick)
++        {
++            bool terminals = Rising((double[])TerminalProgressField.GetValue(server)!, ref _terminals);
++            bool switches = Rising((double[])SwitchSecondsField.GetValue(server)!, ref _switches);
++            if (terminals || switches) Mark(stats, tick);
++        }
++
++        private static bool Rising(double[] now, ref double[] before)
++        {
++            bool rose = false;
++            if (before.Length != now.Length) before = new double[now.Length];
++            for (int i = 0; i < now.Length; i++)
++            {
++                if (now[i] > before[i] + 1e-9) rose = true;
++                before[i] = now[i];
++            }
++            return rose;
++        }
+     }
+ 
+     // Parses the server log lines written by SetStatus, Hack and FinishMatch.
+     private sealed class Tally
+     {
+         internal readonly MatchStats Stats = new();
++        internal readonly ProgressWatch Watch = new();
+         internal bool Ended;
+         internal void Line(string m)
+         {
++            if (ProgressEvent(m)) Watch.Mark(Stats, Stats.Ticks);
++            if (m.StartsWith("exits powered", StringComparison.Ordinal)) Stats.PoweredAt = Stats.Seconds;
++            if (m.StartsWith("exit ", StringComparison.Ordinal) && m.EndsWith(" open", StringComparison.Ordinal) && Stats.OpenAt < 0) Stats.OpenAt = Stats.Seconds;
+             if (m.StartsWith("status ", StringComparison.Ordinal))
+             {
+                 if (m.EndsWith("reason=capture", StringComparison.Ordinal)) Stats.Captures++;
+@@ -39,6 +93,8 @@ internal static class BotBalance
+                 else if (m.EndsWith("reason=execution", StringComparison.Ordinal)) Stats.Executions++;
+                 else if (m.EndsWith("reason=timeout", StringComparison.Ordinal)) Stats.LagTimeouts++;
+                 else if (m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal)) Stats.Rescues++;
++                else if (m.EndsWith("Escaped reason=exit", StringComparison.Ordinal)) Stats.ExitEscapes++;
++                else if (m.EndsWith("Eliminated reason=collapse", StringComparison.Ordinal)) Stats.CollapseLosses++;
+             }
+             else if (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) Stats.Terminals++;
+             else if (m.StartsWith("match end ", StringComparison.Ordinal))
+@@ -50,8 +106,20 @@ internal static class BotBalance
+                     else if (part.StartsWith("escaped=", StringComparison.Ordinal)) Stats.Escaped = int.Parse(part.Substring(8));
+                 }
+                 Ended = true;
++                // The end of the match closes the last window (a time-up tail with no progress counts as a stall).
++                Watch.Mark(Stats, Stats.Ticks);
+             }
+         }
++
++        // Progress events visible in the log: captures, rescues, escapes, hatch events, completed terminals, open exits.
++        private static bool ProgressEvent(string m) =>
++            (m.StartsWith("status ", StringComparison.Ordinal) &&
++             (m.EndsWith("reason=capture", StringComparison.Ordinal) || m.EndsWith("reason=second capture", StringComparison.Ordinal) ||
++              m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal) ||
++              m.Contains(" Escaped reason=", StringComparison.Ordinal))) ||
++            m.StartsWith("hatch ", StringComparison.Ordinal) ||
++            (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) ||
++            (m.StartsWith("exit ", StringComparison.Ordinal) && m.EndsWith(" open", StringComparison.Ordinal));
+     }
+ 
+     // 1 killer bot + survivors survivor bots, no human.
+@@ -66,6 +134,7 @@ internal static class BotBalance
+         {
+             server.Tick(1f / GameConstants.TickRate);
+             tally.Stats.Ticks++;
++            if (!tally.Ended) tally.Watch.Sample(server, tally.Stats, tally.Stats.Ticks);
+         }
+         tally.Stats.Seed = seed;
+         if (!tally.Ended) throw new InvalidOperationException($"seed {seed}: no match end after {MaxTicks} ticks");
+@@ -91,6 +160,7 @@ internal static class BotBalance
+         {
+             f.Tick();
+             tally.Stats.Ticks++;
++            if (!tally.Ended) tally.Watch.Sample(f.Server, tally.Stats, tally.Stats.Ticks);
+             // Drain so the in-memory connection never hits its receive cap and gets replaced by a bot.
+             human.Drain();
+             human.Packets.Clear();
+@@ -100,6 +170,34 @@ internal static class BotBalance
+         return tally.Stats;
+     }
+ 
++    // U6d-a3: one idle human survivor (never moves, never interacts) with six survivor bots and a killer bot, so four of
++    // the seven survivors must escape to win (the live offline check of attempt 2 stalled in this setup).
++    internal static MatchStats RunIdleSurvivor(int seed, int botSurvivors = 6)
++    {
++        using var f = new CoreFixture(seed: seed);
++        var tally = new Tally();
++        f.Server.Log += tally.Line;
++        var human = f.Join("Idle survivor");
++        human.Send(new C2S_SetBots { Count = (byte)(botSurvivors + 1) });
++        human.Send(new C2S_SetRole { RoleChoice = (byte)RoleChoice.Survivor });
++        human.Send(new C2S_StartMatch());
++        f.Tick();
++        GameConstants.TerminalsFor(botSurvivors + 1, out int required, out _);
++        tally.Stats.Required = required;
++        tally.Stats.Ticks = 1;
++        while (!tally.Ended && tally.Stats.Ticks < MaxTicks)
++        {
++            f.Tick();
++            tally.Stats.Ticks++;
++            if (!tally.Ended) tally.Watch.Sample(f.Server, tally.Stats, tally.Stats.Ticks);
++            human.Drain();
++            human.Packets.Clear();
++        }
++        tally.Stats.Seed = seed;
++        if (!tally.Ended) throw new InvalidOperationException($"seed {seed}: no match end after {MaxTicks} ticks");
++        return tally.Stats;
++    }
++
+     internal static List<MatchStats> Sweep(IEnumerable<int> seeds, Func<int, MatchStats> run)
+     {
+         var results = new ConcurrentBag<MatchStats>();
+@@ -165,5 +263,6 @@ internal static class BotBalance
+ 
+     internal static string Detail(MatchStats r) =>
+         $"seed {r.Seed,3}: {r.Seconds,6:0.0}s {r.Winner,-8} {r.Reason,-16} terminals {r.Terminals}/{r.Required} " +
+-        $"cap {r.Captures} (2nd {r.SecondCaptures}) res {r.Rescues} exe {r.Executions} lagTimeout {r.LagTimeouts} escaped {r.Escaped}";
++        $"cap {r.Captures} (2nd {r.SecondCaptures}) res {r.Rescues} exe {r.Executions} lagTimeout {r.LagTimeouts} escaped {r.Escaped} " +
++        $"pw {r.PoweredAt:0} op {r.OpenAt:0} stall {r.StallWindows} (longest {r.LongestStallSeconds:0} s{(r.FirstStallAt >= 0 ? $" from {r.FirstStallAt:0} s" : "")})";
+ }
+diff --git a/Server.Tests/Core/BotBalanceTests.cs b/Server.Tests/Core/BotBalanceTests.cs
+index 2e933f5..4c87335 100644
+--- a/Server.Tests/Core/BotBalanceTests.cs
++++ b/Server.Tests/Core/BotBalanceTests.cs
+@@ -15,12 +15,11 @@ public sealed class BotBalanceTests
+     public static IEnumerable<object[]> Configs() => new[]
+     {
+         // config, survivors (0 = idle human killer + 7 bots), win min/max, median min/max seconds, max timeout share.
+-        // GDD v2 (U6a): the U2d win and length bands are reported only until U6d sets the v2 targets; the gate is that 1v7
+-        // all-bot matches end through the rules (at most 30 % time-ups).
+-        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.30 },
+-        new object[] { "1v3", 3, 0.25, 0.75, 120.0, 480.0, 1.0 },
+-        new object[] { "1v1", 1, 0.20, 0.80, 90.0, 480.0, 1.0 },
+-        new object[] { "idle killer + 7", 0, 0.90, 1.0, 120.0, 360.0, 1.0 },
++        // U6d: enforce the GDD v2 win, median and timeout bands on both fixed seed sets.
++        new object[] { "1v7", 7, 0.35, 0.65, 540.0, 660.0, 0.10 },
++        new object[] { "1v3", 3, 0.25, 0.75, 0.0, 660.0, 0.20 },
++        new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30 },
++        new object[] { "idle killer + 7", 0, 0.90, 1.0, 0.0, 900.0, 1.0 },
+     };
+ 
+     [Theory]
+@@ -37,9 +36,18 @@ public sealed class BotBalanceTests
+         _output.WriteLine(BotBalance.Header);
+         _output.WriteLine(summary.Row(config));
+         _output.WriteLine($"lagging timeouts per match {summary.LagTimeouts:0.00}; sweep {watch.Elapsed.TotalSeconds:0.0} s");
+-        _output.WriteLine($"U2d bands (not gated under GDD v2): win {winMin:P0}-{winMax:P0}, median {medianMin:0}-{medianMax:0} s");
++        _output.WriteLine($"GDD v2 bands: win {winMin:P0}-{winMax:P0}, median {medianMin:0}-{medianMax:0} s");
+         Assert.Equal(Seeds, summary.Matches);
++        Assert.InRange(summary.WinRate, winMin, winMax);
++        Assert.InRange(summary.Median, medianMin, medianMax);
+         Assert.True(summary.TimeoutRate <= timeoutMax, $"timeouts {summary.TimeoutRate:P0}");
++        if (survivors == 0)
++        {
++            int exits = runs.Sum(r => r.ExitEscapes), collapse = runs.Sum(r => r.CollapseLosses);
++            _output.WriteLine($"idle survivor outcomes: exit escapes {exits}/{Seeds * 7}, collapse losses {collapse}/{Seeds * 7}");
++            Assert.True(exits > Seeds * 7 / 2, "most survivors must escape through exits");
++            Assert.True(exits > collapse);
++        }
+     }
+ 
+     // The all-bot hook is deterministic per private seed: the same seed replays the same match.
+diff --git a/Server.Tests/Core/BotMatchTests.cs b/Server.Tests/Core/BotMatchTests.cs
+index 6e4f593..8703462 100644
+--- a/Server.Tests/Core/BotMatchTests.cs
++++ b/Server.Tests/Core/BotMatchTests.cs
+@@ -50,7 +50,8 @@ public sealed class BotMatchTests
+         Assert.NotNull(result);
+         Assert.True(ticks <= 18000, "the match must end by the 900 s time limit");
+         if (result.WinnerRole == (byte)Role.Survivor) Assert.NotEmpty(result.EscapedIds);
+-        else Assert.Empty(result.EscapedIds);
++        // GDD v2: fewer than half escaping is still a killer victory.
++        else Assert.True(result.EscapedIds.Count < 4);
+         // After the end only lobby traffic follows, and no second result.
+         f.Tick();
+         f.Tick();
+diff --git a/Server.Tests/Core/IndistinguishabilityTests.cs b/Server.Tests/Core/IndistinguishabilityTests.cs
+index b269556..157d22a 100644
+--- a/Server.Tests/Core/IndistinguishabilityTests.cs
++++ b/Server.Tests/Core/IndistinguishabilityTests.cs
+@@ -101,7 +101,7 @@ public sealed class IndistinguishabilityTests
+         Assert.True(p < 1e-10);
+     }
+ 
+-    // Gate (orchestrator ruling, attempt 2): KS p >= 0.01 for speed, still-away-from-terminal and afterimage tail,
++    // U6d strengthens the KS gate to p >= 0.02 for speed, still-away-from-terminal and afterimage tail,
+     // phantoms against real Normal Signal tracks. Spawn distance (aim D < 0.2) and lifetime are reported only.
+     // White Noise lives 1.5 s by design (GDD 4), so the gated features are per-step and do not scale with lifetime:
+     // the track's median step speed, and still steps away from any terminal before the final stop frame (every
+@@ -137,7 +137,7 @@ public sealed class IndistinguishabilityTests
+             var (d, p) = KolmogorovSmirnov(a, b);
+             string line = $"{name}: phantom median {Median(a):0.###} mean {a.Average():0.###}, real median {Median(b):0.###} mean {b.Average():0.###}, KS D={d:0.###} p={p:0.####}{(gated ? "" : " (reported, not gated)")}";
+             _output.WriteLine(line);
+-            if (gated && p < 0.01) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
++            if (gated && p < 0.02) failures.Add($"{name} (D={d:0.###}, p={p:0.####})");
+         }
+         _output.WriteLine(failures.Count == 0 ? "GATE PASS" : "GATE FAIL: " + string.Join(", ", failures));
+         Assert.True(phantoms.Count >= 100 && reals.Count >= 100, $"{phantoms.Count} phantom / {reals.Count} real tracks");
+diff --git a/Server.Tests/Core/MatchLengthTests.cs b/Server.Tests/Core/MatchLengthTests.cs
+index 938d0a2..793b7d4 100644
+--- a/Server.Tests/Core/MatchLengthTests.cs
++++ b/Server.Tests/Core/MatchLengthTests.cs
+@@ -93,12 +93,8 @@ public sealed class MatchLengthTests
+         }
+         double median = Median(lengths);
+         _output.WriteLine($"median {median:0.0}s, time-outs with a Normal bot {botTimeouts}");
+-        // U6a gate under GDD v2: at most 6 of 15 time-ups (raised from 4 by the orchestrator in U6a attempt 2: without
+-        // Lagging executions survivors live longer and more matches reach the limit). U6d sets the tuned v2 targets.
+-        // Raised to 7 by the orchestrator at the 2026-11-04 merge (map v2.1 + rules v2): seeds 2, 3, 5, 15 time out with the
+-        // killer bot moving and survivor bots hacking ~3-9 s per 30 s across many terminals (bot pacing, not a stall). U6d
+-        // must restore <= 4 (docs/qa/merge-1104/botfreeze-impl.md).
+-        Assert.True(botTimeouts <= 7, $"time-outs with a Normal bot {botTimeouts} of 15");
++        // U6d restores the original ceiling after tuning the v2 brains.
++        Assert.True(botTimeouts <= 4, $"time-outs with a Normal bot {botTimeouts} of 15");
+         Assert.True(median >= floor, $"median match length {median:0.0}s");
+         // GDD v2: the U2d 360 s ceiling no longer applies (45 s terminals, 15 s switch); U6d sets the v2 length targets.
+         if (humanRole == RoleChoice.Killer) Assert.True(median <= GameConstants.MatchLengthSeconds, $"median match length {median:0.0}s");
+diff --git a/Server.Tests/Core/ReconnectAndBotTests.cs b/Server.Tests/Core/ReconnectAndBotTests.cs
+index a0cd752..0d5bf2c 100644
+--- a/Server.Tests/Core/ReconnectAndBotTests.cs
++++ b/Server.Tests/Core/ReconnectAndBotTests.cs
+@@ -47,8 +47,10 @@ public sealed class ReconnectAndBotTests
+         f.Tick();
+         Assert.Equal(1, killer.Last<S2C_LobbyState>().Slots.Single(p => p.PlayerId == identity.PlayerId).IsBot);
+         // The bot opens with a Silent pause of up to 8 s (and may cast Stealth Relay), so wait for its first visible frame.
++        // U6d: a bot that sees the (idle) killer from beyond ThreatLevel 1 hides in place, Silent, until the camp rule
++        // releases it 20 s after the last news about the killer, so allow up to 60 s.
+         PlayerState? bot = null;
+-        for (int i = 0; i < 400 && bot == null; i++)
++        for (int i = 0; i < 1200 && bot == null; i++)
+         {
+             f.Tick();
+             bot = KillerTruth.Entry(f.Server, killer.Last<S2C_WorldState>(), identity.PlayerId);
+diff --git a/Server.Tests/Core/SurvivorCampTests.cs b/Server.Tests/Core/SurvivorCampTests.cs
+index 3d8efd2..e10da8c 100644
+--- a/Server.Tests/Core/SurvivorCampTests.cs
++++ b/Server.Tests/Core/SurvivorCampTests.cs
+@@ -25,6 +25,9 @@ public sealed class SurvivorCampTests
+         internal bool KillerVisible;
+         internal double Time;
+         internal BotIntent Intent;
++        // Hack progress of the incomplete terminal (U6d-a3: the view shows it rising while the bot hacks, as GameServer
++        // does; a view frozen at 0 put the bot in commit mode after CommitSeconds).
++        internal double Progress;
+ 
+         internal Sim(int seed, float x, float z)
+         {
+@@ -65,6 +68,11 @@ public sealed class SurvivorCampTests
+             bool moved = Dist(next.X, next.Z, View.X, View.Z) > 0.001f;
+             View.X = next.X;
+             View.Z = next.Z;
++            if (Hacking)
++            {
++                Progress = System.Math.Min(100, Progress + 100.0 * Dt / GameConstants.TerminalHackTimeSeconds);
++                View.Terminals[Terminal].Progress = (byte)Progress;
++            }
+             // Moving or hacking is Signal; the WorldState of the next tick carries it in this bot's own entry.
+             View.Team.Clear();
+             View.Team.Add(new PlayerState
+@@ -116,12 +124,14 @@ public sealed class SurvivorCampTests
+         Assert.True(maxThreatWhileHacking >= 2, "the hacking spot must be inside ThreatLevel 2 for this test to mean anything");
+     }
+ 
+-    // The same idle killer in plain sight (standing still, facing the terminal) does not freeze the bot either.
++    // Sight initially triggers hiding; stale camping releases work when the killer becomes unseen.
+     [Fact]
+-    public void AnIdleKillerInSightNearTheLastTerminalDoesNotFreezeTheBot()
++    public void AnIdleKillerSeenThenHiddenDoesNotFreezeTheBot()
+     {
+         var sim = new Sim(7, 41f, 38f) { KillerVisible = true, KillerYaw = 90f };
+-        Assert.True(sim.RunUntilHacking(120), "the bot never hacked next to an idle killer in sight");
++        for (int i = 0; i < 100; i++) { sim.Step(); Assert.False(sim.Hacking); }
++        sim.KillerVisible = false;
++        Assert.True(sim.RunUntilHacking(120), "the bot never resumed after the killer became unseen");
+     }
+ 
+     // Once the bot works next to the camping killer, a rising ThreatLevel (the killer walks at it, still unseen) makes it
+@@ -144,8 +154,15 @@ public sealed class SurvivorCampTests
+         bool stopped = false;
+         for (int i = 0; i < 20 && !stopped; i++) { sim.Step(); stopped = !sim.Intent.Interact; }
+         Assert.True(stopped, "still hacking 1 s after ThreatLevel rose to 3");
+-        for (int i = 0; i < 5 * 20; i++) sim.Step();
+-        Assert.True(Dist(sim.View.X, sim.View.Z, hackX, hackZ) > 3f, "the bot did not flee from the rising threat");
++        // U6d-a3: the farthest point of the flee (in this view the bot is 25 s into the match without progress, so commit
++        // mode may send it back to the terminal once the threat drops below 3).
++        float farthest = 0;
++        for (int i = 0; i < 5 * 20; i++)
++        {
++            sim.Step();
++            farthest = System.Math.Max(farthest, Dist(sim.View.X, sim.View.Z, hackX, hackZ));
++        }
++        Assert.True(farthest > 3f, "the bot did not flee from the rising threat");
+     }
+ 
+     // A killer seen walking at the bot (the existing coming rule) still interrupts work next to a former camp.
+@@ -199,6 +216,8 @@ public sealed class SurvivorCampTests
+             sim.Step();
+             Assert.Equal(2, sim.View.Threat);
+         }
++        // This variant loses sight; continuous sight is covered separately below.
++        sim.KillerVisible = false;
+         bool atOther = false;
+         for (int i = 0; i < 90 * 20 && !atOther; i++)
+         {
+@@ -226,4 +245,31 @@ public sealed class SurvivorCampTests
+         }
+         Assert.True(closest > GameConstants.CaptureRadius + 1f, $"seed {seed}: came within {closest:0.00} m of the killer");
+     }
++
++    [Fact]
++    public void VisibleCampReleasesOccludedWorkWithinFortySecondsAndMovementRestoresHiding()
++    {
++        var sim = new Sim(7, 41, 38) { KillerVisible = true, KillerX = 8, KillerZ = 38 };
++        Assert.True(Dist(sim.View.X, sim.View.Z, sim.KillerX, sim.KillerZ) > GameConstants.ThreatLevel2Distance);
++        bool hackedByForty = false;
++        for (int i = 0; i < 60 * 20; i++)
++        {
++            sim.Step();
++            if (!sim.Hacking) continue;
++            Assert.True(sim.Map.SegmentBlocked(sim.KillerX, sim.KillerZ,
++                sim.View.Terminals[Terminal].X, sim.View.Terminals[Terminal].Z));
++            if (sim.Time <= 40) hackedByForty = true;
++        }
++        Assert.True(hackedByForty, $"no occluded hack within 40s; position {sim.View.X},{sim.View.Z}");
++        bool hid = false;
++        for (int i = 0; i < 20; i++)
++        {
++            sim.KillerX += .1f;
++            sim.Step();
++            hid |= (bool)typeof(SurvivorBrain).GetField("_hiding",
++                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(sim.Brain)!;
++        }
++        Assert.True(hid, "visible killer movement did not restore hiding");
++        Assert.False(sim.Intent.Interact);
++    }
+ }
+diff --git a/Server.Tests/Core/SyncTimingTests.cs b/Server.Tests/Core/SyncTimingTests.cs
+index 2abcafc..b576493 100644
+--- a/Server.Tests/Core/SyncTimingTests.cs
++++ b/Server.Tests/Core/SyncTimingTests.cs
+@@ -245,7 +245,8 @@ public sealed class SyncTimingTests
+     public void BotSyncSharesAreUnchanged()
+     {
+         int great = 0, good = 0, fail = 0;
+-        for (int seed = 11; seed < 26; seed++)
++        // Faster v2 matches produce fewer checks per match; retain the statistical sample floor with more seeds.
++        for (int seed = 11; seed < 51; seed++)
+         {
+             using var f = new CoreFixture(seed: seed);
+             bool ended = false;
+@@ -272,8 +273,7 @@ public sealed class SyncTimingTests
+         Assert.True(total >= 150, $"only {total} bot sync results");
+         double successShare = (great + good) / (double)total;
+         double greatShare = great / (double)(great + good);
+-        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results). These seeds
+-        // give 30 Great / 162 Good / 22 Fail both before and after U6f (a bot press still resolves on the same tick).
++        // Expected: 0.85 success, 0.2 of the successes Great (bounds at about 4 sigma for >= 150 results).
+         Assert.InRange(successShare, GameServer.DefaultBotSyncSuccessRate - 0.12, GameServer.DefaultBotSyncSuccessRate + 0.12);
+         Assert.InRange(greatShare, GameServer.BotSyncGreatShare - 0.1, GameServer.BotSyncGreatShare + 0.1);
+     }
+diff --git a/Server.Tests/QA/U2cAdversarialTests.cs b/Server.Tests/QA/U2cAdversarialTests.cs
+index a16247f..ed3270c 100644
+--- a/Server.Tests/QA/U2cAdversarialTests.cs
++++ b/Server.Tests/QA/U2cAdversarialTests.cs
+@@ -608,10 +608,8 @@ public sealed class U2cAdversarialTests
+         // The orchestrator accepted a per-track residual (average speed/stillness D~0.49, lifetime, spawn distance). This test
+         // pins the measured level (reported above, see docs/qa/U2c-qa-a1.md) as a regression ceiling, not as proof of
+         // indistinguishability: a rise above 0.85 means the residual got worse.
+-        // Orchestrator, U6a attempt 2: the gated AUC ceiling is 0.86 (was 0.85) because survivors now live longer without Lagging
+-        // executions, so phantom tracks are longer and more numerous (571); the phantom code itself did not change. U6d retunes
+-        // phantoms and restores 0.85.
+-        Assert.True(aucGated < 0.86, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
++        // U6d restores the original 0.85 ceiling after matching the phantom and survivor pacing.
++        Assert.True(aucGated < 0.85, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
+         Assert.True(bestGated < 0.85, $"a single gated feature reaches AUC {bestGated:0.000}");
+     }
+ 
+diff --git a/Server.Tests/QA/U2d/U2dQaSweepTests.cs b/Server.Tests/QA/U2d/U2dQaSweepTests.cs
+index b72555e..1d21fae 100644
+--- a/Server.Tests/QA/U2d/U2dQaSweepTests.cs
++++ b/Server.Tests/QA/U2d/U2dQaSweepTests.cs
+@@ -31,6 +31,7 @@ public sealed class U2dQaSweepTests
+         internal string Reason = "";
+         internal int Terminals, Required;
+         internal int Captures, Rescues, Executions, SecondCaptures, LagTimeouts, Escaped;
++        internal int ExitEscapes, CollapseLosses;
+         internal double Seconds => Ticks / (double)GameConstants.TickRate;
+         internal bool SurvivorWin => Winner == "Survivor";
+         internal bool TimeUp => Reason == "TimeUp";
+@@ -50,6 +51,8 @@ public sealed class U2dQaSweepTests
+                 else if (m.EndsWith("reason=execution", StringComparison.Ordinal)) Stats.Executions++;
+                 else if (m.EndsWith("reason=timeout", StringComparison.Ordinal)) Stats.LagTimeouts++;
+                 else if (m.EndsWith("reason=rescue", StringComparison.Ordinal) || m.EndsWith("reason=emergency restore", StringComparison.Ordinal)) Stats.Rescues++;
++                else if (m.EndsWith("Escaped reason=exit", StringComparison.Ordinal)) Stats.ExitEscapes++;
++                else if (m.EndsWith("Eliminated reason=collapse", StringComparison.Ordinal)) Stats.CollapseLosses++;
+             }
+             else if (m.StartsWith("terminal ", StringComparison.Ordinal) && m.EndsWith(" complete", StringComparison.Ordinal)) Stats.Terminals++;
+             else if (m.StartsWith("match end ", StringComparison.Ordinal))
+@@ -160,10 +163,10 @@ public sealed class U2dQaSweepTests
+     public static IEnumerable<object[]> SweepConfigs() => new[]
+     {
+         // config, survivors (0 = idle killer + 7 bots), winMin, winMax, medianMin, medianMax, timeoutMax, reqRescueShare
+-        new object[] { "1v7", 7, 0.35, 0.65, 180.0, 480.0, 0.15, 0.30 },
+-        new object[] { "1v3", 3, 0.25, 0.75, 120.0, 480.0, 1.0, 0.0 },
+-        new object[] { "1v1", 1, 0.20, 0.80, 90.0, 480.0, 1.0, 0.0 },
+-        new object[] { "idle killer + 7", 0, 0.90, 1.0, 120.0, 360.0, 1.0, 0.0 },
++        new object[] { "1v7", 7, 0.35, 0.65, 540.0, 660.0, 0.10, 0.30 },
++        new object[] { "1v3", 3, 0.25, 0.75, 0.0, 660.0, 0.20, 0.0 },
++        new object[] { "1v1", 1, 0.15, 0.85, 0.0, 900.0, 0.30, 0.0 },
++        new object[] { "idle killer + 7", 0, 0.90, 1.0, 0.0, 900.0, 1.0, 0.0 },
+     };
+ 
+     [Theory]
+@@ -197,6 +200,13 @@ public sealed class U2dQaSweepTests
+         Assert.InRange(summary.WinRate, winMin, winMax);
+         Assert.InRange(summary.Median, medianMin, medianMax);
+         Assert.True(summary.TimeoutRate <= timeoutMax, $"timeouts {summary.TimeoutRate:P0} > max {timeoutMax:P0}");
++        if (survivors == 0)
++        {
++            int exits = runs.Sum(r => r.ExitEscapes), collapse = runs.Sum(r => r.CollapseLosses);
++            _output.WriteLine($"idle survivor outcomes: exit escapes {exits}/{SeedCount * 7}, collapse losses {collapse}/{SeedCount * 7}");
++            Assert.True(exits > SeedCount * 7 / 2, "most survivors must escape through exits");
++            Assert.True(exits > collapse);
++        }
+         if (reqRescueShare > 0)
+             Assert.True(summary.RescueShare >= reqRescueShare, $"rescue share {summary.RescueShare:P0} < required {reqRescueShare:P0}");
+     }

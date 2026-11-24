@@ -1,0 +1,43 @@
+diff --git a/Client/Assets/Tests/EditMode/KillerHudTests.cs b/Client/Assets/Tests/EditMode/KillerHudTests.cs
+index 71068d4..ad34f4f 100644
+--- a/Client/Assets/Tests/EditMode/KillerHudTests.cs
++++ b/Client/Assets/Tests/EditMode/KillerHudTests.cs
+@@ -84,8 +84,8 @@ namespace PingTheKiller.Client.Tests
+             Assert.That(KillerHudCopy.OneMoreLine(2, 3), Is.EqualTo("One more powers the Exits."));
+             Assert.That(KillerHudCopy.OneMoreLine(1, 3), Is.Null);
+             Assert.That(KillerHudCopy.OneMoreLine(3, 3), Is.Null);
+-            Assert.That(KillerHudCopy.Overclock(2.14f), Is.EqualTo("Overclock " + Dot + " 2.1 s"));
+-            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering " + Dot + " 0.8 s"));
++            Assert.That(KillerHudCopy.Overclock(2.14f), Is.EqualTo("Overclock: 1.5× speed " + Dot + " 2.1 s"));
++            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: cannot move " + Dot + " 0.8 s"));
+             Assert.That(KillerHudCopy.Slowed(1.6f), Is.EqualTo("Slowed by traffic overload " + Dot + " 1.6 s"));
+             Assert.That(KillerHudCopy.Distance(23.6f), Is.EqualTo("24 m"));
+             Assert.That(KillerHudCopy.LaggingDistance(24), Is.EqualTo("Lagging " + Dot + " 24 m"));
+diff --git a/Client/Assets/Tests/EditMode/QA/KillerHudQaTests.cs b/Client/Assets/Tests/EditMode/QA/KillerHudQaTests.cs
+index 5641b98..7f15995 100644
+--- a/Client/Assets/Tests/EditMode/QA/KillerHudQaTests.cs
++++ b/Client/Assets/Tests/EditMode/QA/KillerHudQaTests.cs
+@@ -106,8 +106,8 @@ namespace PingTheKiller.Client.QA.Tests
+         [Test]
+         public void TheEffectLinesUseTheSpecWordsAndOneDecimalOfSeconds()
+         {
+-            Assert.That(KillerHudCopy.Overclock(2.1f), Is.EqualTo("Overclock " + Dot + " 2.1 s"));
+-            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering " + Dot + " 0.8 s"));
++            Assert.That(KillerHudCopy.Overclock(2.1f), Is.EqualTo("Overclock: 1.5× speed " + Dot + " 2.1 s"));
++            Assert.That(KillerHudCopy.Recovering(.8f), Is.EqualTo("Recovering: cannot move " + Dot + " 0.8 s"));
+             Assert.That(KillerHudCopy.Slowed(1.6f), Is.EqualTo("Slowed by traffic overload " + Dot + " 1.6 s"));
+             Assert.That(SkillIds.OverclockRecoverySeconds, Is.EqualTo(1f), "Recovering lasts a static 1 s after the Overclock Duration");
+             Assert.That(KillerHudCopy.Slowed(-4f), Does.Not.Contain("-"), "a negative remainder never shows");
+@@ -270,10 +270,10 @@ namespace PingTheKiller.Client.QA.Tests
+             Assert.That(Shown(effect, root), Is.False);
+             hud.SetEffect(KillerHudCopy.Overclock(2.1f), false);
+             Assert.That(Shown(effect, root), Is.True);
+-            Assert.That(LabelShown(root, "Overclock " + Dot + " 2.1 s"), Is.True);
++            Assert.That(LabelShown(root, "Overclock: 1.5× speed " + Dot + " 2.1 s"), Is.True);
+             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.None), "Overclock is not a threat");
+             hud.SetEffect(KillerHudCopy.Recovering(.8f), false);
+-            Assert.That(LabelShown(root, "Recovering " + Dot + " 0.8 s"), Is.True);
++            Assert.That(LabelShown(root, "Recovering: cannot move " + Dot + " 0.8 s"), Is.True);
+             Assert.That(bar.style.display.value, Is.EqualTo(DisplayStyle.None));
+             hud.SetEffect(KillerHudCopy.Slowed(1.6f), true);
+             Assert.That(LabelShown(root, "Slowed by traffic overload " + Dot + " 1.6 s"), Is.True);

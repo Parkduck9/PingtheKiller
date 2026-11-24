@@ -1,0 +1,99 @@
+/* Rules v2 HUD widgets (HUD_SPEC 12). Loaded after ClientUI.uss on the same .root, so every selector carries one more class
+   than the ClientUI rule it overrides. Units are logical (1080p pixels); spacing only 4/8/12/16/24/32/48; radius 0; flat
+   fills; 1 u borders (snapped to 1 physical px by the panel scale floor). */
+.root .v2-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+
+/* Text: S 14 (15 at the 720p floor) / M 18 / L 28, one line each. */
+.root .unity-label.v2-text { margin: 0; padding: 0; color: #E8E6E1; white-space: nowrap; -unity-text-align: middle-left; }
+.root .unity-label.v2-s { font-size: 14px; min-height: 18px; }
+.root.s-floor .unity-label.v2-s { font-size: 15px; }
+.root .unity-label.v2-m { font-size: 18px; height: 23px; }
+.root .unity-label.v2-l { font-size: 28px; height: 34px; }
+.root .unity-label.v2-bold { -unity-font-style: bold; }
+.root .unity-label.v2-muted { color: #9A9890; }
+.root .unity-label.v2-right { -unity-text-align: middle-right; }
+.root .v2-line { flex-direction: row; align-items: center; justify-content: space-between; height: 23px; flex-shrink: 0; }
+
+.root .v2-fill { height: 100%; width: 0; }
+.root .v2-fill.v2-fill-text { background-color: #E8E6E1; }
+.root .v2-fill.v2-fill-danger { background-color: #E5484D; }
+.root .v2-fill.v2-fill-ally { background-color: #3FB8AF; }
+
+/* Survivor stack (HUD_SPEC 12.1): bottom-center, its bottom on the cluster's top edge (24 + 72 u); every child keeps an
+   8 u gap below it, so the lowest visible child sits 8 u above the cluster. Top to bottom: sync ring, prompt / hold row,
+   objective row. */
+.root .v2-survivor-stack {
+    position: absolute; bottom: 96px; left: 50%; translate: -50% 0; width: 672px;
+    flex-direction: column; align-items: center;
+}
+.root .v2-survivor-stack > * { margin-bottom: 8px; flex-shrink: 0; }
+
+/* Killer stack (HUD_SPEC 12.1): above the 6.1 cluster's info block, same 320 u column; hold block, then collapse block. */
+.root .v2-killer-stack { position: absolute; left: 24px; width: 320px; flex-direction: column; }
+.root .v2-killer-stack > * { margin-bottom: 8px; flex-shrink: 0; }
+
+/* 12.2 sync check ring: 112x112 u; the centre word sits inside the needle's inner radius (34 u). */
+.root .v2-sync { width: 112px; height: 112px; }
+.root .unity-label.v2-sync-centre {
+    position: absolute; left: 0; top: 0; width: 112px; height: 112px;
+    font-size: 14px; color: #9A9890; -unity-text-align: middle-center;
+}
+.root.s-floor .unity-label.v2-sync-centre { font-size: 15px; }
+.root .unity-label.v2-sync-centre.v2-sync-result { font-size: 18px; color: #E8E6E1; -unity-font-style: bold; }
+
+/* 12.3 hold action: Survivor prompt row 672x40 (like 4.3), Killer block 320x72. */
+.root .v2-hold {
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .v2-hold-survivor { width: 672px; height: 40px; padding: 0; padding-left: 7px; padding-right: 7px; justify-content: center; }
+.root .v2-hold-survivor .v2-hold-track { width: 656px; height: 4px; margin-top: 2px; }
+.root .v2-hold-killer { width: 320px; height: 72px; padding: 8px; padding-top: 7px; padding-bottom: 7px; }
+.root .v2-hold-killer .v2-hold-track { width: 302px; height: 4px; margin-top: 4px; }
+.root .unity-label.v2-hold-hint { margin-top: 4px; height: 18px; }
+
+/* 12.1 / 12.4 / 12.5 Survivor objective row: 672x48 u; cells Exit 1 192 | Exit 2 192 | collapse 272 (+ 7 u padding and
+   the 1 u border on each side). */
+.root .v2-objective {
+    width: 672px; height: 48px; flex-direction: row; align-items: center; padding: 0; padding-left: 7px; padding-right: 7px;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+.root .v2-exit { width: 192px; height: 46px; flex-shrink: 0; padding-left: 8px; padding-right: 8px; justify-content: center; }
+.root .v2-exit-track { width: 176px; height: 6px; margin-top: 4px; border-color: #9A9890; border-width: 1px; border-radius: 0; }
+.root .v2-collapse-survivor { width: 272px; height: 46px; flex-shrink: 0; padding-left: 8px; padding-right: 8px; justify-content: center; }
+.root .v2-collapse .v2-line { justify-content: flex-start; }
+.root .v2-bar { width: 4px; height: 18px; margin-right: 4px; background-color: #9A9890; flex-shrink: 0; }
+.root .v2-bar.v2-urgent-danger { background-color: #E5484D; }
+.root .v2-bar.v2-urgent-text { background-color: #E8E6E1; }
+.root .unity-label.v2-personal { margin-left: 8px; height: 18px; }
+.root .v2-collapse-killer {
+    width: 320px; height: 32px; padding: 0; padding-left: 8px; padding-right: 8px; justify-content: center;
+    background-color: #1A1C1F; border-color: #2C2F33; border-width: 1px; border-radius: 0;
+}
+
+/* 12.4 / 12.6 world markers and tags: S text on a `panel` fill, 4 u side padding. */
+.root .v2-markers { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.root .unity-label.v2-tag {
+    position: absolute; padding: 2px; padding-left: 4px; padding-right: 4px; background-color: #1A1C1F; color: #E8E6E1;
+}
+.root .unity-label.v2-tag.v2-tag-muted { color: #9A9890; }
+.root .unity-label.v2-tag.v2-tag-bar-danger { border-left-width: 2px; border-left-color: #E5484D; }
+.root .unity-label.v2-tag.v2-tag-bar-text { border-left-width: 2px; border-left-color: #E8E6E1; }
+
+/* 12.7 result screen: full `bg`, left column at 48 u. */
+.root .v2-result { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background-color: #101113; }
+.root .v2-result-column { position: absolute; left: 48px; top: 48px; width: 560px; align-items: flex-start; }
+.root .unity-label.v2-result-headline { margin-bottom: 8px; }
+.root .unity-label.v2-result-outcome { margin-bottom: 8px; }
+.root .unity-label.v2-result-rule { margin-bottom: 4px; }
+.root .unity-label.v2-result-reason { margin-bottom: 24px; }
+.root .v2-result-list { width: 560px; margin-bottom: 32px; }
+.root .v2-result-row {
+    flex-direction: row; align-items: center; justify-content: space-between; width: 560px; height: 32px;
+    margin-bottom: 4px; padding-left: 16px; padding-right: 16px;
+    background-color: #1A1C1F; border-bottom-width: 1px; border-bottom-color: #2C2F33;
+}
+.root .v2-result-row.v2-self { border-left-width: 4px; border-left-color: #E8E6E1; padding-left: 12px; }
+.root .unity-label.v2-result-name { flex-shrink: 1; overflow: hidden; }
+.root .v2-result-actions { flex-direction: row; align-items: flex-start; }
+.root .v2-result-actions .unity-button.primary { min-width: 280px; }
+.root .v2-result-actions .unity-button.v2-secondary { min-width: 160px; height: 40px; margin-left: 4px; }

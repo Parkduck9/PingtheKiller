@@ -1,0 +1,493 @@
+using System.Collections.Generic;
+using NUnit.Framework;
+using PingTheKiller.Client.Killer;
+using PingTheKiller.Client.UI;
+using PingTheKiller.Client.World;
+using PingTheKiller.ServerCore.Map;
+using PingTheKiller.Shared.Game;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace PingTheKiller.Client.Tests
+{
+    // HUD_SPEC 14 skill feedback: per skill and viewer, decoy safety, no Killer position on a Survivor client, durations,
+    // refused presses and pooling.
+    public sealed class SkillFeedbackTests
+    {
+        private const int Own = 3, Mina = 4, Rio = 5, KillerId = 1;
+        private static readonly Dictionary<int, string> Nicknames = new Dictionary<int, string> { { Own, "Me" }, { Mina, "Mina" }, { Rio, "Rio" } };
+        private static string Names(int id) => Nicknames.TryGetValue(id, out string name) ? name : null;
+        private static MapPoint Exit(int i) => SharedMapPoints.Exits[i];
+        private static MapPoint Switch(int i) => SharedMapPoints.Switches[i];
+
+        private static SurvivorFrame Frame(PlayerStatus status = PlayerStatus.Normal, float x = 40, float z = 40, bool stealthed = false, byte action = 0, params Mate[] mates)
+            => new SurvivorFrame
+            {
+                OwnId = Own, Own = new OwnEntry { Status = status, X = x, Z = z, Stealthed = stealthed }, Mates = mates, Names = Names, ActionKind = action
+            };
+
+        private static Mate Peer(int id, float x, float z, PlayerStatus status = PlayerStatus.Normal, bool stealthed = false)
+            => new Mate { Id = id, X = x, Z = z, Status = status, Stealthed = stealthed };
+
+        // ---- Killer viewer ----
+
+        [Test]
+        public void KillerPingScannerSweepsFromItsOwnPositionAndMarksNoBlip()
+        {
+            FxRecord r = SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PingScanner, 20, 30, 1.5f);
+            Assert.That(r.Viewer, Is.EqualTo(FxViewer.Caster));
+            Assert.That(r.Visual.Kind, Is.EqualTo(FxKind.Sweep));
+            Assert.That(r.Visual.Anchor, Is.EqualTo(FxAnchor.Own));
+            Assert.That(r.Visual.Tint, Is.EqualTo(FxTint.Text));
+            Assert.That(r.Visual.StartDiameter, Is.EqualTo(2f)); Assert.That(r.Visual.Diameter, Is.EqualTo(32f));
+            Assert.That(r.Visual.Seconds, Is.EqualTo(.6f).Within(1e-6));
+            Assert.That(r.Sound.Clip, Is.EqualTo(FxClip.ScanKiller)); Assert.That(r.Sound.Db, Is.EqualTo(-9)); Assert.That(r.Sound.Positional, Is.False);
+            var state = new KillerFxState();
+            state.OnEffect(KillerId, KillerId, SkillIds.PingScanner, 20, 30, 1.5f, 10);
+            Assert.That(state.Line(10.3).Text, Is.EqualTo("Nearest Survivor shown · 1.2 s"));
+            Assert.That(state.Line(11.6).Text, Is.Null);
+        }
+
+        [Test]
+        public void KillerOverclockHasNoWorldObjectAndARecoveringCueAndFov()
+        {
+            FxRecord r = SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.Overclock, 20, 30, 3);
+            Assert.That(r.Visual.Shown, Is.False);
+            Assert.That(r.Sound.Clip, Is.EqualTo(FxClip.OverclockStart));
+            var state = new KillerFxState();
+            state.OnEffect(KillerId, KillerId, SkillIds.Overclock, 20, 30, 3, 0);
+            Assert.That(state.Line(.9).Text, Is.EqualTo("Overclock: 1.5× speed · 2.1 s"));
+            Assert.That(state.Line(3.2).Text, Is.EqualTo("Recovering: cannot move · 0.8 s"));
+            Assert.That(state.Line(4.1).Text, Is.Null);
+            Assert.That(state.TakeRecoverCue(2.9), Is.False);
+            Assert.That(state.TakeRecoverCue(3.05), Is.True);
+            Assert.That(state.TakeRecoverCue(3.1), Is.False, "the Recovering cue plays once");
+            Assert.That(SkillFeedback.RecoverCue().Sound.Clip, Is.EqualTo(FxClip.OverclockRecover));
+            Assert.That(state.FovOffset(.075, false), Is.EqualTo(2f).Within(1e-4));
+            Assert.That(state.FovOffset(1.5, false), Is.EqualTo(4f));
+            Assert.That(state.FovOffset(3.075, false), Is.EqualTo(2f).Within(1e-4));
+            Assert.That(state.FovOffset(3.2, false), Is.EqualTo(0));
+            Assert.That(state.FovOffset(1.5, true), Is.EqualTo(0), "reduced motion: no FOV change");
+        }
+
+        [Test]
+        public void KillerFirewallDrawsAtTheSwitchAndNamesTheExit()
+        {
+            FxRecord r = SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.FirewallBlock, Exit(1).X, Exit(1).Z, 5);
+            Assert.That(r.Visual.Prefab, Is.EqualTo(FxPrefab.Zone));
+            Assert.That(r.Visual.Tint, Is.EqualTo(FxTint.Text));
+            Assert.That(r.Visual.X, Is.EqualTo(Switch(1).X)); Assert.That(r.Visual.Z, Is.EqualTo(Switch(1).Z));
+            Assert.That(r.Visual.Diameter, Is.EqualTo(2 * GameConstants.ExitSwitchRadius));
+            Assert.That(r.Sound.Clip, Is.EqualTo(FxClip.FirewallKiller));
+            var state = new KillerFxState();
+            state.OnEffect(KillerId, KillerId, SkillIds.FirewallBlock, Exit(1).X, Exit(1).Z, 5, 0);
+            Assert.That(state.Line(.8).Text, Is.EqualTo("Exit 2 switch locked · 4.2 s"));
+        }
+
+        [Test]
+        public void KillerSlowedByTrafficOverloadPlacesNothing()
+        {
+            FxRecord r = SkillFeedback.ForKiller(KillerId, 0, SkillIds.TrafficOverload, 0, 0, 2);
+            Assert.That(r.Viewer, Is.EqualTo(FxViewer.Killer));
+            Assert.That(r.Visual.Shown, Is.False);
+            Assert.That(r.Sound.Clip, Is.EqualTo(FxClip.OverloadSlowed)); Assert.That(r.Sound.Tier, Is.EqualTo(FxTier.High));
+            var state = new KillerFxState();
+            state.OnEffect(KillerId, KillerId, SkillIds.Overclock, 0, 0, 3, 0);
+            state.OnEffect(KillerId, 0, SkillIds.TrafficOverload, 0, 0, 2, .5);
+            FxLine line = state.Line(1);
+            Assert.That(line.Text, Is.EqualTo("Slowed by traffic overload · 1.5 s"));
+            Assert.That(line.Tone, Is.EqualTo(LineTone.Danger), "Slowed outranks the own Overclock line");
+        }
+
+        [Test]
+        public void PacketAfterimageHasNoFeedback()
+        {
+            Assert.That(SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PacketAfterimage, 0, 0, 1).Viewer, Is.EqualTo(FxViewer.None));
+            string reason = SkillFeedback.PressReason(Role.Killer, SkillIds.PacketAfterimage, PlayerStatus.Normal, 0, true, out bool watch);
+            Assert.That(reason, Is.EqualTo("Packet afterimage is passive."));
+            Assert.That(watch, Is.False);
+        }
+
+        // Decoy safety (HUD_SPEC 14.0, 6.3): no Survivor skill can produce any Killer-side output, whatever its fields, so a
+        // Dummy packet or White noise fake leaves the Killer exactly as a real Signal Survivor does (no skill path at all).
+        [Test]
+        public void TheKillerHasNoOutputForAnySurvivorSkill()
+        {
+            foreach (byte skill in new[] { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise })
+            foreach (int caster in new[] { Mina, Rio, 0 })
+            {
+                if (caster == 0 && skill == SkillIds.TrafficOverload) continue; // the one Killer-bound copy: no position, no Id
+                var state = new KillerFxState();
+                FxRecord r = state.OnEffect(KillerId, caster, skill, 30, 30, 3, 0);
+                Assert.That(r.Viewer, Is.EqualTo(FxViewer.None), "skill " + skill + " caster " + caster);
+                Assert.That(r.Visual.Shown || r.Sound.Shown || r.Line.Shown, Is.False);
+                Assert.That(state.Line(.5).Text, Is.Null);
+                Assert.That(state.FovOffset(.5, false), Is.EqualTo(0));
+            }
+        }
+
+        [Test]
+        public void DummyPacketAndWhiteNoiseDecoysAreAbsentFromTheKillerPath()
+        {
+            // A real Signal Survivor and a fake produce the same Killer-side state: none of either reaches KillerFxState.
+            var real = new KillerFxState();
+            var fake = new KillerFxState();
+            fake.OnEffect(KillerId, Mina, SkillIds.DummyPacket, 30, 30, 3, 0);
+            fake.OnEffect(KillerId, Rio, SkillIds.WhiteNoise, 50, 50, 1.5f, 0);
+            for (double t = 0; t < 4; t += .25)
+            {
+                Assert.That(fake.Line(t).Text, Is.EqualTo(real.Line(t).Text));
+                Assert.That(fake.FovOffset(t, false), Is.EqualTo(real.FovOffset(t, false)));
+                Assert.That(fake.TakeRecoverCue(t), Is.EqualTo(real.TakeRecoverCue(t)));
+            }
+        }
+
+        // ---- Survivor viewers ----
+
+        [Test]
+        public void ScannedSurvivorUsesItsOwnPositionNeverTheEffectPoint()
+        {
+            FxRecord r = SkillFeedback.ForSurvivor(Frame(), KillerId, SkillIds.PingScanner, 0, 0, 1.5f);
+            Assert.That(r.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(r.KillerSkill, Is.True);
+            Assert.That(r.Line.Text, Is.EqualTo("Scanned: the Killer sees you · 1.5 s"));
+            Assert.That(r.Line.Tone, Is.EqualTo(LineTone.Danger));
+            Assert.That(r.Visual.Anchor, Is.EqualTo(FxAnchor.Own));
+            Assert.That(r.Visual.Prefab, Is.EqualTo(FxPrefab.Circle)); Assert.That(r.Visual.Tint, Is.EqualTo(FxTint.Signal));
+            Assert.That(r.Sound.Clip, Is.EqualTo(FxClip.ScanTarget)); Assert.That(r.Sound.Positional, Is.False);
+            // Even if a Survivor-bound Killer effect carried coordinates, nothing is placed there.
+            FxRecord odd = SkillFeedback.ForSurvivor(Frame(), KillerId, SkillIds.PingScanner, 61, 17, 1.5f);
+            Assert.That(odd.Visual.Anchor, Is.EqualTo(FxAnchor.Own));
+            Assert.That(odd.Visual.X, Is.EqualTo(0)); Assert.That(odd.Visual.Z, Is.EqualTo(0));
+            Assert.That(odd.Sound.Positional, Is.False);
+        }
+
+        [Test]
+        public void SurvivorFirewallUsesOnlyTheStaticSwitch()
+        {
+            FxRecord holding = SkillFeedback.ForSurvivor(Frame(action: (byte)ActionKind.Switch), KillerId, SkillIds.FirewallBlock, Exit(0).X, Exit(0).Z, 5);
+            Assert.That(holding.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(holding.Line.Text, Is.EqualTo("Exit 1 switch locked by the Killer · 5 s"));
+            Assert.That(holding.Visual.Prefab, Is.EqualTo(FxPrefab.DangerZone)); Assert.That(holding.Visual.Tint, Is.EqualTo(FxTint.Danger));
+            Assert.That(holding.Visual.Anchor, Is.EqualTo(FxAnchor.Switch));
+            Assert.That(holding.Visual.X, Is.EqualTo(Switch(0).X)); Assert.That(holding.Visual.Z, Is.EqualTo(Switch(0).Z));
+            Assert.That(holding.Sound.Clip, Is.EqualTo(FxClip.FirewallSurvivor)); Assert.That(holding.Sound.Tier, Is.EqualTo(FxTier.High));
+            FxRecord near = SkillFeedback.ForSurvivor(Frame(x: Switch(1).X + 1, z: Switch(1).Z), KillerId, SkillIds.FirewallBlock, Exit(1).X, Exit(1).Z, 5);
+            Assert.That(near.Viewer, Is.EqualTo(FxViewer.Affected), "within ExitSwitchRadius of the switch");
+            FxRecord far = SkillFeedback.ForSurvivor(Frame(), KillerId, SkillIds.FirewallBlock, Exit(1).X, Exit(1).Z, 5);
+            Assert.That(far.Viewer, Is.EqualTo(FxViewer.Ally));
+            Assert.That(far.Line.Shown, Is.False, "the objective row already reads Locked");
+            Assert.That(far.Sound.Positional, Is.True); Assert.That(far.Sound.Range, Is.EqualTo(30));
+            FxRecord unknown = SkillFeedback.ForSurvivor(Frame(action: (byte)ActionKind.Switch), KillerId, SkillIds.FirewallBlock, 40, 40, 5);
+            Assert.That(unknown.Visual.Shown, Is.False, "no exit within 1 m: nothing placed");
+            Assert.That(unknown.Line.Text, Is.EqualTo("An Exit switch locked by the Killer · 5 s"));
+        }
+
+        [Test]
+        public void SkillIdsAreResolvedByCasterRole()
+        {
+            // Survivor id 3 (Emergency restore) and Killer id 3 (Firewall block) share a number.
+            FxRecord killer = SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), KillerId, 3, Exit(0).X, Exit(0).Z, 5);
+            Assert.That(killer.KillerSkill, Is.True);
+            FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), Mina, 3, 10, 10, 0);
+            Assert.That(ally.KillerSkill, Is.False);
+            Assert.That(ally.Visual.Prefab, Is.EqualTo(FxPrefab.Pillar));
+        }
+
+        [Test]
+        public void DummyPacketCasterAndAlly()
+        {
+            FxRecord caster = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.DummyPacket, 41, 42, 3);
+            Assert.That(caster.Viewer, Is.EqualTo(FxViewer.Caster));
+            Assert.That(caster.Line.Text, Is.EqualTo("Dummy packet: fake Signal sent from here · 3 s"));
+            Assert.That(caster.Line.Tone, Is.EqualTo(LineTone.Ally));
+            Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Pointer)); Assert.That(caster.Visual.X, Is.EqualTo(41f));
+            Assert.That(caster.Sound.Clip, Is.EqualTo(FxClip.Dummy)); Assert.That(caster.Sound.Cut, Is.EqualTo(.6f).Within(1e-6));
+            FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), Mina, SkillIds.DummyPacket, 10, 10, 3);
+            Assert.That(ally.Viewer, Is.EqualTo(FxViewer.Ally));
+            Assert.That(ally.Line.Shown, Is.False);
+            Assert.That(ally.Sound.Positional, Is.True); Assert.That(ally.Sound.Db, Is.EqualTo(-15)); Assert.That(ally.Sound.Range, Is.EqualTo(20));
+        }
+
+        [Test]
+        public void StealthRelayLinesWaitForTheNextSnapshot()
+        {
+            var state = new SurvivorFxState();
+            FxRecord ring = state.OnEffect(Frame(), false, Own, SkillIds.StealthRelay, 40, 40, 2, 0);
+            Assert.That(ring.Visual.Kind, Is.EqualTo(FxKind.Ring));
+            Assert.That(ring.Visual.Diameter, Is.EqualTo(10f)); Assert.That(ring.Visual.StartDiameter, Is.EqualTo(0f));
+            Assert.That(ring.Visual.Seconds, Is.EqualTo(2f)); Assert.That(ring.Visual.Tint, Is.EqualTo(FxTint.Ally));
+            Assert.That(ring.Sound.Clip, Is.EqualTo(FxClip.Relay)); Assert.That(ring.Sound.Cut, Is.EqualTo(2f));
+            Assert.That(ring.Line.Shown, Is.False);
+            var output = new List<FxRecord>();
+            state.OnWorld(Frame(mates: new[] { Peer(Mina, 42, 40, stealthed: true), Peer(Rio, 44.9f, 40, stealthed: true), Peer(9, 46, 40, stealthed: true), Peer(8, 41, 40, PlayerStatus.Lagging) }), false, .05, output);
+            Assert.That(output.Count, Is.EqualTo(1));
+            Assert.That(state.Line.Current(.1).Text, Is.EqualTo("Stealth relay: you and 2 Survivors are Silent · 2 s"));
+            output.Clear();
+            state.OnWorld(Frame(), false, .2, output);
+            Assert.That(output.Count, Is.EqualTo(0), "resolved once");
+            Assert.That(SkillFeedback.RelayResolved(Frame(mates: Peer(Mina, 42, 40, stealthed: true)), Own, 40, 40, 2).Line.Text, Is.EqualTo("Stealth relay: you and 1 Survivor are Silent · 2 s"));
+            Assert.That(SkillFeedback.RelayResolved(Frame(), Own, 40, 40, 2).Line.Text, Is.EqualTo("Stealth relay: you are Silent · 2 s"));
+        }
+
+        [Test]
+        public void StealthRelayAffectedAndOutOfRange()
+        {
+            FxRecord affected = SkillFeedback.RelayResolved(Frame(stealthed: true, mates: Peer(Mina, 43, 40)), Mina, 43, 40, 2);
+            Assert.That(affected.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(affected.Line.Text, Is.EqualTo("You are Silent · 2 s · Stealth relay from Mina"));
+            Assert.That(affected.Sound.Positional, Is.False);
+            FxRecord outside = SkillFeedback.RelayResolved(Frame(stealthed: false, mates: Peer(Mina, 60, 40)), Mina, 60, 40, 2);
+            Assert.That(outside.Viewer, Is.EqualTo(FxViewer.Ally));
+            Assert.That(outside.Line.Shown, Is.False, "no line for allies the relay did not cover");
+            Assert.That(outside.Sound.Positional, Is.True);
+        }
+
+        [Test]
+        public void TrafficOverloadCasterAndAlly()
+        {
+            FxRecord caster = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.TrafficOverload, 40, 40, 2);
+            Assert.That(caster.Line.Text, Is.EqualTo("Traffic overload: you are Signal, the Killer is slowed · 2 s"));
+            Assert.That(caster.Line.Tone, Is.EqualTo(LineTone.Signal));
+            Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Arrows));
+            FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), Mina, SkillIds.TrafficOverload, 10, 10, 2);
+            Assert.That(ally.Line.Text, Is.EqualTo("Mina slowed the Killer · 2 s"));
+            Assert.That(ally.Line.Priority, Is.EqualTo(SkillFeedback.AllyPriority));
+        }
+
+        [Test]
+        public void EmergencyRestoreNamesTheTargetForEachViewer()
+        {
+            Mate[] before = { Peer(Mina, 20, 20), Peer(Rio, 20.3f, 20, PlayerStatus.Lagging) };
+            FxRecord caster = SkillFeedback.ForSurvivor(Frame(mates: before), Own, SkillIds.EmergencyRestore, 20.3f, 20, 0);
+            Assert.That(caster.Line.Text, Is.EqualTo("Restored Rio · no longer Lagging"));
+            Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Pillar)); Assert.That(caster.Visual.Seconds, Is.EqualTo(1f));
+            FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: before), Mina, SkillIds.EmergencyRestore, 20.3f, 20, 0);
+            Assert.That(ally.Line.Text, Is.EqualTo("Mina restored Rio"));
+            FxRecord self = SkillFeedback.ForSurvivor(Frame(PlayerStatus.Lagging, 20.1f, 20, mates: Peer(Mina, 21, 20)), Mina, SkillIds.EmergencyRestore, 20.1f, 20, 0);
+            Assert.That(self.Viewer, Is.EqualTo(FxViewer.Affected));
+            Assert.That(self.Line.Text, Is.EqualTo("Mina restored you · no longer Lagging"));
+            FxRecord unmatched = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.EmergencyRestore, 5, 5, 0);
+            Assert.That(unmatched.Line.Text, Is.EqualTo("Restored a Survivor · no longer Lagging"));
+        }
+
+        [Test]
+        public void WhiteNoiseCasterAndAlly()
+        {
+            FxRecord caster = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.WhiteNoise, 40, 40, 1.5f);
+            Assert.That(caster.Line.Text, Is.EqualTo("White noise: fake Signals sent across the map · 1.5 s"));
+            Assert.That(caster.Visual.Prefab, Is.EqualTo(FxPrefab.Zone)); Assert.That(caster.Visual.Tint, Is.EqualTo(FxTint.Signal));
+            Assert.That(caster.Sound.Cut, Is.EqualTo(1.5f));
+            FxRecord ally = SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), Mina, SkillIds.WhiteNoise, 10, 10, 1.5f);
+            Assert.That(ally.Line.Text, Is.EqualTo("Mina sent fake Signals across the map · 1.5 s"));
+            Assert.That(ally.Sound.Positional, Is.True); Assert.That(ally.Sound.Db, Is.EqualTo(-18));
+        }
+
+        [Test]
+        public void SpectatorsKeepOnlyWorldEffectsAndPositionalSound()
+        {
+            var state = new SurvivorFxState();
+            FxRecord r = state.OnEffect(Frame(PlayerStatus.Eliminated, mates: Peer(Mina, 10, 10)), true, Mina, SkillIds.TrafficOverload, 10, 10, 2, 0);
+            Assert.That(r.Line.Shown, Is.False);
+            Assert.That(r.Visual.Shown, Is.True);
+            Assert.That(r.Sound.Positional, Is.True);
+            Assert.That(state.Line.Current(.1).Shown, Is.False);
+            FxRecord own2d = SkillFeedback.ForSpectator(SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.WhiteNoise, 40, 40, 1.5f));
+            Assert.That(own2d.Sound.Shown, Is.False, "no 2D sound for spectators");
+        }
+
+        // ---- Durations, lines, presses ----
+
+        [Test]
+        public void EffectsLastAtMostTwoSecondsOrTheEffectAndCutsNeverOutliveIt()
+        {
+            var records = new List<FxRecord>
+            {
+                SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PingScanner, 0, 0, 1.5f),
+                SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.FirewallBlock, Exit(0).X, Exit(0).Z, 5),
+                SkillFeedback.ForSurvivor(Frame(), KillerId, SkillIds.PingScanner, 0, 0, 1.5f),
+                SkillFeedback.ForSurvivor(Frame(action: 1), KillerId, SkillIds.FirewallBlock, Exit(0).X, Exit(0).Z, 5),
+            };
+            foreach (byte skill in new[] { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise })
+                records.Add(SkillFeedback.ForSurvivor(Frame(), Own, skill, 40, 40, skill == SkillIds.EmergencyRestore ? 0 : skill == SkillIds.WhiteNoise ? 1.5f : skill == SkillIds.DummyPacket ? 3 : 2));
+            float[] durations = { 1.5f, 5, 1.5f, 5, 3, 2, 2, 0, 1.5f };
+            for (int i = 0; i < records.Count; i++)
+            {
+                FxRecord r = records[i];
+                if (r.Visual.Shown) Assert.That(r.Visual.Seconds <= 2f || Mathf.Approximately(r.Visual.Seconds, durations[i]), Is.True, "record " + i);
+                if (r.Sound.Shown && r.Sound.Cut > 0 && durations[i] > 0) Assert.That(r.Sound.Cut, Is.LessThanOrEqualTo(durations[i] + 1e-4f), "record " + i);
+                if (r.Line.Shown) Assert.That(r.Line.Seconds, Is.EqualTo(SkillFeedback.LineSeconds));
+            }
+            Assert.That(SkillFeedback.Reason("x").Seconds, Is.EqualTo(2f));
+            FxVisual relay = records[5].Visual;
+            Assert.That(SkillFeedback.DiameterAt(relay, .075), Is.EqualTo(5f).Within(1e-4));
+            Assert.That(SkillFeedback.DiameterAt(relay, 1), Is.EqualTo(10f));
+            Assert.That(SkillFeedback.DiameterAt(relay, 2), Is.EqualTo(-1f));
+        }
+
+        [Test]
+        public void ResultLineReplacesByPriorityAndNeverQueues()
+        {
+            var line = new ResultLine();
+            Assert.That(line.Offer(new FxLine { Text = "ally", Priority = SkillFeedback.AllyPriority, Seconds = 2.5f }, 0), Is.True);
+            Assert.That(line.Offer(new FxLine { Text = "danger", Priority = SkillFeedback.AffectedDanger, Seconds = 2.5f }, .5), Is.True);
+            Assert.That(line.Offer(new FxLine { Text = "caster", Priority = SkillFeedback.CasterPriority, Seconds = 2.5f }, 1), Is.False, "lower priority is dropped");
+            Assert.That(line.Current(2.9).Text, Is.EqualTo("danger"));
+            Assert.That(line.Current(3.1).Shown, Is.False, "the dropped line does not come back");
+            Assert.That(line.Offer(new FxLine { Text = "reason", Priority = SkillFeedback.ReasonPriority, Seconds = 2 }, 3.1), Is.True);
+        }
+
+        [Test]
+        public void PressesConsumedClientSideNeverArmTheRefusedWatch()
+        {
+            bool watch;
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Lagging, 0, true, out watch), Is.EqualTo("Skills are off while Lagging.")); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Normal, 7, true, out watch), Is.Null); Assert.That(watch, Is.False, "cooldown");
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Normal, null, true, out watch), Is.Null); Assert.That(watch, Is.False, "no SelfState yet");
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.DummyPacket, PlayerStatus.Eliminated, 0, true, out watch), Is.Null); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.EmergencyRestore, PlayerStatus.Normal, 0, false, out watch), Is.EqualTo("Emergency restore needs a Lagging Survivor next to you.")); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.FirewallBlock, PlayerStatus.Normal, 0, false, out watch), Is.EqualTo("No Exit switch in progress")); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Killer, SkillIds.PacketAfterimage, PlayerStatus.Normal, 0, true, out watch), Is.Not.Null); Assert.That(watch, Is.False);
+            Assert.That(SkillFeedback.PressReason(Role.Survivor, SkillIds.WhiteNoise, PlayerStatus.Normal, 0, true, out watch), Is.Null); Assert.That(watch, Is.True, "derived Ready");
+
+            var press = new PressWatch();
+            press.OnPress(0, false);
+            Assert.That(press.Tick(1, 0), Is.False, "a consumed press never infers a refusal");
+            press.OnPress(0, true);
+            Assert.That(press.Tick(.4, 0), Is.False);
+            Assert.That(press.Tick(.5, 0), Is.True);
+            Assert.That(press.Tick(.6, 0), Is.False, "fires once");
+            press.OnPress(0, true);
+            Assert.That(press.Tick(.2, 15), Is.False, "the cooldown started: accepted");
+            Assert.That(press.Tick(.7, 0), Is.False);
+            press.OnPress(0, true); press.OnOwnEffect();
+            Assert.That(press.Tick(.7, 0), Is.False, "the own effect arrived");
+            var survivor = new SurvivorFxState();
+            survivor.Press.OnPress(0, true);
+            survivor.OnEffect(Frame(), false, Own, SkillIds.DummyPacket, 40, 40, 3, .1);
+            Assert.That(survivor.Press.Armed, Is.False);
+        }
+
+        [Test]
+        public void GainsAndAttenuation()
+        {
+            Assert.That(SkillFeedback.Volume(FxClip.ScanKiller, 0), Is.EqualTo(.4f / .82f).Within(1e-4));
+            Assert.That(SkillFeedback.Volume(FxClip.ScanKiller, -6), Is.EqualTo(.4f / .82f * .501f).Within(1e-3));
+            Assert.That(SkillFeedback.Attenuation(1.5f, 20), Is.EqualTo(1));
+            Assert.That(SkillFeedback.Attenuation(20, 20), Is.EqualTo(.01f).Within(1e-4));
+            Assert.That(SkillFeedback.Attenuation(20.1f, 20), Is.EqualTo(0));
+            Assert.That(SkillFeedback.ClipPaths.Length, Is.EqualTo(SkillFeedback.ClipPeaks.Length));
+            Assert.That(SkillFeedback.ClipPaths.Length, Is.EqualTo((int)FxClip.WhiteNoise + 1));
+            Assert.That(SkillFeedback.PrefabNames.Length, Is.EqualTo((int)FxPrefab.DangerZone + 1));
+        }
+
+        [Test]
+        public void ReducedMotionStillsEveryEffect()
+        {
+            FxVisual hovl = SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.WhiteNoise, 40, 40, 1.5f).Visual;
+            FxVisual still = SkillFeedback.Reduced(hovl);
+            Assert.That(still.Kind, Is.EqualTo(FxKind.Ring));
+            Assert.That(still.Diameter, Is.EqualTo(hovl.Diameter)); Assert.That(still.Seconds, Is.EqualTo(hovl.Seconds));
+            Assert.That(still.Tint, Is.EqualTo(hovl.Tint));
+            Assert.That(SkillFeedback.Reduced(SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PingScanner, 0, 0, 1.5f).Visual).Shown, Is.False);
+            FxVisual relay = SkillFeedback.Reduced(SkillFeedback.ForSurvivor(Frame(), Own, SkillIds.StealthRelay, 40, 40, 2).Visual);
+            Assert.That(SkillFeedback.DiameterAt(relay, 0), Is.EqualTo(10f), "rings appear at full size");
+            Assert.That(SettingsCopy.ReducedNote, Does.EndWith("Skill effects show as still rings."));
+        }
+
+        // ---- HUD ----
+
+        [Test]
+        public void SurvivorResultLineShowsTextAndBar()
+        {
+            var hud = new SurvivorHud(new VisualElement(), Resources.Load<Font>("Fonts/Inter-Regular"));
+            hud.Begin(SkillIds.DummyPacket);
+            Assert.That(hud.ResultText, Is.Null);
+            hud.SetResult(new FxLine { Text = "Scanned: the Killer sees you · 1.5 s", Tone = LineTone.Danger });
+            Assert.That(hud.ResultText, Is.EqualTo("Scanned: the Killer sees you · 1.5 s"));
+            Assert.That(hud.ResultBarHas("danger"), Is.True); Assert.That(hud.ResultMuted, Is.False);
+            hud.SetResult(new FxLine { Text = "Mina slowed the Killer · 2 s", Tone = LineTone.Ally });
+            Assert.That(hud.ResultBarHas("fill-ally"), Is.True); Assert.That(hud.ResultBarHas("danger"), Is.False);
+            hud.SetResult(SkillFeedback.Reason(SkillFeedback.SurvivorRefused));
+            Assert.That(hud.ResultBarShown, Is.False); Assert.That(hud.ResultMuted, Is.True);
+            Rect withLine = hud.ClusterRect(new Vector2(1600, 900));
+            hud.SetResult(default);
+            Assert.That(hud.ResultText, Is.Null);
+            Assert.That(withLine.height - hud.ClusterRect(new Vector2(1600, 900)).height, Is.EqualTo(48f), "the line takes 40 u + an 8 u gap in the stack");
+        }
+
+        [Test]
+        public void KillerEffectLineShowsReasonsMuted()
+        {
+            var hud = new KillerHud(new VisualElement(), Resources.Load<Font>("Fonts/Inter-Regular"));
+            hud.Begin(SkillIds.FirewallBlock);
+            var state = new KillerFxState();
+            state.OnReason(SkillFeedback.NoSwitchReason, 0);
+            FxLine line = state.Line(1);
+            hud.SetEffect(line.Text, line.Tone == LineTone.Danger, line.Tone == LineTone.Reason);
+            Assert.That(hud.EffectText, Is.EqualTo("No Exit switch in progress"));
+            Assert.That(hud.EffectMuted, Is.True); Assert.That(hud.EffectDanger, Is.False);
+            Assert.That(state.Line(2.1).Text, Is.Null, "reason lines show 2 s");
+            Assert.That(KillerHudCopy.Locked(-1, 1).Length, Is.LessThanOrEqualTo(34));
+            Assert.That(SkillFeedback.KillerRefused.Length, Is.LessThanOrEqualTo(34));
+        }
+
+        // ---- Pooling ----
+
+        [Test]
+        public void SkillFxCreatesNothingAfterWarmUp()
+        {
+            var host = new GameObject("skill fx test");
+            try
+            {
+                var fx = host.AddComponent<SkillFx>();
+                SkillFxArt art = SkillFxArt.Load();
+                fx.Warm(art);
+                int created = fx.Created, children = host.transform.childCount;
+                Assert.That(created, Is.GreaterThan(0));
+                var records = new List<FxRecord>
+                {
+                    SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.PingScanner, 0, 0, 1.5f),
+                    SkillFeedback.ForKiller(KillerId, KillerId, SkillIds.FirewallBlock, Exit(0).X, Exit(0).Z, 5),
+                    SkillFeedback.ForSurvivor(Frame(), KillerId, SkillIds.PingScanner, 0, 0, 1.5f),
+                    SkillFeedback.ForSurvivor(Frame(action: 1), KillerId, SkillIds.FirewallBlock, Exit(0).X, Exit(0).Z, 5),
+                    SkillFeedback.ForSurvivor(Frame(mates: Peer(Mina, 10, 10)), Mina, SkillIds.DummyPacket, 10, 10, 3),
+                };
+                foreach (byte skill in new[] { SkillIds.DummyPacket, SkillIds.StealthRelay, SkillIds.TrafficOverload, SkillIds.EmergencyRestore, SkillIds.WhiteNoise })
+                    records.Add(SkillFeedback.ForSurvivor(Frame(), Own, skill, 40, 40, 2));
+                double now = 0;
+                for (int round = 0; round < 6; round++)
+                    foreach (FxRecord r in records) { fx.Play(r, new Vector3(40, 0, 40), now); now += .05; fx.Tick(now); }
+                fx.Reduced = true;
+                foreach (FxRecord r in records) fx.Play(r, new Vector3(40, 0, 40), now);
+                Assert.That(fx.LastKind, Is.Not.EqualTo(FxKind.Hovl), "reduced motion plays no Hovl one-shot");
+                Assert.That(fx.Created, Is.EqualTo(created), "no GameObject per effect after warm-up");
+                Assert.That(host.transform.childCount, Is.EqualTo(children));
+                Assert.That(fx.BusyRings, Is.LessThanOrEqualTo(SkillFx.RingCount));
+                fx.Tick(now + 5.1);
+                Assert.That(fx.BusyOneShots + fx.BusyRings, Is.EqualTo(0), "everything ends at its time");
+                fx.Play(records[5], Vector3.zero, now + 6);
+                fx.Clear();
+                Assert.That(fx.BusyOneShots + fx.BusyRings + fx.BusyVoices, Is.EqualTo(0));
+                if (art != null)
+                {
+                    Assert.That(art.Marker, Is.Not.Null);
+                    Assert.That(art.Marker.GetFloat("_Emission"), Is.LessThanOrEqualTo(.9f), "below the bloom threshold");
+                    for (int i = 1; i < art.Clips.Length; i++) Assert.That(art.Clips[i], Is.Not.Null, "clip " + i);
+                    for (int i = 1; i < art.Prefabs.Length; i++) Assert.That(art.Prefabs[i], Is.Not.Null, "prefab " + i);
+                }
+            }
+            finally { Object.DestroyImmediate(host); }
+        }
+
+        [Test]
+        public void SkillFxArtIsBuilt()
+        {
+            SkillFxArt art = SkillFxArt.Load();
+            Assert.That(art, Is.Not.Null, "run SkillFxSetup.Run");
+            Assert.That(art.Prefabs.Length, Is.EqualTo(SkillFeedback.PrefabNames.Length));
+            Assert.That(art.Clips.Length, Is.EqualTo(SkillFeedback.ClipPaths.Length));
+            Assert.That(art.Ring, Is.Not.Null);
+        }
+    }
+}

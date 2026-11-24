@@ -1,0 +1,294 @@
+diff --git a/Client/Assets/Scripts/Dev/DevAutopilot.cs b/Client/Assets/Scripts/Dev/DevAutopilot.cs
+index 02b98d8..80249c0 100644
+--- a/Client/Assets/Scripts/Dev/DevAutopilot.cs
++++ b/Client/Assets/Scripts/Dev/DevAutopilot.cs
+@@ -88,14 +88,13 @@ namespace PingTheKiller.Client.Dev
+ 
+         private static float Distance(float x, float z, Vector3 goal) => new Vector2(goal.x - x, goal.z - z).magnitude;
+ 
+-        // -ptk-auto-sync, pure: true on the frame the scripted press is due. The server judges on its 20 Hz tick, so the
+-        // press for Great aims just before the great part (the tick that handles it lands inside); Good aims at the middle
+-        // of the rest of the zone. Miss never presses.
+-        public const float GreatLead = .01f;
++        // -ptk-auto-sync, pure: true on the frame the scripted press is due. The server times a press by its arrival minus
++        // the RTT against the moment the check left, so the drawn needle is what counts: Great aims at the middle of the
++        // great part (a frame of lateness stays inside it), Good at the middle of the rest of the zone. Miss never presses.
+         public static bool SyncDue(AutoSync aim, in SyncCheckView check, float needle)
+         {
+             if (aim != AutoSync.Great && aim != AutoSync.Good) return false;
+-            float target = aim == AutoSync.Great ? check.ZoneStart - GreatLead
++            float target = aim == AutoSync.Great ? check.ZoneStart + check.GreatSize * .5f
+                 : check.ZoneStart + check.GreatSize + (check.ZoneSize - check.GreatSize) * .5f;
+             return needle >= target;
+         }
+diff --git a/Server.Core/Runtime/GameServer.Terminals.cs b/Server.Core/Runtime/GameServer.Terminals.cs
+index f836878..eeb9339 100644
+--- a/Server.Core/Runtime/GameServer.Terminals.cs
++++ b/Server.Core/Runtime/GameServer.Terminals.cs
+@@ -173,8 +173,29 @@ namespace PingTheKiller.ServerCore
+ 
+         // Bots press inside the server (no latency). RttSeconds stays 0 until a server-side RTT estimate exists; offline
+         // sessions have no transport delay, so it stays 0 there as well. Server tests set it through SetRttForTests.
++        // The full round trip applies: the needle starts when the check reaches the client (half a trip after it left)
++        // and the press needs the other half to come back.
+         private static double RttOf(Player player) => player.IsBot ? 0 : player.RttSeconds;
+ 
++        // A press is never dated earlier than this before the start of the tick that handles it.
++        internal const double MaxPressAgeSeconds = 0.25;
++
++        // Simulated time of the current clock reading inside this tick (when a packet sent now leaves the server).
++        private double SimulatedNow()
++        {
++            double offset = _clock() - (_tickWallStart - _tickLag);
++            return _tickSimStart + Math.Max(0, Math.Min(_tickLag + _tickDt, offset));
++        }
++
++        // Simulated time of a press that the receive thread queued at the clock reading receivedAt (called while the
++        // tick drains its inputs, so _now is still the tick's start).
++        private double SimulatedArrival(double receivedAt)
++        {
++            double age = (_tickWallStart - _tickLag) - receivedAt;
++            if (double.IsNaN(age)) age = 0;
++            return _now - Math.Max(-_tickLag, Math.Min(MaxPressAgeSeconds, age));
++        }
++
+         // GDD v2 §2 sync checks: the interval runs only while the survivor hacks; stopping cancels a pending check.
+         private void UpdateSyncChecks(float dt)
+         {
+@@ -184,15 +205,18 @@ namespace PingTheKiller.ServerCore
+                 if (player.SyncPending)
+                 {
+                     if (!player.Hacking || player.HackTerminal != player.SyncTerminal) { CancelSyncCheck(player); continue; }
+-                    if (!double.IsNaN(player.SyncBotPressAt) && _now >= player.SyncBotPressAt - TimeEpsilon)
++                    // A bot press is handled by the first tick that starts at or after it, like a human press arriving then;
++                    // it is judged at its own moment.
++                    if (!double.IsNaN(player.SyncBotPressAt) && _tickSimStart + _tickLag >= player.SyncBotPressAt - TimeEpsilon)
+                     {
+                         Judge(player, player.SyncBotPressAt);
+                         continue;
+                     }
+-                    // A press made within Duration + tolerance arrives at most rtt/2 after that limit.
++                    // A press made within Duration + tolerance arrives at most one rtt after that limit. Every press that
++                    // arrived before this tick started has been handled already, so fail only once that start is past it.
+                     double limit = player.SyncSentAt + GameConstants.SyncCheckDurationSeconds + GameConstants.SyncToleranceSeconds +
+-                        RttOf(player) / 2;
+-                    if (_now >= limit - TimeEpsilon) Resolve(player, SyncResult.Fail);
++                        RttOf(player);
++                    if (_tickSimStart + _tickLag >= limit - TimeEpsilon) Resolve(player, SyncResult.Fail);
+                     continue;
+                 }
+                 if (!player.Hacking || !SyncChecksEnabled) continue;
+@@ -207,7 +231,8 @@ namespace PingTheKiller.ServerCore
+             player.SyncPending = true;
+             player.SyncCheckId = ++_nextCheckId;
+             player.SyncTerminal = player.HackTerminal;
+-            player.SyncSentAt = _now;
++            // The moment the check leaves (this tick's start plus the time spent in it), not the end of the tick.
++            player.SyncSentAt = SimulatedNow();
+             player.SyncZoneStart = (float)(GameConstants.SyncZoneStartMin +
+                 random.NextDouble() * (GameConstants.SyncZoneStartMax - GameConstants.SyncZoneStartMin));
+             player.SyncBotPressAt = double.NaN;
+@@ -217,7 +242,7 @@ namespace PingTheKiller.ServerCore
+                 double fraction = random.NextDouble() < BotSyncGreatShare
+                     ? player.SyncZoneStart + GameConstants.SyncGreatSize / 2.0
+                     : player.SyncZoneStart + (GameConstants.SyncGreatSize + GameConstants.SyncZoneSize) / 2.0;
+-                player.SyncBotPressAt = _now + fraction * GameConstants.SyncCheckDurationSeconds;
++                player.SyncBotPressAt = player.SyncSentAt + fraction * GameConstants.SyncCheckDurationSeconds;
+             }
+             SendTo(player, new S2C_SyncCheck
+             {
+@@ -228,11 +253,12 @@ namespace PingTheKiller.ServerCore
+         }
+ 
+         // C2S_SyncPress: unknown, expired, repeated or non-survivor presses are ignored without a reply.
+-        private void SyncPress(Player player, uint checkId)
++        // receivedAt: server clock when the press was queued, so the wait for the next tick does not count.
++        private void SyncPress(Player player, uint checkId, double receivedAt)
+         {
+             if (player.Role != Role.Survivor || !player.SyncPending || player.SyncCheckId != checkId || player.IsBot) return;
+-            // The press happened about half a round trip before it arrived.
+-            Judge(player, _now - RttOf(player) / 2);
++            // The needle the player saw had run (arrival - sent - rtt) seconds.
++            Judge(player, SimulatedArrival(receivedAt) - RttOf(player));
+         }
+ 
+         // Classifies a press moment against the pending check of this survivor.
+@@ -300,7 +326,7 @@ namespace PingTheKiller.ServerCore
+ 
+         internal double TerminalProgressForTests(int index) { lock (_tickGate) return _progress[index]; }
+ 
+-        // Server tests only: the smoothed RTT the sync judge uses for this player (the server has no RTT probe yet).
++        // Server tests only: the smoothed RTT the sync judge subtracts for this player (the server has no RTT probe yet).
+         internal void SetRttForTests(int playerId, double seconds)
+         {
+             lock (_tickGate)
+diff --git a/Server.Core/Runtime/GameServer.cs b/Server.Core/Runtime/GameServer.cs
+index e5a9a31..014eaed 100644
+--- a/Server.Core/Runtime/GameServer.cs
++++ b/Server.Core/Runtime/GameServer.cs
+@@ -29,11 +29,13 @@ namespace PingTheKiller.ServerCore
+         }
+         private readonly struct Input
+         {
+-            internal Input(Binding binding, IPacket packet, byte kind)
+-            { Binding = binding; Packet = packet; Kind = kind; }
++            internal Input(Binding binding, IPacket packet, byte kind, double receivedAt)
++            { Binding = binding; Packet = packet; Kind = kind; ReceivedAt = receivedAt; }
+             internal readonly Binding Binding;
+             internal readonly IPacket Packet;
+             internal readonly byte Kind; // 0 = packet, 1 = add, 2 = close
++            // Server clock seconds when the receive thread queued it (only C2S_SyncPress uses it).
++            internal readonly double ReceivedAt;
+         }
+ 
+         private readonly ConcurrentQueue<Input> _inputs = new ConcurrentQueue<Input>();
+@@ -59,6 +61,15 @@ namespace PingTheKiller.ServerCore
+         private double _now, _matchTime;
+         private uint _tick;
+         private readonly Dictionary<string, double> _faultLogs = new Dictionary<string, double>();
++        // One monotonic wall clock in seconds (a Stopwatch unless a test injects one), read on any thread.
++        private readonly Func<double> _clock;
++        // The current tick: its simulated start (_now before the increment), its length, the clock when it started, and
++        // how late Run started it after its schedule (0 for a manual Tick). Simulated time t inside the tick maps to the
++        // clock as _tickWallStart - _tickLag + (t - _tickSimStart), so a check and a press in different ticks are timed
++        // on the same scale even when the loop wakes up late.
++        private double _tickSimStart, _tickDt, _tickWallStart, _tickLag;
++        // Run drops its backlog after 1 s, so a real tick is never later than this.
++        private const double MaxTickLagSeconds = 2;
+ 
+         public GameServer(ServerOptions options = null)
+         {
+@@ -69,6 +80,12 @@ namespace PingTheKiller.ServerCore
+             _initialBots = Math.Max(0, Math.Min(Protocol.MaxPlayers, options.BotCount));
+             _privateSeedHook = options.Seed;
+             _matchSeedHook = options.MatchSeedForTests;
++            if (options.ClockForTests != null) _clock = options.ClockForTests;
++            else
++            {
++                var stopwatch = Stopwatch.StartNew();
++                _clock = () => stopwatch.Elapsed.TotalSeconds;
++            }
+             Nav = new NavGrid(Map);
+             SeedPrivateStreams();
+         }
+@@ -107,8 +124,8 @@ namespace PingTheKiller.ServerCore
+             if (connection == null) throw new ArgumentNullException(nameof(connection));
+             var binding = new Binding { Connection = connection };
+             binding.Available = () => DrainConnection(binding);
+-            binding.Closed = () => _inputs.Enqueue(new Input(binding, null, 2));
+-            _inputs.Enqueue(new Input(binding, null, 1));
++            binding.Closed = () => _inputs.Enqueue(new Input(binding, null, 2, _clock()));
++            _inputs.Enqueue(new Input(binding, null, 1, _clock()));
+             connection.PacketAvailable += binding.Available;
+             connection.Closed += binding.Closed;
+             DrainConnection(binding);
+@@ -131,7 +148,7 @@ namespace PingTheKiller.ServerCore
+                     binding.Connection.Close();
+                     break;
+                 }
+-                _inputs.Enqueue(new Input(binding, packet, 0));
++                _inputs.Enqueue(new Input(binding, packet, 0, _clock()));
+             }
+         }
+ 
+@@ -190,7 +207,8 @@ namespace PingTheKiller.ServerCore
+                         _stop.Wait(TimeSpan.FromSeconds(wait));
+                         continue;
+                     }
+-                    try { Tick(1f / GameConstants.TickRate); }
++                    // -wait: how far behind its schedule this tick starts (the sync judge maps the clock through it).
++                    try { Tick(1f / GameConstants.TickRate, -wait); }
+                     catch (Exception ex)
+                     {
+                         string message = ex.GetType().Name + ": " + ex.Message;
+@@ -214,7 +232,10 @@ namespace PingTheKiller.ServerCore
+             finally { Volatile.Write(ref _running, 0); }
+         }
+ 
+-        public void Tick(float dt)
++        public void Tick(float dt) => Tick(dt, 0);
++
++        // lateBy: seconds between the tick's scheduled start and now (Run, and the sync timing tests).
++        internal void Tick(float dt, double lateBy)
+         {
+             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt <= 0 || dt > 60)
+                 throw new ArgumentOutOfRangeException(nameof(dt));
+@@ -222,6 +243,10 @@ namespace PingTheKiller.ServerCore
+             {
+                 if (Volatile.Read(ref _running) != 0 && Thread.CurrentThread != _thread)
+                     throw new InvalidOperationException("Manual Tick cannot run alongside Start().");
++                _tickWallStart = _clock();
++                _tickLag = double.IsNaN(lateBy) || lateBy < 0 ? 0 : Math.Min(lateBy, MaxTickLagSeconds);
++                _tickSimStart = _now;
++                _tickDt = dt;
+                 if (!_initialized)
+                 {
+                     _initialized = true;
+@@ -239,7 +264,7 @@ namespace PingTheKiller.ServerCore
+                     {
+                         Interlocked.Decrement(ref input.Binding.Pending);
+                         if (_connections.TryGetValue(input.Binding.Connection.RemoteId, out var active) && active == input.Binding)
+-                            Handle(input.Binding.Connection, input.Packet);
++                            Handle(input.Binding.Connection, input.Packet, input.ReceivedAt);
+                     }
+                 }
+                 if (_matchStarted)
+@@ -327,7 +352,8 @@ namespace PingTheKiller.ServerCore
+             foreach (var player in _players) if (player.ConnectionId == id) return player;
+             return null;
+         }
+-        private void Handle(IConnection connection, IPacket packet)
++        // receivedAt: server clock when the packet was queued; only C2S_SyncPress reads it.
++        private void Handle(IConnection connection, IPacket packet, double receivedAt)
+         {
+             if (connection.IsClosed) return;
+             if (packet is C2S_Join join) { Join(connection, join); return; }
+@@ -337,7 +363,7 @@ namespace PingTheKiller.ServerCore
+             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
+             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
+             if (packet is C2S_UseSkill skill) { if (_matchStarted) RequestSkill(player, skill.SkillId); return; }
+-            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId); return; }
++            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId, receivedAt); return; }
+             if (!_matchStarted && player.IsHost)
+             {
+                 if (packet is C2S_SetBots bots)
+diff --git a/Server.Core/Runtime/Player.cs b/Server.Core/Runtime/Player.cs
+index 942a3aa..2cb28a3 100644
+--- a/Server.Core/Runtime/Player.cs
++++ b/Server.Core/Runtime/Player.cs
+@@ -46,7 +46,7 @@ namespace PingTheKiller.ServerCore
+         // A survivor bot's planned press instant for the pending check (NaN: it misses).
+         internal double SyncBotPressAt = double.NaN;
+         internal float BotSyncSuccessRate = GameServer.DefaultBotSyncSuccessRate;
+-        // Smoothed round-trip time used by the sync judge; 0 until a measurement exists.
++        // Smoothed round-trip time the sync judge subtracts in full; 0 until a measurement exists.
+         internal double RttSeconds;
+         internal double ExposedUntil, StealthUntil;
+         internal double OverclockUntil, RecoveryUntil, SlowedUntil;
+diff --git a/Server.Core/Runtime/ServerOptions.cs b/Server.Core/Runtime/ServerOptions.cs
+index 66fc1b5..7ad7e6b 100644
+--- a/Server.Core/Runtime/ServerOptions.cs
++++ b/Server.Core/Runtime/ServerOptions.cs
+@@ -17,6 +17,9 @@ namespace PingTheKiller.ServerCore
+         // Network-QA mode with U2a rules only: movement, masking, threat and reconnect. No hacking, capture,
+         // skills, decoys, afterimage, escape or win/lose; only TimeUp ends a match. Never enabled implicitly.
+         public bool Sandbox { get; set; }
++        // Test hook (Server.Tests only): the server's monotonic wall clock in seconds. Unset, a Stopwatch started with
++        // the server. It times sync presses by their arrival; Run keeps its own pacing clock.
++        internal Func<double> ClockForTests { get; set; }
+ 
+         // The online factory is lazy: offline hosts never construct a TCP listener.
+         public ITransportListener CreateTransport(Func<ITransportListener> onlineFactory = null)
+diff --git a/docs/ui/HUD_SPEC.md b/docs/ui/HUD_SPEC.md
+index b12c589..59c0f58 100644
+--- a/docs/ui/HUD_SPEC.md
++++ b/docs/ui/HUD_SPEC.md
+@@ -761,7 +761,7 @@ Source: `S2C_SyncCheck {CheckId, TerminalId, Duration, ZoneStart, ZoneSize, Grea
+   - A press later than `Duration + 0.15 s` is ignored, because the server has already judged a Fail.
+ - **Result:** shown for 0.4 s after `S2C_SyncResult`. Then the ring hides until a new `CheckId` arrives.
+ - **Cancel:** a check that ends without a result (the Survivor stopped hacking) hides at once.
+-- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3).
++- **Judging:** the server judges. The client helper `SyncCheckMath.Judge` only names the drawn region. Edges are inclusive. Great is exactly the great part; the optional tolerance widens Good on both zone edges and never creates Great (U6a R3). The server times a press by when it arrived, minus the round trip, against when the check left (not by its 20 Hz tick), so a press made while the needle is drawn in the great part is Great (U6f).
+ - **No flashing:** one change only, the centre word, with no colour flash and no shake.
+ - **Sound** (wiring): `sync_great` / `sync_fail`, one short tone each. Good is silent.
+ - **Wiring (U6c-wire):** a `CheckId` at or below the last accepted one is ignored, and so is a result for any id but the current one (only its first result counts). A check with no result hides at `Duration + 1 s`. The ring clears at once when the own status leaves Normal, and fully resets (forgetting ids) on MatchStart, GameResult and disconnect.

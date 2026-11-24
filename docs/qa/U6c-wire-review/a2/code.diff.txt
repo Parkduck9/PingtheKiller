@@ -1,0 +1,3345 @@
+diff --git a/Client/Assets/Resources/RulesV2.uss b/Client/Assets/Resources/RulesV2.uss
+index 423a8b0..68a58af 100644
+--- a/Client/Assets/Resources/RulesV2.uss
++++ b/Client/Assets/Resources/RulesV2.uss
+@@ -94,6 +94,15 @@
+ }
+ .root .v2-result-row.v2-self { border-left-width: 4px; border-left-color: #E8E6E1; padding-left: 12px; }
+ .root .unity-label.v2-result-name { flex-shrink: 1; overflow: hidden; }
++.root .v2-result-notes { width: 560px; margin-bottom: 8px; }
++.root .v2-result-notes .unity-label { margin: 0; margin-bottom: 4px; font-size: 14px; color: #9A9890; }
++.root.s-floor .v2-result-notes .unity-label { font-size: 15px; }
+ .root .v2-result-actions { flex-direction: row; align-items: flex-start; }
+ .root .v2-result-actions .unity-button.primary { min-width: 280px; }
+ .root .v2-result-actions .unity-button.v2-secondary { min-width: 160px; height: 40px; margin-left: 4px; }
++
++/* Wired placement (U6c-wire). Killer: the hold block and the collapse block sit in the 6.1 cluster column (prompt slot,
++   then collapse, then info), with the cluster's 8 u gap below each. Survivor: the 4.3 prompt row joins the bottom-center
++   stack (13.1) instead of its fixed 104 u offset, so it moves up with the objective row. */
++.root .killer-cluster > .v2-hold, .root .killer-cluster > .v2-collapse-killer { margin-bottom: 8px; flex-shrink: 0; }
++.root .v2-survivor-stack > .sprompt { position: relative; bottom: auto; left: auto; translate: 0 0; }
+diff --git a/Client/Assets/Scripts/ClientApp.cs b/Client/Assets/Scripts/ClientApp.cs
+index a822989..135cede 100644
+--- a/Client/Assets/Scripts/ClientApp.cs
++++ b/Client/Assets/Scripts/ClientApp.cs
+@@ -5,6 +5,7 @@ using PingTheKiller.Client.Killer;
+ using PingTheKiller.Client.Net;
+ using PingTheKiller.Client.Settings;
+ using PingTheKiller.Client.UI;
++using PingTheKiller.Client.UI.RulesV2;
+ using PingTheKiller.Client.World;
+ using PingTheKiller.Shared.Game;
+ using PingTheKiller.Shared.Packets;
+@@ -47,11 +48,12 @@ namespace PingTheKiller.Client
+         private readonly Dictionary<SurvivorCue, AudioClip> survivorCues = new Dictionary<SurvivorCue, AudioClip>();
+         private LaggingStutter stutter;
+         private GameSettings options; // U7a player options (screens.Options): FOV, sensitivity, Invert Y, Reduced motion, volume
++        private readonly ExitCache exitCache = new ExitCache(); // HUD_SPEC 13.4: one exit buffer per WorldState
+         private FakeKiller fakeKiller; // dev only (-ptk-fake-killer): injected Killer entries for screenshots
+         private Role role;
+         private byte skillId;
+         private PlayerStatus localStatus;
+-        private bool playing, exitOpen, releasedCursor, menuOpen;
++        private bool playing, releasedCursor, menuOpen;
+         private Vector3? hackingTerminal;
+         private double joinDeadline;
+         private S2C_LobbyState lobby;
+@@ -104,6 +106,8 @@ namespace PingTheKiller.Client
+             // Killer play menu (HUD_SPEC 6.6): Resume, or leave the match like the lobby's Leave.
+             screens.Killer.Resume += () => SetMenu(false);
+             screens.Killer.LeaveMatch += () => Disconnect(link != null && link.IsOffline ? string.Empty : ConnectionMessages.Left);
++            // HUD_SPEC 13.2: one C2S_SyncPress per check (SyncCheckState raises Press at most once per CheckId).
++            screens.Survivor.Sync.State.Press += SendSyncPress;
+             DevArgs devArgs = DevArgs.Parse(Environment.GetCommandLineArgs());
+             stutter = gameObject.AddComponent<LaggingStutter>();
+             stutter.Initialize(view, screens.StutterBack, screens.StutterFront, devArgs.ReduceStutter);
+@@ -195,8 +199,8 @@ namespace PingTheKiller.Client
+                     role = (Role)match.Role; skillId = match.SkillId; localStatus = PlayerStatus.Normal; lastWorld = null;
+                     hackingTerminal = null; own = default; mates.Clear(); effects.Reset();
+                     playing = true; movement.ResetKeys(); interact.Reset(); releasedCursor = false; menuOpen = false;
+-                    selfState.Reset(); facing.Reset(0);
+-                    capture.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
++                    selfState.Reset(); facing.Reset(0); screens.Survivor.Sync.Reset();
++                    capture.Reset(); exitCache.Reset(); threatVisual.Reset(); fakeKiller?.Reset(); stutter.SetActive(false);
+                     var map = new GameObject("Match world"); map.transform.SetParent(transform, false);
+                     world = map.AddComponent<WorldView>(); world.Initialize(playerId, role);
+                     rig.Begin(role); screens.ShowPlay(role, skillId);
+@@ -217,13 +221,15 @@ namespace PingTheKiller.Client
+                     world.Accept(state, received.Time);
+                     killerLayer?.Accept(state, received.Time);
+                     lastWorld = state;
+-                    exitOpen = WorldExits.AnyOpen(state);
+                     foreach (PlayerState player in state.Players)
+                     {
+                         // The Killer finds its own entry by Role (Survivor entries may carry no usable Id); a Survivor by Id.
+                         if (role == Role.Killer ? player.Role != (byte)Role.Killer : player.Id != playerId) continue;
+                         localStatus = (PlayerStatus)player.Status;
+                         if (role == Role.Killer) break;
++                        // HUD_SPEC 13.2: a sync check only exists while Normal (the server cancels it otherwise).
++                        if (localStatus != PlayerStatus.Normal) screens.Survivor.Sync.Clear();
++                        selfState.CollapseRate = localStatus == PlayerStatus.Lagging ? GameConstants.CollapseLaggingRate : 1;
+                         byte flags = player.Flags;
+                         own = new OwnEntry
+                         {
+@@ -245,10 +251,20 @@ namespace PingTheKiller.Client
+                 case S2C_SelfState self:
+                     // Own-only (HUD_SPEC 11 Q5/Q6/N5). Only inside a match: Available starts with the first packet after MatchStart.
+                     if (!playing) break;
+-                    selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, received.Time);
+-                    killerLayer?.OnSelfState();
++                    selfState.Feed(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.CollapseLeft, self.ActionProgress, self.ActionKind, received.Time);
+                     if (selfState.Received == 1) Debug.Log("[net] SelfState received (first of the match)");
+-                    dev?.OnSelfState(self.SkillCooldown, self.RescueProgress, self.InvulnerableLeft, self.ExecutionGraceLeft, selfState.Received);
++                    dev?.OnSelfState(self, selfState.Received);
++                    break;
++                case S2C_SyncCheck check:
++                    // Own-only (U6a R3). Ignored outside a match, for the Killer, and while not Normal.
++                    if (!playing || role != Role.Survivor || localStatus != PlayerStatus.Normal) break;
++                    bool accepted = screens.Survivor.Sync.OnCheck(check, received.Time);
++                    dev?.OnSyncCheck(check, accepted);
++                    break;
++                case S2C_SyncResult sync:
++                    if (!playing || role != Role.Survivor) break;
++                    bool matched = screens.Survivor.Sync.OnResult(sync.CheckId, sync.Result, received.Time);
++                    dev?.OnSyncResult(sync, matched);
+                     break;
+                 case S2C_SkillEffect effect:
+                     killerLayer?.OnEffect(effect, received.Time);
+@@ -264,34 +280,52 @@ namespace PingTheKiller.Client
+         private void EndMatch(S2C_GameResult result, bool preview)
+         {
+             bool wasPlaying = playing;
+-            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset();
++            playing = false; joinDeadline = 0; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+             rig.SetCursor(false); threat.SetLevel(0); stutter.SetActive(false);
+             if (wasPlaying && link != null && link.IsConnected) link.Send(movement.Final(rig.Yaw));
+             if (interact.TryRelease(out C2S_Interact release)) link?.Send(release);
+             DestroyWorld();
+-            string headline = ResultCopy.Headline(result, lobby);
+-            string outcome = ResultCopy.Outcome(result, playerId, role, localStatus, role == Role.Survivor ? capture.ReasonText() : null);
+-            screens.ShowResult(headline, outcome, preview);
++            ResultV2View view = V2Wire.Result(result, lobby, playerId, role);
++            if (!ResultV2Copy.Consistent(view)) Debug.LogWarning("[client] result winner does not match the majority rule for the listed rows");
++            screens.ShowResult(view, preview);
+             screens.SetResultLobby(false, link != null && link.IsOffline);
+-            if (!preview) dev?.OnResult(result, headline, outcome);
++            if (!preview) dev?.OnResult(result, view);
+         }
+-        // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server.
++        // Dev only (-ptk-preview-result): a synthetic result handled locally, never sent to any server. Every lobby player
++        // but the Killer is a starting Survivor: a Survivors win lists half of them (rounded up, the own Survivor first) as
++        // escaped, a Killer win fewer than half.
+         private void Preview(S2C_GameResult result)
+         {
+-            if (result.WinnerRole == (byte)Role.Survivor && result.EscapedIds.Count == 0)
+-            {
+-                if (role == Role.Survivor) result.EscapedIds.Add(playerId);
+-                // The Killer client never reads a Survivor entry's Id (HUD_SPEC 6.3), so the preview names lobby slots instead.
+-                if (role == Role.Survivor && lastWorld != null)
+-                    foreach (PlayerState player in lastWorld.Players)
+-                        if (player.Role == (byte)Role.Survivor && player.Id != playerId && result.EscapedIds.Count < 2) result.EscapedIds.Add(player.Id);
+-                if (role == Role.Killer && lobby != null)
+-                    foreach (Slot slot in lobby.Slots)
+-                        if (slot.PlayerId != 0 && slot.PlayerId != playerId && result.EscapedIds.Count < 2) result.EscapedIds.Add(slot.PlayerId);
+-            }
+-            Debug.Log("[DEV] preview result reason=" + (GameEndReason)result.Reason + " (local only)");
++            if (result.EscapedIds.Count == 0 && result.EliminatedIds.Count == 0)
++                PreviewRows(result, SurvivorIds(), result.WinnerRole == (byte)Role.Survivor, role == Role.Survivor ? playerId : -1);
++            Debug.Log("[DEV] preview result reason=" + (GameEndReason)result.Reason + " escaped=" + result.EscapedIds.Count + " eliminated=" + result.EliminatedIds.Count + " (local only)");
+             EndMatch(result, true);
+         }
++        // The starting Survivors this client can name: Survivor entries of the last snapshot (Survivor client), or every
++        // other lobby player (Killer client: it never reads a Survivor entry's Id, HUD_SPEC 6.3).
++        private List<int> SurvivorIds()
++        {
++            var ids = new List<int>();
++            if (role == Role.Survivor && lastWorld != null)
++                foreach (PlayerState player in lastWorld.Players) if (player.Role == (byte)Role.Survivor && !ids.Contains(player.Id)) ids.Add(player.Id);
++            if (role == Role.Survivor && !ids.Contains(playerId)) ids.Insert(0, playerId);
++            if (role == Role.Killer && lobby != null)
++                foreach (Slot slot in lobby.Slots) if (slot.PlayerId != 0 && slot.PlayerId != playerId) ids.Add(slot.PlayerId);
++            return ids;
++        }
++        public static void PreviewRows(S2C_GameResult result, List<int> survivors, bool survivorsWin, int ownId)
++        {
++            int escaped = survivorsWin ? ResultV2Copy.Needed(survivors.Count) : System.Math.Max(0, ResultV2Copy.Needed(survivors.Count) - 1);
++            var order = new List<int>(survivors);
++            if (order.Remove(ownId)) order.Insert(0, ownId);
++            for (int i = 0; i < order.Count; i++) (i < escaped ? result.EscapedIds : result.EliminatedIds).Add(order[i]);
++        }
++        private void SendSyncPress(uint checkId)
++        {
++            if (!playing || role != Role.Survivor || link == null || !link.IsConnected) return;
++            link.Send(new C2S_SyncPress { CheckId = checkId });
++            Debug.Log("[net] SyncPress check=" + checkId + " needle=" + screens.Survivor.Sync.State.PressFraction.ToString("0.000"));
++        }
+         // HUD_SPEC 6.6: the Killer play menu sends one zero MoveInput, releases the cursor, and the match keeps running.
+         private void SetMenu(bool open)
+         {
+@@ -364,8 +398,22 @@ namespace PingTheKiller.Client
+             Vector3 move = held ? ClientMath.InputDirection(right, forward, rig.Yaw) : Vector3.zero;
+             float facingYaw = survivor ? facing.Update(move, dt, position, hackingTerminal) : rig.Yaw;
+             if (movement.TryCreate(held, right, forward, rig.Yaw, facingYaw, dt, out C2S_MoveInput input)) link.Send(input);
+-            // Hold E (survivors): one press edge and one release edge; losing focus or the cursor counts as release.
+-            if (survivor && interact.TryCreate(active && keyboard != null && keyboard.eKey.isPressed, out C2S_Interact use)) link.Send(use);
++            // Hold E (both roles: Survivors hack, hold a switch, take the hatch; the Killer kicks or closes the hatch): one
++            // press edge and one release edge; losing focus, the cursor or the play menu counts as release. -ptk-dev-hack
++            // holds it through the same path.
++            bool interactHeld = (active && keyboard != null && keyboard.eKey.isPressed) || (dev != null && dev.HoldInteract);
++            if (interact.TryCreate(interactHeld, out C2S_Interact use)) link.Send(use);
++            // HUD_SPEC 13.2: Space or gamepad A presses the sync check; nothing else is bound to them. -ptk-auto-sync presses
++            // through the same TryPress.
++            if (survivor)
++            {
++                SyncCheckTracker sync = screens.Survivor.Sync;
++                sync.Tick(now);
++                Gamepad pad = Gamepad.current;
++                bool syncKey = active && ((keyboard != null && keyboard.spaceKey.wasPressedThisFrame) || (pad != null && pad.buttonSouth.wasPressedThisFrame));
++                if (syncKey || (dev != null && dev.PressSync(sync))) sync.TryPress();
++                screens.Survivor.SetSync(pad != null && keyboard == null ? "A" : "Space");
++            }
+             bool pressed = (active && keyboard != null && keyboard.qKey.wasPressedThisFrame) || (dev != null && dev.PressSkill()); // dev: -ptk-skill-at
+             if (SkillInput.TryCreate(pressed, role, skillId, localStatus, out C2S_UseSkill skill))
+                 link.Send(skill);
+@@ -377,13 +425,13 @@ namespace PingTheKiller.Client
+             {
+                 stutter.SetActive(own.Status == PlayerStatus.Lagging);
+                 UpdateSurvivorHud(now);
+-                screens.SetExit(view, SharedMap.Exit + Vector3.up * 2.6f, exitOpen);
+-                dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha);
++                screens.Survivor.DrawTerminalFlags(lastWorld, rig.Pose);
++                dev?.OnSurvivorFrame(threatVisual.Level, own.Status, capture.BannerVisible(now), stutter.Presented, world.KillerAlpha, screens.Survivor);
+             }
+             else if (killerLayer != null && located)
+             {
+                 killerLayer.Render(rig.Pose, now, dt, menuOpen);
+-                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt);
++                dev?.OnKillerFrame(killerLayer.InView, killerLayer.Occluded, killerLayer.Edges, killerLayer.Tracked, killerLayer.Prompt, killerLayer.Captures, killerLayer.Overloaded);
+             }
+         }
+         // Survivor client, each WorldState after the own entry was read: own-status transitions (captured sound + banner,
+@@ -391,7 +439,7 @@ namespace PingTheKiller.Client
+         // the beep, both hidden while Eliminated or Escaped (HUD_SPEC 4.1, 4.2, 4.5).
+         private void OnOwnSnapshot(byte threatLevel, double time)
+         {
+-            StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time);
++            StatusEvent change = capture.Observe(own.Status, own.StatusTimer, own.CaptureCount, time, selfState.Available && selfState.CollapseLeft >= 0);
+             if (change == StatusEvent.Captured) { cueSource.PlayOneShot(survivorCues[SurvivorCue.Captured]); Debug.Log("[client] captured: banner + stutter"); }
+             if (change == StatusEvent.Eliminated)
+             {
+@@ -423,7 +471,7 @@ namespace PingTheKiller.Client
+             if (lobby != null) foreach (Slot slot in lobby.Slots) if (slot.PlayerId == id && slot.PlayerId != 0) return slot.Nickname;
+             return null;
+         }
+-        // HUD_SPEC 4.0-4.9, every frame from the last snapshot, the SelfState clock and the effect timing.
++        // HUD_SPEC 4.0-4.9 and 13, every frame from the last snapshot, the SelfState clock and the effect timing.
+         private void UpdateSurvivorHud(double now)
+         {
+             if (lastWorld == null) return;
+@@ -432,11 +480,19 @@ namespace PingTheKiller.Client
+             float? cooldown = selfState.Available ? selfState.SkillCooldown : (float?)null;
+             hud.SetMeter(SurvivorReadout.Meter(own, selfState, effects.Scanned(now), effects.Overload(now), capture.ReasonText()));
+             hud.SetThreat(threatVisual.Effect, threatVisual.StripFraction, threatVisual.Seed);
+-            hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired,
+-                SurvivorReadout.Exit(lastWorld), effects.Locked(now));
++            hud.SetInfo(lastWorld.TimeLeft, HudCopy.CompletedTerminals(lastWorld.Terminals), lastWorld.TerminalsRequired);
++            ExitView[] exits = exitCache.For(lastWorld, effects.Locked(now) ?? -1);
++            hud.SetObjective(exits, V2Wire.Collapse(lastWorld.CollapseLeft, selfState.Available ? selfState.CollapseLeft : -1, own.Status == PlayerStatus.Lagging));
+             hud.SetSkill(skillId, SurvivorReadout.SkillState(skillId, own.Status, cooldown, restore), cooldown, effects.OwnActive(now), skillId == SkillIds.TrafficOverload);
+-            hud.SetPrompt(capture.BannerVisible(now) ? CaptureWatch.BannerPrompt
+-                : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore));
++            PromptState prompt = capture.BannerVisible(now) ? capture.Prompt
++                : SurvivorReadout.Prompt(own, mates, lastWorld.Terminals, selfState, NameOf, releasedCursor, skillId, restore);
++            // HUD_SPEC 13.3: the exit switch and hatch prompts, when nothing more urgent (or only a muted skill reason) shows.
++            if (!releasedCursor && own.Status == PlayerStatus.Normal && !capture.BannerVisible(now) && (string.IsNullOrEmpty(prompt.Text) || prompt.Muted))
++            {
++                InteractPrompt reach = InteractCopy.Survivor(own.X, own.Z, exits, SharedMap.Map.ExitSwitches, lastWorld.HatchVisible == 1, lastWorld.HatchX, lastWorld.HatchZ);
++                if (!string.IsNullOrEmpty(reach.Text)) prompt = new PromptState { Text = reach.Text, Muted = reach.Muted };
++            }
++            hud.SetPrompt(prompt, V2Wire.Hold(selfState));
+         }
+         private void OnApplicationFocus(bool focused)
+         {
+@@ -466,7 +522,7 @@ namespace PingTheKiller.Client
+         private void Disconnect(string notice)
+         {
+             Release();
+-            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset();
++            playing = false; joinDeadline = 0; lobby = null; playerId = 0; lastWorld = null; menuOpen = false; selfState.Reset(); screens.Survivor.Sync.Reset();
+             threat.SetLevel(0); rig.SetCursor(false); stutter?.SetActive(false);
+             DestroyWorld();
+             screens.ShowMenu(notice);
+diff --git a/Client/Assets/Scripts/Dev/DevArgs.cs b/Client/Assets/Scripts/Dev/DevArgs.cs
+index 3a56b67..b9a8c10 100644
+--- a/Client/Assets/Scripts/Dev/DevArgs.cs
++++ b/Client/Assets/Scripts/Dev/DevArgs.cs
+@@ -8,6 +8,9 @@ namespace PingTheKiller.Client.Dev
+ {
+     public enum KillerLook : byte { None, Nearest, Away, Fixed, Occluded }
+ 
++    // -ptk-auto-sync: where the scripted press lands on each sync check (miss never presses).
++    public enum AutoSync : byte { None, Great, Good, Miss }
++
+     // Dev capture flags (-ptk-*). Inert when none is present. Invalid or missing values disable that flag and add an error.
+     public sealed class DevArgs
+     {
+@@ -58,11 +61,19 @@ namespace PingTheKiller.Client.Dev
+         public string PreviewV2Hud { get; private set; }
+         // Screenshots of the Settings screen: opened from the main menu after the menu shot, and from the play menu (needs -ptk-menu).
+         public bool Settings { get; private set; }
++        // Survivor autopilot (rules v2 screenshots): walk (NavGrid route, normal MoveInput) to the nearest unfinished terminal
++        // and hold Interact there for this many seconds in total, re-targeting when a terminal completes. Off by default.
++        public float DevHack { get; private set; }
++        // Survivor autopilot, after the exits are powered: hold the nearest unopened exit's switch, then walk into an open
++        // exit. Sends only MoveInput and Interact, like a player.
++        public bool DevSwitch { get; private set; }
++        // Presses Space's path (SyncCheckTracker.TryPress) at the great part, inside the rest of the zone, or never.
++        public AutoSync AutoSync { get; private set; }
+         public List<string> Errors { get; } = new List<string>();
+         public bool Active => Join != null || Bots >= 0 || RoleChoice.HasValue || Start || HoldW > 0 || Shots != null || QuitAfter > 0
+             || Offline || PreviewResult.HasValue || Wander > 0 || Rematch || Orbit.HasValue || Look != KillerLook.None || Menu > 0
+             || SkillAt > 0 || Chase > 0 || Rescue || FakeKiller > 0 || PreviewMotion != MotionPreviewClip.None || PreviewV2Hud != null
+-            || Settings;
++            || Settings || DevHack > 0 || DevSwitch || AutoSync != AutoSync.None;
+ 
+         public static DevArgs Parse(IReadOnlyList<string> args)
+         {
+@@ -77,11 +88,12 @@ namespace PingTheKiller.Client.Dev
+                 if (flag == "-ptk-rematch") { result.Rematch = true; continue; }
+                 if (flag == "-ptk-rescue") { result.Rescue = true; continue; }
+                 if (flag == "-ptk-settings") { result.Settings = true; continue; }
++                if (flag == "-ptk-dev-switch") { result.DevSwitch = true; continue; }
+                 if (flag == "-ptk-reduce-stutter") { result.ReduceStutter = true; continue; }
+                 bool known = flag == "-ptk-join" || flag == "-ptk-bots" || flag == "-ptk-role" || flag == "-ptk-hold-w"
+                     || flag == "-ptk-shots" || flag == "-ptk-quit-after" || flag == "-ptk-preview-result" || flag == "-ptk-wander" || flag == "-ptk-orbit" || flag == "-ptk-killer-look"
+                     || flag == "-ptk-menu" || flag == "-ptk-skill-at" || flag == "-ptk-chase" || flag == "-ptk-fake-killer" || flag == "-ptk-preview-motion"
+-                    || flag == "-ptk-preview-v2-hud";
++                    || flag == "-ptk-preview-v2-hud" || flag == "-ptk-dev-hack" || flag == "-ptk-auto-sync";
+                 if (!known) { result.Errors.Add("Unknown flag " + flag); continue; }
+                 string value = i + 1 < args.Count ? args[i + 1] : null;
+                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith(Prefix)) { result.Errors.Add(flag + " needs a value"); continue; }
+@@ -143,6 +155,17 @@ namespace PingTheKiller.Client.Dev
+                     string scenario = value.ToLowerInvariant();
+                     if (!UI.RulesV2.RulesV2Preview.Known(scenario)) return false;
+                     PreviewV2Hud = scenario; return true;
++                case "-ptk-dev-hack":
++                    if (!Seconds(value, out float hack)) return false;
++                    DevHack = hack; return true;
++                case "-ptk-auto-sync":
++                    switch (value.ToLowerInvariant())
++                    {
++                        case "great": AutoSync = AutoSync.Great; return true;
++                        case "good": AutoSync = AutoSync.Good; return true;
++                        case "miss": AutoSync = AutoSync.Miss; return true;
++                        default: return false;
++                    }
+                 case "-ptk-shots":
+                     Shots = value; return true;
+                 case "-ptk-preview-motion":
+diff --git a/Client/Assets/Scripts/Dev/DevCapture.cs b/Client/Assets/Scripts/Dev/DevCapture.cs
+index 381fa56..cac4770 100644
+--- a/Client/Assets/Scripts/Dev/DevCapture.cs
++++ b/Client/Assets/Scripts/Dev/DevCapture.cs
+@@ -22,6 +22,7 @@ namespace PingTheKiller.Client.Dev
+     {
+         private DevArgs args;
+         private ClientScreens screens;
++        private double overloadedAt = -1;
+         private double origin = -1, lobbyAt = -1, matchAt = -1, previewAt = -1, laggingAt = -1, resultAt = -1, reopenedAt = -1;
+         private double backAt = -1, doneAt = -1;
+         private bool menuShot, joined, configured, lobbyShot, started, play1, play4, previewShot, quitting, host, capturing;
+@@ -50,7 +51,7 @@ namespace PingTheKiller.Client.Dev
+         private int skillPresses, selfLogged, maxTracked;
+         private double nextSkillPress = -1, cooldownSeenAt = -1, countdownLogAt = -1;
+         private bool skillUsed;
+-        private ExecutionPrompt loggedPrompt;
++        private string loggedPrompt;
+         // -ptk-chase / -ptk-rescue steering (dev only; the routes come from Server.Core's NavGrid over the shared map).
+         private NavGrid nav;
+         private int chaseTerminal;
+@@ -61,6 +62,11 @@ namespace PingTheKiller.Client.Dev
+         private Vector3 rescueAt;
+         // -ptk-preview-v2-hud: the rules v2 widget preview (its own panel; requests its shots through EventShot).
+         private RulesV2Preview v2;
++        // -ptk-dev-hack / -ptk-dev-switch autopilot and the rules v2 live shots.
++        private HackPilot pilot;
++        private S2C_WorldState world;
++        private PilotPhase loggedPhase;
++        private double objectiveAt = -1, collapseSeenAt = -1;
+         public event Action<string> Join;
+         public event Action Offline;
+         // Local dispatch only: the handler feeds the packet to its own receive path and never sends it.
+@@ -72,7 +78,8 @@ namespace PingTheKiller.Client.Dev
+             args = value; screens = ui; self = selfState;
+             foreach (string error in args.Errors) Debug.LogWarning("[DEV] " + error);
+             if (args.Shots != null) Directory.CreateDirectory(args.Shots);
+-            if (args.Chase > 0 || args.Rescue) nav = new NavGrid(SharedMap.Map);
++            if (args.Chase > 0 || args.Rescue || args.DevHack > 0 || args.DevSwitch) nav = new NavGrid(SharedMap.Map);
++            if (args.DevHack > 0 || args.DevSwitch) pilot = new HackPilot(args.DevHack, args.DevSwitch);
+             MotionPreview.Active = args.PreviewMotion; // U4j: read by CharacterViews (own Survivor) only
+         }
+ 
+@@ -88,8 +95,12 @@ namespace PingTheKiller.Client.Dev
+         // -ptk-preview-motion killer-down (U4j): after the first capture the chase stops; the Killer walks away from the
+         // nearest instance for RetreatSeconds, then turns to face it, so the downed Survivor is framed at a few metres.
+         private const double RetreatSeconds = 1.3, KillerDownShotSeconds = 2.4;
+-        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && graceSeenAt >= 0 && resultAt < 0;
+-        private bool Retreating => KillerDownStaging && Now - graceSeenAt < RetreatSeconds;
++        private bool KillerDownStaging => args.PreviewMotion == MotionPreviewClip.KillerDown && captureSeenAt >= 0 && resultAt < 0;
++        private bool Retreating => KillerDownStaging && Now - captureSeenAt < RetreatSeconds;
++        // -ptk-dev-hack / -ptk-dev-switch: the autopilot walks (the scripted W) and holds Interact, Survivor only.
++        private bool Piloting => pilot != null && role == Role.Survivor && match >= 1 && matchAt >= 0 && resultAt < 0 && Now - matchAt >= 2;
++        private bool PilotWalk => Piloting && located && pilot.Walk;
++        public bool HoldInteract => Piloting && pilot.Hold;
+         // -ptk-rescue: walk while a Lagging ally is farther than RescueStop (inside the 1.5 m rescue radius).
+         private const float RescueStop = 1f;
+         // Only while the Killer is not near (ThreatLevel 0-1), like the bots: walking into a camped ally only adds a capture.
+@@ -98,12 +109,23 @@ namespace PingTheKiller.Client.Dev
+ 
+         // Scripted forward input from the 2nd second of play: the wander window in the first match, else HoldW seconds;
+         // -ptk-chase and -ptk-rescue walk through the same path.
+-        public bool HoldForward => RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
++        public bool HoldForward => PilotWalk || RescueWalk || Chasing || Retreating || Wandering || (!(match == 1 && args.Wander > 0 && role == Role.Survivor) && args.HoldW > 0 && InWindow(args.HoldW));
+ 
+         // Survivor steering: toward a Lagging ally (-ptk-rescue), else the wander yaw; false when neither applies.
+         public bool Steer(float currentYaw, float dt, out float yaw)
+         {
+             yaw = currentYaw;
++            if (Piloting)
++            {
++                pilot.Update(position.x, position.z, localStatus == (byte)PlayerStatus.Normal, world, SharedMap.Map.ExitSwitches, dt);
++                if (pilot.Phase != loggedPhase)
++                {
++                    loggedPhase = pilot.Phase;
++                    Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " autopilot " + pilot.Phase + " goal=" + Stamp(pilot.Goal.x) + "," + Stamp(pilot.Goal.z)
++                        + " held=" + Stamp(pilot.Held) + " pos=" + Stamp(position.x) + "," + Stamp(position.z));
++                }
++                if (PilotWalk) return Route(pilot.Goal, out yaw);
++            }
+             if (RescueWalk) return Route(rescueAt, out yaw);
+             if (!Wandering || !located) return false;
+             if (wander == null) wander = new Wander(currentYaw);
+@@ -134,13 +156,32 @@ namespace PingTheKiller.Client.Dev
+         }
+ 
+         // Every S2C_SelfState packet: the first, then any that carries a non-zero value (capped), with the countdown.
+-        public void OnSelfState(float skillCooldown, float rescueProgress, float invulnerableLeft, float executionGraceLeft, int received)
++        public void OnSelfState(S2C_SelfState state, int received)
+         {
+-            bool interesting = received == 1 || skillCooldown > 0 || rescueProgress > 0 || invulnerableLeft > 0 || executionGraceLeft > 0;
++            bool interesting = received == 1 || state.SkillCooldown > 0 || state.RescueProgress > 0 || state.InvulnerableLeft > 0 || state.ActionKind != 0
++                || (state.CollapseLeft >= 0 && collapseSeenAt < 0);
++            if (state.CollapseLeft >= 0 && collapseSeenAt < 0) collapseSeenAt = Now;
+             if (!interesting || selfLogged >= 300) return;
+             selfLogged++;
+-            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " selfstate #" + received + " skillCooldown=" + Stamp(skillCooldown) + " rescue=" + Stamp(rescueProgress)
+-                + " invulnerable=" + Stamp(invulnerableLeft) + " grace=" + Stamp(executionGraceLeft));
++            Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " selfstate #" + received + " skillCooldown=" + Stamp(state.SkillCooldown) + " rescue=" + Stamp(state.RescueProgress)
++                + " invulnerable=" + Stamp(state.InvulnerableLeft) + " collapse=" + Stamp(state.CollapseLeft) + " action=" + (ActionKind)state.ActionKind + ":" + Stamp(state.ActionProgress));
++        }
++
++        // HUD_SPEC 13.2 evidence: every S2C_SyncCheck / S2C_SyncResult and whether the tracker took it.
++        public void OnSyncCheck(S2C_SyncCheck check, bool accepted)
++            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync check id=" + check.CheckId + " terminal=" + check.TerminalId + " zone=" + Stamp(check.ZoneStart)
++                + "+" + Stamp(check.ZoneSize) + " accepted=" + accepted);
++
++        public void OnSyncResult(S2C_SyncResult result, bool matched)
++            => Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " sync result id=" + result.CheckId + " result=" + (SyncResult)result.Result + " matched=" + matched);
++
++        // -ptk-auto-sync: true on the frame the scripted press is due (the caller presses through the same TryPress as Space).
++        public bool PressSync(SyncCheckTracker sync)
++        {
++            if (args.AutoSync == AutoSync.None || sync == null || !sync.Current) return false;
++            SyncCheckState state = sync.State;
++            if (!state.Visible || state.Pressed || state.Result.HasValue) return false;
++            return HackPilot.SyncDue(args.AutoSync, sync.View, SyncCheckMath.NeedleFraction(sync.View.Elapsed, sync.View.Duration));
+         }
+ 
+         // -ptk-orbit: once at match start + 2 s, the orbit yaw becomes the character facing plus the offset.
+@@ -219,8 +260,12 @@ namespace PingTheKiller.Client.Dev
+         // tracked = instances in the tracker (Signal, Lagging and decoys alike); prompt = the execution guidance shown.
+         // killer-crowd: the first frame with at least CrowdCount instances tracked at once.
+         public const int CrowdCount = 6;
+-        public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, ExecutionPrompt prompt = ExecutionPrompt.None)
++        public void OnKillerFrame(int inView, int occluded, int edges, int tracked = 0, string prompt = null, int captures = 0, int overloaded = 0)
+         {
++            if (captures > 0 && captureSeenAt < 0 && args.PreviewMotion == MotionPreviewClip.KillerDown)
++            {
++                captureSeenAt = Now; Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " motion preview: capture seen");
++            }
+             int counts = tracked * 1000000 + inView * 10000 + occluded * 100 + edges;
+             if (counts != killerCounts && Now - countsAt >= .5)
+             {
+@@ -236,9 +281,15 @@ namespace PingTheKiller.Client.Dev
+             if (prompt != loggedPrompt)
+             {
+                 loggedPrompt = prompt;
+-                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " execution prompt=" + prompt + " grace=" + Stamp(self != null ? self.ExecutionGraceLeft : 0));
++                Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " killer prompt=\"" + prompt + "\"");
+             }
+             if (capturing || pending.Count > 0 || args.Shots == null) return;
++            // 0.3 s after the alert first shows, so its pooled tag has been measured and clamped (HUD_SPEC 13.6).
++            if (overloaded <= 0) overloadedAt = -1;
++            else if (overloadedAt < 0) overloadedAt = Now;
++            if (overloaded > 0 && Now - overloadedAt >= .3 && !taken.Contains("v2-killer-overloaded.png")) { Debug.Log("[DEV] overloaded alerts=" + overloaded); EventShot("v2-killer-overloaded.png", 0); return; }
++            if (WorldPowered && !taken.Contains("v2-killer-powered.png") && Now - matchAt > 3) { EventShot("v2-killer-powered.png", 0); return; }
++            if (collapseSeenAt >= 0 && Now >= collapseSeenAt + 2 && !taken.Contains("v2-killer-collapse.png")) { EventShot("v2-killer-collapse.png", 0); return; }
+             if (tracked >= CrowdCount && !taken.Contains("killer-crowd.png")) { EventShot("killer-crowd.png", 0); return; }
+             if (inView > 0 && !taken.Contains("killer-inview.png")) EventShot("killer-inview.png", 0);
+             else if (occluded > 0 && inView == 0 && edges == 0 && !taken.Contains("killer-occluded.png")) EventShot("killer-occluded.png", 0);
+@@ -254,8 +305,9 @@ namespace PingTheKiller.Client.Dev
+         private PlayerStatus shownStatus;
+         private double threatSince = -1, capturedAt = -1, eliminatedAt = -1, killerSince = -1;
+         private bool killerSeen, killerLogged;
+-        public void OnSurvivorFrame(byte threat, PlayerStatus status, bool banner, int stutterFrames, float killerAlpha)
++        public void OnSurvivorFrame(byte threat, PlayerStatus status, bool banner, int stutterFrames, float killerAlpha, SurvivorHud hud = null)
+         {
++            if (hud != null && V2SurvivorShots(hud)) return;
+             if (matchAt < 0 || resultAt >= 0) return;
+             double t = Now;
+             if (threat != shownThreat) { shownThreat = threat; threatSince = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " threat visual level=" + threat); }
+@@ -319,7 +371,7 @@ namespace PingTheKiller.Client.Dev
+             matchAt = Now; match++; role = value; wander = null; located = false; orbitAt = aimAt = -1; menuWanted = false; movedLogged = 0; killerCounts = -1;
+             laggingAt = resultAt = reopenedAt = backAt = -1; localStatus = 0; localHud = null; progress = Array.Empty<byte>(); exitState = -1;
+             skillPresses = 0; skillUsed = false; nextSkillPress = cooldownSeenAt = countdownLogAt = chaseLogAt = -1; maxTracked = 0;
+-            loggedPrompt = ExecutionPrompt.None; chaseTerminal = 0; terminalPoints.Clear(); rescueFound = false;
++            loggedPrompt = null; chaseTerminal = 0; world = null; loggedPhase = PilotPhase.Idle; objectiveAt = collapseSeenAt = captureSeenAt = -1; terminalPoints.Clear(); rescueFound = false;
+             shownThreat = 0; shownStatus = PlayerStatus.Normal; threatSince = capturedAt = eliminatedAt = killerSince = -1; killerSeen = killerLogged = false;
+             Debug.Log("[DEV] match " + match + " start role=" + value + " skill=" + skill);
+         }
+@@ -328,6 +380,7 @@ namespace PingTheKiller.Client.Dev
+         public void OnWorld(S2C_WorldState state, int localId)
+         {
+             double t = Now - matchAt;
++            world = state;
+             bool hacking = false, changed = progress.Length != state.Terminals.Count;
+             if (changed) progress = new byte[state.Terminals.Count];
+             if (terminalPoints.Count != state.Terminals.Count)
+@@ -350,8 +403,8 @@ namespace PingTheKiller.Client.Dev
+                 foreach (TerminalState terminal in state.Terminals) line.Append(' ').Append(terminal.Id).Append(':').Append(terminal.Progress);
+                 line.Append(" required=").Append(state.TerminalsRequired).Append(" exits=");
+                 foreach (ExitState e in state.Exits) line.Append(e.Id).Append(':').Append(e.Flags).Append('/').Append(e.SwitchProgress).Append(' ');
+-                line.Append("exitOpen=").Append(exitOpen ? 1 : 0)
+-                    .Append(" hud=\"").Append(HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired, exitOpen)).Append('"');
++                line.Append("exitOpen=").Append(exitOpen ? 1 : 0).Append(" collapse=").Append(Stamp(state.CollapseLeft)).Append(" hatch=").Append(state.HatchVisible)
++                    .Append(" hud=\"").Append(HudCopy.TerminalsLine(state.Terminals, state.TerminalsRequired)).Append('"');
+                 Debug.Log(line.ToString());
+             }
+             // World shots wait until the camera and avatars are placed (the first ~100 ms of a match render nothing yet).
+@@ -372,15 +425,58 @@ namespace PingTheKiller.Client.Dev
+             }
+         }
+ 
+-        public void OnResult(S2C_GameResult result, string headline, string outcome)
++        public void OnResult(S2C_GameResult result, ResultV2View view)
+         {
+             resultAt = Now;
+             Debug.Log("[DEV] t=" + Stamp(Now - matchAt) + " match " + match + " end winner=" + (Role)result.WinnerRole + " reason=" + (GameEndReason)result.Reason
+-                + " escaped=[" + string.Join(",", result.EscapedIds) + "] back to lobby enabled=" + (screens != null && screens.BackToLobbyEnabled));
+-            Debug.Log("[DEV] result screen: \"" + headline + "\" / \"" + outcome + "\"");
++                + " escaped=[" + string.Join(",", result.EscapedIds) + "] eliminated=[" + string.Join(",", result.EliminatedIds) + "] back to lobby enabled="
++                + (screens != null && screens.BackToLobbyEnabled));
++            Debug.Log("[DEV] result screen: \"" + ResultV2Copy.Headline(view.Winner) + "\" / \"" + ResultV2Copy.Outcome(view) + "\" / \""
++                + ResultV2Copy.Rule(view.Escaped, view.Starting) + "\" rows=" + view.Rows.Count);
+             EventShot("result.png");
+         }
+ 
++        private bool WorldPowered
++        {
++            get
++            {
++                if (world?.Exits == null) return false;
++                foreach (ExitState exit in world.Exits) if ((exit.Flags & 3) != 0) return true;
++                return false;
++            }
++        }
++
++        // Rules v2 live shots (Survivor, first match): the ring mid-sweep, the result word, the hold row, the objective row
++        // once an exit is powered and again with the collapse running. One per frame.
++        private bool V2SurvivorShots(SurvivorHud hud)
++        {
++            if (args.Shots == null || capturing || pending.Count > 0 || match != 1 || resultAt >= 0 || !located) return false;
++            SyncCheckState sync = hud.Sync.State;
++            if (sync.Visible && !sync.Result.HasValue && !sync.Pressed && sync.Needle >= .25f && sync.Needle <= .42f && !taken.Contains("v2-sync-check.png"))
++            {
++                EventShot("v2-sync-check.png", 0); return true;
++            }
++            if (sync.Visible && sync.Result.HasValue && !taken.Contains("v2-sync-result.png"))
++            {
++                Debug.Log("[DEV] sync result shown " + sync.Result + " needle=" + Stamp(sync.Needle));
++                EventShot("v2-sync-result.png", 0); return true;
++            }
++            if (hud.HoldText != null && !taken.Contains("v2-switch-hold.png") && self != null && self.ActionProgress >= .3f)
++            {
++                EventShot("v2-switch-hold.png", 0); return true;
++            }
++            if (hud.ObjectiveShown && objectiveAt < 0) objectiveAt = Now;
++            if (objectiveAt >= 0 && Now >= objectiveAt + 1 && !taken.Contains("v2-objective-powered.png"))
++            {
++                EventShot("v2-objective-powered.png", 0); return true;
++            }
++            if (collapseSeenAt >= 0 && Now >= collapseSeenAt + 1.5 && !taken.Contains("v2-objective-collapse.png"))
++            {
++                EventShot("v2-objective-collapse.png", 0); return true;
++            }
++            return false;
++        }
++
+         // -ptk-settings: open the Settings screen, wait for it to lay out, shoot, close. Stage 0 -> 1 -> 2 -> 3 (done).
+         private bool SettingsMenuShot(double t)
+         {
+@@ -468,7 +564,7 @@ namespace PingTheKiller.Client.Dev
+ 
+         // The local SelfState countdown (logged each second while the cooldown runs) and the SelfState event shots, each
+         // taken once while the match runs: survivor-cooldown 1.5 s into a cooldown, survivor-rescue once the rescue bar is
+-        // at least RescueShotProgress (own rescue or as rescuer), killer-grace while ExecutionGraceLeft > 0.
++        // at least RescueShotProgress (own rescue or as rescuer).
+         public const float RescueShotProgress = .2f;
+         private bool SelfShots(double t)
+         {
+@@ -498,17 +594,13 @@ namespace PingTheKiller.Client.Dev
+                 Debug.Log("[DEV] t=" + Stamp(m) + " rescue progress=" + Stamp(self.RescueProgress) + " invulnerable=" + Stamp(self.InvulnerableLeft));
+                 EventShot("survivor-rescue.png"); return true;
+             }
+-            if (role == Role.Killer && self.ExecutionGraceLeft > 0 && !taken.Contains("killer-grace.png"))
+-            {
+-                EventShot("killer-grace.png"); return true;
+-            }
+             return false;
+         }
+ 
+         // -ptk-preview-motion: motion-<clip>.png at MotionPreview.ShotTimes (Survivor, first match; the second Death shot is
+-        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first execution grace (1.3 s walking away, then facing it), with an
++        // motion-death-held.png); killer-down: motion-killer-down.png 2.4 s after the first confirmed capture (1.3 s walking away, then facing it), with an
+         // instance in view (the captured Survivor knocked down / crawling, Killer view).
+-        private double graceSeenAt = -1;
++        private double captureSeenAt = -1;
+         private int lastInView;
+         private bool MotionShots(double t)
+         {
+@@ -516,9 +608,8 @@ namespace PingTheKiller.Client.Dev
+             if (clip == MotionPreviewClip.None || args.Shots == null || match != 1 || matchAt < 0 || resultAt >= 0) return false;
+             if (clip == MotionPreviewClip.KillerDown)
+             {
+-                if (role != Role.Killer || self == null || !self.Available) return false;
+-                if (graceSeenAt < 0 && self.ExecutionGraceLeft > 0) { graceSeenAt = t; Debug.Log("[DEV] t=" + Stamp(t - matchAt) + " motion preview: capture seen (grace)"); }
+-                if (graceSeenAt >= 0 && t >= graceSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
++                if (role != Role.Killer) return false;
++                if (captureSeenAt >= 0 && t >= captureSeenAt + KillerDownShotSeconds && lastInView > 0 && !taken.Contains("motion-killer-down.png")) { EventShot("motion-killer-down.png", 0); return true; }
+                 return false;
+             }
+             if (role != Role.Survivor || !located) return false;
+diff --git a/Client/Assets/Scripts/Killer/ExecutionGuidance.cs b/Client/Assets/Scripts/Killer/ExecutionGuidance.cs
+deleted file mode 100644
+index b1f0d84..0000000
+--- a/Client/Assets/Scripts/Killer/ExecutionGuidance.cs
++++ /dev/null
+@@ -1,40 +0,0 @@
+-using PingTheKiller.Shared.Game;
+-
+-namespace PingTheKiller.Client.Killer
+-{
+-    public enum ExecutionPrompt : byte { None, Grace, StepBack, Ready }
+-
+-    // HUD_SPEC 6.4: execution guidance mirrors the server's re-arm rule. The target is the nearest Lagging instance within
+-    // 3 m. armed = false whenever an instance becomes the target; each snapshot: farther than 1.2 m -> armed, otherwise
+-    // an in-grace touch disarms (it is spent). The grace seconds are S2C_SelfState.ExecutionGraceLeft; before the first
+-    // SelfState of a match the grace is unknown, so the prompt waits for it (the armed flag still tracks).
+-    public sealed class ExecutionGuidance
+-    {
+-        public const float TargetRange = 3f;
+-        public const float Contact = GameConstants.CaptureRadius;
+-        public int Target { get; private set; } = -1;
+-        public bool Armed { get; private set; }
+-        public ExecutionPrompt Prompt { get; private set; }
+-
+-        public void Reset() { Target = -1; Armed = false; Prompt = ExecutionPrompt.None; }
+-
+-        // Once per snapshot (and again for the same snapshot when a SelfState arrives after it). nearest = handle of the
+-        // nearest Lagging instance (-1 when none), distance from the Killer.
+-        public ExecutionPrompt Update(int nearest, float distance, bool selfStateAvailable, float graceLeft)
+-        {
+-            if (nearest < 0 || !(distance <= TargetRange)) { Reset(); return Prompt; }
+-            if (nearest != Target) { Target = nearest; Armed = false; }
+-            if (!(graceLeft > 0)) graceLeft = 0;
+-            if (distance > Contact) Armed = true;
+-            else if (graceLeft > 0) Armed = false;
+-            Prompt = !selfStateAvailable ? ExecutionPrompt.None : Line(graceLeft);
+-            return Prompt;
+-        }
+-
+-        // The prompt for this frame: the grace counts down between snapshots, so Grace turns into Step back / Ready as
+-        // soon as the local countdown reaches 0. No target (or no SelfState yet): None.
+-        public ExecutionPrompt Display(float graceLeft) => Prompt == ExecutionPrompt.None ? ExecutionPrompt.None : Line(graceLeft > 0 ? graceLeft : 0);
+-
+-        private ExecutionPrompt Line(float graceLeft) => graceLeft > 0 ? ExecutionPrompt.Grace : Armed ? ExecutionPrompt.Ready : ExecutionPrompt.StepBack;
+-    }
+-}
+diff --git a/Client/Assets/Scripts/Killer/ExecutionGuidance.cs.meta b/Client/Assets/Scripts/Killer/ExecutionGuidance.cs.meta
+deleted file mode 100644
+index 25fb9f9..0000000
+--- a/Client/Assets/Scripts/Killer/ExecutionGuidance.cs.meta
++++ /dev/null
+@@ -1,2 +0,0 @@
+-fileFormatVersion: 2
+-guid: c46efefc79f5c16459c4f41e613f9b7b
+\ No newline at end of file
+diff --git a/Client/Assets/Scripts/Killer/KillerHudCopy.cs b/Client/Assets/Scripts/Killer/KillerHudCopy.cs
+index 62d03db..0845456 100644
+--- a/Client/Assets/Scripts/Killer/KillerHudCopy.cs
++++ b/Client/Assets/Scripts/Killer/KillerHudCopy.cs
+@@ -4,22 +4,20 @@ using PingTheKiller.Shared.Game;
+ 
+ namespace PingTheKiller.Client.Killer
+ {
+-    // Killer HUD copy (HUD_SPEC 3, 6.1, 6.2, 6.4, 6.6, 8). Pure; KillerHud and KillerWorldLayer only display it.
++    // Killer HUD copy (HUD_SPEC 3, 6.1, 6.2, 6.6, 8, 13). Pure; KillerHud and KillerWorldLayer only display it.
+     public static class KillerHudCopy
+     {
+         public const string Dot = "·";
+         public const string IntroTitle = "You are the Killer";
+-        public const string IntroRules = "Only Signal Survivors show, even through walls. Catch every Survivor before one reaches the Exit.";
+-        public const string OneMore = "One more opens the Exit.";
++        public const string IntroRules = "Only Signal Survivors show, even through walls. Eliminate more than half of the Survivors to win.";
++        public const string OneMore = "One more powers the Exits.";
+         public const string Ready = "Ready";
+         public const string Passive = "Passive — always on";
+-        public const string AfterExitOpens = "After the Exit opens";
++        public const string NeedsSwitch = "Needs an Exit switch in progress";
+         public const string Resume = "Resume";
+         public const string LeaveMatch = "Leave match";
+         public const string LaggingTitle = "Lagging Survivor";
+         public const string Lagging = "Lagging";
+-        public const string ExitLocked = "Exit Locked";
+-        public const string ExitOpen = "Exit Open";
+ 
+         // HUD_SPEC 8 names (sentence case) and effect lines.
+         public static string SkillName(byte skillId)
+@@ -41,7 +39,7 @@ namespace PingTheKiller.Client.Killer
+                 case SkillIds.PingScanner: return "Shows the nearest Survivor for 1.5 s.";
+                 case SkillIds.Overclock: return "1.5× speed for 3 s, then 1 s unable to move.";
+                 case SkillIds.PacketAfterimage: return "Passive: Survivors stay visible 1 s after their Signal ends.";
+-                case SkillIds.FirewallBlock: return "Locks the open Exit for 5 s.";
++                case SkillIds.FirewallBlock: return "Locks the Exit switch in progress for 5 s.";
+                 default: return string.Empty;
+             }
+         }
+@@ -68,10 +66,11 @@ namespace PingTheKiller.Client.Killer
+         public static string Slowed(float left) => "Slowed by traffic overload " + Dot + " " + Seconds1(left);
+ 
+         // Skill block state line (6.1d). cooldown is S2C_SelfState.SkillCooldown once received this match, else null.
+-        public static string SkillState(byte skillId, bool exitOpen, float? cooldown)
++        // switchInProgress: an unopened Exit with switch progress (Firewall block's only target, GDD v2 3).
++        public static string SkillState(byte skillId, bool switchInProgress, float? cooldown)
+         {
+             if (skillId == SkillIds.PacketAfterimage) return Passive;
+-            if (skillId == SkillIds.FirewallBlock && !exitOpen) return AfterExitOpens;
++            if (skillId == SkillIds.FirewallBlock && !switchInProgress) return NeedsSwitch;
+             if (cooldown.HasValue && cooldown.Value > 0) return "Cooldown " + (int)Math.Ceiling(cooldown.Value) + " s";
+             return Ready;
+         }
+@@ -79,19 +78,5 @@ namespace PingTheKiller.Client.Killer
+         public static string Distance(float metres) => (int)Math.Round(Math.Max(0, metres), MidpointRounding.AwayFromZero) + " m";
+         public static string LaggingDistance(float metres) => Lagging + " " + Dot + " " + Distance(metres);
+         public static string Terminal(byte id) => "Terminal " + (id + 1);
+-
+-        public static string ExitLockedFor(float? left)
+-            => left.HasValue && left.Value > 0 ? ExitLocked + " " + (int)Math.Ceiling(left.Value) + " s" : ExitLocked;
+-
+-        public static string PromptLine(ExecutionPrompt prompt, float graceLeft)
+-        {
+-            switch (prompt)
+-            {
+-                case ExecutionPrompt.Grace: return "Wait " + Seconds1(graceLeft) + ", step back, touch again.";
+-                case ExecutionPrompt.StepBack: return "Step back 1.2 m, then touch again.";
+-                case ExecutionPrompt.Ready: return "Touch again to eliminate.";
+-                default: return null;
+-            }
+-        }
+     }
+ }
+diff --git a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+index 94c438c..0c50f5c 100644
+--- a/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
++++ b/Client/Assets/Scripts/Killer/KillerWorldLayer.cs
+@@ -1,5 +1,6 @@
+ using System.Collections.Generic;
+ using PingTheKiller.Client.UI;
++using PingTheKiller.Client.UI.RulesV2;
+ using PingTheKiller.Client.World;
+ using PingTheKiller.Shared.Game;
+ using PingTheKiller.Shared.Packets;
+@@ -9,7 +10,8 @@ namespace PingTheKiller.Client.Killer
+ {
+     // The Killer's world layer and HUD feed (HUD_SPEC 6.1-6.6). KillerScene turns the anonymous stream into instances;
+     // this component draws them (the shared Survivor character with a `signal` outline in view, through-wall diamonds,
+-    // edge chevrons), the Terminal and Exit markers, feeds the cluster, plays the cues and the positional sound.
++    // edge chevrons), the Terminal markers, the rules v2 world layer (both Exits, Regressing tags, the Overloaded alert;
++    // HUD_SPEC 13.4, 13.6), feeds the cluster (prompt / hold block, collapse block), plays the cues and the positional sound.
+     public sealed class KillerWorldLayer : MonoBehaviour
+     {
+         public const float IntroSeconds = 3, TagGap = 12, ChevronTagOffset = 30, DistanceTagBeyond = 20, TerminalTagOnlyWithin = 8;
+@@ -29,18 +31,18 @@ namespace PingTheKiller.Client.Killer
+         private readonly List<Material> materials = new List<Material>();
+         private readonly System.Random rng = new System.Random(); // client-local; never seeded from wire data
+         private readonly KillerCueRules cueRules = new KillerCueRules();
+-        private readonly ExecutionGuidance guidance = new ExecutionGuidance();
+         private KillerScene scene;
+         private BlipSoundModel sound;
+         private System.Func<int, bool> isVoiced;
+         private KillerAudio audioOut;
+         private KillerHud hud;
+         private MarkerLayer markers;
++        private V2MarkerLayer v2;
++        private readonly ExitCache exitCache = new ExitCache();
+         private ISelfState self;
+         private Material body, visor, outline;
+         private S2C_WorldState last;
+-        private int playerId, lastTarget = -1;
+-        private float lastDistance = float.PositiveInfinity;
++        private int playerId;
+         private byte skillId;
+         private double startedAt, activeStart = double.NegativeInfinity, activeEnd = double.NegativeInfinity;
+         private double overclockEnd = double.NegativeInfinity, slowedEnd = double.NegativeInfinity, lockedEnd = double.NegativeInfinity;
+@@ -52,7 +54,7 @@ namespace PingTheKiller.Client.Killer
+ 
+         public void Initialize(int ownId, byte skill, KillerHud killerHud, ISelfState selfState, double now)
+         {
+-            playerId = ownId; skillId = skill; hud = killerHud; markers = hud.Markers; self = selfState; startedAt = now;
++            playerId = ownId; skillId = skill; hud = killerHud; markers = hud.Markers; v2 = hud.V2Markers; self = selfState; startedAt = now;
+             sound = new BlipSoundModel(new System.Random(rng.Next()));
+             isVoiced = sound.IsVoiced;
+             audioOut = gameObject.AddComponent<KillerAudio>();
+@@ -81,26 +83,23 @@ namespace PingTheKiller.Client.Killer
+             scene.Accept(state, now);
+             last = state;
+             foreach (BlipEvent item in scene.Events) cueRules.OnTrackerEvent(item.Kind);
+-            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) kick.Play();
++            foreach (BlipEvent item in scene.Events) if (item.Kind == BlipEventKind.CaptureConfirm) { kick.Play(); Captures++; }
+             cueRules.OnWorld(state.TimeLeft, WorldExits.AnyOpen(state));
+             cueRules.OnSignalCount(scene.Blips.Count, now);
+-            lastTarget = scene.NearestLagging(out lastDistance);
+-            guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
+         }
+ 
+-        // A SelfState arrives after the WorldState of its tick: re-run the guidance for that snapshot with the fresh grace,
+-        // so a capture shows Grace at once instead of one snapshot of Step back.
+-        public void OnSelfState()
+-        {
+-            if (scene != null) guidance.Update(lastTarget, lastDistance, self.Available, self.ExecutionGraceLeft);
+-        }
++        // Captures confirmed by the tracker this match (dev staging of the knocked-down shot).
++        public int Captures { get; private set; }
+ 
+         // The own cooldown reached 0 (the SelfState clock's ready edge, once per cooldown).
+         public void OnSkillReady() => cueRules.OnSkillReady();
+ 
+         // Instances tracked in the last snapshot (dev log and the crowd shot; counted by the tracker, never from entries).
+         public int Tracked => scene == null ? 0 : scene.Blips.Count;
+-        public ExecutionPrompt Prompt => guidance.Prompt;
++        // The interact prompt or hold label shown this frame (dev log); null when none.
++        public string Prompt => hud.Hold.style.display == UnityEngine.UIElements.DisplayStyle.None ? hud.PromptText : hud.Hold.Text;
++        // Overloaded alerts drawn this frame (on screen or at the edge).
++        public int Overloaded { get; private set; }
+ 
+         // Own effects (CasterId = own id) drive the active arc, the Overclock line and the Exit lock seconds; the
+         // Killer-bound TrafficOverload drives the slowed line. Only these fields are read.
+@@ -138,10 +137,11 @@ namespace PingTheKiller.Client.Killer
+             cueRules.Pending.Clear();
+             Vector2 screen = new Vector2(markers.layout.width, markers.layout.height);
+             if (float.IsNaN(screen.x) || screen.x <= 0) screen = new Vector2(Screen.width / Mathf.Max(.01f, markers.Scale), Screen.height / Mathf.Max(.01f, markers.Scale));
+-            UpdateHud(now, menuOpen);
++            UpdateHud(now, menuOpen, pose.Eye);
+             Rect safe = EdgePlacement.SafeRect(screen, false), keepOut = EdgePlacement.KeepOut(hud.ClusterRect(screen.y));
+             markers.Clear(MarkerLayer.Static);
+             markers.Clear(MarkerLayer.Signals);
++            v2.Begin();
+             DrawStatic(pose, screen, safe, keepOut, now);
+             InView = Occluded = Edges = 0;
+             if (scene != null)
+@@ -155,23 +155,27 @@ namespace PingTheKiller.Client.Killer
+             markers.Layout(new Rect(0, 0, screen.x, screen.y), keepOut);
+             markers.Commit(MarkerLayer.Static);
+             markers.Commit(MarkerLayer.Signals);
++            v2.End();
+         }
+ 
+-        private void UpdateHud(double now, bool menuOpen)
++        private void UpdateHud(double now, bool menuOpen, Vector3 eye)
+         {
+             hud.SetIntro(now - startedAt < IntroSeconds && !menuOpen);
+-            bool exitOpen = last != null && WorldExits.AnyOpen(last);
+             if (last != null) hud.SetInfo(last.TimeLeft, HudDone(last), last.TerminalsRequired);
+             float active = now < activeEnd && activeEnd > activeStart ? (float)((activeEnd - now) / (activeEnd - activeStart)) : -1;
+-            hud.SetSkill(skillId, exitOpen, self, active);
++            exitCache.For(last);
++            hud.SetSkill(skillId, exitCache.SwitchInProgress, self, active);
+             if (now < slowedEnd) hud.SetEffect(KillerHudCopy.Slowed((float)(slowedEnd - now)), true);
+             else if (now < overclockEnd) hud.SetEffect(KillerHudCopy.Overclock((float)(overclockEnd - now)), false);
+             else if (now < overclockEnd + SkillIds.OverclockRecoverySeconds) hud.SetEffect(KillerHudCopy.Recovering((float)(overclockEnd + SkillIds.OverclockRecoverySeconds - now)), false);
+             else hud.SetEffect(null, false);
+-            float grace = self.Available ? self.ExecutionGraceLeft : 0;
+-            hud.SetPrompt(menuOpen ? ExecutionPrompt.None : guidance.Display(grace), grace);
++            InteractPrompt interact = last == null ? default
++                : InteractCopy.Killer(eye.x, eye.z, last.Terminals, last.HatchVisible == 1, last.HatchX, last.HatchZ);
++            hud.SetPrompt(interact, V2Wire.Hold(self));
++            hud.SetCollapse(V2Wire.KillerCollapse(last != null ? last.CollapseLeft : -1, self.Available ? self.CollapseLeft : -1));
+         }
+ 
++
+         private static int HudDone(S2C_WorldState state)
+         {
+             int done = 0;
+@@ -187,31 +191,45 @@ namespace PingTheKiller.Client.Killer
+             return true;
+         }
+ 
+-        // Terminal and Exit markers (drawn under the Signal markers).
++        // Terminal markers (drawn under the Signal markers), then the rules v2 layer: a Regressing tag replaces a terminal's
++        // tag, the Overloaded alert (HUD_SPEC 13.6) and both Exit markers (13.4; off-screen exits get no indicator).
+         private void DrawStatic(ViewPose pose, Vector2 screen, Rect safe, Rect keepOut, double now)
+         {
++            Overloaded = 0;
+             if (last == null) return;
+             foreach (TerminalState terminal in last.Terminals)
+             {
+-                if (terminal.Progress == 100) continue; // done: no marker
++                TerminalFlagsView flags = V2Wire.Terminal(terminal);
+                 var at = new Vector3(terminal.X, TerminalMarkerHeight, terminal.Z);
+-                if (!Project(pose, at, screen, out Vector2 p)) continue;
+-                bool blocked = MapGeometry.SegmentBlocked(SharedMap.Map, pose.Eye.x, pose.Eye.z, terminal.X, terminal.Z);
+                 float distance = new Vector2(terminal.X - pose.Eye.x, terminal.Z - pose.Eye.z).magnitude;
++                bool projected = Project(pose, at, screen, out Vector2 p);
++                if (TerminalFlagCopy.ShowOverloaded(flags, Role.Killer))
++                {
++                    Overloaded++;
++                    string alert = v2.OverloadedTag(flags, distance);
++                    if (projected && safe.Contains(p)) v2.Overloaded(EdgePlacement.ClampOutside(p, keepOut, safe), true, Vector2.zero, alert);
++                    else
++                    {
++                        Vector2 edge = EdgePlacement.Place(screen, EdgePlacement.Direction(pose.ToCamera(at)), safe, keepOut, false, out Vector2 pointing);
++                        v2.Overloaded(edge, false, pointing, alert);
++                    }
++                }
++                if (terminal.Progress == 100) continue; // done: no marker
++                if (!projected) continue;
++                bool blocked = MapGeometry.SegmentBlocked(SharedMap.Map, pose.Eye.x, pose.Eye.z, terminal.X, terminal.Z);
+                 p = EdgePlacement.ClampOutside(p, keepOut, safe);
+                 bool tagOnly = !blocked && distance <= TerminalTagOnlyWithin;
+                 if (!tagOnly) markers.Square(MarkerLayer.Static, p);
++                if (flags.Regressing) { v2.Regressing(tagOnly ? p + new Vector2(0, TagGap) : p, flags, Role.Killer); continue; }
+                 markers.Tag(MarkerLayer.Static, tagOnly ? p : p + new Vector2(0, TagGap), KillerHudCopy.Terminal(terminal.Id), TagStyle.Muted, tagOnly ? TagPivot.Center : TagPivot.Below, LayoutPriority.Terminal, !tagOnly);
+             }
+-            var exitAt = new Vector3(SharedMap.Map.Exit.X, ExitMarkerHeight, SharedMap.Map.Exit.Z);
+-            if (Project(pose, exitAt, screen, out Vector2 e))
++            float lockedLeft = lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : -1;
++            ExitView[] exits = exitCache.For(last, lockedLeft);
++            for (int i = 0; i < exits.Length; i++)
+             {
+-                e = EdgePlacement.ClampOutside(e, keepOut, safe);
+-                ExitMark state = WorldExits.AnyOpen(last) ? ExitMark.Open : WorldExits.AnyLocked(last) ? ExitMark.LockedByKiller : ExitMark.Locked;
+-                markers.Exit(MarkerLayer.Static, e, state);
+-                string tag = state == ExitMark.Locked ? KillerHudCopy.ExitLocked : state == ExitMark.Open ? KillerHudCopy.ExitOpen
+-                    : KillerHudCopy.ExitLockedFor(lockKnown && now < lockedEnd ? (float)(lockedEnd - now) : (float?)null);
+-                markers.Tag(MarkerLayer.Static, e + new Vector2(0, TagGap), tag, state == ExitMark.Locked ? TagStyle.Muted : TagStyle.Text, TagPivot.Below, LayoutPriority.Exit, true);
++                ExitState wire = last.Exits[i];
++                if (!Project(pose, new Vector3(wire.X, ExitMarkerHeight, wire.Z), screen, out Vector2 e)) continue;
++                v2.Exit(EdgePlacement.ClampOutside(e, keepOut, safe), exits[i]);
+             }
+         }
+ 
+@@ -419,6 +437,7 @@ namespace PingTheKiller.Client.Killer
+         {
+             audioOut?.Silence();
+             if (markers != null) { markers.Clear(MarkerLayer.Static); markers.Commit(MarkerLayer.Static); markers.Clear(MarkerLayer.Signals); markers.Commit(MarkerLayer.Signals); }
++            if (v2 != null) { v2.Begin(); v2.End(); }
+             foreach (Material material in materials) if (material != null) Destroy(material);
+             foreach (Character character in characters.Values) character.Motion?.Dispose();
+             foreach (Character character in pool) character.Motion?.Dispose();
+diff --git a/Client/Assets/Scripts/UI/ClientScreens.cs b/Client/Assets/Scripts/UI/ClientScreens.cs
+index 6c81958..0f5d51e 100644
+--- a/Client/Assets/Scripts/UI/ClientScreens.cs
++++ b/Client/Assets/Scripts/UI/ClientScreens.cs
+@@ -1,5 +1,6 @@
+ using System;
+ using PingTheKiller.Client.Settings;
++using PingTheKiller.Client.UI.RulesV2;
+ using PingTheKiller.Shared;
+ using PingTheKiller.Shared.Game;
+ using PingTheKiller.Shared.Packets;
+@@ -9,9 +10,10 @@ using UnityEngine.UIElements;
+ namespace PingTheKiller.Client.UI
+ {
+     // State list before layout: menu = endpoint/validation/connecting, Offline; lobby = eight slots, host permissions,
+-    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, team terminals + Exit, hacking %,
+-    // skill, cursor hint; killer: skill (Exit state lives on the exit in the world); result = winner + reason, own
+-    // outcome, lobby reopened or not; dev line (F3) = RTT online / offline marker.
++    // bot count, role, offline marker; play = survivor: Signal/Silent, own status, terminals, the rules v2 stack (sync
++    // check, hold row, both exits + collapse), skill, cursor hint; killer: skill, hold and collapse blocks (exit states
++    // live on the exits in the world); result = the rules v2 result (HUD_SPEC 13.7) + lobby reopened or not; dev line
++    // (F3) = RTT online / offline marker.
+     // Layout rule: every label is one line (nowrap, see ClientUI.uss); only .message wraps, at a fixed width.
+     public sealed class ClientScreens : MonoBehaviour
+     {
+@@ -21,9 +23,10 @@ namespace PingTheKiller.Client.UI
+         public const float MaxScale = 1f;
+         // HUD_SPEC 0.3: S text renders at max(14 u x scale, 12 px).
+         public const float SmallText = 14, SmallFloorPixels = 12;
+-        private VisualElement root, menu, lobby, result, play;
+-        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev, exit;
+-        private Label resultHeadline, resultOutcome, resultPreview, resultMessage;
++        private VisualElement root, menu, lobby, play;
++        private ResultV2Panel result;
++        private Label message, lobbyTitle, lobbyMessage, controlsTitle, dev;
++        private Label resultPreview, resultMessage;
+         private readonly Label[] slots = new Label[Protocol.LobbySlotCount];
+         private readonly VisualElement[] slotRows = new VisualElement[Protocol.LobbySlotCount];
+         private TextField address;
+@@ -75,12 +78,13 @@ namespace PingTheKiller.Client.UI
+             root = document.rootVisualElement;
+             root.AddToClassList("root");
+             root.styleSheets.Add(Resources.Load<StyleSheet>("ClientUI"));
++            root.styleSheets.Add(Resources.Load<StyleSheet>("RulesV2"));
+             Font font = Resources.Load<Font>("Fonts/Inter-Regular");
+             root.style.unityFontDefinition = FontDefinition.FromFont(font);
+             // Lagging stutter layers (HUD_SPEC 4.5): the held world image, behind every screen and the HUD.
+             StutterBack = Box(root, "stutter"); StutterFront = Box(root, "stutter");
+             StutterBack.pickingMode = PickingMode.Ignore; StutterFront.pickingMode = PickingMode.Ignore;
+-            BuildMenu(); BuildLobby(); BuildResult(); BuildPlay(font);
++            BuildMenu(); BuildLobby(); BuildResult(font); BuildPlay(font);
+             Options = GameSettings.Load(new PlayerPrefsStore());
+             settingsScreen = new SettingsScreen(root, Options, () => Playing);
+             settingsScreen.Closed += SettingsClosed;
+@@ -173,24 +177,23 @@ namespace PingTheKiller.Client.UI
+             start = Action(actions, "Start", () => StartMatch?.Invoke(), true);
+             Action(actions, "Leave", () => Leave?.Invoke());
+         }
+-        private void BuildResult()
++        // HUD_SPEC 13.7: the rules v2 result body; 7.5 Back to lobby and 7.6 Leave go into its Actions.
++        private void BuildResult(Font font)
+         {
+-            result = Box(root, "screen");
+-            Text(result, "Match result", "title");
+-            resultHeadline = Text(result, string.Empty, "headline");
+-            resultOutcome = Text(result, string.Empty, "outcome");
+-            resultPreview = Text(result, "Preview: synthetic result from a dev flag, not sent by a server.", "note");
+-            resultMessage = Text(result, string.Empty, "message");
+-            var actions = Box(result, "row");
+-            back = Action(actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
+-            resultLeave = Action(actions, "Leave", () => Leave?.Invoke());
++            result = new ResultV2Panel(font);
++            root.Add(result);
++            resultMessage = Text(result.Notes, string.Empty);
++            resultPreview = Text(result.Notes, ResultCopy.PreviewNote);
++            back = Action(result.Actions, "Back to lobby", () => BackToLobby?.Invoke(), true);
++            resultLeave = Action(result.Actions, "Leave", () => Leave?.Invoke());
++            resultLeave.AddToClassList("v2-secondary");
+         }
++        public ResultV2Panel Result => result;
+         private void BuildPlay(Font font)
+         {
+             play = Box(root, "play"); play.pickingMode = PickingMode.Ignore;
+             Survivor = new SurvivorHud(play, font);
+             Killer = new KillerHud(play, font);
+-            exit = Text(play, HudCopy.ExitLabel(false), "exit");
+         }
+         private void Phase(VisualElement visible)
+         {
+@@ -253,7 +256,6 @@ namespace PingTheKiller.Client.UI
+             Survivor.SetVisible(role == Role.Survivor);
+             if (role == Role.Survivor) Survivor.Begin(skillId);
+             Killer.SetVisible(role == Role.Killer);
+-            Show(exit, false);
+             root.focusController?.focusedElement?.Blur();
+         }
+         // Opened from the main menu (it replaces the menu) or from the Killer play menu (it sits over the match).
+@@ -270,21 +272,10 @@ namespace PingTheKiller.Client.UI
+             Show(menu, true); openSettings.Focus();
+         }
+         public void SetDev(string text) { if (dev.text != text) dev.text = text; }
+-        // The label sits above the ring (anchor chosen by the caller), bottom-centred on the anchor point.
+-        public void SetExit(Camera camera, Vector3 anchor, bool open)
+-        {
+-            Vector3 screen = camera.WorldToScreenPoint(anchor);
+-            bool visible = screen.z > 0 && screen.x >= 0 && screen.x <= Screen.width && screen.y >= 0 && screen.y <= Screen.height;
+-            Show(exit, visible);
+-            exit.text = HudCopy.ExitLabel(open);
+-            exit.style.left = screen.x / Screen.width * root.resolvedStyle.width;
+-            exit.style.top = (1 - screen.y / Screen.height) * root.resolvedStyle.height;
+-        }
+-        public void ShowResult(string headline, string outcome, bool preview)
++        public void ShowResult(ResultV2View view, bool preview)
+         {
+             Phase(result);
+-            resultHeadline.text = headline;
+-            resultOutcome.text = outcome;
++            result.Set(view);
+             Show(resultPreview, preview);
+             root.focusController?.focusedElement?.Blur();
+         }
+diff --git a/Client/Assets/Scripts/UI/HudCopy.cs b/Client/Assets/Scripts/UI/HudCopy.cs
+index c74de0a..934dbf0 100644
+--- a/Client/Assets/Scripts/UI/HudCopy.cs
++++ b/Client/Assets/Scripts/UI/HudCopy.cs
+@@ -64,8 +64,8 @@ namespace PingTheKiller.Client.UI
+             return done;
+         }
+ 
+-        public static string TerminalsLine(IReadOnlyList<TerminalState> terminals, byte required, bool exitOpen)
+-            => "Terminals " + CompletedTerminals(terminals) + "/" + required + " · Exit " + (exitOpen ? "open" : "locked");
++        public static string TerminalsLine(IReadOnlyList<TerminalState> terminals, byte required)
++            => "Terminals " + CompletedTerminals(terminals) + "/" + required;
+ 
+         // Index of the terminal closest to (x, z), or -1 when there is none.
+         public static int NearestTerminal(IReadOnlyList<TerminalState> terminals, float x, float z)
+@@ -81,7 +81,5 @@ namespace PingTheKiller.Client.UI
+         }
+ 
+         public static string HackingLine(byte progress) => "Hacking · " + Math.Min((int)progress, 100) + "%";
+-
+-        public static string ExitLabel(bool open) => open ? "Exit · Open" : "Exit · Locked";
+     }
+ }
+diff --git a/Client/Assets/Scripts/UI/KillerHud.cs b/Client/Assets/Scripts/UI/KillerHud.cs
+index 355644c..6035f9f 100644
+--- a/Client/Assets/Scripts/UI/KillerHud.cs
++++ b/Client/Assets/Scripts/UI/KillerHud.cs
+@@ -1,5 +1,6 @@
+ using System;
+ using PingTheKiller.Client.Killer;
++using PingTheKiller.Client.UI.RulesV2;
+ using PingTheKiller.Client.World;
+ using PingTheKiller.Shared.Game;
+ using UnityEngine;
+@@ -8,17 +9,22 @@ using UnityEngine.UIElements;
+ namespace PingTheKiller.Client.UI
+ {
+     // HUD_SPEC 6.1 bottom-left cluster (320 u wide, margin 24 u), stacked from the top: intro (3 s) or play menu,
+-    // execution prompt, info, effect line, skill block. Under it, the world marker layer (6.2). Every block has a `panel`
++    // interact prompt or the hold block (13.3), the collapse block (13.5), info, effect line, skill block. Under it, the
++    // world marker layer (6.2) and the rules v2 world layer (13.4, 13.6). Every block has a `panel`
+     // fill and a 1 u `line` border; corner radius 0. The HUD itself has no focusable element (only the play menu does).
+     public sealed class KillerHud
+     {
+         public const float Width = 320, Margin = 24;
+         private readonly VisualElement root, cluster, intro, menu, prompt, info, effect, skill, timeBar, effectBar;
+-        private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
++        private readonly Label introSkill, introEffect, menuSkill, menuEffect, promptTitle, promptLine, time, terminals, oneMore, effectText, skillName, skillState, skillKey;
+         private readonly Button resume, settings, leave;
+         private readonly SkillRing ring;
+         private readonly VisualElement[] blocks;
+         public MarkerLayer Markers { get; }
++        // HUD_SPEC 13.4 / 13.6: exit markers, Regressing tags and the Overloaded alert.
++        public V2MarkerLayer V2Markers { get; }
++        public HoldActionBar Hold { get; }
++        public CollapseTimer Collapse { get; }
+         public event Action Resume;
+         public event Action OpenSettings;
+         public event Action LeaveMatch;
+@@ -33,6 +39,8 @@ namespace PingTheKiller.Client.UI
+             parent.Add(root);
+             Markers = new MarkerLayer(font);
+             root.Add(Markers);
++            V2Markers = new V2MarkerLayer(font);
++            root.Add(V2Markers);
+             cluster = Box(root, "killer-cluster");
+ 
+             intro = Box(cluster, "kblock", "kintro");
+@@ -55,8 +63,12 @@ namespace PingTheKiller.Client.UI
+             menu.Add(leave);
+ 
+             prompt = Box(cluster, "kblock", "kprompt");
+-            Text(prompt, KillerHudCopy.LaggingTitle, "ks", "kbold");
+-            promptLine = Text(prompt, string.Empty, "ks");
++            promptTitle = Text(prompt, string.Empty, "ks", "kbold");
++            promptLine = Text(prompt, string.Empty, "ks", "kmuted");
++            Hold = new HoldActionBar(Role.Killer, font);
++            cluster.Add(Hold);
++            Collapse = new CollapseTimer(Role.Killer, font);
++            cluster.Add(Collapse);
+ 
+             info = Box(cluster, "kblock", "kinfo");
+             VisualElement timeRow = Box(info, "krow");
+@@ -78,7 +90,7 @@ namespace PingTheKiller.Client.UI
+             skillState = Text(column, string.Empty, "ks", "kmuted");
+             skillKey = Text(column, "[Q]", "ks", "kmuted");
+ 
+-            blocks = new[] { intro, menu, prompt, info, effect, skill };
++            blocks = new[] { intro, menu, prompt, info, effect, skill, Hold, Collapse };
+             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
+             foreach (Button button in root.Query<Button>().ToList()) button.style.unityFontDefinition = FontDefinition.FromFont(font);
+             Show(root, false);
+@@ -120,7 +132,8 @@ namespace PingTheKiller.Client.UI
+             introEffect.text = menuEffect.text = KillerHudCopy.SkillEffect(skillId);
+             skillName.text = KillerHudCopy.SkillName(skillId);
+             Show(skillKey, skillId != SkillIds.PacketAfterimage);
+-            Show(intro, true); Show(menu, false); Show(prompt, false); Show(effect, false);
++            Show(intro, true); Show(menu, false); Show(prompt, false); Show(effect, false); Hold.Hide();
++            Collapse.Set(new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
+             Show(root, true);
+         }
+ 
+@@ -131,7 +144,7 @@ namespace PingTheKiller.Client.UI
+         public void SetMenu(bool open)
+         {
+             Show(menu, open);
+-            if (open) { Show(intro, false); Show(prompt, false); resume.Focus(); }
++            if (open) { Show(intro, false); Show(prompt, false); Hold.Hide(); resume.Focus(); }
+             else resume.Blur();
+         }
+ 
+@@ -152,22 +165,33 @@ namespace PingTheKiller.Client.UI
+             Show(effectBar, danger);
+         }
+ 
+-        public void SetPrompt(ExecutionPrompt state, float graceLeft)
++        // HUD_SPEC 13.3: the hold block takes the prompt slot while a kick or a hatch close runs; otherwise the interact
++        // prompt (kick, hatch close) shows when in reach. Both hide while the play menu is open.
++        public void SetPrompt(InteractPrompt interact, in HoldActionView hold)
+         {
+-            string line = KillerHudCopy.PromptLine(state, graceLeft);
+-            Show(prompt, line != null && !MenuOpen);
+-            if (line != null && promptLine.text != line) promptLine.text = line;
++            bool holding = hold.Kind != HoldKind.None && !MenuOpen;
++            if (holding) Hold.Set(hold, "[E]"); else Hold.Hide();
++            bool visible = !holding && !MenuOpen && !string.IsNullOrEmpty(interact.Text);
++            Show(prompt, visible);
++            if (!visible) return;
++            if (promptTitle.text != interact.Text) promptTitle.text = interact.Text;
++            SetText(promptLine, interact.Hint);
+         }
+ 
++        public string PromptText => prompt.style.display == DisplayStyle.None ? null : promptTitle.text;
++
++        // HUD_SPEC 13.5: the global collapse clock (hidden while it does not run).
++        public void SetCollapse(in CollapseView view) => Collapse.Set(view);
++
+         // 6.1d. self = the S2C_SelfState clock; null or not yet received this match: no cooldown ring, Ready / Passive /
+-        // After the Exit opens only.
+-        public void SetSkill(byte skillId, bool exitOpen, ISelfState self, float activeFraction)
++        // Needs an Exit switch in progress only.
++        public void SetSkill(byte skillId, bool switchInProgress, ISelfState self, float activeFraction)
+         {
+             float? cooldown = self != null && self.Available ? self.SkillCooldown : (float?)null;
+-            string state = KillerHudCopy.SkillState(skillId, exitOpen, cooldown);
++            string state = KillerHudCopy.SkillState(skillId, switchInProgress, cooldown);
+             if (skillState.text != state) skillState.text = state;
+             SkillRing.State ringState = skillId == SkillIds.PacketAfterimage ? SkillRing.State.Passive
+-                : skillId == SkillIds.FirewallBlock && !exitOpen ? SkillRing.State.Disabled
++                : skillId == SkillIds.FirewallBlock && !switchInProgress ? SkillRing.State.Disabled
+                 : cooldown.HasValue && cooldown.Value > 0 ? SkillRing.State.Cooldown : SkillRing.State.Ready;
+             float fraction = cooldown.HasValue ? cooldown.Value / GameConstants.KillerSkillCooldownSeconds : 0;
+             ring.Set(skillId, ringState, fraction, activeFraction, false);
+@@ -181,6 +205,8 @@ namespace PingTheKiller.Client.UI
+             if (Visible(intro)) height += 208 + 8;
+             else if (Visible(menu)) height += MenuHeight + 8;
+             if (Visible(prompt)) height += 56 + 8;
++            if (Visible(Hold)) height += 72 + 8;
++            if (Visible(Collapse)) height += 32 + 8;
+             if (Visible(effect)) height += 32 + 8;
+             return new Rect(Margin, screenHeight - Margin - height, Width, height);
+         }
+@@ -196,7 +222,7 @@ namespace PingTheKiller.Client.UI
+                 block.style.borderTopWidth = border; block.style.borderBottomWidth = border;
+                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
+             }
+-            Markers.Scale = scale; ring.Scale = scale;
++            Markers.Scale = scale; ring.Scale = scale; V2Markers.Scale = scale;
+             Markers.MarkDirtyRepaint(); ring.MarkDirtyRepaint();
+         }
+     }
+diff --git a/Client/Assets/Scripts/UI/ResultCopy.cs b/Client/Assets/Scripts/UI/ResultCopy.cs
+index f6d7444..ebdd97e 100644
+--- a/Client/Assets/Scripts/UI/ResultCopy.cs
++++ b/Client/Assets/Scripts/UI/ResultCopy.cs
+@@ -1,73 +1,13 @@
+-using System.Collections.Generic;
+-using System.Text;
+-using PingTheKiller.Shared.Game;
+-using PingTheKiller.Shared.Packets;
+-
+ namespace PingTheKiller.Client.UI
+ {
+-    // Pure S2C_GameResult copy: winner side + reason in plain words, the local player's own outcome. No banner words.
++    // Result screen lines outside the rules v2 body (HUD_SPEC 7.5, 13.7): whether the lobby is open again, and the dev
++    // preview note. The headline, outcome, rule, reason and rows are ResultV2Copy.
+     public static class ResultCopy
+     {
+         public const string Waiting = "Waiting for the host to reopen the lobby.";
+         public const string WaitingOffline = "Waiting for the lobby to reopen.";
+         public const string LobbyOpen = "The lobby is open again.";
+-
+-        // v0.4 (GDD v2): Survivors win when at least half of them escaped, whatever ended the match; WinnerRole carries it.
+-        public static string Headline(S2C_GameResult result, S2C_LobbyState lobby)
+-        {
+-            if (result.WinnerRole == (byte)Role.Survivor)
+-            {
+-                string names = Names(result.EscapedIds, lobby);
+-                return names.Length == 0 ? "Survivors win. A survivor reached the Exit." : "Survivors win. " + names + " reached the Exit.";
+-            }
+-            switch ((GameEndReason)result.Reason)
+-            {
+-                case GameEndReason.AllSurvivorsDown: return "Killer wins. No survivor is left in play.";
+-                case GameEndReason.AllResolved: return "Killer wins. Too few survivors reached the Exit.";
+-                case GameEndReason.Collapse: return "Killer wins. The network collapsed.";
+-                default: return "Killer wins. Time ran out.";
+-            }
+-        }
+-
+-        public static string Outcome(S2C_GameResult result, int localId, Role localRole, PlayerStatus localStatus)
+-        {
+-            bool survivorsWon = result.WinnerRole == (byte)Role.Survivor;
+-            if (localRole == Role.Killer) return survivorsWon ? "You lost as the Killer." : "You won as the Killer.";
+-            if (result.EscapedIds != null && result.EscapedIds.Contains(localId) || localStatus == PlayerStatus.Escaped) return "You escaped.";
+-            if (localStatus == PlayerStatus.Eliminated) return "You were eliminated.";
+-            if (localStatus == PlayerStatus.Lagging) return "You were still Lagging when the match ended.";
+-            return survivorsWon ? "Your team won. You did not reach the Exit." : "You did not escape.";
+-        }
+-
+-        // (10/30) An eliminated Survivor's line carries the reason the meter showed (CaptureWatch), e.g.
+-        // "You were eliminated. Executed: caught a second time." Without a reason it is the plain line.
+-        public static string Outcome(S2C_GameResult result, int localId, Role localRole, PlayerStatus localStatus, string eliminatedReason)
+-        {
+-            string line = Outcome(result, localId, localRole, localStatus);
+-            bool eliminated = localRole == Role.Survivor && line == "You were eliminated.";
+-            return eliminated && !string.IsNullOrEmpty(eliminatedReason) ? line + " " + eliminatedReason : line;
+-        }
+-
+-        public static string NameOf(int id, S2C_LobbyState lobby)
+-        {
+-            if (lobby?.Slots != null)
+-                foreach (Slot slot in lobby.Slots)
+-                    if (slot != null && slot.PlayerId == id && !string.IsNullOrEmpty(slot.Nickname)) return slot.Nickname;
+-            return "Player " + id;
+-        }
+-
+-        // "A", "A and B", "A, B and C".
+-        public static string Names(IReadOnlyList<int> ids, S2C_LobbyState lobby)
+-        {
+-            var text = new StringBuilder();
+-            int count = ids?.Count ?? 0;
+-            for (int i = 0; i < count; i++)
+-            {
+-                if (i > 0) text.Append(i == count - 1 ? " and " : ", ");
+-                text.Append(NameOf(ids[i], lobby));
+-            }
+-            return text.ToString();
+-        }
++        public const string PreviewNote = "Preview: synthetic result from a dev flag, not sent by a server.";
+ 
+         public static string LobbyLine(bool lobbyOpen, bool offline) => lobbyOpen ? LobbyOpen : offline ? WaitingOffline : Waiting;
+     }
+diff --git a/Client/Assets/Scripts/UI/RulesV2/RulesV2Blocks.cs b/Client/Assets/Scripts/UI/RulesV2/RulesV2Blocks.cs
+index 0e8a65c..aa48165 100644
+--- a/Client/Assets/Scripts/UI/RulesV2/RulesV2Blocks.cs
++++ b/Client/Assets/Scripts/UI/RulesV2/RulesV2Blocks.cs
+@@ -1,167 +1,184 @@
+-using PingTheKiller.Shared.Game;
+-using UnityEngine;
+-using UnityEngine.UIElements;
+-
+-namespace PingTheKiller.Client.UI.RulesV2
+-{
+-    // HUD_SPEC 13.3: one hold action component. Survivor: the 672x40 u prompt row (M label, 656x4 u bar, fill `text`).
+-    // Killer: a 320x72 u block in the cluster's prompt slot (M 600 label, 304x4 u bar, S `muted` hint). Hidden for
+-    // HoldKind.None.
+-    public sealed class HoldActionBar : VisualElement
+-    {
+-        private readonly Label label, hint;
+-        private readonly VisualElement fill;
+-        private readonly Role role;
+-
+-        public HoldActionBar(Role viewer, Font font)
+-        {
+-            role = viewer;
+-            pickingMode = PickingMode.Ignore;
+-            AddToClassList("v2-hold");
+-            AddToClassList(viewer == Role.Killer ? "v2-hold-killer" : "v2-hold-survivor");
+-            label = V2Ui.Text(this, string.Empty, font, "v2-m", viewer == Role.Killer ? "v2-bold" : "v2-plain");
+-            VisualElement track = V2Ui.Box(this, "v2-hold-track");
+-            fill = V2Ui.Box(track, "v2-fill", "v2-fill-text");
+-            hint = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-muted", "v2-hold-hint");
+-            V2Ui.Show(hint, viewer == Role.Killer);
+-            V2Ui.Show(this, false);
+-        }
+-
+-        public string Text => label.text;
+-
+-        public void Set(in HoldActionView view, string interactGlyph)
+-        {
+-            V2Ui.Show(this, view.Kind != HoldKind.None);
+-            if (view.Kind == HoldKind.None) return;
+-            Set(HoldCopy.Label(view), view.Progress01);
+-            if (role == Role.Killer) V2Ui.SetText(hint, HoldCopy.Hint(view.Kind, interactGlyph));
+-        }
+-
+-        // Any prompt row with a bar (HUD_SPEC 4.3 hacking uses the same row).
+-        public void Set(string text, float progress01)
+-        {
+-            V2Ui.Show(this, true);
+-            V2Ui.SetText(label, text);
+-            V2Ui.Fill(fill, HoldCopy.Fill(progress01));
+-        }
+-
+-        public void Hide() => V2Ui.Show(this, false);
+-    }
+-
+-    // HUD_SPEC 13.4: one Survivor exit cell, 192x46 u: line 1 `Exit 1` (M 600) left and the state word (M) right; line 2
+-    // a 176x6 u switch track (1 u `muted` outline) with a 4 u fill. Fill colour by phase: Switching `text`, Locked
+-    // `danger`, Open `ally` (full). No power: name and state `muted`, track only.
+-    public sealed class ExitCell : VisualElement
+-    {
+-        private readonly Label name, state;
+-        private readonly VisualElement fill;
+-
+-        public ExitCell(Font font)
+-        {
+-            pickingMode = PickingMode.Ignore;
+-            AddToClassList("v2-exit");
+-            VisualElement line = V2Ui.Box(this, "v2-line");
+-            name = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-bold");
+-            state = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-right");
+-            VisualElement track = V2Ui.Box(this, "v2-exit-track");
+-            fill = V2Ui.Box(track, "v2-fill");
+-        }
+-
+-        public string Text => name.text + " " + state.text;
+-
+-        public void Set(in ExitView exit)
+-        {
+-            ExitPhase phase = ExitCopy.Phase(exit);
+-            V2Ui.SetText(name, ExitCopy.Name(exit.Id));
+-            V2Ui.SetText(state, ExitCopy.State(exit));
+-            bool muted = phase == ExitPhase.NoPower;
+-            name.EnableInClassList("v2-muted", muted); state.EnableInClassList("v2-muted", muted);
+-            fill.EnableInClassList("v2-fill-text", phase == ExitPhase.Switching || phase == ExitPhase.Powered);
+-            fill.EnableInClassList("v2-fill-danger", phase == ExitPhase.Locked);
+-            fill.EnableInClassList("v2-fill-ally", phase == ExitPhase.Open);
+-            V2Ui.Fill(fill, phase == ExitPhase.Open ? 1 : phase == ExitPhase.NoPower ? 0 : HoldCopy.Fill(exit.SwitchProgress01));
+-        }
+-    }
+-
+-    // HUD_SPEC 13.5: the collapse clock. A 4x18 u bar, then `Collapse 1:52` (M 600 `text`). Urgent (shown value 0:30 or
+-    // less) changes only the bar colour: `muted` -> `danger` (Survivor) or `text` (Killer). The text never changes colour
+-    // and nothing flashes. Survivor: line 2 (S `text`) `Lagging: 2x faster · you 0:48` / `You 0:48` while the personal
+-    // clock shows a different value.
+-    public sealed class CollapseTimer : VisualElement
+-    {
+-        private readonly Label main, personal;
+-        private readonly VisualElement bar;
+-        private readonly Role role;
+-
+-        public CollapseTimer(Role viewer, Font font)
+-        {
+-            role = viewer;
+-            pickingMode = PickingMode.Ignore;
+-            AddToClassList("v2-collapse");
+-            AddToClassList(viewer == Role.Killer ? "v2-collapse-killer" : "v2-collapse-survivor");
+-            VisualElement line = V2Ui.Box(this, "v2-line");
+-            bar = V2Ui.Box(line, "v2-bar");
+-            main = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-bold");
+-            personal = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-personal");
+-            V2Ui.Show(this, false);
+-        }
+-
+-        public bool Urgent { get; private set; }
+-        public string Main => main.text;
+-        public string Personal => personal.text;
+-
+-        public void Set(in CollapseView view)
+-        {
+-            V2Ui.Show(this, view.Running);
+-            if (!view.Running) return;
+-            CollapseView shown = view;
+-            if (role == Role.Killer) shown.PersonalLeft = -1;
+-            Urgent = CollapseCopy.Urgent(shown);
+-            V2Ui.SetText(main, CollapseCopy.Main(shown));
+-            string second = role == Role.Survivor ? CollapseCopy.Personal(shown) : string.Empty;
+-            V2Ui.SetText(personal, second);
+-            V2Ui.Show(personal, second.Length > 0);
+-            bar.EnableInClassList("v2-urgent-danger", Urgent && role == Role.Survivor);
+-            bar.EnableInClassList("v2-urgent-text", Urgent && role == Role.Killer);
+-        }
+-    }
+-
+-    // HUD_SPEC 13.1: the Survivor objective row, 672x48 u, 8 u above the cluster: Exit 1 | Exit 2 | collapse.
+-    // Shown once any exit is Powered or a collapse clock runs.
+-    public sealed class ObjectiveRow : VisualElement
+-    {
+-        public readonly ExitCell[] Exits = new ExitCell[2];
+-        public readonly CollapseTimer Collapse;
+-
+-        public ObjectiveRow(Font font)
+-        {
+-            pickingMode = PickingMode.Ignore;
+-            AddToClassList("v2-objective");
+-            for (int i = 0; i < Exits.Length; i++) { Exits[i] = new ExitCell(font); Add(Exits[i]); }
+-            Collapse = new CollapseTimer(Role.Survivor, font);
+-            Add(Collapse);
+-            V2Ui.Show(this, false);
+-        }
+-
+-        public static bool Applies(ExitView[] exits, in CollapseView collapse)
+-        {
+-            if (collapse.Running) return true;
+-            if (exits != null) foreach (ExitView exit in exits) if (exit.Powered || exit.Open) return true;
+-            return false;
+-        }
+-
+-        public void Set(ExitView[] exits, in CollapseView collapse)
+-        {
+-            bool shown = Applies(exits, collapse);
+-            V2Ui.Show(this, shown);
+-            if (!shown) return;
+-            for (int i = 0; i < Exits.Length; i++)
+-            {
+-                bool has = exits != null && i < exits.Length;
+-                V2Ui.Show(Exits[i], has);
+-                if (has) Exits[i].Set(exits[i]);
+-            }
+-            Collapse.Set(collapse);
+-        }
+-    }
+-}
++using PingTheKiller.Shared.Game;
++using UnityEngine;
++using UnityEngine.UIElements;
++
++namespace PingTheKiller.Client.UI.RulesV2
++{
++    // HUD_SPEC 13.3: one hold action component. Survivor: the 672x40 u prompt row (M label, 656x4 u bar, fill `text`).
++    // Killer: a 320x72 u block in the cluster's prompt slot (M 600 label, 304x4 u bar, S `muted` hint). Hidden for
++    // HoldKind.None.
++    public sealed class HoldActionBar : VisualElement
++    {
++        private readonly Label label, hint;
++        private readonly VisualElement fill;
++        private readonly Role role;
++
++        public HoldActionBar(Role viewer, Font font)
++        {
++            role = viewer;
++            pickingMode = PickingMode.Ignore;
++            AddToClassList("v2-hold");
++            AddToClassList(viewer == Role.Killer ? "v2-hold-killer" : "v2-hold-survivor");
++            label = V2Ui.Text(this, string.Empty, font, "v2-m", viewer == Role.Killer ? "v2-bold" : "v2-plain");
++            VisualElement track = V2Ui.Box(this, "v2-hold-track");
++            fill = V2Ui.Box(track, "v2-fill", "v2-fill-text");
++            hint = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-muted", "v2-hold-hint");
++            V2Ui.Show(hint, viewer == Role.Killer);
++            V2Ui.Show(this, false);
++        }
++
++        public string Text => label.text;
++
++        private readonly TextMemo memo = new TextMemo(2);
++
++        public void Set(in HoldActionView view, string interactGlyph)
++        {
++            V2Ui.Show(this, view.Kind != HoldKind.None);
++            if (view.Kind == HoldKind.None) return;
++            long key = (long)view.Kind | (long)HoldCopy.Percent(view.Progress01) << 8;
++            if (!memo.Hit(0, key, out string text)) text = memo.Put(0, key, HoldCopy.Label(view));
++            Set(text, view.Progress01);
++            if (role != Role.Killer) return;
++            long hintKey = (long)view.Kind | (long)(interactGlyph?.GetHashCode() ?? 0) << 8;
++            if (!memo.Hit(1, hintKey, out string line)) line = memo.Put(1, hintKey, HoldCopy.Hint(view.Kind, interactGlyph));
++            V2Ui.SetText(hint, line);
++        }
++
++        // Any prompt row with a bar (HUD_SPEC 4.3 hacking uses the same row).
++        public void Set(string text, float progress01)
++        {
++            V2Ui.Show(this, true);
++            V2Ui.SetText(label, text);
++            V2Ui.Fill(fill, HoldCopy.Fill(progress01));
++        }
++
++        public void Hide() => V2Ui.Show(this, false);
++    }
++
++    // HUD_SPEC 13.4: one Survivor exit cell, 192x46 u: line 1 `Exit 1` (M 600) left and the state word (M) right; line 2
++    // a 176x6 u switch track (1 u `muted` outline) with a 4 u fill. Fill colour by phase: Switching `text`, Locked
++    // `danger`, Open `ally` (full). No power: name and state `muted`, track only.
++    public sealed class ExitCell : VisualElement
++    {
++        private readonly Label name, state;
++        private readonly VisualElement fill;
++
++        public ExitCell(Font font)
++        {
++            pickingMode = PickingMode.Ignore;
++            AddToClassList("v2-exit");
++            VisualElement line = V2Ui.Box(this, "v2-line");
++            name = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-bold");
++            state = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-right");
++            VisualElement track = V2Ui.Box(this, "v2-exit-track");
++            fill = V2Ui.Box(track, "v2-fill");
++        }
++
++        private long shown = -1;
++
++        public string Text => name.text + " " + state.text;
++
++        public void Set(in ExitView exit)
++        {
++            long key = ExitCopy.Key(exit);
++            if (key == shown) return;
++            shown = key;
++            ExitPhase phase = ExitCopy.Phase(exit);
++            V2Ui.SetText(name, ExitCopy.Name(exit.Id));
++            V2Ui.SetText(state, ExitCopy.State(exit));
++            bool muted = phase == ExitPhase.NoPower;
++            name.EnableInClassList("v2-muted", muted); state.EnableInClassList("v2-muted", muted);
++            fill.EnableInClassList("v2-fill-text", phase == ExitPhase.Switching || phase == ExitPhase.Powered);
++            fill.EnableInClassList("v2-fill-danger", phase == ExitPhase.Locked);
++            fill.EnableInClassList("v2-fill-ally", phase == ExitPhase.Open);
++            V2Ui.Fill(fill, phase == ExitPhase.Open ? 1 : phase == ExitPhase.NoPower ? 0 : HoldCopy.Fill(exit.SwitchProgress01));
++        }
++    }
++
++    // HUD_SPEC 13.5: the collapse clock. A 4x18 u bar, then `Collapse 1:52` (M 600 `text`). Urgent (shown value 0:30 or
++    // less) changes only the bar colour: `muted` -> `danger` (Survivor) or `text` (Killer). The text never changes colour
++    // and nothing flashes. Survivor: line 2 (S `text`) `Lagging: 2x faster · you 0:48` / `You 0:48` while the personal
++    // clock shows a different value.
++    public sealed class CollapseTimer : VisualElement
++    {
++        private readonly Label main, personal;
++        private readonly VisualElement bar;
++        private readonly Role role;
++
++        public CollapseTimer(Role viewer, Font font)
++        {
++            role = viewer;
++            pickingMode = PickingMode.Ignore;
++            AddToClassList("v2-collapse");
++            AddToClassList(viewer == Role.Killer ? "v2-collapse-killer" : "v2-collapse-survivor");
++            VisualElement line = V2Ui.Box(this, "v2-line");
++            bar = V2Ui.Box(line, "v2-bar");
++            main = V2Ui.Text(line, string.Empty, font, "v2-m", "v2-bold");
++            personal = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-personal");
++            V2Ui.Show(this, false);
++        }
++
++        public bool Urgent { get; private set; }
++        public string Main => main.text;
++        public string Personal => personal.text;
++
++        private long shownKey = -1;
++
++        public void Set(in CollapseView view)
++        {
++            V2Ui.Show(this, view.Running);
++            if (!view.Running) return;
++            CollapseView shown = view;
++            if (role == Role.Killer) shown.PersonalLeft = -1;
++            long key = CollapseCopy.Key(shown);
++            if (key == shownKey) return;
++            shownKey = key;
++            Urgent = CollapseCopy.Urgent(shown);
++            V2Ui.SetText(main, CollapseCopy.Main(shown));
++            string second = role == Role.Survivor ? CollapseCopy.Personal(shown) : string.Empty;
++            V2Ui.SetText(personal, second);
++            V2Ui.Show(personal, second.Length > 0);
++            bar.EnableInClassList("v2-urgent-danger", Urgent && role == Role.Survivor);
++            bar.EnableInClassList("v2-urgent-text", Urgent && role == Role.Killer);
++        }
++    }
++
++    // HUD_SPEC 13.1: the Survivor objective row, 672x48 u, 8 u above the cluster: Exit 1 | Exit 2 | collapse.
++    // Shown once any exit is Powered or a collapse clock runs.
++    public sealed class ObjectiveRow : VisualElement
++    {
++        public readonly ExitCell[] Exits = new ExitCell[2];
++        public readonly CollapseTimer Collapse;
++
++        public ObjectiveRow(Font font)
++        {
++            pickingMode = PickingMode.Ignore;
++            AddToClassList("v2-objective");
++            for (int i = 0; i < Exits.Length; i++) { Exits[i] = new ExitCell(font); Add(Exits[i]); }
++            Collapse = new CollapseTimer(Role.Survivor, font);
++            Add(Collapse);
++            V2Ui.Show(this, false);
++        }
++
++        public static bool Applies(ExitView[] exits, in CollapseView collapse)
++        {
++            if (collapse.Running) return true;
++            if (exits != null) foreach (ExitView exit in exits) if (exit.Powered || exit.Open) return true;
++            return false;
++        }
++
++        public void Set(ExitView[] exits, in CollapseView collapse)
++        {
++            bool shown = Applies(exits, collapse);
++            V2Ui.Show(this, shown);
++            if (!shown) return;
++            for (int i = 0; i < Exits.Length; i++)
++            {
++                bool has = exits != null && i < exits.Length;
++                V2Ui.Show(Exits[i], has);
++                if (has) Exits[i].Set(exits[i]);
++            }
++            Collapse.Set(collapse);
++        }
++    }
++}
+diff --git a/Client/Assets/Scripts/UI/RulesV2/RulesV2Copy.cs b/Client/Assets/Scripts/UI/RulesV2/RulesV2Copy.cs
+index d1b8fc2..b300740 100644
+--- a/Client/Assets/Scripts/UI/RulesV2/RulesV2Copy.cs
++++ b/Client/Assets/Scripts/UI/RulesV2/RulesV2Copy.cs
+@@ -1,241 +1,256 @@
+-using System.Globalization;
+-using PingTheKiller.Shared.Game;
+-using UnityEngine;
+-
+-namespace PingTheKiller.Client.UI.RulesV2
+-{
+-    // HUD_SPEC 13.2: the sync check ring geometry and the client-side reading of its zones. The server judges every
+-    // press (U6a R3); Judge only states which drawn region a needle fraction falls in. Great is exactly the great part
+-    // [ZoneStart, ZoneStart + GreatSize]; the optional tolerance (fractions) widens Good on both zone edges and never
+-    // creates Great. Edges are inclusive.
+-    public static class SyncCheckMath
+-    {
+-        // Seconds the result word stays on screen after S2C_SyncResult.
+-        public const float ResultSeconds = .4f;
+-        // U6a SyncToleranceSeconds, for converting to a fraction of one sweep.
+-        public const float ToleranceSeconds = .15f;
+-
+-        public static float NeedleFraction(float elapsed, float duration)
+-        {
+-            if (!(duration > 0) || float.IsNaN(elapsed)) return 0;
+-            return Mathf.Clamp01(elapsed / duration);
+-        }
+-
+-        // Clockwise degrees from 12 o'clock.
+-        public static float NeedleDegrees(float elapsed, float duration) => NeedleFraction(elapsed, duration) * 360f;
+-
+-        public static float ToleranceFraction(float duration) => duration > 0 ? ToleranceSeconds / duration : 0;
+-
+-        public static SyncResult Judge(float fraction, float zoneStart, float zoneSize, float greatSize, float tolerance = 0)
+-        {
+-            if (float.IsNaN(fraction)) return SyncResult.Fail;
+-            tolerance = Mathf.Max(0, tolerance);
+-            float greatEnd = zoneStart + Mathf.Min(greatSize, zoneSize);
+-            float zoneEnd = zoneStart + zoneSize;
+-            if (fraction >= zoneStart && fraction <= greatEnd) return SyncResult.Great;
+-            if (fraction >= zoneStart - tolerance && fraction <= zoneEnd + tolerance) return SyncResult.Good;
+-            return SyncResult.Fail;
+-        }
+-
+-        public static SyncResult Judge(float fraction, in SyncCheckView view, float tolerance = 0)
+-            => Judge(fraction, view.ZoneStart, view.ZoneSize, view.GreatSize, tolerance);
+-
+-        public static string ResultWord(SyncResult result)
+-            => result == SyncResult.Great ? "Great" : result == SyncResult.Good ? "Good" : "Fail";
+-
+-    }
+-
+-    // HUD_SPEC 13.3: hold action bar copy and fill.
+-    public static class HoldCopy
+-    {
+-        public static float Fill(float progress01)
+-        {
+-            if (float.IsNaN(progress01)) return 0;
+-            return Mathf.Clamp01(progress01);
+-        }
+-
+-        public static int Percent(float progress01) => Mathf.FloorToInt(Fill(progress01) * 100f + 1e-4f);
+-
+-        public static string Label(in HoldActionView view)
+-        {
+-            string percent = Percent(view.Progress01).ToString(CultureInfo.InvariantCulture) + "%";
+-            switch (view.Kind)
+-            {
+-                case HoldKind.ExitSwitch: return "Opening the Exit · " + percent + " — you are Signal";
+-                case HoldKind.KickTerminal: return "Kicking the Terminal · " + percent;
+-                case HoldKind.CloseHatch: return "Closing the Hatch · " + percent;
+-                default: return string.Empty;
+-            }
+-        }
+-
+-        // Killer block second line (S muted): what cancels the hold.
+-        public static string Hint(HoldKind kind, string interactGlyph)
+-        {
+-            switch (kind)
+-            {
+-                case HoldKind.KickTerminal: return "Hold " + interactGlyph + " · moving cancels the kick";
+-                case HoldKind.CloseHatch: return "Hold " + interactGlyph + " · releasing cancels";
+-                default: return string.Empty;
+-            }
+-        }
+-    }
+-
+-    public enum ExitPhase : byte { NoPower, Powered, Switching, Locked, Open }
+-
+-    // HUD_SPEC 13.4: exit status. Precedence: Open > Locked > Switching (progress > 0) > Powered > NoPower.
+-    public static class ExitCopy
+-    {
+-        public static ExitPhase Phase(in ExitView exit)
+-        {
+-            if (exit.Open) return ExitPhase.Open;
+-            if (exit.Locked) return ExitPhase.Locked;
+-            if (!exit.Powered) return ExitPhase.NoPower;
+-            return HoldCopy.Fill(exit.SwitchProgress01) > 0 ? ExitPhase.Switching : ExitPhase.Powered;
+-        }
+-
+-        public static string Name(byte id) => "Exit " + (id + 1).ToString(CultureInfo.InvariantCulture);
+-
+-        // The right-hand state word of a Survivor exit cell, and the second half of a Killer exit tag.
+-        public static string State(in ExitView exit)
+-        {
+-            switch (Phase(exit))
+-            {
+-                case ExitPhase.Open: return "Open";
+-                case ExitPhase.Locked:
+-                    return exit.LockedLeft > 0 ? "Locked " + Mathf.CeilToInt(exit.LockedLeft).ToString(CultureInfo.InvariantCulture) + " s" : "Locked";
+-                case ExitPhase.Switching: return HoldCopy.Percent(exit.SwitchProgress01).ToString(CultureInfo.InvariantCulture) + "%";
+-                case ExitPhase.Powered: return "Powered";
+-                default: return "No power";
+-            }
+-        }
+-
+-        public static string Tag(in ExitView exit) => Name(exit.Id) + " · " + State(exit);
+-    }
+-
+-    // HUD_SPEC 13.5: the collapse clock.
+-    public static class CollapseCopy
+-    {
+-        public const int UrgentSeconds = 30;
+-
+-        // m:ss of ceil(seconds); negative (not running) reads as 0:00.
+-        public static string Clock(float seconds)
+-        {
+-            int whole = seconds > 0 ? Mathf.CeilToInt(seconds) : 0;
+-            return (whole / 60).ToString(CultureInfo.InvariantCulture) + ":" + (whole % 60).ToString("00", CultureInfo.InvariantCulture);
+-        }
+-
+-        // The clock that eliminates this viewer: the personal one when it runs, else the global one.
+-        public static float Deciding(in CollapseView view) => view.PersonalLeft >= 0 ? view.PersonalLeft : view.GlobalLeft;
+-
+-        // Urgent once the shown number is 0:30 or less (ceil), so the colour changes on the same frame as the digits.
+-        public static bool Urgent(float seconds) => seconds >= 0 && Mathf.CeilToInt(seconds) <= UrgentSeconds;
+-
+-        public static bool Urgent(in CollapseView view) => view.Running && Urgent(Deciding(view));
+-
+-        // True when the personal clock shows a different m:ss from the global one.
+-        public static bool Differs(in CollapseView view)
+-            => view.PersonalLeft >= 0 && view.GlobalLeft >= 0 && Clock(view.PersonalLeft) != Clock(view.GlobalLeft);
+-
+-        public static string Main(in CollapseView view) => "Collapse " + Clock(view.GlobalLeft >= 0 ? view.GlobalLeft : view.PersonalLeft);
+-
+-        // Second line (S), Survivor only: empty unless the personal clock differs.
+-        public static string Personal(in CollapseView view)
+-        {
+-            if (!Differs(view)) return string.Empty;
+-            return view.Lagging ? "Lagging: 2× faster · you " + Clock(view.PersonalLeft) : "You " + Clock(view.PersonalLeft);
+-        }
+-    }
+-
+-    // HUD_SPEC 13.6: terminal flag tags and the Killer's Overloaded alert.
+-    public static class TerminalFlagCopy
+-    {
+-        public static string Name(byte id) => "Terminal " + (id + 1).ToString(CultureInfo.InvariantCulture);
+-
+-        // Regressing tag: Survivors see the percentage, the Killer does not (HUD_SPEC 6.2, 11.1 N9).
+-        public static string Regressing(in TerminalFlagsView terminal, Role viewer)
+-            => viewer == Role.Survivor
+-                ? Name(terminal.Id) + " · " + HoldCopy.Percent(terminal.Progress01).ToString(CultureInfo.InvariantCulture) + "% · Regressing"
+-                : Name(terminal.Id) + " · Regressing";
+-
+-        public static string Overloaded(in TerminalFlagsView terminal, float metres)
+-            => Name(terminal.Id) + " overloaded · " + Mathf.RoundToInt(Mathf.Max(0, metres)).ToString(CultureInfo.InvariantCulture) + " m";
+-
+-        // Regressing shows to both roles; Overloaded is the Killer alert only.
+-        public static bool ShowOverloaded(in TerminalFlagsView terminal, Role viewer) => viewer == Role.Killer && terminal.Overloaded;
+-    }
+-
+-    // HUD_SPEC 13.7: the result screen.
+-    public static class ResultV2Copy
+-    {
+-        public const int NameBudget = 24;
+-
+-        // GDD v2 1 / U6a R8: Survivors win when escaped x 2 >= starting Survivors.
+-        public static bool SurvivorsWin(int escaped, int starting) => starting > 0 && escaped * 2 >= starting;
+-
+-        public static int Needed(int starting) => (starting + 1) / 2;
+-
+-        public static string Headline(Role winner) => winner == Role.Killer ? "Killer wins" : "Survivors win";
+-
+-        // One line: the count and the majority rule.
+-        public static string Rule(int escaped, int starting)
+-            => escaped.ToString(CultureInfo.InvariantCulture) + " of " + starting.ToString(CultureInfo.InvariantCulture)
+-               + " escaped · Survivors win when half or more escape (" + Needed(starting).ToString(CultureInfo.InvariantCulture)
+-               + " of " + starting.ToString(CultureInfo.InvariantCulture) + ")";
+-
+-        public static string Reason(ResultReasonV2 reason)
+-        {
+-            switch (reason)
+-            {
+-                case ResultReasonV2.AllSurvivorsDown: return "Every Survivor was eliminated before anyone escaped.";
+-                case ResultReasonV2.TimeUp: return "Time ran out. Survivors still inside were eliminated.";
+-                case ResultReasonV2.Collapse: return "The collapse eliminated the Survivors still inside.";
+-                default: return "Every Survivor escaped or was eliminated.";
+-            }
+-        }
+-
+-        public static string Outcome(ResultV2View view)
+-        {
+-            if (view.OwnRole == Role.Killer)
+-            {
+-                int eliminated = view.Starting - view.Escaped;
+-                return "You eliminated " + eliminated.ToString(CultureInfo.InvariantCulture) + " of " + view.Starting.ToString(CultureInfo.InvariantCulture) + " Survivors.";
+-            }
+-            foreach (ResultRow row in view.Rows)
+-                if (row.Self) return row.Escaped ? "You escaped." : "You were eliminated.";
+-            return string.Empty;
+-        }
+-
+-        public static string RowState(in ResultRow row) => row.Escaped ? "Escaped" : "Eliminated";
+-
+-        public static string RowName(in ResultRow row, int index)
+-        {
+-            string name = string.IsNullOrEmpty(row.Name) ? "Survivor " + (index + 1).ToString(CultureInfo.InvariantCulture) : row.Name;
+-            if (name.Length > NameBudget)
+-            {
+-                int cut = NameBudget - 1;
+-                if (char.IsHighSurrogate(name[cut - 1])) cut--;
+-                name = name.Substring(0, cut) + "…";
+-            }
+-            return row.Self ? name + " (you)" : name;
+-        }
+-
+-        // Development check only: the server's WinnerRole should match the rule for the listed rows.
+-        public static bool Consistent(ResultV2View view)
+-            => (view.Winner == Role.Survivor) == SurvivorsWin(view.Escaped, view.Starting);
+-    }
+-
+-    internal static class Palette
+-    {
+-        public static readonly Color Bg = new Color32(16, 17, 19, 255);
+-        public static readonly Color Panel = new Color32(26, 28, 31, 255);
+-        public static readonly Color Line = new Color32(44, 47, 51, 255);
+-        public static readonly Color Text = new Color32(232, 230, 225, 255);
+-        public static readonly Color Muted = new Color32(154, 152, 144, 255);
+-        public static readonly Color Signal = new Color32(255, 176, 32, 255);
+-        public static readonly Color Danger = new Color32(229, 72, 77, 255);
+-        public static readonly Color Ally = new Color32(63, 184, 175, 255);
+-
+-        // HUD_SPEC 0.2 stroke snapping: n u renders at max(1, round(n x scale)) px.
+-        public static float Stroke(float units, float scale) => Mathf.Max(1, Mathf.Round(units * scale)) / Mathf.Max(.01f, scale);
+-    }
+-}
++using System.Globalization;
++using PingTheKiller.Shared.Game;
++using UnityEngine;
++
++namespace PingTheKiller.Client.UI.RulesV2
++{
++    // HUD_SPEC 13.2: the sync check ring geometry and the client-side reading of its zones. The server judges every
++    // press (U6a R3); Judge only states which drawn region a needle fraction falls in. Great is exactly the great part
++    // [ZoneStart, ZoneStart + GreatSize]; the optional tolerance (fractions) widens Good on both zone edges and never
++    // creates Great. Edges are inclusive.
++    public static class SyncCheckMath
++    {
++        // Seconds the result word stays on screen after S2C_SyncResult.
++        public const float ResultSeconds = .4f;
++        // U6a SyncToleranceSeconds, for converting to a fraction of one sweep.
++        public const float ToleranceSeconds = .15f;
++
++        public static float NeedleFraction(float elapsed, float duration)
++        {
++            if (!(duration > 0) || float.IsNaN(elapsed)) return 0;
++            return Mathf.Clamp01(elapsed / duration);
++        }
++
++        // Clockwise degrees from 12 o'clock.
++        public static float NeedleDegrees(float elapsed, float duration) => NeedleFraction(elapsed, duration) * 360f;
++
++        public static float ToleranceFraction(float duration) => duration > 0 ? ToleranceSeconds / duration : 0;
++
++        public static SyncResult Judge(float fraction, float zoneStart, float zoneSize, float greatSize, float tolerance = 0)
++        {
++            if (float.IsNaN(fraction)) return SyncResult.Fail;
++            tolerance = Mathf.Max(0, tolerance);
++            float greatEnd = zoneStart + Mathf.Min(greatSize, zoneSize);
++            float zoneEnd = zoneStart + zoneSize;
++            if (fraction >= zoneStart && fraction <= greatEnd) return SyncResult.Great;
++            if (fraction >= zoneStart - tolerance && fraction <= zoneEnd + tolerance) return SyncResult.Good;
++            return SyncResult.Fail;
++        }
++
++        public static SyncResult Judge(float fraction, in SyncCheckView view, float tolerance = 0)
++            => Judge(fraction, view.ZoneStart, view.ZoneSize, view.GreatSize, tolerance);
++
++        public static string ResultWord(SyncResult result)
++            => result == SyncResult.Great ? "Great" : result == SyncResult.Good ? "Good" : "Fail";
++
++    }
++
++    // HUD_SPEC 13.3: hold action bar copy and fill.
++    public static class HoldCopy
++    {
++        public static float Fill(float progress01)
++        {
++            if (float.IsNaN(progress01)) return 0;
++            return Mathf.Clamp01(progress01);
++        }
++
++        public static int Percent(float progress01) => Mathf.FloorToInt(Fill(progress01) * 100f + 1e-4f);
++
++        public static string Label(in HoldActionView view)
++        {
++            string percent = Percent(view.Progress01).ToString(CultureInfo.InvariantCulture) + "%";
++            switch (view.Kind)
++            {
++                case HoldKind.ExitSwitch: return "Opening the Exit · " + percent + " — you are Signal";
++                case HoldKind.KickTerminal: return "Kicking the Terminal · " + percent;
++                case HoldKind.CloseHatch: return "Closing the Hatch · " + percent;
++                default: return string.Empty;
++            }
++        }
++
++        // Killer block second line (S muted): what cancels the hold.
++        public static string Hint(HoldKind kind, string interactGlyph)
++        {
++            switch (kind)
++            {
++                case HoldKind.KickTerminal: return "Hold " + interactGlyph + " · moving cancels the kick";
++                case HoldKind.CloseHatch: return "Hold " + interactGlyph + " · releasing cancels";
++                default: return string.Empty;
++            }
++        }
++    }
++
++    public enum ExitPhase : byte { NoPower, Powered, Switching, Locked, Open }
++
++    // HUD_SPEC 13.4: exit status. Precedence: Open > Locked > Switching (progress > 0) > Powered > NoPower.
++    public static class ExitCopy
++    {
++        public static ExitPhase Phase(in ExitView exit)
++        {
++            if (exit.Open) return ExitPhase.Open;
++            if (exit.Locked) return ExitPhase.Locked;
++            if (!exit.Powered) return ExitPhase.NoPower;
++            return HoldCopy.Fill(exit.SwitchProgress01) > 0 ? ExitPhase.Switching : ExitPhase.Powered;
++        }
++
++        public static string Name(byte id) => "Exit " + (id + 1).ToString(CultureInfo.InvariantCulture);
++
++        // The right-hand state word of a Survivor exit cell, and the second half of a Killer exit tag.
++        public static string State(in ExitView exit)
++        {
++            switch (Phase(exit))
++            {
++                case ExitPhase.Open: return "Open";
++                case ExitPhase.Locked:
++                    return exit.LockedLeft > 0 ? "Locked " + Mathf.CeilToInt(exit.LockedLeft).ToString(CultureInfo.InvariantCulture) + " s" : "Locked";
++                case ExitPhase.Switching: return HoldCopy.Percent(exit.SwitchProgress01).ToString(CultureInfo.InvariantCulture) + "%";
++                case ExitPhase.Powered: return "Powered";
++                default: return "No power";
++            }
++        }
++
++        public static string Tag(in ExitView exit) => Name(exit.Id) + " · " + State(exit);
++
++        // Everything the exit texts show (id, phase, percent, Locked seconds) packed into one number for TextMemo.
++        public static long Key(in ExitView exit)
++        {
++            int locked = exit.LockedLeft > 0 ? Mathf.Min(4095, Mathf.CeilToInt(exit.LockedLeft)) : 0;
++            return exit.Id | (long)Phase(exit) << 8 | (long)HoldCopy.Percent(exit.SwitchProgress01) << 16 | (long)locked << 32;
++        }
++    }
++
++    // HUD_SPEC 13.5: the collapse clock.
++    public static class CollapseCopy
++    {
++        public const int UrgentSeconds = 30;
++
++        // m:ss of ceil(seconds); negative (not running) reads as 0:00.
++        public static string Clock(float seconds)
++        {
++            int whole = seconds > 0 ? Mathf.CeilToInt(seconds) : 0;
++            return (whole / 60).ToString(CultureInfo.InvariantCulture) + ":" + (whole % 60).ToString("00", CultureInfo.InvariantCulture);
++        }
++
++        // The clock that eliminates this viewer: the personal one when it runs, else the global one.
++        public static float Deciding(in CollapseView view) => view.PersonalLeft >= 0 ? view.PersonalLeft : view.GlobalLeft;
++
++        // Urgent once the shown number is 0:30 or less (ceil), so the colour changes on the same frame as the digits.
++        public static bool Urgent(float seconds) => seconds >= 0 && Mathf.CeilToInt(seconds) <= UrgentSeconds;
++
++        public static bool Urgent(in CollapseView view) => view.Running && Urgent(Deciding(view));
++
++        // True when the personal clock shows a different m:ss from the global one.
++        public static bool Differs(in CollapseView view)
++            => view.PersonalLeft >= 0 && view.GlobalLeft >= 0 && Clock(view.PersonalLeft) != Clock(view.GlobalLeft);
++
++        public static string Main(in CollapseView view) => "Collapse " + Clock(view.GlobalLeft >= 0 ? view.GlobalLeft : view.PersonalLeft);
++
++        // The shown whole seconds of both clocks and the Lagging flag, packed for TextMemo.
++        public static long Key(in CollapseView view)
++        {
++            long global = view.GlobalLeft > 0 ? Mathf.CeilToInt(view.GlobalLeft) + 1 : view.GlobalLeft >= 0 ? 1 : 0;
++            long personal = view.PersonalLeft > 0 ? Mathf.CeilToInt(view.PersonalLeft) + 1 : view.PersonalLeft >= 0 ? 1 : 0;
++            return global | personal << 24 | (view.Lagging ? 1L : 0L) << 48;
++        }
++
++        // Second line (S), Survivor only: empty unless the personal clock differs.
++        public static string Personal(in CollapseView view)
++        {
++            if (!Differs(view)) return string.Empty;
++            return view.Lagging ? "Lagging: 2× faster · you " + Clock(view.PersonalLeft) : "You " + Clock(view.PersonalLeft);
++        }
++    }
++
++    // HUD_SPEC 13.6: terminal flag tags and the Killer's Overloaded alert.
++    public static class TerminalFlagCopy
++    {
++        public static string Name(byte id) => "Terminal " + (id + 1).ToString(CultureInfo.InvariantCulture);
++
++        // Regressing tag: Survivors see the percentage, the Killer does not (HUD_SPEC 6.2, 11.1 N9).
++        public static string Regressing(in TerminalFlagsView terminal, Role viewer)
++            => viewer == Role.Survivor
++                ? Name(terminal.Id) + " · " + HoldCopy.Percent(terminal.Progress01).ToString(CultureInfo.InvariantCulture) + "% · Regressing"
++                : Name(terminal.Id) + " · Regressing";
++
++        public static string Overloaded(in TerminalFlagsView terminal, float metres)
++            => Name(terminal.Id) + " overloaded · " + Mathf.RoundToInt(Mathf.Max(0, metres)).ToString(CultureInfo.InvariantCulture) + " m";
++
++        // Regressing shows to both roles; Overloaded is the Killer alert only.
++        public static bool ShowOverloaded(in TerminalFlagsView terminal, Role viewer) => viewer == Role.Killer && terminal.Overloaded;
++    }
++
++    // HUD_SPEC 13.7: the result screen.
++    public static class ResultV2Copy
++    {
++        public const int NameBudget = 24;
++
++        // GDD v2 1 / U6a R8: Survivors win when escaped x 2 >= starting Survivors.
++        public static bool SurvivorsWin(int escaped, int starting) => starting > 0 && escaped * 2 >= starting;
++
++        public static int Needed(int starting) => (starting + 1) / 2;
++
++        public static string Headline(Role winner) => winner == Role.Killer ? "Killer wins" : "Survivors win";
++
++        // One line: the count and the majority rule.
++        public static string Rule(int escaped, int starting)
++            => escaped.ToString(CultureInfo.InvariantCulture) + " of " + starting.ToString(CultureInfo.InvariantCulture)
++               + " escaped · Survivors win when half or more escape (" + Needed(starting).ToString(CultureInfo.InvariantCulture)
++               + " of " + starting.ToString(CultureInfo.InvariantCulture) + ")";
++
++        public static string Reason(ResultReasonV2 reason)
++        {
++            switch (reason)
++            {
++                case ResultReasonV2.AllSurvivorsDown: return "Every Survivor was eliminated before anyone escaped.";
++                case ResultReasonV2.TimeUp: return "Time ran out. Survivors still inside were eliminated.";
++                case ResultReasonV2.Collapse: return "The collapse eliminated the Survivors still inside.";
++                default: return "Every Survivor escaped or was eliminated.";
++            }
++        }
++
++        public static string Outcome(ResultV2View view)
++        {
++            if (view.OwnRole == Role.Killer)
++            {
++                int eliminated = view.Starting - view.Escaped;
++                return "You eliminated " + eliminated.ToString(CultureInfo.InvariantCulture) + " of " + view.Starting.ToString(CultureInfo.InvariantCulture) + " Survivors.";
++            }
++            foreach (ResultRow row in view.Rows)
++                if (row.Self) return row.Escaped ? "You escaped." : "You were eliminated.";
++            return string.Empty;
++        }
++
++        public static string RowState(in ResultRow row) => row.Escaped ? "Escaped" : "Eliminated";
++
++        public static string RowName(in ResultRow row, int index)
++        {
++            string name = string.IsNullOrEmpty(row.Name) ? "Survivor " + (index + 1).ToString(CultureInfo.InvariantCulture) : row.Name;
++            if (name.Length > NameBudget)
++            {
++                int cut = NameBudget - 1;
++                if (char.IsHighSurrogate(name[cut - 1])) cut--;
++                name = name.Substring(0, cut) + "…";
++            }
++            return row.Self ? name + " (you)" : name;
++        }
++
++        // Development check only: the server's WinnerRole should match the rule for the listed rows.
++        public static bool Consistent(ResultV2View view)
++            => (view.Winner == Role.Survivor) == SurvivorsWin(view.Escaped, view.Starting);
++    }
++
++    internal static class Palette
++    {
++        public static readonly Color Bg = new Color32(16, 17, 19, 255);
++        public static readonly Color Panel = new Color32(26, 28, 31, 255);
++        public static readonly Color Line = new Color32(44, 47, 51, 255);
++        public static readonly Color Text = new Color32(232, 230, 225, 255);
++        public static readonly Color Muted = new Color32(154, 152, 144, 255);
++        public static readonly Color Signal = new Color32(255, 176, 32, 255);
++        public static readonly Color Danger = new Color32(229, 72, 77, 255);
++        public static readonly Color Ally = new Color32(63, 184, 175, 255);
++
++        // HUD_SPEC 0.2 stroke snapping: n u renders at max(1, round(n x scale)) px.
++        public static float Stroke(float units, float scale) => Mathf.Max(1, Mathf.Round(units * scale)) / Mathf.Max(.01f, scale);
++    }
++}
+diff --git a/Client/Assets/Scripts/UI/RulesV2/RulesV2Views.cs b/Client/Assets/Scripts/UI/RulesV2/RulesV2Views.cs
+index c31282a..d3ddb28 100644
+--- a/Client/Assets/Scripts/UI/RulesV2/RulesV2Views.cs
++++ b/Client/Assets/Scripts/UI/RulesV2/RulesV2Views.cs
+@@ -72,7 +72,7 @@ namespace PingTheKiller.Client.UI.RulesV2
+ 
+     public struct ResultRow
+     {
+-        public byte PlayerId;
++        public int PlayerId;
+         public string Name;
+         public bool Escaped;
+         public bool Self;
+@@ -96,6 +96,12 @@ namespace PingTheKiller.Client.UI.RulesV2
+         // Rows in the given slot order (escaped and eliminated ids together); ids in neither list are skipped.
+         public static ResultV2View FromIds(byte winnerRole, byte reason, IReadOnlyList<byte> escapedIds, IReadOnlyList<byte> eliminatedIds,
+             IReadOnlyList<byte> slotOrder, System.Func<byte, string> name, byte ownId, Role ownRole)
++            => FromIds(winnerRole, reason, Widen(escapedIds), Widen(eliminatedIds), Widen(slotOrder),
++                name == null ? (System.Func<int, string>)null : id => name((byte)id), ownId, ownRole);
++
++        // S2C_GameResult carries int player ids; the same rule with the wire's id type.
++        public static ResultV2View FromIds(byte winnerRole, byte reason, IReadOnlyList<int> escapedIds, IReadOnlyList<int> eliminatedIds,
++            IReadOnlyList<int> slotOrder, System.Func<int, string> name, int ownId, Role ownRole)
+         {
+             var view = new ResultV2View
+             {
+@@ -103,7 +109,8 @@ namespace PingTheKiller.Client.UI.RulesV2
+                 Reason = reason <= (byte)ResultReasonV2.Collapse ? (ResultReasonV2)reason : ResultReasonV2.AllResolved,
+                 OwnRole = ownRole
+             };
+-            foreach (byte id in slotOrder)
++            if (slotOrder == null) return view;
++            foreach (int id in slotOrder)
+             {
+                 bool escaped = Contains(escapedIds, id);
+                 if (!escaped && !Contains(eliminatedIds, id)) continue;
+@@ -112,7 +119,15 @@ namespace PingTheKiller.Client.UI.RulesV2
+             return view;
+         }
+ 
+-        private static bool Contains(IReadOnlyList<byte> ids, byte id)
++        private static List<int> Widen(IReadOnlyList<byte> ids)
++        {
++            if (ids == null) return null;
++            var list = new List<int>(ids.Count);
++            foreach (byte id in ids) list.Add(id);
++            return list;
++        }
++
++        private static bool Contains(IReadOnlyList<int> ids, int id)
+         {
+             if (ids == null) return false;
+             for (int i = 0; i < ids.Count; i++) if (ids[i] == id) return true;
+diff --git a/Client/Assets/Scripts/UI/RulesV2/RulesV2World.cs b/Client/Assets/Scripts/UI/RulesV2/RulesV2World.cs
+index 954bcb5..94e7590 100644
+--- a/Client/Assets/Scripts/UI/RulesV2/RulesV2World.cs
++++ b/Client/Assets/Scripts/UI/RulesV2/RulesV2World.cs
+@@ -1,239 +1,262 @@
+-using System.Collections.Generic;
+-using PingTheKiller.Shared.Game;
+-using UnityEngine;
+-using UnityEngine.UIElements;
+-
+-namespace PingTheKiller.Client.UI.RulesV2
+-{
+-    public enum V2TagPivot : byte { Above, Below, Centre }
+-
+-    // HUD_SPEC 13.4 / 13.6 world layer: Killer exit markers, Regressing tags (both roles) and the Killer's Overloaded alert
+-    // (on-screen square or edge chevron). Positions are panel units, y down; projection and edge placement are the
+-    // caller's (HUD_SPEC 6.2 rule, Killer.EdgePlacement). Call Begin, add the frame's markers, then End.
+-    public sealed class V2MarkerLayer : VisualElement
+-    {
+-        public const float TagGap = 12, Inset = 24;
+-        private enum Kind : byte { Exit, Overloaded, Chevron }  // Chevron: the off-screen Overloaded square with its pointer
+-        private struct Shape { public Kind Kind; public Vector2 At, Direction; public ExitView Exit; }
+-        private readonly List<Shape> shapes = new List<Shape>();
+-        private readonly List<Label> tags = new List<Label>();
+-        private readonly Font font;
+-        private int used;
+-        public float Scale { get; set; } = 1;
+-
+-        public V2MarkerLayer(Font value)
+-        {
+-            font = value;
+-            pickingMode = PickingMode.Ignore;
+-            AddToClassList("v2-markers");
+-            generateVisualContent += Draw;
+-        }
+-
+-        public void Begin() { shapes.Clear(); used = 0; }
+-
+-        public void End()
+-        {
+-            for (int i = used; i < tags.Count; i++) V2Ui.Show(tags[i], false);
+-            MarkDirtyRepaint();
+-        }
+-
+-        public IReadOnlyList<string> Tags
+-        {
+-            get { var list = new List<string>(); for (int i = 0; i < used; i++) list.Add(tags[i].text); return list; }
+-        }
+-
+-        // Killer exit marker at 2.5 m (HUD_SPEC 6.2), tag above: `Exit 1 · 62%`.
+-        public void Exit(Vector2 at, in ExitView exit)
+-        {
+-            shapes.Add(new Shape { Kind = Kind.Exit, At = at, Exit = exit });
+-            Tag(at - new Vector2(0, TagGap), ExitCopy.Tag(exit), ExitCopy.Phase(exit) == ExitPhase.NoPower ? "v2-tag-muted" : null, V2TagPivot.Above);
+-        }
+-
+-        // Regressing tag above a terminal point; 2 u left bar `danger` (Survivor: Killer-caused) or `text` (Killer).
+-        public void Regressing(Vector2 at, in TerminalFlagsView terminal, Role viewer)
+-        {
+-            if (!terminal.Regressing) return;
+-            Tag(at - new Vector2(0, TagGap), TerminalFlagCopy.Regressing(terminal, viewer), viewer == Role.Survivor ? "v2-tag-bar-danger" : "v2-tag-bar-text", V2TagPivot.Above);
+-        }
+-
+-        // Overloaded alert (Killer): a 16 u `signal` square at the terminal on screen; off screen the same square at the
+-        // edge-indicator position with an 8 u `signal` pointer along `pointing` (y down). A square, never a chevron or a
+-        // diamond, so it cannot be read as a Survivor. Tag below, kept inside the safe rectangle.
+-        public void Overloaded(Vector2 at, bool onScreen, Vector2 pointing, string text)
+-        {
+-            shapes.Add(new Shape { Kind = onScreen ? Kind.Overloaded : Kind.Chevron, At = at, Direction = pointing });
+-            Tag(at + new Vector2(0, TagGap), text, null, V2TagPivot.Below);
+-        }
+-
+-        private void Tag(Vector2 at, string text, string style, V2TagPivot pivot)
+-        {
+-            if (used == tags.Count)
+-            {
+-                Label created = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-tag");
+-                tags.Add(created);
+-            }
+-            Label tag = tags[used++];
+-            V2Ui.Show(tag, true);
+-            V2Ui.SetText(tag, text);
+-            tag.EnableInClassList("v2-tag-muted", style == "v2-tag-muted");
+-            tag.EnableInClassList("v2-tag-bar-danger", style == "v2-tag-bar-danger");
+-            tag.EnableInClassList("v2-tag-bar-text", style == "v2-tag-bar-text");
+-            // Placed from its measured size (the previous layout) and kept inside the 24 u screen inset; a tag with no
+-            // measured size yet stays invisible for that one frame.
+-            float w = tag.resolvedStyle.width, h = tag.resolvedStyle.height;
+-            bool measured = !float.IsNaN(w) && !float.IsNaN(h) && w > 0 && h > 0;
+-            tag.style.visibility = measured ? Visibility.Visible : Visibility.Hidden;
+-            if (!measured) { w = 0; h = 0; }
+-            Rect area = SafeArea;
+-            float x = at.x - w * .5f;
+-            float y = pivot == V2TagPivot.Above ? at.y - h : pivot == V2TagPivot.Below ? at.y : at.y - h * .5f;
+-            if (area.width > w) x = Mathf.Clamp(x, area.xMin, area.xMax - w);
+-            if (area.height > h) y = Mathf.Clamp(y, area.yMin, area.yMax - h);
+-            tag.style.left = Mathf.Round(x); tag.style.top = Mathf.Round(y);
+-        }
+-
+-        private Rect SafeArea
+-        {
+-            get
+-            {
+-                float w = layout.width, h = layout.height;
+-                if (float.IsNaN(w) || float.IsNaN(h) || w <= 0 || h <= 0) return Rect.MinMaxRect(0, 0, float.MaxValue, float.MaxValue);
+-                return Rect.MinMaxRect(Inset, Inset, Mathf.Max(Inset, w - Inset), Mathf.Max(Inset, h - Inset));
+-            }
+-        }
+-
+-        private void Draw(MeshGenerationContext context)
+-        {
+-            Painter2D p = context.painter2D;
+-            float hair = Palette.Stroke(1, Scale), key = Palette.Stroke(3, Scale);
+-            p.lineCap = LineCap.Butt; p.lineJoin = LineJoin.Miter;
+-            foreach (Shape s in shapes)
+-            {
+-                switch (s.Kind)
+-                {
+-                    case Kind.Exit: DrawExit(p, s, hair, key, Palette.Stroke(2, Scale)); break;
+-                    case Kind.Overloaded:
+-                        p.fillColor = Palette.Bg;
+-                        Square(p, s.At, 8 + hair); p.Fill();
+-                        p.fillColor = Palette.Signal;
+-                        Square(p, s.At, 8); p.Fill();
+-                        break;
+-                    case Kind.Chevron:
+-                        Vector2 d = s.Direction.sqrMagnitude > 1e-6f ? s.Direction.normalized : Vector2.down;
+-                        var n = new Vector2(-d.y, d.x);
+-                        // The pointer: a triangle from the square's edge, 8 u long, 8 u wide at its base.
+-                        float reach = 8 / Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y));
+-                        Vector2 tip = s.At + d * (reach + 8), left = s.At + d * reach + n * 4, right = s.At + d * reach - n * 4;
+-                        p.fillColor = Palette.Bg;
+-                        Square(p, s.At, 8 + hair); p.Fill();
+-                        Pointer(p, tip + d * hair, left + n * hair, right - n * hair); p.Fill();
+-                        p.fillColor = Palette.Signal;
+-                        Square(p, s.At, 8); p.Fill();
+-                        Pointer(p, tip, left, right); p.Fill();
+-                        break;
+-                }
+-            }
+-        }
+-
+-        private static void Square(Painter2D p, Vector2 c, float half)
+-        {
+-            p.BeginPath();
+-            p.MoveTo(c + new Vector2(-half, -half)); p.LineTo(c + new Vector2(half, -half));
+-            p.LineTo(c + new Vector2(half, half)); p.LineTo(c + new Vector2(-half, half)); p.ClosePath();
+-        }
+-
+-        private static void Pointer(Painter2D p, Vector2 tip, Vector2 left, Vector2 right)
+-        {
+-            p.BeginPath(); p.MoveTo(tip); p.LineTo(left); p.LineTo(right); p.ClosePath();
+-        }
+-
+-        // 16 u ring (radius 8). No power: dashed `muted`. Powered: solid `text`. Switching: solid `text` + a 2 u progress
+-        // arc at radius 11. Locked: solid ring + a bar across + the progress arc. Open: a filled `text` disc. Each shape has
+-        // a `bg` keyline.
+-        private static void DrawExit(Painter2D p, Shape s, float hair, float key, float width)
+-        {
+-            ExitPhase phase = ExitCopy.Phase(s.Exit);
+-            Vector2 c = s.At;
+-            if (phase == ExitPhase.Open)
+-            {
+-                p.fillColor = Palette.Bg; p.BeginPath(); p.Arc(c, 8 + hair, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
+-                p.fillColor = Palette.Text; p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
+-                return;
+-            }
+-            p.lineWidth = key; p.strokeColor = Palette.Bg;
+-            p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+-            p.lineWidth = hair;
+-            if (phase == ExitPhase.NoPower)
+-            {
+-                p.strokeColor = Palette.Muted;
+-                for (int i = 0; i < 12; i++) { p.BeginPath(); p.Arc(c, 8, Angle.Degrees(i * 30), Angle.Degrees(i * 30 + 15)); p.Stroke(); }
+-                return;
+-            }
+-            p.strokeColor = Palette.Text;
+-            p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
+-            if (phase == ExitPhase.Locked)
+-            {
+-                p.BeginPath(); p.MoveTo(c + new Vector2(-11, 0)); p.LineTo(c + new Vector2(11, 0)); p.Stroke();
+-            }
+-            float progress = HoldCopy.Fill(s.Exit.SwitchProgress01);
+-            if (progress > 0)
+-            {
+-                p.lineWidth = width + 2 * hair; p.strokeColor = Palette.Bg;
+-                p.BeginPath(); p.Arc(c, 11, Angle.Degrees(-90), Angle.Degrees(-90 + 360 * progress)); p.Stroke();
+-                p.lineWidth = width; p.strokeColor = Palette.Text;
+-                p.BeginPath(); p.Arc(c, 11, Angle.Degrees(-90), Angle.Degrees(-90 + 360 * progress)); p.Stroke();
+-            }
+-        }
+-    }
+-
+-    // HUD_SPEC 13.7: the result screen body. Left column at 48 u: headline (L 600), own outcome (M), the majority rule
+-    // (S `muted`), the reason (S `muted`), then one 560x32 u row per starting Survivor: name (M) left, `Escaped` (M
+-    // `text`) or `Eliminated` (M `muted`) right; the own row has a 4 u `text` bar inside its left edge and a 600 name.
+-    // Actions: the existing Back to lobby / Leave buttons (HUD_SPEC 7.5, 7.6) go into Actions.
+-    public sealed class ResultV2Panel : VisualElement
+-    {
+-        private readonly Label headline, outcome, rule, reason;
+-        private readonly VisualElement list;
+-        private readonly Font font;
+-        public VisualElement Actions { get; }
+-
+-        public ResultV2Panel(Font value)
+-        {
+-            font = value;
+-            AddToClassList("v2-result");
+-            VisualElement column = V2Ui.Box(this, "v2-result-column");
+-            headline = V2Ui.Text(column, string.Empty, font, "v2-l", "v2-bold", "v2-result-headline");
+-            outcome = V2Ui.Text(column, string.Empty, font, "v2-m", "v2-result-outcome");
+-            rule = V2Ui.Text(column, string.Empty, font, "v2-s", "v2-muted", "v2-result-rule");
+-            reason = V2Ui.Text(column, string.Empty, font, "v2-s", "v2-muted", "v2-result-reason");
+-            list = V2Ui.Box(column, "v2-result-list");
+-            Actions = V2Ui.Box(column, "v2-result-actions");
+-            Actions.pickingMode = PickingMode.Position;
+-            pickingMode = PickingMode.Position;
+-        }
+-
+-        public string Headline => headline.text;
+-        public string Rule => rule.text;
+-
+-        public void Set(ResultV2View view)
+-        {
+-            V2Ui.SetText(headline, ResultV2Copy.Headline(view.Winner));
+-            string own = ResultV2Copy.Outcome(view);
+-            V2Ui.SetText(outcome, own);
+-            V2Ui.Show(outcome, own.Length > 0);
+-            V2Ui.SetText(rule, ResultV2Copy.Rule(view.Escaped, view.Starting));
+-            V2Ui.SetText(reason, ResultV2Copy.Reason(view.Reason));
+-            list.Clear();
+-            for (int i = 0; i < view.Rows.Count; i++)
+-            {
+-                ResultRow row = view.Rows[i];
+-                VisualElement line = V2Ui.Box(list, "v2-result-row");
+-                line.EnableInClassList("v2-self", row.Self);
+-                Label name = V2Ui.Text(line, ResultV2Copy.RowName(row, i), font, "v2-m", "v2-result-name");
+-                name.EnableInClassList("v2-bold", row.Self);
+-                Label state = V2Ui.Text(line, ResultV2Copy.RowState(row), font, "v2-m", "v2-right");
+-                state.EnableInClassList("v2-muted", !row.Escaped);
+-            }
+-        }
+-    }
+-}
++using System.Collections.Generic;
++using PingTheKiller.Shared.Game;
++using UnityEngine;
++using UnityEngine.UIElements;
++
++namespace PingTheKiller.Client.UI.RulesV2
++{
++    public enum V2TagPivot : byte { Above, Below, Centre }
++
++    // HUD_SPEC 13.4 / 13.6 world layer: Killer exit markers, Regressing tags (both roles) and the Killer's Overloaded alert
++    // (on-screen square or edge chevron). Positions are panel units, y down; projection and edge placement are the
++    // caller's (HUD_SPEC 6.2 rule, Killer.EdgePlacement). Call Begin, add the frame's markers, then End.
++    public sealed class V2MarkerLayer : VisualElement
++    {
++        public const float TagGap = 12, Inset = 24;
++        private enum Kind : byte { Exit, Overloaded, Chevron }  // Chevron: the off-screen Overloaded square with its pointer
++        private struct Shape { public Kind Kind; public Vector2 At, Direction; public ExitView Exit; }
++        private readonly List<Shape> shapes = new List<Shape>();
++        private readonly List<Label> tags = new List<Label>();
++        private readonly Font font;
++        private readonly TextMemo memo = new TextMemo(2 + 16 + 16);  // exit tags, Regressing tags, Overloaded alerts
++        private int used;
++        public float Scale { get; set; } = 1;
++
++        public V2MarkerLayer(Font value)
++        {
++            font = value;
++            pickingMode = PickingMode.Ignore;
++            AddToClassList("v2-markers");
++            generateVisualContent += Draw;
++        }
++
++        public void Begin() { shapes.Clear(); used = 0; }
++
++        public void End()
++        {
++            for (int i = used; i < tags.Count; i++) V2Ui.Show(tags[i], false);
++            MarkDirtyRepaint();
++        }
++
++        public IReadOnlyList<string> Tags
++        {
++            get { var list = new List<string>(); for (int i = 0; i < used; i++) list.Add(tags[i].text); return list; }
++        }
++
++        // Killer exit marker at 2.5 m (HUD_SPEC 6.2), tag above: `Exit 1 · 62%`.
++        public void Exit(Vector2 at, in ExitView exit)
++        {
++            shapes.Add(new Shape { Kind = Kind.Exit, At = at, Exit = exit });
++            long key = ExitCopy.Key(exit);
++            if (!memo.Hit(exit.Id & 1, key, out string text)) text = memo.Put(exit.Id & 1, key, ExitCopy.Tag(exit));
++            Tag(at - new Vector2(0, TagGap), text, ExitCopy.Phase(exit) == ExitPhase.NoPower ? "v2-tag-muted" : null, V2TagPivot.Above);
++        }
++
++        // Regressing tag above a terminal point; 2 u left bar `danger` (Survivor: Killer-caused) or `text` (Killer).
++        public void Regressing(Vector2 at, in TerminalFlagsView terminal, Role viewer)
++        {
++            if (!terminal.Regressing) return;
++            long key = terminal.Id | (long)HoldCopy.Percent(terminal.Progress01) << 8 | (long)viewer << 16;
++            int slot = 2 + (terminal.Id & 15);
++            if (!memo.Hit(slot, key, out string text)) text = memo.Put(slot, key, TerminalFlagCopy.Regressing(terminal, viewer));
++            Tag(at - new Vector2(0, TagGap), text, viewer == Role.Survivor ? "v2-tag-bar-danger" : "v2-tag-bar-text", V2TagPivot.Above);
++        }
++
++        // Overloaded alert (Killer): a 16 u `signal` square at the terminal on screen; off screen the same square at the
++        // edge-indicator position with an 8 u `signal` pointer along `pointing` (y down). A square, never a chevron or a
++        // diamond, so it cannot be read as a Survivor. Tag below, kept inside the safe rectangle.
++        // The alert tag `Terminal 3 overloaded · 20 m`, memoized per terminal (rebuilt only when the metres change).
++        public string OverloadedTag(in TerminalFlagsView terminal, float metres)
++        {
++            int slot = 18 + (terminal.Id & 15);
++            long key = terminal.Id | (long)Mathf.RoundToInt(Mathf.Max(0, metres)) << 8;
++            if (!memo.Hit(slot, key, out string text)) text = memo.Put(slot, key, TerminalFlagCopy.Overloaded(terminal, metres));
++            return text;
++        }
++
++        public void Overloaded(Vector2 at, bool onScreen, Vector2 pointing, string text)
++        {
++            shapes.Add(new Shape { Kind = onScreen ? Kind.Overloaded : Kind.Chevron, At = at, Direction = pointing });
++            Tag(at + new Vector2(0, TagGap), text, null, V2TagPivot.Below);
++        }
++
++        private void Tag(Vector2 at, string text, string style, V2TagPivot pivot)
++        {
++            if (used == tags.Count)
++            {
++                Label created = V2Ui.Text(this, string.Empty, font, "v2-s", "v2-tag");
++                tags.Add(created);
++            }
++            Label tag = tags[used++];
++            V2Ui.Show(tag, true);
++            bool changed = tag.text != text;
++            V2Ui.SetText(tag, text);
++            tag.EnableInClassList("v2-tag-muted", style == "v2-tag-muted");
++            tag.EnableInClassList("v2-tag-bar-danger", style == "v2-tag-bar-danger");
++            tag.EnableInClassList("v2-tag-bar-text", style == "v2-tag-bar-text");
++            // Placed from its measured size (the previous layout) and kept inside the 24 u screen inset; a tag with no
++            // measured size yet, or whose text just changed (a pooled label still has the old text's size), stays invisible
++            // for that one frame.
++            float w = tag.resolvedStyle.width, h = tag.resolvedStyle.height;
++            bool measured = !changed && !float.IsNaN(w) && !float.IsNaN(h) && w > 0 && h > 0;
++            tag.style.visibility = measured ? Visibility.Visible : Visibility.Hidden;
++            if (!measured) { w = 0; h = 0; }
++            Rect area = SafeArea;
++            float x = at.x - w * .5f;
++            float y = pivot == V2TagPivot.Above ? at.y - h : pivot == V2TagPivot.Below ? at.y : at.y - h * .5f;
++            if (area.width > w) x = Mathf.Clamp(x, area.xMin, area.xMax - w);
++            if (area.height > h) y = Mathf.Clamp(y, area.yMin, area.yMax - h);
++            tag.style.left = Mathf.Round(x); tag.style.top = Mathf.Round(y);
++        }
++
++        private Rect SafeArea
++        {
++            get
++            {
++                float w = layout.width, h = layout.height;
++                if (float.IsNaN(w) || float.IsNaN(h) || w <= 0 || h <= 0) return Rect.MinMaxRect(0, 0, float.MaxValue, float.MaxValue);
++                return Rect.MinMaxRect(Inset, Inset, Mathf.Max(Inset, w - Inset), Mathf.Max(Inset, h - Inset));
++            }
++        }
++
++        private void Draw(MeshGenerationContext context)
++        {
++            Painter2D p = context.painter2D;
++            float hair = Palette.Stroke(1, Scale), key = Palette.Stroke(3, Scale);
++            p.lineCap = LineCap.Butt; p.lineJoin = LineJoin.Miter;
++            foreach (Shape s in shapes)
++            {
++                switch (s.Kind)
++                {
++                    case Kind.Exit: DrawExit(p, s, hair, key, Palette.Stroke(2, Scale)); break;
++                    case Kind.Overloaded:
++                        p.fillColor = Palette.Bg;
++                        Square(p, s.At, 8 + hair); p.Fill();
++                        p.fillColor = Palette.Signal;
++                        Square(p, s.At, 8); p.Fill();
++                        break;
++                    case Kind.Chevron:
++                        Vector2 d = s.Direction.sqrMagnitude > 1e-6f ? s.Direction.normalized : Vector2.down;
++                        var n = new Vector2(-d.y, d.x);
++                        // The pointer: a triangle from the square's edge, 8 u long, 8 u wide at its base.
++                        float reach = 8 / Mathf.Max(Mathf.Abs(d.x), Mathf.Abs(d.y));
++                        Vector2 tip = s.At + d * (reach + 8), left = s.At + d * reach + n * 4, right = s.At + d * reach - n * 4;
++                        p.fillColor = Palette.Bg;
++                        Square(p, s.At, 8 + hair); p.Fill();
++                        Pointer(p, tip + d * hair, left + n * hair, right - n * hair); p.Fill();
++                        p.fillColor = Palette.Signal;
++                        Square(p, s.At, 8); p.Fill();
++                        Pointer(p, tip, left, right); p.Fill();
++                        break;
++                }
++            }
++        }
++
++        private static void Square(Painter2D p, Vector2 c, float half)
++        {
++            p.BeginPath();
++            p.MoveTo(c + new Vector2(-half, -half)); p.LineTo(c + new Vector2(half, -half));
++            p.LineTo(c + new Vector2(half, half)); p.LineTo(c + new Vector2(-half, half)); p.ClosePath();
++        }
++
++        private static void Pointer(Painter2D p, Vector2 tip, Vector2 left, Vector2 right)
++        {
++            p.BeginPath(); p.MoveTo(tip); p.LineTo(left); p.LineTo(right); p.ClosePath();
++        }
++
++        // 16 u ring (radius 8). No power: dashed `muted`. Powered: solid `text`. Switching: solid `text` + a 2 u progress
++        // arc at radius 11. Locked: solid ring + a bar across + the progress arc. Open: a filled `text` disc. Each shape has
++        // a `bg` keyline.
++        private static void DrawExit(Painter2D p, Shape s, float hair, float key, float width)
++        {
++            ExitPhase phase = ExitCopy.Phase(s.Exit);
++            Vector2 c = s.At;
++            if (phase == ExitPhase.Open)
++            {
++                p.fillColor = Palette.Bg; p.BeginPath(); p.Arc(c, 8 + hair, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
++                p.fillColor = Palette.Text; p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Fill();
++                return;
++            }
++            p.lineWidth = key; p.strokeColor = Palette.Bg;
++            p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
++            p.lineWidth = hair;
++            if (phase == ExitPhase.NoPower)
++            {
++                p.strokeColor = Palette.Muted;
++                for (int i = 0; i < 12; i++) { p.BeginPath(); p.Arc(c, 8, Angle.Degrees(i * 30), Angle.Degrees(i * 30 + 15)); p.Stroke(); }
++                return;
++            }
++            p.strokeColor = Palette.Text;
++            p.BeginPath(); p.Arc(c, 8, Angle.Degrees(0), Angle.Degrees(360)); p.Stroke();
++            if (phase == ExitPhase.Locked)
++            {
++                p.BeginPath(); p.MoveTo(c + new Vector2(-11, 0)); p.LineTo(c + new Vector2(11, 0)); p.Stroke();
++            }
++            float progress = HoldCopy.Fill(s.Exit.SwitchProgress01);
++            if (progress > 0)
++            {
++                p.lineWidth = width + 2 * hair; p.strokeColor = Palette.Bg;
++                p.BeginPath(); p.Arc(c, 11, Angle.Degrees(-90), Angle.Degrees(-90 + 360 * progress)); p.Stroke();
++                p.lineWidth = width; p.strokeColor = Palette.Text;
++                p.BeginPath(); p.Arc(c, 11, Angle.Degrees(-90), Angle.Degrees(-90 + 360 * progress)); p.Stroke();
++            }
++        }
++    }
++
++    // HUD_SPEC 13.7: the result screen body. Left column at 48 u: headline (L 600), own outcome (M), the majority rule
++    // (S `muted`), the reason (S `muted`), then one 560x32 u row per starting Survivor: name (M) left, `Escaped` (M
++    // `text`) or `Eliminated` (M `muted`) right; the own row has a 4 u `text` bar inside its left edge and a 600 name.
++    // Actions: the existing Back to lobby / Leave buttons (HUD_SPEC 7.5, 7.6) go into Actions.
++    public sealed class ResultV2Panel : VisualElement
++    {
++        private readonly Label headline, outcome, rule, reason;
++        private readonly VisualElement list;
++        private readonly Font font;
++        public VisualElement Actions { get; }
++        // Notes above the actions (the lobby line, the dev preview note), S `muted`.
++        public VisualElement Notes { get; }
++
++        public ResultV2Panel(Font value)
++        {
++            font = value;
++            AddToClassList("v2-result");
++            VisualElement column = V2Ui.Box(this, "v2-result-column");
++            headline = V2Ui.Text(column, string.Empty, font, "v2-l", "v2-bold", "v2-result-headline");
++            outcome = V2Ui.Text(column, string.Empty, font, "v2-m", "v2-result-outcome");
++            rule = V2Ui.Text(column, string.Empty, font, "v2-s", "v2-muted", "v2-result-rule");
++            reason = V2Ui.Text(column, string.Empty, font, "v2-s", "v2-muted", "v2-result-reason");
++            list = V2Ui.Box(column, "v2-result-list");
++            Notes = V2Ui.Box(column, "v2-result-notes");
++            Actions = V2Ui.Box(column, "v2-result-actions");
++            Actions.pickingMode = PickingMode.Position;
++            pickingMode = PickingMode.Position;
++        }
++
++        public string Headline => headline.text;
++        public string Outcome => outcome.text;
++        public string Rule => rule.text;
++        public string Reason => reason.text;
++        public int RowCount => list.childCount;
++
++        public void Set(ResultV2View view)
++        {
++            V2Ui.SetText(headline, ResultV2Copy.Headline(view.Winner));
++            string own = ResultV2Copy.Outcome(view);
++            V2Ui.SetText(outcome, own);
++            V2Ui.Show(outcome, own.Length > 0);
++            V2Ui.SetText(rule, ResultV2Copy.Rule(view.Escaped, view.Starting));
++            V2Ui.SetText(reason, ResultV2Copy.Reason(view.Reason));
++            list.Clear();
++            for (int i = 0; i < view.Rows.Count; i++)
++            {
++                ResultRow row = view.Rows[i];
++                VisualElement line = V2Ui.Box(list, "v2-result-row");
++                line.EnableInClassList("v2-self", row.Self);
++                Label name = V2Ui.Text(line, ResultV2Copy.RowName(row, i), font, "v2-m", "v2-result-name");
++                name.EnableInClassList("v2-bold", row.Self);
++                Label state = V2Ui.Text(line, ResultV2Copy.RowState(row), font, "v2-m", "v2-right");
++                state.EnableInClassList("v2-muted", !row.Escaped);
++            }
++        }
++    }
++}
+diff --git a/Client/Assets/Scripts/UI/RulesV2/SyncCheckRing.cs b/Client/Assets/Scripts/UI/RulesV2/SyncCheckRing.cs
+index 268d92c..23effac 100644
+--- a/Client/Assets/Scripts/UI/RulesV2/SyncCheckRing.cs
++++ b/Client/Assets/Scripts/UI/RulesV2/SyncCheckRing.cs
+@@ -38,6 +38,12 @@ namespace PingTheKiller.Client.UI.RulesV2
+             Visible = resultAt >= 0 ? flashing : present;
+         }
+ 
++        // Hides at once and forgets the check (a new match, the own status left Normal, the link went).
++        public void Reset()
++        {
++            started = false; Pressed = false; PressFraction = 0; Result = null; resultAt = -1; Visible = false; View = default;
++        }
++
+         public bool TryPress()
+         {
+             if (!Visible || Pressed || Result.HasValue) return false;
+@@ -57,7 +63,7 @@ namespace PingTheKiller.Client.UI.RulesV2
+     public sealed class SyncCheckRing : VisualElement
+     {
+         public const float Size = 144;
+-        private const float BandRadius = 56, BandWidth = 10, GreatWidth = 22, NeedleInner = 40, NeedleOuter = 70;
++        public const float BandRadius = 56, BandWidth = 10, GreatWidth = 22, NeedleInner = 30, NeedleOuter = 80, NeedleWidth = 3, NeedleKeyline = 7, GreatGap = 2;
+         private readonly Label centre;
+         private readonly SyncCheckState state;
+         private string glyph = "Space";
+@@ -115,14 +121,24 @@ namespace PingTheKiller.Client.UI.RulesV2
+             {
+                 p.strokeColor = Palette.Text; p.lineWidth = Palette.Stroke(GreatWidth, Scale);
+                 p.BeginPath(); p.Arc(c, BandRadius, Angle.Degrees(Degrees(zoneStart)), Angle.Degrees(Degrees(greatEnd))); p.Stroke();
++                if (zoneEnd > greatEnd)
++                {
++                    // A 2 u `bg` cut between Great and Good: two separate blocks, not one tapered shape that reads as an arrow.
++                    float g = Degrees(greatEnd) * Mathf.Deg2Rad;
++                    var r = new Vector2(Mathf.Cos(g), Mathf.Sin(g));
++                    p.lineWidth = Palette.Stroke(GreatGap, Scale); p.strokeColor = Palette.Panel;
++                    p.BeginPath(); p.MoveTo(c + r * (BandRadius - GreatWidth * .5f - 1)); p.LineTo(c + r * (BandRadius + GreatWidth * .5f + 1)); p.Stroke();
++                }
+             }
+             float a = Degrees(state.Needle) * Mathf.Deg2Rad;
+             var d = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+-            // `bg` keyline under the needle so it stays visible where it crosses the `text` zone.
+-            p.lineWidth = Palette.Stroke(6, Scale); p.strokeColor = Palette.Bg;
+-            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * (NeedleOuter - hair)); p.Stroke();
+-            p.lineWidth = Palette.Stroke(3, Scale); p.strokeColor = Palette.Text;
+-            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * (NeedleOuter - hair)); p.Stroke();
++            // The moving hand: a 3 u `text` line from radius 30 (inside the band) to 80 (8 u past the disc edge), on a 7 u
++            // `bg` keyline so it stays visible where it crosses the `text` zone. 50 u long, more than twice the Great head; its tip
++            // ends exactly in the 8 u stack gap, so it never reaches the prompt row below.
++            p.lineWidth = Palette.Stroke(NeedleKeyline, Scale); p.strokeColor = Palette.Bg;
++            p.BeginPath(); p.MoveTo(c + d * (NeedleInner - 2)); p.LineTo(c + d * NeedleOuter); p.Stroke();
++            p.lineWidth = Palette.Stroke(NeedleWidth, Scale); p.strokeColor = Palette.Text;
++            p.BeginPath(); p.MoveTo(c + d * NeedleInner); p.LineTo(c + d * NeedleOuter); p.Stroke();
+         }
+     }
+ 
+diff --git a/Client/Assets/Scripts/UI/SurvivorFeedback.cs b/Client/Assets/Scripts/UI/SurvivorFeedback.cs
+index d7f28e2..020e4e9 100644
+--- a/Client/Assets/Scripts/UI/SurvivorFeedback.cs
++++ b/Client/Assets/Scripts/UI/SurvivorFeedback.cs
+@@ -53,7 +53,7 @@ namespace PingTheKiller.Client.UI
+     }
+ 
+     public enum StatusEvent : byte { None, Captured, Rescued, Eliminated, Escaped }
+-    public enum EliminationReason : byte { None, Executed, TimedOut, SecondCapture }
++    public enum EliminationReason : byte { None, Collapse, TimedOut, ThirdCapture }
+ 
+     // Own-status transitions on a Survivor client (HUD_SPEC 4.1 `captured`, 4.5, (10/30) capture banner and elimination
+     // reason), pure. Fed with the own entry of every WorldState. The first entry of a match only sets the baseline, so a
+@@ -63,59 +63,77 @@ namespace PingTheKiller.Client.UI
+         public const double BannerSeconds = 3;
+         public const float TimeoutAtOrBelow = .2f;
+         // Starts with the meter's state word (U4e Q-04), so the banner and the meter name the same state.
+-        public static readonly string Banner = "Lagging. A Survivor within " + Num(GameConstants.RescueRadius) + " m for " + Num(GameConstants.RescueTimeSeconds)
+-            + " s rescues you " + SurvivorReadout.Dot + " " + Num(GameConstants.LaggingTimeoutSeconds) + " s left";
+-        public const string Executed = "Executed: the Killer touched you while Lagging.";
+-        public const string SecondCapture = "Executed: caught a second time.";
+-        public static readonly string TimedOut = "Disconnected: no rescue within " + Num(GameConstants.LaggingTimeoutSeconds) + " s.";
++        // The seconds left come from the stage (SurvivorReadout.LaggingTotal): 60 s on the first capture, 30 s on the second
++        // capture or when the first stage runs out and escalates.
++        public static readonly string Banner = BannerText(SurvivorReadout.LaggingTotal(1));
++        public static readonly string SecondBanner = BannerText(SurvivorReadout.LaggingTotal(2));
++        private static string BannerText(float seconds) => "Lagging. A Survivor within " + Num(GameConstants.RescueRadius) + " m for "
++            + Num(GameConstants.RescueTimeSeconds) + " s rescues you " + SurvivorReadout.Dot + " " + Num(seconds) + " s left";
++        public static string BannerFor(byte captureCount) => SurvivorReadout.SecondStage(captureCount) ? SecondBanner : Banner;
++        // GDD v2 4: no execution. The second Lagging stage running out, a third capture, or the collapse eliminates.
++        public const string Collapse = "Disconnected: the collapse reached you.";
++        public const string ThirdCapture = "Disconnected: caught a third time.";
++        public static readonly string TimedOut = "Disconnected: no rescue in the second Lagging stage (" + Num(GameConstants.SecondLaggingTimeoutSeconds) + " s).";
+         private bool known;
+         private PlayerStatus last;
+         private float lastTimer;
+         private byte lastCaptures;
+         private double bannerUntil = double.NegativeInfinity;
++        private byte bannerCaptures;
+         public EliminationReason Reason { get; private set; }
+         public int Banners { get; private set; }
+ 
+         public void Reset()
+         {
+             known = false; last = PlayerStatus.Normal; lastTimer = 0; lastCaptures = 0;
+-            bannerUntil = double.NegativeInfinity; Reason = EliminationReason.None; Banners = 0;
++            bannerUntil = double.NegativeInfinity; bannerCaptures = 0; Reason = EliminationReason.None; Banners = 0;
+         }
+ 
+-        public StatusEvent Observe(PlayerStatus status, float statusTimer, byte captureCount, double now)
++        // collapseRunning: the own collapse clock runs (SelfState.CollapseLeft >= 0), so an elimination without a timeout or
++        // a third capture is the collapse.
++        public StatusEvent Observe(PlayerStatus status, float statusTimer, byte captureCount, double now, bool collapseRunning = false)
+         {
+             StatusEvent result = StatusEvent.None;
+             if (known && status != last)
+             {
+                 if (status == PlayerStatus.Lagging && last == PlayerStatus.Normal)
+                 {
+-                    result = StatusEvent.Captured; bannerUntil = now + BannerSeconds; Banners++;
++                    result = StatusEvent.Captured; bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
+                 }
+                 else if (status == PlayerStatus.Eliminated)
+                 {
+                     result = StatusEvent.Eliminated;
+-                    Reason = Infer(last, lastTimer, lastCaptures);
++                    Reason = Infer(last, lastTimer, lastCaptures, collapseRunning);
+                 }
+                 else if (status == PlayerStatus.Normal && last == PlayerStatus.Lagging) result = StatusEvent.Rescued;
+                 else if (status == PlayerStatus.Escaped) result = StatusEvent.Escaped;
+                 if (status != PlayerStatus.Lagging) bannerUntil = double.NegativeInfinity;
+             }
++            else if (known && status == PlayerStatus.Lagging && !SurvivorReadout.SecondStage(lastCaptures) && SurvivorReadout.SecondStage(captureCount))
++            {
++                // The first stage ran out and the server escalated to the second: the banner again, now with 30 s left.
++                bannerUntil = now + BannerSeconds; bannerCaptures = captureCount; Banners++;
++            }
+             known = true; last = status; lastCaptures = captureCount;
+             lastTimer = float.IsNaN(statusTimer) ? 0 : statusTimer;
+             return result;
+         }
+ 
+-        // Lagging -> Eliminated: the last Lagging StatusTimer at or below 0.2 s means the 60 s ran out, otherwise an
+-        // execution. Normal -> Eliminated with CaptureCount >= 1: the second capture. Anything else is not inferred.
+-        public static EliminationReason Infer(PlayerStatus before, float lastTimer, byte captureCount)
++        // Lagging -> Eliminated: the last Lagging StatusTimer at or below 0.2 s means the second stage ran out. Normal ->
++        // Eliminated with CaptureCount >= 2: the third capture. Otherwise, while the collapse runs: the collapse. Anything
++        // else (the 900 s timeout) is not inferred.
++        public static EliminationReason Infer(PlayerStatus before, float lastTimer, byte captureCount, bool collapseRunning = false)
+         {
+-            if (before == PlayerStatus.Lagging) return lastTimer <= TimeoutAtOrBelow ? EliminationReason.TimedOut : EliminationReason.Executed;
+-            if (before == PlayerStatus.Normal && captureCount >= 1) return EliminationReason.SecondCapture;
+-            return EliminationReason.None;
++            if (before == PlayerStatus.Lagging && lastTimer <= TimeoutAtOrBelow) return EliminationReason.TimedOut;
++            if (before == PlayerStatus.Normal && captureCount >= GameConstants.EliminatingCaptureCount - 1) return EliminationReason.ThirdCapture;
++            return collapseRunning ? EliminationReason.Collapse : EliminationReason.None;
+         }
+ 
+         public bool BannerVisible(double now) => now < bannerUntil;
+ 
++        // The banner for the stage it was shown for (BannerFor).
++        public PromptState Prompt => new PromptState { Text = BannerFor(bannerCaptures), Danger = true };
++
+         // The banner takes the prompt row (bottom-center, never a modal) for BannerSeconds, ahead of every prompt.
+         public static PromptState BannerPrompt => new PromptState { Text = Banner, Danger = true };
+ 
+@@ -124,9 +142,9 @@ namespace PingTheKiller.Client.UI
+         {
+             switch (reason)
+             {
+-                case EliminationReason.Executed: return Executed;
++                case EliminationReason.Collapse: return Collapse;
+                 case EliminationReason.TimedOut: return TimedOut;
+-                case EliminationReason.SecondCapture: return SecondCapture;
++                case EliminationReason.ThirdCapture: return ThirdCapture;
+                 default: return null;
+             }
+         }
+diff --git a/Client/Assets/Scripts/UI/SurvivorHud.cs b/Client/Assets/Scripts/UI/SurvivorHud.cs
+index afda3ef..47fa5d5 100644
+--- a/Client/Assets/Scripts/UI/SurvivorHud.cs
++++ b/Client/Assets/Scripts/UI/SurvivorHud.cs
+@@ -1,4 +1,5 @@
+ using PingTheKiller.Client.Killer;
++using PingTheKiller.Client.UI.RulesV2;
+ using PingTheKiller.Shared.Game;
+ using UnityEngine;
+ using UnityEngine.UIElements;
+@@ -6,16 +7,17 @@ using UnityEngine.UIElements;
+ namespace PingTheKiller.Client.UI
+ {
+     // HUD_SPEC 4.0 Survivor cluster: bottom-center, 24 u above the bottom edge, 672x72 u, `panel` fill, 1 u `line` border,
+-    // three blocks [8] skill 168 [8] transmit meter 304 [8] info 168 [8]; the prompt row (672x40) 8 u above it, only when
+-    // a prompt applies. Every value comes from SurvivorReadout; this class only displays it.
++    // three blocks [8] skill 168 [8] transmit meter 304 [8] info 168 [8]. Above it the HUD_SPEC 13.1 stack, bottom-up with
++    // 8 u gaps: the objective row (exits + collapse, 672x48), the prompt row or the hold row (672x40), the sync check ring
++    // (144x144); each only while it applies. Every value comes from SurvivorReadout / V2Wire; this class only displays it.
+     public sealed class SurvivorHud
+     {
+         public const float Width = 672, Height = 72, Margin = 24, PromptHeight = 40, Gap = 8, MeterWidth = 304;
+         private static readonly Color32 Danger = new Color32(229, 72, 77, 255);
+-        private readonly VisualElement root, cluster, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar, exitBar;
++        private readonly VisualElement root, cluster, stack, prompt, promptBar, promptTrack, promptFill, meterTrack, meterFill, timeBar;
+         private readonly VisualElement threatStrip;
+         private readonly VisualElement[] bands = new VisualElement[4]; // top, bottom, left, right (HUD_SPEC 4.2 level 3)
+-        private readonly Label skillName, word, tag, reason, time, terminals, exit, promptText;
++        private readonly Label skillName, word, tag, reason, time, terminals, promptText;
+         private readonly SkillRing ring;
+         private readonly VisualElement[] bordered;
+         private readonly Texture2D[] noise = new Texture2D[5]; // strip + four bands, rebuilt only when the mask is re-rolled
+@@ -25,11 +27,21 @@ namespace PingTheKiller.Client.UI
+         private Vector2 shownCanvas;
+         private float scale = 1;
+ 
++        public SyncCheckTracker Sync { get; } = new SyncCheckTracker();
++        public SyncCheckRing SyncRing { get; }
++        public HoldActionBar Hold { get; }
++        public ObjectiveRow Objective { get; }
++
+         public SurvivorHud(VisualElement parent, Font font)
+         {
+             root = Box(parent, "survivor-hud");
+             for (int i = 0; i < bands.Length; i++) { bands[i] = Box(root, "sband"); Show(bands[i], false); }
+-            prompt = Box(root, "sprompt");
++            V2Markers = new V2MarkerLayer(font);
++            root.Add(V2Markers);
++            stack = Box(root, "v2-survivor-stack");
++            SyncRing = new SyncCheckRing(Sync.State, font);
++            stack.Add(SyncRing);
++            prompt = Box(stack, "sprompt");
+             VisualElement promptLine = Box(prompt, "krow");
+             promptBar = Box(promptLine, "kbar");
+             promptBar.AddToClassList("danger");
+@@ -37,6 +49,10 @@ namespace PingTheKiller.Client.UI
+             Show(promptBar, false);
+             promptTrack = Box(prompt, "sprompt-track");
+             promptFill = Box(promptTrack, "sfill");
++            Hold = new HoldActionBar(Role.Survivor, font);
++            stack.Add(Hold);
++            Objective = new ObjectiveRow(font);
++            stack.Add(Objective);
+ 
+             cluster = Box(root, "scluster");
+             VisualElement skill = Box(cluster, "sskill");
+@@ -62,13 +78,11 @@ namespace PingTheKiller.Client.UI
+             timeBar = Box(line1, "kbar");
+             time = Text(line1, "0:00", "km", "kbold");
+             terminals = Text(info, string.Empty, "km");
+-            VisualElement line3 = Box(info, "krow");
+-            exitBar = Box(line3, "kbar");
+-            exit = Text(line3, string.Empty, "km");
+ 
+-            bordered = new[] { cluster, prompt, meterTrack };
++            bordered = new[] { cluster, prompt, meterTrack, Hold, Objective };
+             foreach (Label label in root.Query<Label>().ToList()) label.style.unityFontDefinition = FontDefinition.FromFont(font);
+             Show(prompt, false);
++            SyncRing.Refresh();
+         }
+ 
+         public VisualElement Root => root;
+@@ -111,10 +125,52 @@ namespace PingTheKiller.Client.UI
+         }
+ 
+         // Match start: the skill name (HUD_SPEC 8, max 2 lines in 80 u) and the key glyph; no prompt.
++        // HUD_SPEC 13.6 world layer: the Survivor's Regressing tags (drawn under the cluster and the stack).
++        public V2MarkerLayer V2Markers { get; }
++        public int RegressingShown { get; private set; }
++
++        public const float TerminalPointHeight = 1.5f;
++
++        // Every frame: a Regressing tag above each Regressing terminal whose 1.5 m point is on screen, kept out of the cluster
++        // and stack keep-out; nothing off screen and no edge indicator.
++        public void DrawTerminalFlags(PingTheKiller.Shared.Packets.S2C_WorldState world, World.ViewPose pose)
++        {
++            Vector2 screen = new Vector2(V2Markers.layout.width, V2Markers.layout.height);
++            if (float.IsNaN(screen.x) || screen.x <= 0 || float.IsNaN(screen.y) || screen.y <= 0)
++                screen = new Vector2(Screen.width, Screen.height) / Mathf.Max(.01f, scale);
++            DrawTerminalFlags(world, pose, screen);
++        }
++
++        public void DrawTerminalFlags(PingTheKiller.Shared.Packets.S2C_WorldState world, World.ViewPose pose, Vector2 screen)
++        {
++            V2Markers.Begin();
++            RegressingShown = 0;
++            if (world?.Terminals != null)
++            {
++                Rect safe = EdgePlacement.SafeRect(screen, false), keepOut = EdgePlacement.KeepOut(ClusterRect(screen));
++                foreach (TerminalState terminal in world.Terminals)
++                {
++                    TerminalFlagsView flags = V2Wire.Terminal(terminal);
++                    if (!flags.Regressing) continue;
++                    if (!pose.ToViewport(new Vector3(terminal.X, TerminalPointHeight, terminal.Z), out Vector2 v) || v.x < 0 || v.x > 1 || v.y < 0 || v.y > 1) continue;
++                    var p = new Vector2(v.x * screen.x, (1 - v.y) * screen.y);
++                    if (!safe.Contains(p)) continue;
++                    V2Markers.Regressing(EdgePlacement.ClampOutside(p, keepOut, safe), flags, Role.Survivor);
++                    RegressingShown++;
++                }
++            }
++            V2Markers.End();
++        }
++
+         public void Begin(byte skillId)
+         {
++            V2Markers.Begin(); V2Markers.End(); RegressingShown = 0;
+             SetText(skillName, SurvivorReadout.SkillName(skillId));
+             Show(prompt, false);
++            Hold.Hide();
++            Objective.Set(null, new CollapseView { GlobalLeft = -1, PersonalLeft = -1 });
++            Sync.Reset();
++            SyncRing.Refresh();
+         }
+ 
+         public void SetMeter(MeterState m)
+@@ -164,11 +220,27 @@ namespace PingTheKiller.Client.UI
+             element.style.left = left; element.style.top = top; element.style.width = width; element.style.height = height;
+         }
+ 
++        // The meter strip keeps the mask's cells but stacks each column from the bottom (texture row 0), so it reads as a
++        // ragged interference bar rising off the meter, not as a line of tiny red glyphs pressed against the cluster's top
++        // border (U6c-wire B1). The density and the seed's column counts are unchanged.
++        public static bool[] Columns(bool[] mask, int w, int h)
++        {
++            var stacked = new bool[mask.Length];
++            for (int x = 0; x < w; x++)
++            {
++                int count = 0;
++                for (int y = 0; y < h; y++) if (mask[y * w + x]) count++;
++                for (int y = 0; y < count; y++) stacked[y * w + x] = true;
++            }
++            return stacked;
++        }
++
+         // One 1-bit texture: `danger` texels or fully transparent ones, point-filtered (no blend of palette colors).
+         private void Paint(VisualElement element, int slot, int seed, float width, float height, float cell, float density)
+         {
+             int w = Mathf.Max(1, Mathf.CeilToInt(width / cell)), h = Mathf.Max(1, Mathf.CeilToInt(height / cell));
+             bool[] mask = ThreatVisual.Mask(seed, w, h, density);
++            if (slot == 0) mask = Columns(mask, w, h);
+             var pixels = new Color32[w * h];
+             for (int i = 0; i < pixels.Length; i++) pixels[i] = mask[i] ? Danger : new Color32(0, 0, 0, 0);
+             Texture2D texture = noise[slot];
+@@ -206,18 +278,23 @@ namespace PingTheKiller.Client.UI
+         public bool MeterBarShown => meterTrack.style.display != DisplayStyle.None;
+         public bool PromptDanger => promptBar.style.display != DisplayStyle.None;
+ 
+-        // Info block: time (4.9), terminals (4.3), exit (4.7).
+-        public void SetInfo(float timeLeft, int done, int needed, ExitLine line, float? lockedLeft)
++        // Info block: time (4.9), terminals (4.3). The v1 line 3 (`Exit …`) is gone; the objective row replaces it (13.1).
++        public void SetInfo(float timeLeft, int done, int needed)
+         {
+             SetText(time, KillerHudCopy.Time(timeLeft));
+             Show(timeBar, KillerHudCopy.TimePressure(timeLeft));
+             SetText(terminals, SurvivorReadout.TerminalsLine(done, needed));
+             terminals.EnableInClassList("kbold", needed > 0 && done >= needed);
+-            SetText(exit, SurvivorReadout.ExitText(line, lockedLeft));
+-            exit.EnableInClassList("kmuted", line == ExitLine.Locked);
+-            Show(exitBar, line != ExitLine.Locked);
+-            exitBar.EnableInClassList("fill-ally", line == ExitLine.Open);
+-            exitBar.EnableInClassList("danger", line == ExitLine.LockedByKiller);
++        }
++
++        // HUD_SPEC 13.1 / 13.4 / 13.5: both exits and the collapse clock, shown once an exit is Powered or Open or a clock runs.
++        public void SetObjective(ExitView[] exits, in CollapseView collapse) => Objective.Set(exits, collapse);
++
++        // HUD_SPEC 13.2: the ring follows the tracker (call after Sync.Tick). glyph: "Space" or "A".
++        public void SetSync(string glyph)
++        {
++            SyncRing.SetGlyph(glyph);
++            SyncRing.Refresh();
+         }
+ 
+         // 4.8: cooldown = SelfState.SkillCooldown when available (null: no cooldown ring). activeFraction < 0 = none.
+@@ -229,6 +306,19 @@ namespace PingTheKiller.Client.UI
+             skillName.EnableInClassList("kmuted", state == SkillRing.State.Disabled);
+         }
+ 
++        // The prompt row, or the 13.3 hold row in its place while the own exit switch hold runs.
++        public void SetPrompt(PromptState p, in HoldActionView hold)
++        {
++            if (hold.Kind != HoldKind.None)
++            {
++                Show(prompt, false);
++                Hold.Set(hold, "[E]");
++                return;
++            }
++            Hold.Hide();
++            SetPrompt(p);
++        }
++
+         public void SetPrompt(PromptState p)
+         {
+             bool visible = !string.IsNullOrEmpty(p.Text);
+@@ -246,16 +336,21 @@ namespace PingTheKiller.Client.UI
+         public string Reason => reason.text;
+         public string Tag => tag.style.display == DisplayStyle.None ? null : tag.text;
+         public string PromptText => prompt.style.display == DisplayStyle.None ? null : promptText.text;
++        public string HoldText => Hold.style.display == DisplayStyle.None ? null : Hold.Text;
++        public bool ObjectiveShown => Objective.style.display != DisplayStyle.None;
+         public float MeterFillPercent => meterFill.style.width.value.value;
+         public float PromptFillPercent => promptFill.style.width.value.value;
+         public bool MeterFillHas(string kind) => meterFill.ClassListContains(kind);
+         public bool PromptFillHas(string kind) => promptFill.ClassListContains(kind);
+         public string SkillCount => ring.Count;
+ 
+-        // The cluster plus the prompt row, in panel units (for the edge markers' keep-out, HUD_SPEC 4.6).
++        // The cluster plus the 13.1 stack, in panel units (for the edge markers' keep-out, HUD_SPEC 4.6).
+         public Rect ClusterRect(Vector2 screen)
+         {
+-            float height = Height + (prompt.style.display == DisplayStyle.None ? 0 : PromptHeight + Gap);
++            float height = Height;
++            if (prompt.style.display != DisplayStyle.None || Hold.style.display != DisplayStyle.None) height += PromptHeight + Gap;
++            if (Objective.style.display != DisplayStyle.None) height += 48 + Gap;
++            if (SyncRing.style.display != DisplayStyle.None) height += SyncCheckRing.Size + Gap;
+             return new Rect((screen.x - Width) * .5f, screen.y - Margin - height, Width, height);
+         }
+ 
+@@ -272,6 +367,8 @@ namespace PingTheKiller.Client.UI
+                 block.style.borderLeftWidth = border; block.style.borderRightWidth = border;
+             }
+             ring.Scale = scale; ring.MarkDirtyRepaint();
++            V2Markers.Scale = scale;
++            SyncRing.Scale = scale;
+         }
+     }
+ }
+diff --git a/Client/Assets/Scripts/UI/SurvivorReadout.cs b/Client/Assets/Scripts/UI/SurvivorReadout.cs
+index de3f94f..88630d9 100644
+--- a/Client/Assets/Scripts/UI/SurvivorReadout.cs
++++ b/Client/Assets/Scripts/UI/SurvivorReadout.cs
+@@ -48,10 +48,7 @@ namespace PingTheKiller.Client.UI
+         public float Width;
+     }
+ 
+-    // HUD_SPEC 4.7 info block line 3.
+-    public enum ExitLine : byte { Locked, Open, LockedByKiller }
+-
+-    // Survivor-bound S2C_SkillEffect timing (HUD_SPEC 4.1 rows 5-6, 4.7, 4.8 Active). Skill ids are role-local, so an
++    // Survivor-bound S2C_SkillEffect timing (HUD_SPEC 4.1 rows 5-6, 13.4 lock seconds, 4.8 Active). Skill ids are role-local, so an
+     // effect is the Killer's only when its caster is neither this player nor a Survivor of the last WorldState.
+     public sealed class SurvivorEffects
+     {
+@@ -146,7 +143,7 @@ namespace PingTheKiller.Client.UI
+                     {
+                         float timer = float.IsNaN(own.StatusTimer) ? 0 : own.StatusTimer;
+                         m.Reason = "Always visible " + Dot + " " + Ceil(timer) + " s left"; m.Fill = BarFill.Danger;
+-                        m.Width = Clamp01(timer / GameConstants.LaggingTimeoutSeconds);
++                        m.Width = Clamp01(timer / LaggingTotal(own.CaptureCount));
+                     }
+                     break;
+                 default:
+@@ -165,10 +162,17 @@ namespace PingTheKiller.Client.UI
+             }
+             // Capture tag (row A right): Protected while the post-rescue immunity runs, else Captured once.
+             if (known && self.InvulnerableLeft > 0) m.Tag = "Protected " + Seconds1(self.InvulnerableLeft);
+-            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = "Captured once"; m.TagMuted = true; }
++            else if (own.CaptureCount >= 1 && own.Status == PlayerStatus.Normal) { m.Tag = own.CaptureCount >= 2 ? "Captured twice" : "Captured once"; m.TagMuted = true; }
+             return m;
+         }
+ 
++        // GDD v2 4: the first Lagging stage lasts 60 s, the second 30 s.
++        public static float LaggingTotal(byte captureCount)
++            => SecondStage(captureCount) ? GameConstants.SecondLaggingTimeoutSeconds : GameConstants.LaggingTimeoutSeconds;
++
++        // The second Lagging stage: the second capture, or the first stage running out (the server sets CaptureCount = 2).
++        public static bool SecondStage(byte captureCount) => captureCount >= 2;
++
+         // HUD_SPEC 4.8 ring state. cooldown = SelfState.SkillCooldown when available, else null (no cooldown ring).
+         public static SkillRing.State SkillState(byte skillId, PlayerStatus status, float? cooldown, bool restoreHasTarget)
+         {
+@@ -178,26 +182,9 @@ namespace PingTheKiller.Client.UI
+             return SkillRing.State.Ready;
+         }
+ 
+-        // HUD_SPEC 4.9 / 4.3 / 4.7 info lines.
++        // HUD_SPEC 4.9 / 4.3 info lines (the v1 Exit line 3 is replaced by the objective row, 13.1).
+         public static string TerminalsLine(int done, int needed) => "Terminals " + done + "/" + needed;
+ 
+-        public static ExitLine Exit(byte exitOpen, byte exitLocked)
+-            => exitOpen == 0 ? ExitLine.Locked : exitLocked != 0 ? ExitLine.LockedByKiller : ExitLine.Open;
+-
+-        // Protocol v0.4: any open exit reads Open; otherwise a switch locked by Firewall Block reads LockedByKiller.
+-        public static ExitLine Exit(S2C_WorldState world)
+-            => WorldExits.AnyOpen(world) ? ExitLine.Open : WorldExits.AnyLocked(world) ? ExitLine.LockedByKiller : ExitLine.Locked;
+-
+-        public static string ExitText(ExitLine line, float? lockedLeft)
+-        {
+-            switch (line)
+-            {
+-                case ExitLine.Open: return "Exit Open";
+-                case ExitLine.LockedByKiller: return lockedLeft.HasValue && lockedLeft.Value > 0 ? "Locked " + Ceil(lockedLeft.Value) + " s" : "Exit Locked";
+-                default: return "Exit Locked";
+-            }
+-        }
+-
+         public static string Ellipsize(string name)
+         {
+             if (string.IsNullOrEmpty(name)) return "a Survivor";
+diff --git a/Client/Assets/Scripts/World/SelfState.cs b/Client/Assets/Scripts/World/SelfState.cs
+index 7ceb423..f5a2756 100644
+--- a/Client/Assets/Scripts/World/SelfState.cs
++++ b/Client/Assets/Scripts/World/SelfState.cs
+@@ -1,26 +1,33 @@
++using PingTheKiller.Shared.Game;
++
+ namespace PingTheKiller.Client.World
+ {
+-    // Own-only server state (HUD_SPEC 11 Q5/Q6, N5): skill cooldown, rescue progress, post-rescue protection and the
+-    // Killer's execution grace, from S2C_SelfState (protocol v0.3). Available stays false until the first packet of a
+-    // match; until then every element that needs it shows its fallback (no cooldown ring, no execution prompt).
++    // Own-only server state (HUD_SPEC 11 Q5/Q6, N5, 13.3, 13.5): skill cooldown, rescue progress, post-rescue protection,
++    // the personal collapse clock and the own hold action, from S2C_SelfState (protocol v0.4). Available stays false until
++    // the first packet of a match; until then every element that needs it shows its fallback (no cooldown ring, no hold row).
+     public interface ISelfState
+     {
+         bool Available { get; }
+         float SkillCooldown { get; }
+         float RescueProgress { get; }
+         float InvulnerableLeft { get; }
+-        float ExecutionGraceLeft { get; }
++        // Personal collapse seconds left (Survivor) or the global one (Killer); -1 while the collapse is not running.
++        float CollapseLeft { get; }
++        // The own hold action (exit switch, kick, hatch close) and its progress 0..1, exactly as received.
++        ActionKind ActionKind { get; }
++        float ActionProgress { get; }
+     }
+ 
+     // The holder and its local clock, pure (no engine types). The server sends S2C_SelfState on every change plus a
+-    // 1 Hz refresh, so between packets the three timers count down by real time, floored at 0, and every received value
+-    // replaces the local one (snap). RescueProgress is shown exactly as received: no extrapolation (HUD_SPEC 4.4).
++    // 1 Hz refresh, so between packets the timers count down by real time, floored at 0, and every received value
++    // replaces the local one (snap). RescueProgress and ActionProgress are shown exactly as received: no extrapolation
++    // (HUD_SPEC 4.4, 13.3). The collapse clock counts down at CollapseRate (2 while the own Survivor is Lagging).
+     public sealed class SelfStateHolder : ISelfState
+     {
+         // A cooldown cycle opens when a value above this arrives (a new use, or the first packet mid-cooldown). The
+         // skill_ready cue fires once when the opened cycle reaches 0; a late refresh of a few hundredths never re-opens it.
+         public const float ReadyRearmSeconds = .5f;
+-        private float cooldownAt, invulnerableAt, graceAt;
++        private float cooldownAt, invulnerableAt, collapseAt = -1;
+         private double receivedAt, now;
+         private bool cycleOpen;
+         private int readyEdges;
+@@ -28,19 +35,30 @@ namespace PingTheKiller.Client.World
+         public float SkillCooldown { get; private set; }
+         public float RescueProgress { get; private set; }
+         public float InvulnerableLeft { get; private set; }
+-        public float ExecutionGraceLeft { get; private set; }
++        public float CollapseLeft { get; private set; } = -1;
++        public ActionKind ActionKind { get; private set; }
++        public float ActionProgress { get; private set; }
++        // Local countdown rate of the collapse clock between packets: GameConstants.CollapseLaggingRate while Lagging.
++        public float CollapseRate { get; set; } = 1;
+         // Number of S2C_SelfState packets fed since the last Reset (dev log and tests).
+         public int Received { get; private set; }
+ 
++        // One S2C_SelfState without the v0.4 fields (no collapse, no hold action).
++        public void Feed(float skillCooldown, float rescueProgress, float invulnerableLeft, double at = double.NaN)
++            => Feed(skillCooldown, rescueProgress, invulnerableLeft, -1, 0, 0, at);
++
+         // One S2C_SelfState. at = its arrival time (LinkClock seconds); NaN = the clock's current time. Values are
+-        // cleaned (NaN or negative -> 0, rescue clamped to 0..1, timers to an hour) and replace the counted-down ones.
+-        public void Feed(float skillCooldown, float rescueProgress, float invulnerableLeft, float executionGraceLeft, double at = double.NaN)
++        // cleaned (NaN or negative -> 0, rescue and action clamped to 0..1, timers to an hour, a negative or NaN collapse
++        // clock = not running, an unknown action kind = none) and replace the counted-down ones.
++        public void Feed(float skillCooldown, float rescueProgress, float invulnerableLeft, float collapseLeft, float actionProgress, byte actionKind, double at = double.NaN)
+         {
+             if (double.IsNaN(at) || double.IsInfinity(at)) at = now;
+             cooldownAt = Clean(skillCooldown, 3600);
+             RescueProgress = Clean(rescueProgress, 1);
+             invulnerableAt = Clean(invulnerableLeft, 3600);
+-            graceAt = Clean(executionGraceLeft, 3600);
++            collapseAt = float.IsNaN(collapseLeft) || collapseLeft < 0 ? -1 : Clean(collapseLeft, 3600);
++            ActionKind = actionKind <= (byte)ActionKind.HatchClose ? (ActionKind)actionKind : ActionKind.None;
++            ActionProgress = ActionKind == ActionKind.None ? 0 : Clean(actionProgress, 1);
+             receivedAt = at;
+             if (at > now) now = at;
+             Available = true;
+@@ -69,8 +87,11 @@ namespace PingTheKiller.Client.World
+         public void Reset()
+         {
+             Available = cycleOpen = false;
+-            SkillCooldown = RescueProgress = InvulnerableLeft = ExecutionGraceLeft = 0;
+-            cooldownAt = invulnerableAt = graceAt = 0;
++            SkillCooldown = RescueProgress = InvulnerableLeft = ActionProgress = 0;
++            CollapseLeft = collapseAt = -1;
++            ActionKind = ActionKind.None;
++            CollapseRate = 1;
++            cooldownAt = invulnerableAt = 0;
+             readyEdges = Received = 0;
+         }
+ 
+@@ -81,7 +102,8 @@ namespace PingTheKiller.Client.World
+             if (!(elapsed > 0)) elapsed = 0;
+             SkillCooldown = Down(cooldownAt, elapsed);
+             InvulnerableLeft = Down(invulnerableAt, elapsed);
+-            ExecutionGraceLeft = Down(graceAt, elapsed);
++            float rate = float.IsNaN(CollapseRate) || CollapseRate < 0 ? 1 : CollapseRate;
++            CollapseLeft = collapseAt < 0 ? -1 : Down(collapseAt, elapsed * rate);
+             if (cycleOpen && SkillCooldown <= 0) { cycleOpen = false; readyEdges++; }
+         }
+ 
