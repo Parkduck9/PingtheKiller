@@ -29,6 +29,9 @@ internal static class U3dMut
         return true;
     };
 
+    // The same, for survivor B's stream only (A's own status must stay readable for the capture step).
+    public static Func<SurvCtx, bool> BlockedWorldsOfBBecomeSpectatorWorlds => c => c.Conn == 2 && BlockedWorldsBecomeSpectatorWorlds(c);
+
     public static bool Insert(SurvCtx c, PlayerState? entry = null) { c.World.Players.Insert(0, entry ?? c.LegalEntry); return true; }
 
     public static bool Edit(SurvCtx c, Func<PlayerState, PlayerState> change)
@@ -98,9 +101,10 @@ internal static class U3dH6Run
 {
     public static async Task<(CheckResult Item, SurvivorTap Tap, ScenarioServer Server, TimeSpan Elapsed)> RunAsync(string label,
         Func<LosTapAccessor, Func<SurvCtx, bool>?>? mutation = null, bool expectLos = false, Func<int, TimeSpan>? delay = null,
-        bool losServer = true, bool anonymous = false, bool unknownFrames = false)
+        bool losServer = true, bool anonymous = false, bool unknownFrames = false, bool openRoad = false)
     {
-        await using var server = new ScenarioServer { LineOfSight = losServer, ExecutionGrace = true, AnonymousKillerView = anonymous, UnknownFrames = unknownFrames };
+        await using var server = new ScenarioServer { LineOfSight = losServer, ExecutionGrace = true, AnonymousKillerView = anonymous,
+            UnknownFrames = unknownFrames, OpenRoad = openRoad };
         var accessor = new LosTapAccessor();
         var tap = new SurvivorTap(mutation?.Invoke(accessor));
         accessor.Tap = tap;
@@ -285,12 +289,16 @@ public sealed class U3dH6ExpectLosNeedsBlockedAndAbsentTests
     // the recipient's own entry is turned into an Eliminated one, so the world is a spectator world (no entry, not eligible) and
     // classifies Ineligible, never BlockedAbsent. Visible entries and every tick stay contract-correct, so only the --expect-los
     // requirement can fail: visible > 0 but blocked-and-absent == 0.
+    // U6e rebuild: on map v2.1 the killer's capture walk to A passes behind walls, so the mutation also hit A's own stream and H6
+    // read A as Eliminated before the capture. The H6 gate itself is private to the harness, so the full run stays: the fake puts
+    // the killer, A and every terminal in the wall-free rectangle at the exit's corner (OpenRoad, derived from FixedMap), where A
+    // never loses sight of the killer, and only B's blocked worlds (B hides behind a wall in the sight step) are mutated.
     [Fact]
     public async Task ExpectLosFailsWithoutAnyBlockedAndAbsentTick()
     {
         var (item, tap, _, _) = await U3dH6Run.RunAsync("expect-no-blocked",
-            _ => U3dMut.BlockedWorldsBecomeSpectatorWorlds,
-            expectLos: true);
+            _ => U3dMut.BlockedWorldsOfBBecomeSpectatorWorlds,
+            expectLos: true, openRoad: true);
         Assert.True(tap.Applied > 50, $"premise: {tap.Applied}");
         Assert.False(item.Passed, item.Evidence);
         Assert.Contains("[line of sight (--expect-los)]", item.Evidence);
@@ -303,8 +311,8 @@ public sealed class U3dH6ExpectLosNeedsBlockedAndAbsentTests
     public async Task WithoutTheFlagTheSameServerPasses()
     {
         var (item, _, _, _) = await U3dH6Run.RunAsync("no-flag-no-blocked",
-            _ => U3dMut.BlockedWorldsBecomeSpectatorWorlds,
-            expectLos: false);
+            _ => U3dMut.BlockedWorldsOfBBecomeSpectatorWorlds,
+            expectLos: false, openRoad: true);
         Assert.True(item.Passed, item.Evidence);
     }
 }

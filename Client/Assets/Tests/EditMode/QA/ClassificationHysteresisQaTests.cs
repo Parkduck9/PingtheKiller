@@ -98,7 +98,7 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheWallRayFlagUsedByTheSoundModelHasTheSameHundredMillisecondHold()
         {
             // The Survivor at (26, 22) is behind the wall x 18..20 when the Killer stands at x = 10, and clear when it stands at x = 22
-            // (legacy numbers: on the 80 m map the wall is the building Walls[11] and these are 72 / 48 / 68).
+            // (legacy numbers: on the 80 m map the wall is the building Walls[16] and these are 37 / 16 / 33).
             KillerScene scene = SceneWith(26, 22);
             ViewPose blocked = Pose(10, 90), clear = Pose(22, 90);
             IReadOnlyList<BlipView> first = scene.Frame(blocked, .05, null);

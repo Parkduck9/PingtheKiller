@@ -53,21 +53,31 @@ namespace PingTheKiller.ServerCore.Map
         {
             new Wall(-1, -1, 0, Size + 1), new Wall(Size, -1, Size + 1, Size + 1),
             new Wall(0, -1, Size, 0), new Wall(0, Size, Size, Size + 1),
-            // Two U-shaped blocks with 4 m dead-end alleys, open to the south.
-            new Wall(12, 12, 24, 36), new Wall(28, 12, 40, 36), new Wall(12, 36, 40, 42),
-            new Wall(12, 46, 24, 68), new Wall(28, 46, 40, 68), new Wall(12, 68, 40, 74),
-            // Eastern blocks and the central service building. Building gaps are 4 m.
-            new Wall(56, 10, 66, 20), new Wall(56, 24, 66, 34), new Wall(56, 38, 66, 48),
-            new Wall(56, 52, 66, 62), new Wall(56, 66, 66, 76), new Wall(44, 34, 52, 42)
+            // x < 12, z < 39 stays open: the 12 m approach road to exit 0, also the rule-test lane.
+            // SW L loop, then the south U block whose 4 m dead end opens onto the south edge street.
+            new Wall(12, 8, 20, 14), new Wall(12, 14, 19, 21),
+            new Wall(23, 4, 29, 15), new Wall(33, 4, 39, 15), new Wall(23, 15, 39, 21),
+            new Wall(43, 4, 52, 12), new Wall(57, 4, 71, 11), new Wall(64, 11, 71, 18),
+            // Middle band: west loop, central T, the single-box loop south of the centre crossroads.
+            new Wall(12, 24, 18, 37),
+            new Wall(21, 30, 35, 37), new Wall(25, 24, 31, 30), new Wall(42, 16, 53, 30),
+            new Wall(24, 40, 31, 54), new Wall(31, 47, 37, 54), new Wall(47, 40, 56, 47), new Wall(47, 47, 53, 54),
+            new Wall(60, 41, 72, 48), new Wall(65, 48, 72, 56),
+            // North band: the north U block (4 m dead end open to the south), a T loop and two loops by exit 1.
+            new Wall(4, 61, 13, 72),
+            new Wall(17, 59, 23, 76), new Wall(27, 59, 33, 68), new Wall(23, 68, 33, 76),
+            new Wall(38, 64, 52, 72), new Wall(42, 58, 48, 64), new Wall(56, 59, 63, 70),
+            new Wall(67, 59, 76, 65), new Wall(67, 65, 74, 71)
         };
         private readonly Obstacle[] _obstacles =
         {
-            new Obstacle(45, 14, 47, 16), new Obstacle(50, 27.5f, 52, 29.5f),
-            new Obstacle(45, 50, 47, 52), new Obstacle(50, 56, 52, 58),
-            new Obstacle(4, 52, 6, 54), new Obstacle(4, 64, 6, 66),
-            new Obstacle(44, 4, 48, 6), new Obstacle(44, 74, 48, 76),
-            new Obstacle(25, 6, 27, 8), new Obstacle(72, 16, 74, 18),
-            new Obstacle(72, 52, 74, 54), new Obstacle(70, 74, 72, 76)
+            // Plaza cars and edge containers.
+            new Obstacle(9, 46, 11, 50.5f), new Obstacle(13, 52, 17, 54), new Obstacle(63, 26, 65, 30.5f),
+            new Obstacle(66, 32, 70, 34), new Obstacle(75, 25, 77, 31), new Obstacle(74.5f, 3, 77, 9),
+            new Obstacle(44, 75, 48, 77), new Obstacle(58, 73, 62, 75), new Obstacle(12, 75, 14, 77),
+            // Junk at the centre crossroads, at loop corners and at street mouths.
+            new Obstacle(37.5f, 40, 39.5f, 42), new Obstacle(44.5f, 33, 46.5f, 37), new Obstacle(60, 33, 62, 35.5f),
+            new Obstacle(59, 13.5f, 61, 15.5f), new Obstacle(56.5f, 51, 58.5f, 55), new Obstacle(14, 44, 16, 46)
         };
         public FixedMap()
         {
@@ -78,24 +88,24 @@ namespace PingTheKiller.ServerCore.Map
         public IReadOnlyList<Obstacle> Obstacles { get; }
         // Wall-free plazas, both 16 x 16 m; low obstacles provide movement cover only.
         public IReadOnlyList<Wall> Plazas { get; } = Array.AsReadOnly(new[]
-        { new Wall(40, 12, 56, 28), new Wall(40, 48, 56, 64) });
+        { new Wall(4, 41, 20, 57), new Wall(56, 21, 72, 37) });
         public IReadOnlyList<MapPoint> SpawnPoints { get; } = Array.AsReadOnly(new[]
         {
-            new MapPoint(46, 45),
-            new MapPoint(8, 12), new MapPoint(8, 16), new MapPoint(8, 20),
-            new MapPoint(26, 50), new MapPoint(26, 54), new MapPoint(72, 68), new MapPoint(74, 70)
+            new MapPoint(34, 43.5f),
+            new MapPoint(44, 1.5f), new MapPoint(48, 1.5f), new MapPoint(52, 1.5f),
+            new MapPoint(4, 76), new MapPoint(8, 76), new MapPoint(76, 46), new MapPoint(76, 52)
         });
         public IReadOnlyList<MapPoint> TerminalPositions { get; } = Array.AsReadOnly(new[]
         {
-            new MapPoint(10, 25), new MapPoint(72, 44), new MapPoint(49, 25),
-            new MapPoint(8, 46), new MapPoint(48, 60), new MapPoint(26, 28),
-            new MapPoint(26, 60), new MapPoint(72, 60)
+            new MapPoint(10, 25), new MapPoint(58, 27), new MapPoint(64.5f, 74),
+            new MapPoint(19, 49), new MapPoint(41, 44), new MapPoint(54.5f, 8),
+            new MapPoint(35.5f, 60), new MapPoint(76, 40)
         });
         public IReadOnlyList<MapPoint> Exits { get; } = Array.AsReadOnly(new[]
         { new MapPoint(4, 4), new MapPoint(76, 76) });
         public MapPoint Exit => Exits[0];
         public IReadOnlyList<MapPoint> HatchPoints { get; } = Array.AsReadOnly(new[]
-        { new MapPoint(8, 38), new MapPoint(26, 16), new MapPoint(48, 46), new MapPoint(70, 8), new MapPoint(76, 76) });
+        { new MapPoint(31, 10), new MapPoint(25, 63), new MapPoint(12, 39), new MapPoint(66, 38.5f), new MapPoint(56, 76) });
 
         public TerminalState[] CreateTerminals(int survivors, out byte required)
         {

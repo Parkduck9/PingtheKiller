@@ -10,14 +10,15 @@ namespace PingTheKiller.Client.QA.Tests
     // Helpers shared by the U4b QA tests: source-file access (code-read checks) and an IL reference scanner.
     // The Killer-view scenarios (U4c) were written on the 60 m map: the Killer at (10, 23) looks +x and a 2 m wall (x 18..20,
     // z 14..32) stands eight metres ahead; the scenes are written in those legacy numbers. On the 80 m map the same scene is
-    // laid 8 m west of the face of the east building FixedMap.Walls[11] (x 56..66, z 24..34): MapX/MapZ move a legacy point
-    // there. Legacy x below 19 is the free space in front of the wall (+38), x from 19 on is behind it (+46), so the legacy
-    // wall faces x = 18 and x = 20 land on the building faces x = 56 and x = 66; z shifts by 6. Same relations, new ground.
+    // laid 8 m west of the west face of the building FixedMap.Walls[16] (x 24..31, z 40..54), across the street from the west
+    // plaza: MapX/MapZ move a legacy point there. Legacy x below 19 is the free space in front of the wall (+6), x from 19 on is
+    // behind it (+11), so the legacy wall faces x = 18 and x = 20 land on the building faces x = 24 and x = 31; z shifts by 20.
+    // Same relations, new ground.
     internal static class KillerRoom
     {
-        public static PingTheKiller.ServerCore.Map.Wall Building => PingTheKiller.Client.World.SharedMap.Map.Walls[11];
-        public static float MapX(float legacyX) => legacyX < 19 ? legacyX + 38 : legacyX + 46;
-        public static float MapZ(float legacyZ) => legacyZ + 6;
+        public static PingTheKiller.ServerCore.Map.Wall Building => PingTheKiller.Client.World.SharedMap.Map.Walls[16];
+        public static float MapX(float legacyX) => legacyX < 19 ? legacyX + 6 : legacyX + 11;
+        public static float MapZ(float legacyZ) => legacyZ + 20;
         public static float X => MapX(10);
         public static float Z => MapZ(23);
     }

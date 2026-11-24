@@ -7,13 +7,14 @@ namespace PingTheKiller.Client.QA.Tests
 {
     // U4c QA attempt 1, test item 5. Written from HUD_SPEC 4.10 (Survivor third person) and 6.0 (Killer first person); the map
     // is the real FixedMap, so every expected number below is worked out by hand from the spec. The wall under test is the
-    // west building of map v2 (Walls[4], x 12..24, z 12..36, formerly the 60 m map's x 18..20, z 14..32): the boom comes from its
-    // east face into the 4 m alley, 2.5 m off the face as before; Walls[10] (x 56..66, z 10..20) stands in for "the wall's end".
+    // south-west building of map v2.1 (Walls[4], x 12..20, z 8..14, formerly the 60 m map's x 18..20, z 14..32): the boom comes
+    // from its east face into the 3 m alley, 2.5 m off the face as before; Walls[12] (x 12..18, z 24..37) stands in for "the
+    // wall's end".
     [Category("U4cQaA1")]
     public sealed class CameraRigQaTests
     {
         private static ServerCore.Map.Wall Block => SharedMap.Map.Walls[4];
-        private static ServerCore.Map.Wall EndBlock => SharedMap.Map.Walls[10];
+        private static ServerCore.Map.Wall EndBlock => SharedMap.Map.Walls[12];
         // The Survivor's look target 2.5 m east of the east face of Block, level with its middle (formerly x 22.5, z 23).
         private static Vector3 AlleyTarget => new Vector3(Block.MaxX + 2.5f, .7f, (Block.MinZ + Block.MaxZ) * .5f);
 
@@ -94,7 +95,7 @@ namespace PingTheKiller.Client.QA.Tests
             // Open ground: the whole boom.
             Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(8, .7f, 40), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(4f).Within(1e-4f));
             // Walls are boxes: a boom passing beside the wall's end (z beyond MaxZ + radius) is not shortened. EndBlock ends at
-            // z = 20 and the alley beyond it is open for 4 m; the target stands 2.5 m east of its east face, 1 m past its end.
+            // z = 37 and the street beyond it is open for 4 m; the target stands 2.5 m east of its east face, 1 m past its end.
             Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(EndBlock.MaxX + 2.5f, .7f, EndBlock.MaxZ + 1f), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(4f).Within(1e-4f));
             // And the same height level with that wall is shortened, so the open result above is the wall's end and not a missing wall.
             Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(EndBlock.MaxX + 2.5f, .7f, EndBlock.MaxZ - 1f), SurvivorOrbitRig.Back(90, 0), 4, .2f), Is.EqualTo(2.3f).Within(.005f));

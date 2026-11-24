@@ -17,9 +17,9 @@ namespace PingTheKiller.Client.QA.Tests
         private static float Dz(float yaw) => Mathf.Cos(yaw * Mathf.Deg2Rad);
 
         // Fixtures on the 80 m map (formerly (30, 30) in open space and the north wall at z = 60):
-        // OpenX/OpenZ is the middle of the west plaza (x 40..56, z 12..28): nothing is within 2.4 m in any direction.
+        // OpenX/OpenZ is the middle of the west approach road (x 0..12, z 0..39): nothing is within 6 m in any direction.
         // NorthX is a column of the north boundary wall (z = FixedMap.Size) that has no building or obstacle within 2.4 m.
-        private const float OpenX = 48, OpenZ = 20, NorthX = 50;
+        private const float OpenX = 6, OpenZ = 30, NorthX = 50;
         private const float North = FixedMap.Size;
 
         [Test]
@@ -118,7 +118,7 @@ namespace PingTheKiller.Client.QA.Tests
         {
             var map = new FixedMap();
             // x, z, yaw: boundary walls (z = 0 and Size, x = 0 and Size) and an inner wall: the east face of the building Walls[10]
-            // (x 56..66, z 10..20) seen from 1.5 m east of it, facing west (formerly the wall 18..20 seen from x = 16.5).
+            // (x 57..71, z 4..11) seen from 1.5 m east of it, facing west (formerly the wall 18..20 seen from x = 16.5).
             Wall building = map.Walls[10];
             var cases = new[]
             {

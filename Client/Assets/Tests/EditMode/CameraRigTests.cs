@@ -66,21 +66,21 @@ namespace PingTheKiller.Client.Tests
         [Test]
         public void ASphereCastStopsAtAWallExpandedByTheRadiusAndAtTheFloor()
         {
-            // Wall x 12..24, z 12..36 (FixedMap). From x = 11 the 0.2 m sphere touches at x = 11.8.
-            float hit = MapGeometry.SphereCast(SharedMap.Map, new Vector3(11, .7f, 23), Vector3.right, 4, .2f);
+            // Wall x 12..18, z 24..37 (FixedMap). From x = 11 the 0.2 m sphere touches at x = 11.8.
+            float hit = MapGeometry.SphereCast(SharedMap.Map, new Vector3(11, .7f, 30), Vector3.right, 4, .2f);
             Assert.That(hit, Is.EqualTo(.8f).Within(1e-4f));
-            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(10, .7f, 23), Vector3.forward, 4, .2f), Is.EqualTo(4f), "clear");
-            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(10, .7f, 23), Vector3.down, 4, .2f), Is.EqualTo(.5f).Within(1e-4f), "floor");
+            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(10, .7f, 30), Vector3.forward, 4, .2f), Is.EqualTo(4f), "clear");
+            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(10, .7f, 30), Vector3.down, 4, .2f), Is.EqualTo(.5f).Within(1e-4f), "floor");
             // Above the 3 m walls the cast passes over them.
-            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(11, 3.5f, 23), Vector3.right, 4, .2f), Is.EqualTo(4f));
+            Assert.That(MapGeometry.SphereCast(SharedMap.Map, new Vector3(11, 3.5f, 30), Vector3.right, 4, .2f), Is.EqualTo(4f));
         }
 
         [Test]
         public void TheOcclusionRayTreatsWallsAsFullHeight()
         {
-            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 10, 23, 25, 23), Is.True, "through the wall at x 12..24");
-            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 5, 23, 10, 23), Is.False);
-            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 10, 44, 25, 44), Is.False, "past the city block's end (z 42)");
+            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 10, 30, 20, 30), Is.True, "through the wall at x 12..18");
+            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 5, 30, 10, 30), Is.False);
+            Assert.That(MapGeometry.SegmentBlocked(SharedMap.Map, 10, 38.5f, 20, 38.5f), Is.False, "past the building's end (z 37)");
         }
 
         [Test]

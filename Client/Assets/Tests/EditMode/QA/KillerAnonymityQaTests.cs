@@ -21,7 +21,7 @@ namespace PingTheKiller.Client.QA.Tests
     public sealed class KillerAnonymityQaTests
     {
         // Killer at (10, 23) looking +x (yaw 90); the wall x 18..20, z 14..32 stands in front of it. Those are the legacy 60 m
-        // numbers: KillerRoom lays the scene on the 80 m map (Killer 8 m west of the building Walls[11], see QaSupport.cs).
+        // numbers: KillerRoom lays the scene on the 80 m map (Killer 8 m west of the building Walls[16], see QaSupport.cs).
         private static float KillerX => KillerRoom.X;
         private static float KillerZ => KillerRoom.Z;
         private static readonly ViewPose Pose = new ViewPose(new Vector3(KillerX, KillerViewRig.EyeHeight, KillerZ), 90, 0, KillerViewRig.VerticalFov, 16f / 9);

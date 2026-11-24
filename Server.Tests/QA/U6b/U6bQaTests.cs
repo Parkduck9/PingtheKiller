@@ -75,9 +75,9 @@ namespace PingTheKiller.Server.Tests.QA.U6b
             Assert.True(borderWalls[2].MinZ <= 0 && borderWalls[2].MaxZ <= 0); // South
             Assert.True(borderWalls[3].MinZ >= 80 && borderWalls[3].MaxZ >= 80); // North
 
-            // 10-14 building blocks, each at least 6 x 6 m
+            // 18-28 building boxes (map v2.1), each at least 6 x 6 m
             var buildings = _map.Walls.Skip(4).ToArray();
-            Assert.InRange(buildings.Length, 10, 14);
+            Assert.InRange(buildings.Length, 18, 28);
             foreach (var b in buildings)
             {
                 float width = b.MaxX - b.MinX;
@@ -86,8 +86,8 @@ namespace PingTheKiller.Server.Tests.QA.U6b
                 Assert.True(height >= 6.0f - 0.001f, $"Building height {height} < 6 m");
             }
 
-            // 8-16 low obstacles
-            Assert.InRange(_map.Obstacles.Count, 8, 16);
+            // 14-24 low obstacles (map v2.1)
+            Assert.InRange(_map.Obstacles.Count, 14, 24);
 
             // 2-3 open plazas, each at least 14 x 14 m with no walls
             Assert.InRange(_map.Plazas.Count, 2, 3);

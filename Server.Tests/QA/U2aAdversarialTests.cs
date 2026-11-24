@@ -229,6 +229,8 @@ public sealed class U2aAdversarialTests
             var slots = h1.Lobby().Slots.Where(s => s.PlayerId != 0).ToList();
             Assert.Equal(5, slots.Count);
             var allIds = slots.Select(s => s.PlayerId).ToHashSet();
+            // Park H2 in sight of the bot killer's spawn so the sanity check below sees at least one clear frame.
+            f.Server.PlaceForTests(h2.Id, 36, 39);
 
             HashSet<int>? seen = null;
             int sightFrames = 0, blockedFrames = 0;

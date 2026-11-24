@@ -9,7 +9,7 @@ using PingTheKiller.Shared.Packets;
 namespace PingTheKiller.Harness.Tests;
 
 // U3d: where the killer (1) and the controlled survivor (2) stand. OffMap keeps the historic coordinates (outside FixedMap,
-// line of sight clear); Clear and Blocked put both on the map with no wall / the wall x 18..20 between them.
+// line of sight clear); Clear and Blocked put both on the map with no wall / the wall (12,24)-(18,37) between them.
 internal enum SightLayout { OffMap, Clear, Blocked }
 
 // U3d killer entry in survivor worlds: never (today), per contract (only with a clear line of sight), always (a leak
@@ -195,7 +195,7 @@ internal sealed class LobbyServer : IAsyncDisposable
                     {
                         (SightLayout.Clear, 1) => (5.31579f, 9.75319f),
                         (SightLayout.Clear, 2) => (8.13579f, 20.24681f),
-                        (SightLayout.Blocked, 1) => (26.13579f, 22.75319f),
+                        (SightLayout.Blocked, 1) => (19.53579f, 33.75319f),
                         (SightLayout.Blocked, 2) => (8.13579f, 20.24681f),
                         _ => (player.X, player.Z)
                     };
