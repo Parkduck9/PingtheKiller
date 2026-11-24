@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="1" result="Failed(Child)" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.5375453">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1504" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.537545" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <failure>
+      <message><![CDATA[One or more child tests had errors]]></message>
+    </failure>
+    <test-suite type="Assembly" id="1981" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PtK-work/u10-motion/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="866" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.519264" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="54712" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <failure>
+        <message><![CDATA[One or more child tests had errors]]></message>
+      </failure>
+      <test-suite type="TestSuite" id="1982" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="866" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.511502" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <failure>
+          <message><![CDATA[One or more child tests had errors]]></message>
+        </failure>
+        <test-suite type="TestSuite" id="1983" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="866" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.504859" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <failure>
+            <message><![CDATA[One or more child tests had errors]]></message>
+          </failure>
+          <test-suite type="TestSuite" id="1986" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="860" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.496819" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <failure>
+              <message><![CDATA[One or more child tests had errors]]></message>
+            </failure>
+            <test-suite type="TestSuite" id="1987" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="860" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.490566" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <failure>
+                <message><![CDATA[One or more child tests had errors]]></message>
+              </failure>
+              <test-suite type="TestFixture" id="1919" name="U10MateHackQaTests" fullname="PingTheKiller.Client.QA.Tests.U10MateHackQaTests" classname="PingTheKiller.Client.QA.Tests.U10MateHackQaTests" runstate="Runnable" testcasecount="2" result="Failed" site="Child" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.480941" total="1" passed="0" failed="1" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <failure>
+                  <message><![CDATA[One or more child tests had errors]]></message>
+                </failure>
+                <test-case id="1921" name="BotMatesShowTheRestorePoseWhileTheirRescuingFlagIsReceived" fullname="PingTheKiller.Client.QA.Tests.U10MateHackQaTests.BotMatesShowTheRestorePoseWhileTheirRescuingFlagIsReceived" methodname="BotMatesShowTheRestorePoseWhileTheirRescuingFlagIsReceived" classname="PingTheKiller.Client.QA.Tests.U10MateHackQaTests" runstate="Runnable" seed="1915107251" result="Failed" start-time="2026-11-17 02:25:42Z" end-time="2026-11-17 02:28:12Z" duration="150.469357" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <failure>
+                    <message><![CDATA[  mates flagged Rescuing for over 0.5 s without the hack pose
+mate 1 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 2 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 3 flaggedFrames=29 hackShown=29 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=1 burstAvg=0.45 burstMin=0.45 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 4 flaggedFrames=492 hackShown=369 missAfterGrace(speed)=24 missAfterGrace(pose)=0 maxSpeedAfterGrace=4.64 bursts=5 burstAvg=1.53 burstMin=0.25 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 5 flaggedFrames=604 hackShown=503 missAfterGrace(speed)=46 missAfterGrace(pose)=1 maxSpeedAfterGrace=4.95 bursts=4 burstAvg=2.43 burstMin=0.85 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 7 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+
+  Expected: less than or equal to 56
+  But was:  71
+]]></message>
+                    <stack-trace><![CDATA[at PingTheKiller.Client.QA.Tests.U10MateHackQaTests.Measure (PingTheKiller.Shared.Game.PlayerFlags flag, PingTheKiller.Client.World.InteractionKind expected, System.Double Seconds, System.Int32 needFrames) [0x00735] in C:\Unity\MultiPlayGame\PtK-work\u10-motion\Client\Assets\Tests\EditMode\QA\U10MateHackQaTests.cs:159
+at PingTheKiller.Client.QA.Tests.U10MateHackQaTests.BotMatesShowTheRestorePoseWhileTheirRescuingFlagIsReceived () [0x00000] in C:\Unity\MultiPlayGame\PtK-work\u10-motion\Client\Assets\Tests\EditMode\QA\U10MateHackQaTests.cs:36
+]]></stack-trace>
+                  </failure>
+                  <output><![CDATA[mate 1 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 2 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 3 flaggedFrames=29 hackShown=29 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=1 burstAvg=0.45 burstMin=0.45 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 4 flaggedFrames=492 hackShown=369 missAfterGrace(speed)=24 missAfterGrace(pose)=0 maxSpeedAfterGrace=4.64 bursts=5 burstAvg=1.53 burstMin=0.25 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 5 flaggedFrames=604 hackShown=503 missAfterGrace(speed)=46 missAfterGrace(pose)=1 maxSpeedAfterGrace=4.95 bursts=4 burstAvg=2.43 burstMin=0.85 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 7 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+
+[U10-QA] mate hack
+mate 1 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 2 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 3 flaggedFrames=29 hackShown=29 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=1 burstAvg=0.45 burstMin=0.45 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 4 flaggedFrames=492 hackShown=369 missAfterGrace(speed)=24 missAfterGrace(pose)=0 maxSpeedAfterGrace=4.64 bursts=5 burstAvg=1.53 burstMin=0.25 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 5 flaggedFrames=604 hackShown=503 missAfterGrace(speed)=46 missAfterGrace(pose)=1 maxSpeedAfterGrace=4.95 bursts=4 burstAvg=2.43 burstMin=0.85 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+mate 7 flaggedFrames=0 hackShown=0 missAfterGrace(speed)=0 missAfterGrace(pose)=0 maxSpeedAfterGrace=0.00 bursts=0 burstAvg=0.00 burstMin=0.00 facingSamples=0 facingOffAvgDeg=0 facingOff>60=0
+
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                </test-case>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

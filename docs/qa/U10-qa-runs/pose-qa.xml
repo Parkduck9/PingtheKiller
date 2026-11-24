@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.2342077">
+  <test-suite type="TestSuite" id="1000" name="Client" fullname="Client" runstate="Runnable" testcasecount="1506" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.234208" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1984" name="PingTheKiller.Client.QA.Tests.dll" fullname="C:/Unity/MultiPlayGame/PtK-work/u10-motion/Client/Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll" runstate="Runnable" testcasecount="868" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.219396" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="46612" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1985" name="PingTheKiller" fullname="PingTheKiller" runstate="Runnable" testcasecount="868" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.213974" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1986" name="Client" fullname="PingTheKiller.Client" runstate="Runnable" testcasecount="868" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.209340" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1989" name="QA" fullname="PingTheKiller.Client.QA" runstate="Runnable" testcasecount="862" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.204491" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestSuite" id="1990" name="Tests" fullname="PingTheKiller.Client.QA.Tests" runstate="Runnable" testcasecount="862" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.199517" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-suite type="TestFixture" id="1917" name="U10JamPoseQaTests" fullname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" classname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.191909" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+                <properties />
+                <test-case id="1918" name="TheKillerModelsHandsRiseAndLandOnTheTerminalTop" fullname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests.TheKillerModelsHandsRiseAndLandOnTheTerminalTop" methodname="TheKillerModelsHandsRiseAndLandOnTheTerminalTop" classname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" runstate="Runnable" seed="1875699240" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.143418" asserts="0">
+                  <properties>
+                    <property name="retryIteration" value="0" />
+                    <property name="repeatIteration" value="0" />
+                  </properties>
+                  <output><![CDATA[rest=0.94 highest=1.73 impactY=0.88 impactDistToTerminalXZ=0.43
+0.00:0.95 0.02:0.99 0.03:1.03 0.05:1.08 0.07:1.13 0.08:1.19 0.10:1.26 0.12:1.32 0.13:1.39 0.15:1.46 0.17:1.52 0.18:1.58 0.20:1.64 0.22:1.68 0.23:1.70 0.25:1.72 0.27:1.73 0.28:1.71 0.30:1.64 0.32:1.51 0.33:1.33 0.35:1.12 0.37:0.88 0.38:0.88 0.40:0.88 0.42:0.88 0.43:0.88 0.45:0.88 0.47:0.88 0.48:0.88 0.50:0.88 0.52:0.88 0.53:0.88 0.55:0.88 0.57:0.88 0.58:0.88 0.60:0.88 0.62:0.88 0.63:0.88 0.65:0.88 0.67:0.88 0.68:0.88 
+[U10-QA] jam pose rest=0.94 highest=1.73 impactY=0.88 impactDistToTerminalXZ=0.43
+0.00:0.95 0.02:0.99 0.03:1.03 0.05:1.08 0.07:1.13 0.08:1.19 0.10:1.26 0.12:1.32 0.13:1.39 0.15:1.46 0.17:1.52 0.18:1.58 0.20:1.64 0.22:1.68 0.23:1.70 0.25:1.72 0.27:1.73 0.28:1.71 0.30:1.64 0.32:1.51 0.33:1.33 0.35:1.12 0.37:0.88 0.38:0.88 0.40:0.88 0.42:0.88 0.43:0.88 0.45:0.88 0.47:0.88 0.48:0.88 0.50:0.88 0.52:0.88 0.53:0.88 0.55:0.88 0.57:0.88 0.58:0.88 0.60:0.88 0.62:0.88 0.63:0.88 0.65:0.88 0.67:0.88 0.68:0.88 
+]]></output>
+                </test-case>
+                <test-suite type="ParameterizedMethod" id="1921" name="TheOwnSwitchHoldPoseSettled" fullname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests.TheOwnSwitchHoldPoseSettled" classname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.039885" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+                  <properties />
+                  <test-case id="1919" name="TheOwnSwitchHoldPoseSettled(0.0f)" fullname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests.TheOwnSwitchHoldPoseSettled(0.0f)" methodname="TheOwnSwitchHoldPoseSettled" classname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" runstate="Runnable" seed="1017168960" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.020218" asserts="0">
+                    <properties>
+                      <property name="retryIteration" value="0" />
+                      <property name="repeatIteration" value="0" />
+                    </properties>
+                    <output><![CDATA[facingOff=0 idleTilt=2 idleHead=1.46 switchTilt=21 rightHandY=1.15 headY=1.36
+[U10-QA] switch pose facingOff=0 idleTilt=2 idleHead=1.46 switchTilt=21 rightHandY=1.15 headY=1.36
+]]></output>
+                  </test-case>
+                  <test-case id="1920" name="TheOwnSwitchHoldPoseSettled(90.0f)" fullname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests.TheOwnSwitchHoldPoseSettled(90.0f)" methodname="TheOwnSwitchHoldPoseSettled" classname="PingTheKiller.Client.QA.Tests.U10JamPoseQaTests" runstate="Runnable" seed="1608660575" result="Passed" start-time="2026-11-17 02:35:08Z" end-time="2026-11-17 02:35:08Z" duration="0.016210" asserts="0">
+                    <properties>
+                      <property name="retryIteration" value="0" />
+                      <property name="repeatIteration" value="0" />
+                    </properties>
+                    <output><![CDATA[facingOff=90 idleTilt=2 idleHead=1.46 switchTilt=21 rightHandY=1.15 headY=1.36
+[U10-QA] switch pose facingOff=90 idleTilt=2 idleHead=1.46 switchTilt=21 rightHandY=1.15 headY=1.36
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/User/AppData/LocalLow/DefaultCompany/Client\TestResults.xml
+]]></output>
+                  </test-case>
+                </test-suite>
+              </test-suite>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>
