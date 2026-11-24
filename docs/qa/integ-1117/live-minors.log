@@ -1,0 +1,400 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/integ-1117/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/integ-1117/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.401 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.677200 ms
+[DEV] -ptk-chase needs a value
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\lobby.png
+[fx] warm ms=23.1 objects=120 meshes=11 materials=19 glyphs=9
+[DEV] match 1 start role=Killer skill=1
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=0.03 blips inView=0 occluded=0 edges=0 tracked=0
+[offline server] match start players=8 killer=4 matchSeed=-1150269972
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\play-1s.png
+[DEV] t=1.03 local position 34.00,43.50 moved=0.00 m
+[DEV] t=2.33 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=2.33 blips tracked max=1
+[DEV] t=2.33 event killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\killer-offscreen.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\play-4s.png
+[DEV] t=4.31 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=4.31 blips tracked max=2
+[DEV] t=4.66 blips tracked max=3
+[DEV] t=4.82 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=5.00 local position 34.00,43.50 moved=0.00 m
+[DEV] t=5.16 blips tracked max=4
+[DEV] t=5.31 blips tracked max=5
+[DEV] t=5.32 blips inView=0 occluded=2 edges=3 tracked=5
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=5.56 blips tracked max=6
+[DEV] t=5.56 event killer-crowd.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\killer-crowd.png
+[DEV] t=5.66 blips tracked max=7
+[DEV] t=5.76 blips tracked max=8
+[DEV] t=5.81 blips tracked max=9
+[DEV] t=5.82 blips inView=0 occluded=2 edges=6 tracked=9
+[DEV] t=5.86 blips tracked max=10
+[DEV] t=6.01 blips tracked max=11
+[DEV] t=6.33 blips inView=0 occluded=2 edges=6 tracked=11
+[DEV] t=6.56 blips tracked max=12
+[DEV] t=6.83 blips inView=0 occluded=2 edges=6 tracked=12
+[DEV] t=7.33 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=7.84 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=8.34 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=8.84 blips inView=0 occluded=0 edges=6 tracked=6
+[DEV] t=9.35 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=9.85 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=10.35 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=10.85 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=11.37 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=11.87 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=12.37 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=12.87 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=13.38 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=13.88 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=14.39 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=15.21 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=15.71 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=16.21 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=17.11 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=17.62 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=18.12 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=18.62 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=19.13 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=19.63 blips inView=0 occluded=1 edges=2 tracked=3
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=20.61 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=21.11 blips inView=0 occluded=1 edges=6 tracked=8
+[DEV] t=21.61 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=22.11 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=22.62 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=23.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=24.51 blips inView=0 occluded=0 edges=1 tracked=1
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=25.01 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=26.21 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=26.71 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=27.21 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=27.86 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=28.36 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=28.87 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] sync player=8 check=2 result=Fail rtt=0
+[DEV] t=30.16 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] overloaded alerts=1
+[DEV] t=30.37 event v2-killer-overloaded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\v2-killer-overloaded.png
+[DEV] t=30.66 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=31.71 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=32.22 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=32.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=33.81 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=34.31 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] sync player=1 check=4 result=Good rtt=0
+[DEV] t=35.06 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=35.61 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=36.11 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=36.71 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=37.22 blips inView=0 occluded=1 edges=6 tracked=9
+[DEV] t=37.72 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=38.23 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=38.73 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=39.26 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=39.77 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=40.27 blips inView=0 occluded=0 edges=5 tracked=5
+[DEV] t=40.91 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=41.41 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=41.92 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=42.42 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=42.93 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=43.43 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=43.93 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=44.44 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=44.94 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=45.45 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=45.95 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=46.20 event killer-inview.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\killer-inview.png
+[DEV] t=46.45 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=46.96 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=47.46 blips inView=0 occluded=1 edges=6 tracked=7
+[DEV] t=48.06 blips inView=0 occluded=1 edges=5 tracked=6
+[DEV] t=48.56 blips inView=1 occluded=0 edges=4 tracked=5
+[DEV] t=49.07 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=49.57 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=50.07 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=50.58 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=51.08 blips inView=0 occluded=0 edges=5 tracked=5
+[offline server] terminal 5 complete
+[DEV] t=51.56 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=51.59 blips inView=0 occluded=0 edges=4 tracked=4
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=52.09 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=52.59 blips inView=0 occluded=1 edges=6 tracked=8
+[DEV] t=53.27 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] terminal 7 complete
+[DEV] t=53.91 terminals 0:0 1:0 2:0 3:0 4:0 5:100 6:0 7:100 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 2/5"
+[DEV] t=53.96 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=54.51 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=55.01 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=56.01 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=56.52 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=57.36 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=58.41 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=59.16 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=59.66 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=61.16 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=61.67 blips inView=0 occluded=0 edges=1 tracked=1
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=62.17 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=63.56 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=65.91 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=66.41 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=67.71 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=68.22 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=69.11 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=69.86 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=70.56 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=71.96 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=72.46 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=73.22 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=74.06 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=74.61 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=75.66 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=76.16 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=76.67 blips inView=0 occluded=0 edges=3 tracked=3
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=77.17 blips inView=0 occluded=0 edges=4 tracked=4
+[DEV] t=77.67 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=78.17 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=79.51 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=80.01 blips inView=1 occluded=1 edges=2 tracked=4
+[DEV] t=80.51 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=81.02 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=81.52 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=82.36 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=82.86 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=83.36 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=83.87 blips inView=0 occluded=2 edges=5 tracked=7
+[DEV] t=84.71 blips inView=0 occluded=2 edges=4 tracked=6
+[DEV] t=85.21 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=86.01 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=86.51 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=87.02 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=88.26 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=88.76 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=89.27 blips inView=0 occluded=3 edges=6 tracked=9
+[DEV] t=89.77 blips inView=0 occluded=3 edges=6 tracked=10
+[DEV] t=90.27 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=90.77 blips inView=0 occluded=1 edges=4 tracked=5
+[DEV] t=91.56 blips inView=0 occluded=1 edges=3 tracked=4
+[DEV] t=92.21 blips inView=0 occluded=2 edges=3 tracked=5
+[DEV] t=92.71 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=92.96 event killer-occluded.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\killer-occluded.png
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=93.21 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=93.72 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=94.36 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=94.86 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=95.56 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=96.31 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=96.81 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=98.06 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=98.56 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=99.66 blips inView=1 occluded=2 edges=2 tracked=4
+[DEV] t=100.17 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=100.67 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=101.31 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=101.81 blips inView=0 occluded=2 edges=2 tracked=4
+[DEV] t=102.31 blips inView=0 occluded=3 edges=1 tracked=4
+[offline server] sync player=5 check=11 result=Good rtt=0
+[DEV] t=102.81 blips inView=0 occluded=2 edges=1 tracked=3
+[offline server] sync player=6 check=12 result=Great rtt=0
+[DEV] t=103.32 blips inView=0 occluded=2 edges=0 tracked=2
+[DEV] t=103.82 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=104.32 blips inView=2 occluded=0 edges=1 tracked=3
+[DEV] t=104.83 blips inView=0 occluded=2 edges=1 tracked=3
+[DEV] t=105.33 blips inView=0 occluded=2 edges=0 tracked=2
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=105.83 blips inView=0 occluded=5 edges=2 tracked=7
+[fx] skill press sent=True watch=True
+[offline server] skill player=4 role=Killer id=1
+[DEV] t=106.26 event skillfx-killer-k1-caster-720p.png
+[fx] killer skill=1 viewer=Caster line="" visual=Streaks sound=OverclockStart reduced=False
+[net] SkillEffect skill=1 (killer HUD)
+[DEV] t=106.26 selfstate #108 skillCooldown=12.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[fx] first cast Streaks frame ms=6.1 (average before 6.1)
+[DEV] t=106.34 blips inView=0 occluded=7 edges=3 tracked=10
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\skillfx-killer-k1-caster-720p.png
+[DEV] t=106.54 cooldown local=11.72 (counting down between packets)
+[DEV] t=107.10 blips inView=0 occluded=5 edges=0 tracked=5
+[DEV] t=107.26 selfstate #109 skillCooldown=11.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=107.54 cooldown local=10.71 (counting down between packets)
+[DEV] t=107.61 blips inView=0 occluded=0 edges=2 tracked=2
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=108.11 blips inView=2 occluded=0 edges=5 tracked=7
+[DEV] t=108.26 selfstate #110 skillCooldown=10.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] skill player=8 role=Survivor id=2
+[DEV] t=108.41 event skillfx-killer-s2-killer-720p.png
+[fx] survivor skill=2 viewer=Killer line="" visual=None sound=OverloadSlowed reduced=False
+[net] SkillEffect skill=2 (killer HUD)
+[DEV] t=108.61 blips inView=2 occluded=1 edges=5 tracked=8
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\skillfx-killer-s2-killer-720p.png
+[DEV] t=108.69 cooldown local=9.57 (counting down between packets)
+[DEV] t=109.12 blips inView=2 occluded=1 edges=6 tracked=9
+[DEV] t=109.26 selfstate #111 skillCooldown=9.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=109.63 blips inView=2 occluded=0 edges=2 tracked=4
+[DEV] t=109.69 cooldown local=8.56 (counting down between packets)
+[DEV] t=110.26 selfstate #112 skillCooldown=8.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=110.46 blips inView=2 occluded=0 edges=1 tracked=3
+[DEV] t=110.69 cooldown local=7.56 (counting down between packets)
+[offline server] skill player=3 role=Survivor id=1
+[DEV] t=111.16 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=111.26 selfstate #113 skillCooldown=7.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=111.66 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=111.70 cooldown local=6.56 (counting down between packets)
+[DEV] t=112.17 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=112.26 selfstate #114 skillCooldown=6.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=112.70 cooldown local=5.55 (counting down between packets)
+[DEV] t=112.86 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=113.26 selfstate #115 skillCooldown=5.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=113.61 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=113.71 cooldown local=4.54 (counting down between packets)
+[DEV] t=114.26 selfstate #116 skillCooldown=4.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=114.71 cooldown local=3.54 (counting down between packets)
+[DEV] t=114.91 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=115.26 selfstate #117 skillCooldown=3.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=115.41 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=115.72 cooldown local=2.54 (counting down between packets)
+[DEV] t=116.26 selfstate #118 skillCooldown=2.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=116.66 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=116.73 cooldown local=1.53 (counting down between packets)
+[DEV] t=117.16 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=117.26 selfstate #119 skillCooldown=1.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=117.66 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=117.73 cooldown local=0.53 (counting down between packets)
+[net] skill_ready (own cooldown reached 0)
+[DEV] t=118.26 cooldown local=0.00 (ready)
+[DEV] t=118.56 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=119.06 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=120.11 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=120.61 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=121.26 blips inView=0 occluded=1 edges=2 tracked=3
+[DEV] t=122.56 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=123.06 blips inView=0 occluded=1 edges=0 tracked=1
+[DEV] t=123.57 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=124.07 blips inView=0 occluded=0 edges=0 tracked=0
+[DEV] t=125.61 blips inView=0 occluded=0 edges=1 tracked=1
+[DEV] t=127.26 blips inView=0 occluded=0 edges=2 tracked=2
+[DEV] t=127.77 blips inView=0 occluded=1 edges=1 tracked=2
+[DEV] t=128.27 blips inView=0 occluded=2 edges=0 tracked=2
+[fx] skill press sent=True watch=True
+[DEV] t=128.80 blips inView=0 occluded=1 edges=1 tracked=2
+[offline server] skill player=4 role=Killer id=1
+[DEV] t=128.81 selfstate #131 skillCooldown=12.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=128.81 cooldown local=11.99 (counting down between packets)
+[DEV] t=129.35 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=129.81 selfstate #132 skillCooldown=11.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=129.81 cooldown local=10.99 (counting down between packets)
+[DEV] t=129.85 blips inView=0 occluded=1 edges=0 tracked=1
+[offline server] skill player=7 role=Survivor id=4
+[DEV] t=130.36 blips inView=3 occluded=0 edges=0 tracked=3
+[DEV] t=130.81 selfstate #133 skillCooldown=10.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=130.82 cooldown local=9.99 (counting down between packets)
+[DEV] t=130.86 blips inView=4 occluded=0 edges=5 tracked=9
+[DEV] t=131.36 blips inView=3 occluded=0 edges=6 tracked=9
+[DEV] t=131.81 selfstate #134 skillCooldown=9.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=131.82 cooldown local=8.98 (counting down between packets)
+[DEV] t=131.87 blips inView=2 occluded=0 edges=3 tracked=5
+[offline server] rail 3 vault by player=7 role=Survivor
+[DEV] t=132.38 blips inView=3 occluded=0 edges=3 tracked=6
+[DEV] t=132.81 selfstate #135 skillCooldown=8.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=132.83 cooldown local=7.98 (counting down between packets)
+[DEV] t=133.06 blips inView=2 occluded=0 edges=3 tracked=5
+[DEV] t=133.56 blips inView=2 occluded=0 edges=2 tracked=4
+[DEV] t=133.81 selfstate #136 skillCooldown=7.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=133.83 cooldown local=6.98 (counting down between packets)
+[DEV] t=134.81 selfstate #137 skillCooldown=6.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=134.83 cooldown local=5.97 (counting down between packets)
+[DEV] t=134.86 blips inView=2 occluded=0 edges=3 tracked=5
+[DEV] t=135.36 blips inView=2 occluded=0 edges=2 tracked=4
+[DEV] t=135.81 selfstate #138 skillCooldown=5.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=135.84 cooldown local=4.97 (counting down between packets)
+[DEV] t=136.01 blips inView=2 occluded=0 edges=1 tracked=3
+[DEV] t=136.81 selfstate #139 skillCooldown=4.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=136.84 cooldown local=3.96 (counting down between packets)
+[DEV] t=136.96 blips inView=1 occluded=0 edges=1 tracked=2
+[offline server] status player=7 Lagging reason=capture
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=137.41 event u8-killer-capture-1-strike.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\u8-killer-capture-1-strike.png
+[DEV] t=137.46 blips inView=2 occluded=0 edges=1 tracked=3
+[DEV] t=137.71 event u8-killer-capture-1-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\integ-1117\docs\qa\integ-1117\screens\minors\u8-killer-capture-1-after.png
+[DEV] t=137.81 selfstate #140 skillCooldown=3.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=137.84 cooldown local=2.96 (counting down between packets)
+[DEV] t=137.96 blips inView=0 occluded=0 edges=4 tracked=4
+[perf] capture frame times (killer capture) before: n=166 mean=6.1 max=6.1 ms; after: n=154 mean=6.5 max=24.2 ms; spikes>33ms=0
+[DEV] t=138.47 blips inView=0 occluded=0 edges=3 tracked=3
+[DEV] t=138.81 selfstate #141 skillCooldown=2.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=138.85 cooldown local=1.96 (counting down between packets)
+[DEV] t=138.97 blips inView=1 occluded=2 edges=0 tracked=3
+[DEV] t=139.61 blips inView=1 occluded=2 edges=1 tracked=4
+[DEV] t=139.81 selfstate #142 skillCooldown=1.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=139.85 cooldown local=0.96 (counting down between packets)
+[DEV] t=140.11 blips inView=1 occluded=3 edges=2 tracked=6
+[DEV] t=140.62 blips inView=3 occluded=1 edges=2 tracked=6
+[net] skill_ready (own cooldown reached 0)
+[DEV] t=140.81 cooldown local=0.00 (ready)
+[DEV] t=141.12 blips inView=1 occluded=1 edges=2 tracked=4
+[DEV] t=141.62 blips inView=1 occluded=0 edges=2 tracked=3
+[DEV] t=142.12 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=142.63 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] t=144.11 blips inView=1 occluded=1 edges=1 tracked=3
+[DEV] t=144.61 blips inView=1 occluded=0 edges=1 tracked=2
+[DEV] t=145.11 blips inView=1 occluded=0 edges=0 tracked=1
+[DEV] t=146.56 blips inView=1 occluded=1 edges=0 tracked=2
+[DEV] quit after 150 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
