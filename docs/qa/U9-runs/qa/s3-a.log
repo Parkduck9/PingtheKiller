@@ -1,0 +1,256 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/u9-skillfx/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/u9-skillfx/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/u9-skillfx/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.153 seconds
+- Finished resetting the current domain, in  0.003 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.642800 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\lobby.png
+[offline server] match start players=8 killer=2 matchSeed=-230982188
+[fx] warm ms=29.6 objects=92 meshes=10 materials=19 glyphs=9
+[DEV] match 1 start role=Survivor skill=2
+[DEV] want skill 3, got 2: new offline match (1)
+[DEV] t=0.03 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.03 local status=Normal timer=0.00 hud="" pos=52.00,1.50
+[net] SelfState received (first of the match)
+[DEV] t=0.03 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] join player=4 reconnect=false
+[offline server] match start players=8 killer=1 matchSeed=-685569182
+[DEV] match 1 start role=Survivor skill=0
+[DEV] want skill 3, got 0: new offline match (2)
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.01 local status=Normal timer=0.00 hud="" pos=52.00,1.50
+[net] SelfState received (first of the match)
+[DEV] t=0.01 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] join player=4 reconnect=false
+[offline server] match start players=8 killer=7 matchSeed=-1057272300
+[DEV] match 1 start role=Survivor skill=3
+[DEV] t=0.00 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.00 local status=Normal timer=0.00 hud="" pos=4.00,76.00
+[net] SelfState received (first of the match)
+[DEV] t=0.00 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\play-1s.png
+[DEV] t=1.04 local position 4.00,76.00 moved=0.00 m
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\survivor-3p.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\play-4s.png
+[DEV] t=5.02 local position 4.00,76.00 moved=0.00 m
+[DEV] t=5.93 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.93 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\hacking.png
+[DEV] t=6.37 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:2 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=6.85 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:3 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=7.20 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=7.77 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.24 terminals 0:0 1:0 2:0 3:0 4:0 5:2 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.67 terminals 0:0 1:0 2:0 3:0 4:0 5:3 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=23.65 event skillfx-survivor-s0-ally-720p.png
+[fx] survivor skill=0 viewer=Ally line="" visual=Hovl/Pointer sound=Dummy (positional) reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[fx] first cast WireDouble frame ms=21.2 (average before 13.9)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\skillfx-survivor-s0-ally-720p.png
+[offline server] kick terminal 7
+[DEV] t=26.77 terminals 0:0 1:0 2:0 3:0 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] kick terminal 1
+[offline server] status player=2 Lagging reason=capture
+[audio] v2 cue Capture
+[DEV] t=43.18 terminals 0:0 1:0 2:0 3:0 4:1 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=44.79 terminals 0:0 1:0 2:0 3:0 4:2 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=45.02 skill press 1 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=45.17 terminals 0:0 1:0 2:0 3:0 4:3 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=45.43 terminals 0:0 1:0 2:0 3:0 4:4 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=2 Normal reason=emergency restore
+[offline server] skill player=3 role=Survivor id=3
+[DEV] t=45.64 event skillfx-survivor-s3-ally-720p.png
+[fx] survivor skill=3 viewer=Ally line="Bot 3 restored Bot 2" visual=Hovl/Pillar sound=Restore (positional) reduced=False
+[net] SkillEffect skill=3 (survivor HUD)
+[audio] v2 cue Rescue
+[DEV] t=45.67 terminals 0:0 1:0 2:0 3:0 4:5 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\skillfx-survivor-s3-ally-720p.png
+[DEV] t=45.92 terminals 0:0 1:0 2:0 3:0 4:6 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.04 skill press 2 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=46.18 terminals 0:0 1:0 2:0 3:0 4:7 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.43 terminals 0:0 1:0 2:0 3:0 4:8 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.67 terminals 0:0 1:0 2:0 3:0 4:9 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.92 terminals 0:0 1:0 2:0 3:0 4:10 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.06 skill press 3 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=47.32 terminals 0:0 1:0 2:0 3:0 4:11 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.78 terminals 0:0 1:0 2:0 3:0 4:12 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=48.07 skill press 4 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=48.22 terminals 0:0 1:0 2:0 3:0 4:13 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=48.69 terminals 0:0 1:0 2:0 3:0 4:14 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=48.98 terminals 0:0 1:0 2:0 3:0 4:15 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=49.07 skill press 5 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=49.23 terminals 0:0 1:0 2:0 3:0 4:16 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=49.52 terminals 0:0 1:0 2:0 3:0 4:17 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=49.98 terminals 0:0 1:0 2:0 3:0 4:18 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.09 skill press 6 (scripted Q)
+[fx] skill press sent=True watch=False reason="Emergency restore needs a Lagging Survivor next to you."
+[offline server] skill rejected player=4 id=3 reason=NoTarget
+[fx] skill rejected id=3 reason=NoTarget (no line)
+[DEV] t=50.43 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.87 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:1 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=51.33 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:2 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=51.42 terminals 0:0 1:0 2:0 3:0 4:20 5:3 6:2 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=1 role=Survivor id=1
+[DEV] t=51.78 event skillfx-survivor-s1-ally-720p.png
+[fx] survivor skill=1 viewer=Ally line="" visual=Ring sound=None reduced=False
+[net] SkillEffect skill=1 (survivor HUD)
+[DEV] t=51.78 terminals 0:0 1:0 2:0 3:0 4:20 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=51.83 terminals 0:0 1:0 2:0 3:0 4:21 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\skillfx-survivor-s1-ally-720p.png
+[DEV] t=52.09 terminals 0:0 1:0 2:0 3:0 4:22 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=52.32 terminals 0:0 1:0 2:0 3:0 4:23 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=52.63 terminals 0:0 1:0 2:0 3:0 4:24 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.07 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:3 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.52 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:4 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.99 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:5 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=55.42 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:6 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=57.04 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:7 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=5 role=Survivor id=2
+[DEV] t=63.02 event skillfx-survivor-s2-ally-720p.png
+[fx] survivor skill=2 viewer=Ally line="Bot 4 slowed the Killer · 2 s" visual=Hovl/Arrows sound=Overload (positional) reduced=False
+[net] SkillEffect skill=2 (survivor HUD)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\skillfx-survivor-s2-ally-720p.png
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=77.38 terminals 0:0 1:0 2:0 3:0 4:25 5:3 6:8 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] kick terminal 4
+[audio] v2 cue TerminalKick
+[DEV] t=78.02 terminals 0:0 1:0 2:0 3:0 4:20 5:3 6:8 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=79.32 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:8 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=79.68 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:9 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=80.13 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:10 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=80.57 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:11 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=81.02 terminals 0:0 1:0 2:0 3:0 4:19 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=81.33 terminals 0:0 1:0 2:0 3:0 4:18 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=8 Lagging reason=capture
+[audio] v2 cue Capture
+[DEV] t=83.33 terminals 0:0 1:0 2:0 3:0 4:17 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=85.33 terminals 0:0 1:0 2:0 3:0 4:16 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=5 role=Survivor id=2
+[DEV] t=87.33 terminals 0:0 1:0 2:0 3:0 4:15 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=89.32 terminals 0:0 1:0 2:0 3:0 4:14 5:3 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=90.97 terminals 0:0 1:0 2:0 3:0 4:14 5:4 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=91.34 terminals 0:0 1:0 2:0 3:0 4:13 5:4 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=91.42 terminals 0:0 1:0 2:0 3:0 4:13 5:5 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=91.87 terminals 0:0 1:0 2:0 3:0 4:13 5:6 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=91.92 selfstate #93 skillCooldown=0.00 rescue=0.02 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=92.32 terminals 0:0 1:0 2:0 3:0 4:13 5:7 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=92.77 terminals 0:0 1:0 2:0 3:0 4:13 5:8 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=92.93 selfstate #94 skillCooldown=0.00 rescue=0.35 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=92.93 rescue progress=0.35 invulnerable=0.00
+[DEV] t=92.93 event survivor-rescue.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\survivor-rescue.png
+[DEV] t=93.23 terminals 0:0 1:0 2:0 3:0 4:13 5:9 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=93.32 terminals 0:0 1:0 2:0 3:0 4:12 5:9 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=93.92 selfstate #95 skillCooldown=0.00 rescue=0.68 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] status player=8 Normal reason=rescue
+[audio] v2 cue Rescue
+[DEV] t=95.32 terminals 0:0 1:0 2:0 3:0 4:11 5:9 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=95.53 terminals 0:0 1:0 2:0 3:0 4:11 5:10 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=95.99 terminals 0:0 1:0 2:0 3:0 4:11 5:11 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=96.42 terminals 0:0 1:0 2:0 3:0 4:11 5:12 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=96.87 terminals 0:0 1:0 2:0 3:0 4:11 5:13 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=97.32 terminals 0:0 1:0 2:0 3:0 4:10 5:13 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=97.48 terminals 0:0 1:0 2:0 3:0 4:11 5:13 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=97.93 terminals 0:0 1:0 2:0 3:0 4:12 5:13 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=98.38 terminals 0:0 1:0 2:0 3:0 4:13 5:13 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=99.09 terminals 0:0 1:0 2:0 3:0 4:13 5:14 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=99.53 terminals 0:0 1:0 2:0 3:0 4:13 5:15 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=99.97 terminals 0:0 1:0 2:0 3:0 4:13 5:16 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=100.72 terminals 0:0 1:0 2:0 3:0 4:14 5:16 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=101.17 terminals 0:0 1:0 2:0 3:0 4:15 5:16 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=101.63 terminals 0:0 1:0 2:0 3:0 4:16 5:16 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=101.87 terminals 0:0 1:0 2:0 3:0 4:16 5:17 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=102.17 killer model shown
+[DEV] t=102.32 terminals 0:0 1:0 2:0 3:0 4:16 5:18 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=102.77 terminals 0:0 1:0 2:0 3:0 4:16 5:19 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=102.82 event killer-fade.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u9-skillfx\docs\qa\U9-screens\qa\s3-a\killer-fade.png
+[DEV] t=102.97 killer model hidden
+[DEV] t=103.22 terminals 0:0 1:0 2:0 3:0 4:16 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=103.32 terminals 0:0 1:0 2:0 3:0 4:17 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=103.78 terminals 0:0 1:0 2:0 3:0 4:18 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=104.22 terminals 0:0 1:0 2:0 3:0 4:19 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=104.69 terminals 0:0 1:0 2:0 3:0 4:20 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=105.12 terminals 0:0 1:0 2:0 3:0 4:21 5:20 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=105.67 terminals 0:0 1:0 2:0 3:0 4:21 5:21 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=106.13 terminals 0:0 1:0 2:0 3:0 4:21 5:22 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=106.59 terminals 0:0 1:0 2:0 3:0 4:21 5:23 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=107.02 terminals 0:0 1:0 2:0 3:0 4:21 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=107.37 terminals 0:0 1:0 2:0 3:0 4:22 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=107.82 terminals 0:0 1:0 2:0 3:0 4:23 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=108.28 terminals 0:0 1:0 2:0 3:0 4:24 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=108.72 terminals 0:0 1:0 2:0 3:0 4:25 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=109.18 terminals 0:0 1:0 2:0 3:0 4:26 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=109.62 terminals 0:0 1:0 2:0 3:0 4:27 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=110.07 terminals 0:0 1:0 2:0 3:0 4:28 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=110.59 terminals 0:0 1:0 2:0 3:0 4:29 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=111.03 terminals 0:0 1:0 2:0 3:0 4:30 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=111.49 terminals 0:0 1:0 2:0 3:0 4:31 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=112.42 terminals 0:0 1:0 2:0 3:0 4:32 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=112.88 terminals 0:0 1:0 2:0 3:0 4:33 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=113.33 terminals 0:0 1:0 2:0 3:0 4:34 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=113.63 terminals 0:0 1:0 2:0 3:0 4:35 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=113.89 terminals 0:0 1:0 2:0 3:0 4:36 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=114.12 terminals 0:0 1:0 2:0 3:0 4:37 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=114.52 terminals 0:0 1:0 2:0 3:0 4:38 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=114.99 terminals 0:0 1:0 2:0 3:0 4:39 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=115.62 terminals 0:0 1:0 2:0 3:0 4:40 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=116.09 terminals 0:0 1:0 2:0 3:0 4:41 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=116.52 terminals 0:0 1:0 2:0 3:0 4:42 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=116.99 terminals 0:0 1:0 2:0 3:0 4:43 5:24 6:12 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] quit after 120 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
