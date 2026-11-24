@@ -1,0 +1,16 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  Shared -> C:\Unity\MultiPlayGame\PtK-work\q3-skill-reject\artifacts\bin\Shared\debug\Shared.dll
+  Server.Core -> C:\Unity\MultiPlayGame\PtK-work\q3-skill-reject\artifacts\bin\Server.Core\debug\Server.Core.dll
+  Server.Tests -> C:\Unity\MultiPlayGame\PtK-work\q3-skill-reject\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+C:\Unity\MultiPlayGame\PtK-work\q3-skill-reject\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:02.98]     PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [FAIL]
+  실패 PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt [2 s]
+  오류 메시지:
+   loopback RTT 0.10122247499999999 s
+  스택 추적:
+     at PingTheKiller.Tests.Core.RttProbeTests.RealTcpLoopbackEchoesProduceASmallPositiveServerTimedRtt() in C:\Unity\MultiPlayGame\PtK-work\q3-skill-reject\Server.Tests\Core\RttProbeTests.cs:line 429
+--- End of stack trace from previous location ---
+
+실패!  - 실패:     1, 통과:  1086, 건너뜀:     0, 전체:  1087, 기간: 42 s - Server.Tests.dll (net10.0)
