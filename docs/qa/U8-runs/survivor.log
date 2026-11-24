@@ -1,0 +1,676 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/u8-hitfeel/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/u8-hitfeel/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/u8-hitfeel/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  1.820 seconds
+- Finished resetting the current domain, in  0.005 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 1.340100 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\lobby.png
+[offline server] match start players=8 killer=3 matchSeed=-1720797349
+[DEV] match 1 start role=Survivor skill=3
+[DEV] t=0.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.01 local status=Normal timer=0.00 hud="" pos=52.00,1.50
+[net] SelfState received (first of the match)
+[DEV] t=0.02 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\play-1s.png
+[DEV] t=1.09 local position 52.00,1.50 moved=0.00 m
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\survivor-3p.png
+[DEV] t=2.04 chase terminal from=52.00,1.50 to=10.00,25.00 yaw=273.37
+[DEV] t=3.06 chase terminal from=48.25,1.72 to=10.00,25.00 yaw=273.37
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\play-4s.png
+[DEV] t=4.10 chase terminal from=44.04,1.97 to=10.00,25.00 yaw=273.37
+[DEV] t=4.46 killer model shown
+[DEV] t=4.96 event killer-in-sight.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\killer-in-sight.png
+[DEV] t=5.06 local position 42.39,4.43 moved=10.05 m
+[DEV] t=5.11 chase killer from=42.37,4.63 yaw=355.68
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=6.04 event skillfx-survivor-s0-ally-720p.png
+[fx] survivor skill=0 viewer=Ally line="" visual=Hovl/Pointer sound=Dummy (positional) reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[DEV] t=6.12 chase terminal from=42.07,8.66 to=10.00,25.00 yaw=349.97
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\skillfx-survivor-s0-ally-720p.png
+[DEV] t=6.32 event killer-fade.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\killer-fade.png
+[DEV] t=6.46 killer model hidden
+[DEV] t=7.13 chase terminal from=41.37,12.64 to=10.00,25.00 yaw=349.89
+[DEV] t=8.13 chase terminal from=40.67,16.60 to=10.00,25.00 yaw=345.91
+[DEV] t=8.28 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.28 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\hacking.png
+[DEV] t=8.57 terminals 0:0 1:0 2:0 3:0 4:0 5:2 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.01 terminals 0:0 1:0 2:0 3:0 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=9.15 chase terminal from=39.68,20.56 to=10.00,25.00 yaw=345.68
+[DEV] t=10.16 chase terminal from=36.71,22.06 to=10.00,25.00 yaw=272.67
+[DEV] t=11.17 chase terminal from=32.70,22.25 to=10.00,25.00 yaw=272.67
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=12.19 chase terminal from=28.61,22.44 to=10.00,25.00 yaw=272.67
+[DEV] t=13.21 chase terminal from=24.54,22.63 to=10.00,25.00 yaw=272.67
+[DEV] t=14.21 chase terminal from=20.52,22.82 to=10.00,25.00 yaw=272.67
+[DEV] t=15.23 chase terminal from=16.48,23.01 to=10.00,25.00 yaw=272.67
+[DEV] t=16.24 chase terminal from=12.42,23.27 to=10.00,25.00 yaw=286.02
+[DEV] t=17.26 chase terminal from=13.57,23.34 to=58.00,27.00 yaw=90.29
+[DEV] t=18.28 chase terminal from=17.64,23.32 to=58.00,27.00 yaw=90.29
+[DEV] t=19.30 chase terminal from=21.73,23.30 to=58.00,27.00 yaw=90.29
+[DEV] t=19.47 terminals 0:0 1:0 2:0 3:1 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=20.31 chase terminal from=25.74,23.28 to=58.00,27.00 yaw=90.29
+[DEV] t=20.41 terminals 0:0 1:0 2:0 3:2 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=20.86 terminals 0:0 1:0 2:0 3:3 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.31 terminals 0:0 1:0 2:0 3:4 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.31 chase terminal from=29.75,23.26 to=58.00,27.00 yaw=90.29
+[DEV] t=21.61 terminals 0:0 1:0 2:0 3:5 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.86 terminals 0:0 1:0 2:0 3:6 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.12 terminals 0:0 1:0 2:0 3:7 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.31 chase terminal from=33.33,24.78 to=58.00,27.00 yaw=54.69
+[DEV] t=22.51 terminals 0:0 1:0 2:0 3:8 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=8 Lagging reason=capture
+[audio] v2 cue Capture
+[fx] capture impact at 53.2,60.8 plays=1
+[DEV] t=23.33 chase terminal from=36.64,27.13 to=58.00,27.00 yaw=54.69
+[DEV] t=23.46 terminals 0:0 1:0 2:0 3:9 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=23.81 killer model shown
+[DEV] t=23.92 terminals 0:0 1:0 2:0 3:10 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.26 terminals 0:0 1:0 2:0 3:11 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.33 chase killer from=38.83,30.24 yaw=17.56
+[DEV] t=24.52 terminals 0:0 1:0 2:0 3:12 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.77 terminals 0:0 1:0 2:0 3:13 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.01 terminals 0:0 1:0 2:0 3:14 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.26 terminals 0:0 1:0 2:0 3:15 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.34 chase killer from=40.05,34.07 yaw=17.56
+[DEV] t=25.66 terminals 0:0 1:0 2:0 3:16 4:0 5:3 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.76 killer model hidden
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=26.11 terminals 0:0 1:0 2:0 3:16 4:0 5:4 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.34 chase terminal from=43.31,32.89 to=58.00,27.00 yaw=115.76
+[DEV] t=26.37 terminals 0:0 1:0 2:0 3:16 4:0 5:5 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.61 terminals 0:0 1:0 2:0 3:16 4:0 5:6 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.66 terminals 0:0 1:0 2:0 3:17 4:0 5:6 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.87 terminals 0:0 1:0 2:0 3:17 4:0 5:7 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.12 terminals 0:0 1:0 2:0 3:18 4:0 5:8 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.34 chase terminal from=47.19,31.91 to=58.00,27.00 yaw=100.06
+[DEV] t=27.36 terminals 0:0 1:0 2:0 3:18 4:0 5:9 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.46 terminals 0:0 1:0 2:0 3:19 4:0 5:9 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.71 terminals 0:0 1:0 2:0 3:20 4:0 5:10 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.97 terminals 0:0 1:0 2:0 3:21 4:0 5:10 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.18 terminals 0:0 1:0 2:0 3:21 4:0 5:11 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.32 terminals 0:0 1:0 2:0 3:22 4:0 5:11 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.35 chase terminal from=51.12,31.04 to=58.00,27.00 yaw=104.21
+[DEV] t=28.76 terminals 0:0 1:0 2:0 3:23 4:0 5:11 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.36 chase terminal from=54.79,29.60 to=58.00,27.00 yaw=129.01
+[DEV] t=29.66 terminals 0:0 1:0 2:0 3:24 4:0 5:11 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.86 terminals 0:0 1:0 2:0 3:24 4:0 5:12 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.11 terminals 0:0 1:0 2:0 3:25 4:0 5:13 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.36 chase terminal from=56.86,29.68 to=64.50,74.00 yaw=7.15
+[DEV] t=30.39 terminals 0:0 1:0 2:0 3:25 4:0 5:14 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.57 terminals 0:0 1:0 2:0 3:26 4:0 5:14 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.61 terminals 0:0 1:0 2:0 3:26 4:0 5:15 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.88 terminals 0:0 1:0 2:0 3:26 4:0 5:16 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.99 terminals 0:0 1:0 2:0 3:27 4:0 5:16 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.11 terminals 0:0 1:0 2:0 3:27 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.21 terminals 0:0 1:0 2:0 3:28 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.36 chase terminal from=57.36,33.67 to=64.50,74.00 yaw=7.15
+[DEV] t=31.68 terminals 0:0 1:0 2:0 3:29 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.11 terminals 0:0 1:0 2:0 3:30 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.37 chase terminal from=57.86,37.66 to=64.50,74.00 yaw=7.15
+[DEV] t=32.57 terminals 0:0 1:0 2:0 3:31 4:0 5:17 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.25 terminals 0:0 1:0 2:0 3:32 4:0 5:18 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.40 chase terminal from=58.37,41.75 to=64.50,74.00 yaw=7.15
+[DEV] t=33.46 terminals 0:0 1:0 2:0 3:32 4:0 5:19 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.67 terminals 0:0 1:0 2:0 3:33 4:0 5:19 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.71 terminals 0:0 1:0 2:0 3:33 4:0 5:20 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.97 terminals 0:0 1:0 2:0 3:33 4:0 5:21 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.14 terminals 0:0 1:0 2:0 3:34 4:0 5:21 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.22 terminals 0:0 1:0 2:0 3:34 4:0 5:22 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.43 chase terminal from=58.89,45.85 to=64.50,74.00 yaw=14.25
+[DEV] t=34.47 terminals 0:0 1:0 2:0 3:34 4:0 5:23 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.59 terminals 0:0 1:0 2:0 3:35 4:0 5:23 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.78 terminals 0:0 1:0 2:0 3:35 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=35.23 terminals 0:0 1:0 2:0 3:36 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=35.44 chase terminal from=60.02,49.72 to=64.50,74.00 yaw=21.90
+[DEV] t=35.68 terminals 0:0 1:0 2:0 3:37 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=35.71 threat visual level=1
+[DEV] t=36.03 event threat-1.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\threat-1.png
+[DEV] t=36.10 terminals 0:0 1:0 2:0 3:38 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.31 terminals 0:0 1:0 2:0 3:39 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.31 killer model shown
+[DEV] t=36.45 chase killer from=61.51,53.47 yaw=20.91
+[DEV] t=36.46 threat visual level=2
+[DEV] t=36.56 terminals 0:0 1:0 2:0 3:40 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.77 terminals 0:0 1:0 2:0 3:40 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.77 event threat-2.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\threat-2.png
+[DEV] t=36.92 terminals 0:0 1:0 2:0 3:41 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.07 terminals 0:0 1:0 2:0 3:41 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.21 threat visual level=3
+[DEV] t=37.32 terminals 0:0 1:0 2:0 3:41 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.36 terminals 0:0 1:0 2:0 3:42 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.43 event threat-3.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\threat-3.png
+[DEV] t=37.48 chase killer from=63.23,57.21 yaw=40.03
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=37.59 terminals 0:0 1:0 2:0 3:42 4:0 5:28 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] status player=4 Lagging reason=capture
+[client] captured: banner + burst + hit-stop
+[DEV] t=37.79 local status=Lagging timer=60.00 hud="Lagging · 60 s" pos=64.21,58.34
+[fx] capture impact at 64.0,58.1 plays=2
+[client] Lagging look on (steady look + capture burst, full frame rate)
+[DEV] t=37.79 event u8-capture-0-hit.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\u8-capture-0-hit.png
+[DEV] t=37.85 terminals 0:0 1:0 2:0 3:42 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=37.95 event u8-capture-1-burst.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\u8-capture-1-burst.png
+[DEV] t=38.06 terminals 0:0 1:0 2:0 3:42 4:0 5:30 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=38.41 terminals 0:0 1:0 2:0 3:42 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=38.41 event capture-banner.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\capture-banner.png
+[DEV] t=38.62 event u8-capture-2-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\u8-capture-2-after.png
+[DEV] t=38.76 local status=Lagging timer=59.00 hud="Lagging · 59 s" pos=64.21,58.34
+[perf] capture frame times (own capture) before: n=49 mean=20.6 max=76.3 ms; after: n=49 mean=20.0 max=90.3 ms; spikes>33ms=18 +0.926s=90.3 +0.683s=54.3 +0.421s=33.1 +0.311s=34.0 +0.225s=57.9 +0.101s=33.3 +0.068s=49.5 -0.076s=33.9 -0.115s=35.6 -0.150s=38.1 -0.193s=76.3 -0.303s=48.1 -0.357s=34.2 -0.642s=37.4 -0.750s=33.9 -0.789s=33.9 -0.828s=34.4 -0.949s=63.2
+[DEV] t=38.79 event lagging.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\lagging.png
+[DEV] t=39.21 terminals 0:0 1:0 2:0 3:43 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=39.47 terminals 0:0 1:0 2:0 3:44 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=39.72 terminals 0:0 1:0 2:0 3:45 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=39.78 local status=Lagging timer=58.00 hud="Lagging · 58 s" pos=64.21,58.34
+[offline server] sync player=6 check=1 result=Great rtt=0
+[DEV] t=39.96 terminals 0:0 1:0 2:0 3:47 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=40.03 terminals 0:0 1:0 2:0 3:47 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=40.21 terminals 0:0 1:0 2:0 3:48 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=40.48 terminals 0:0 1:0 2:0 3:49 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=40.76 local status=Lagging timer=57.00 hud="Lagging · 57 s" pos=64.21,58.34
+[DEV] t=40.82 terminals 0:0 1:0 2:0 3:49 4:0 5:34 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=41.08 terminals 0:0 1:0 2:0 3:49 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=41.11 event lagging-stutter.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\lagging-stutter.png
+[DEV] t=41.37 terminals 0:0 1:0 2:0 3:49 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=41.77 local status=Lagging timer=56.00 hud="Lagging · 56 s" pos=64.21,58.34
+[DEV] t=41.81 terminals 0:0 1:0 2:0 3:49 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.06 terminals 0:0 1:0 2:0 3:50 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.26 terminals 0:0 1:0 2:0 3:50 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.43 terminals 0:0 1:0 2:0 3:51 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.67 terminals 0:0 1:0 2:0 3:52 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.78 local status=Lagging timer=55.00 hud="Lagging · 55 s" pos=64.21,58.34
+[DEV] t=42.91 terminals 0:0 1:0 2:0 3:53 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=42.91 threat visual level=2
+[DEV] t=43.01 terminals 0:0 1:0 2:0 3:53 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=43.18 terminals 0:0 1:0 2:0 3:54 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=43.41 terminals 0:0 1:0 2:0 3:55 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=43.47 terminals 0:0 1:0 2:0 3:55 4:0 5:40 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=43.69 terminals 0:0 1:0 2:0 3:56 4:0 5:40 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=43.76 local status=Lagging timer=54.00 hud="Lagging · 54 s" pos=64.21,58.34
+[DEV] t=43.91 terminals 0:0 1:0 2:0 3:57 4:0 5:41 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=44.01 killer model hidden
+[DEV] t=44.22 terminals 0:0 1:0 2:0 3:57 4:0 5:42 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=44.58 terminals 0:0 1:0 2:0 3:57 4:0 5:43 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=44.72 threat visual level=1
+[DEV] t=44.76 local status=Lagging timer=53.00 hud="Lagging · 53 s" pos=64.21,58.34
+[DEV] t=45.01 terminals 0:0 1:0 2:0 3:57 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=45.78 local status=Lagging timer=52.00 hud="Lagging · 52 s" pos=64.21,58.34
+[DEV] t=46.06 terminals 0:0 1:0 2:0 3:58 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.23 threat visual level=0
+[DEV] t=46.31 terminals 0:0 1:0 2:0 3:59 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.56 terminals 0:0 1:0 2:0 3:60 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=46.78 local status=Lagging timer=51.00 hud="Lagging · 51 s" pos=64.21,58.34
+[DEV] t=46.81 terminals 0:0 1:0 2:0 3:61 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.08 terminals 0:0 1:0 2:0 3:62 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.32 terminals 0:0 1:0 2:0 3:63 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.56 terminals 0:0 1:0 2:0 3:64 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=47.78 local status=Lagging timer=50.00 hud="Lagging · 50 s" pos=64.21,58.34
+[offline server] status player=8 Normal reason=emergency restore
+[offline server] skill player=7 role=Survivor id=3
+[DEV] t=48.77 event skillfx-survivor-s3-ally-720p.png
+[fx] survivor skill=3 viewer=Ally line="Bot 6 restored Bot 7" visual=Hovl/Pillar sound=Restore (positional) reduced=False
+[net] SkillEffect skill=3 (survivor HUD)
+[audio] v2 cue Rescue
+[DEV] t=48.77 local status=Lagging timer=49.00 hud="Lagging · 49 s" pos=64.21,58.34
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\skillfx-survivor-s3-ally-720p.png
+[offline server] kick terminal 7
+[DEV] t=49.56 terminals 0:0 1:0 2:0 3:65 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=49.77 local status=Lagging timer=48.00 hud="Lagging · 48 s" pos=64.21,58.34
+[DEV] t=49.81 terminals 0:0 1:0 2:0 3:66 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.08 terminals 0:0 1:0 2:0 3:67 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.32 terminals 0:0 1:0 2:0 3:68 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.57 terminals 0:0 1:0 2:0 3:69 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=50.76 local status=Lagging timer=47.00 hud="Lagging · 47 s" pos=64.21,58.34
+[DEV] t=50.83 terminals 0:0 1:0 2:0 3:70 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=51.19 terminals 0:0 1:0 2:0 3:71 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=51.76 local status=Lagging timer=46.00 hud="Lagging · 46 s" pos=64.21,58.34
+[DEV] t=52.79 terminals 0:0 1:0 2:1 3:72 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=52.79 local status=Lagging timer=45.00 hud="Lagging · 45 s" pos=64.21,58.34
+[DEV] t=53.12 terminals 0:0 1:0 2:1 3:73 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.23 terminals 0:0 1:0 2:2 3:73 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.36 terminals 0:0 1:0 2:2 3:74 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.61 terminals 0:0 1:0 2:2 3:75 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.67 terminals 0:0 1:0 2:3 3:75 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=53.76 local status=Lagging timer=44.00 hud="Lagging · 44 s" pos=64.21,58.34
+[DEV] t=53.86 terminals 0:0 1:0 2:3 3:76 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.11 terminals 0:0 1:0 2:4 3:77 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.16 selfstate #56 skillCooldown=0.00 rescue=0.02 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[offline server] status player=4 Normal reason=emergency restore
+[offline server] skill player=8 role=Survivor id=3
+[DEV] t=54.22 event skillfx-survivor-s3-affected-720p.png
+[fx] survivor skill=3 viewer=Affected line="Bot 7 restored you · no longer Lagging" visual=Hovl/Pillar sound=Restore reduced=False
+[audio] v2 cue Rescue
+[DEV] t=54.22 local status=Normal timer=0.00 hud="" pos=64.21,58.34
+[DEV] t=54.22 selfstate #57 skillCooldown=0.00 rescue=0.00 invulnerable=2.00 collapse=-1.00 action=None:0.00
+[DEV] t=54.22 chase terminal from=64.21,58.34 to=64.50,74.00 yaw=1.07
+[DEV] t=54.37 terminals 0:0 1:0 2:4 3:78 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\skillfx-survivor-s3-affected-720p.png
+[DEV] t=54.58 terminals 0:0 1:0 2:5 3:78 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=54.71 terminals 0:0 1:0 2:5 3:79 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=55.03 terminals 0:0 1:0 2:6 3:79 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=55.22 selfstate #58 skillCooldown=0.00 rescue=0.00 invulnerable=1.00 collapse=-1.00 action=None:0.00
+[DEV] t=55.22 chase terminal from=64.28,62.01 to=64.50,74.00 yaw=1.07
+[DEV] t=55.47 terminals 0:0 1:0 2:7 3:79 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=55.91 terminals 0:0 1:0 2:8 3:79 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=56.25 chase terminal from=64.35,66.10 to=64.50,74.00 yaw=1.07
+[DEV] t=56.63 terminals 0:0 1:0 2:8 3:80 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=57.01 terminals 0:0 1:0 2:8 3:81 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=57.27 terminals 0:0 1:0 2:8 3:82 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=57.27 chase terminal from=64.43,70.20 to=64.50,74.00 yaw=1.07
+[DEV] t=57.52 terminals 0:0 1:0 2:8 3:83 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=57.77 terminals 0:0 1:0 2:8 3:84 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=58.06 terminals 0:0 1:0 2:8 3:85 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=58.28 chase terminal from=62.59,72.02 to=19.00,49.00 yaw=260.20
+[DEV] t=58.51 terminals 0:0 1:0 2:8 3:86 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=59.30 chase terminal from=58.61,71.24 to=19.00,49.00 yaw=255.65
+[DEV] t=60.26 killer model shown
+[DEV] t=60.30 chase killer from=55.13,69.84 yaw=178.19
+[DEV] t=60.31 terminals 0:0 1:0 2:8 3:87 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=60.56 terminals 0:0 1:0 2:8 3:88 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=60.81 terminals 0:0 1:0 2:8 3:89 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=61.07 terminals 0:0 1:0 2:8 3:90 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=61.31 terminals 0:0 1:0 2:8 3:91 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=61.32 chase killer from=55.26,65.78 yaw=178.19
+[DEV] t=61.58 terminals 0:0 1:0 2:8 3:92 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=61.88 terminals 0:0 1:0 2:8 3:93 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=62.33 chase killer from=55.39,61.71 yaw=178.19
+[DEV] t=63.33 chase terminal from=54.19,58.74 to=19.00,49.00 yaw=258.10
+[DEV] t=63.34 killer model hidden
+[DEV] t=63.93 terminals 0:0 1:0 2:8 3:94 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=64.16 terminals 0:0 1:0 2:8 3:95 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=64.37 chase terminal from=50.14,57.89 to=19.00,49.00 yaw=258.46
+[DEV] t=64.41 terminals 0:0 1:0 2:8 3:96 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=64.66 terminals 0:0 1:0 2:8 3:97 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=64.94 terminals 0:0 1:0 2:8 3:98 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=65.18 terminals 0:0 1:0 2:8 3:99 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=65.37 chase terminal from=46.18,57.26 to=19.00,49.00 yaw=263.74
+[offline server] terminal 3 complete
+[DEV] t=65.43 terminals 0:0 1:0 2:8 3:100 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=66.40 chase terminal from=42.09,56.82 to=19.00,49.00 yaw=263.74
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=67.41 chase terminal from=38.07,56.38 to=19.00,49.00 yaw=263.74
+[offline server] status player=1 Lagging reason=capture
+[audio] v2 cue Capture
+[fx] capture impact at 40.4,2.2 plays=3
+[DEV] t=68.41 chase terminal from=34.09,55.94 to=19.00,49.00 yaw=263.74
+[DEV] t=69.42 chase terminal from=30.10,55.50 to=19.00,49.00 yaw=263.74
+[DEV] t=70.43 chase terminal from=26.08,55.06 to=19.00,49.00 yaw=263.74
+[DEV] t=71.43 chase terminal from=22.56,53.52 to=19.00,49.00 yaw=218.21
+[DEV] t=72.45 chase terminal from=20.07,50.36 to=41.00,44.00 yaw=164.01
+[DEV] t=73.45 chase terminal from=21.14,46.49 to=41.00,44.00 yaw=163.75
+[DEV] t=74.48 chase terminal from=22.29,42.53 to=41.00,44.00 yaw=163.75
+[DEV] t=75.48 chase terminal from=23.83,39.29 to=41.00,44.00 yaw=90.32
+[DEV] t=76.48 chase terminal from=27.74,39.27 to=41.00,44.00 yaw=90.32
+[offline server] kick terminal 5
+[audio] v2 cue TerminalKick
+[DEV] t=77.18 terminals 0:0 1:0 2:8 3:100 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=77.50 chase terminal from=31.72,39.62 to=41.00,44.00 yaw=61.22
+[DEV] t=78.51 terminals 0:0 1:0 2:9 3:100 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=78.51 chase terminal from=35.27,41.57 to=41.00,44.00 yaw=61.22
+[DEV] t=78.73 terminals 0:0 1:0 2:9 3:100 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=78.97 terminals 0:0 1:0 2:10 3:100 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=79.42 terminals 0:0 1:0 2:11 3:100 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=79.53 chase terminal from=38.98,43.22 to=41.00,44.00 yaw=68.92
+[DEV] t=79.86 terminals 0:0 1:0 2:12 3:100 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=80.54 chase terminal from=42.26,41.20 to=54.50,8.00 yaw=128.47
+[DEV] t=80.72 terminals 0:0 1:0 2:12 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=81.55 chase terminal from=45.42,38.69 to=54.50,8.00 yaw=128.47
+[DEV] t=81.96 terminals 0:0 1:0 2:13 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=82.41 terminals 0:0 1:0 2:14 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=82.56 chase terminal from=48.37,36.00 to=54.50,8.00 yaw=136.71
+[DEV] t=82.72 terminals 0:0 1:0 2:14 3:100 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=82.81 threat visual level=1
+[DEV] t=82.87 terminals 0:0 1:0 2:15 3:100 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=83.56 chase terminal from=51.13,33.06 to=54.50,8.00 yaw=136.71
+[DEV] t=83.57 threat visual level=2
+[DEV] t=84.22 killer model shown
+[DEV] t=84.32 threat visual level=3
+[DEV] t=84.59 chase killer from=53.66,29.94 yaw=177.27
+[DEV] t=84.71 terminals 0:0 1:0 2:15 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] status player=4 Lagging reason=capture
+[client] captured: banner + burst + hit-stop
+[DEV] t=84.91 terminals 0:0 1:0 2:16 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=84.91 local status=Lagging timer=30.00 hud="Lagging · 30 s" pos=53.75,28.27
+[fx] capture impact at 53.7,28.6 plays=4
+[client] Lagging look on (steady look + capture burst, full frame rate)
+[DEV] t=85.38 terminals 0:0 1:0 2:17 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=85.83 terminals 0:0 1:0 2:18 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=85.91 local status=Lagging timer=29.00 hud="Lagging · 29 s" pos=53.75,28.27
+[perf] capture frame times (own capture) before: n=73 mean=13.7 max=39.6 ms; after: n=75 mean=13.3 max=31.7 ms; spikes>33ms=1 -0.825s=39.6
+[DEV] t=86.26 terminals 0:0 1:0 2:19 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=86.47 killer model hidden
+[DEV] t=86.51 threat visual level=2
+[DEV] t=86.71 terminals 0:0 1:0 2:20 3:100 4:0 5:34 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=86.92 local status=Lagging timer=28.00 hud="Lagging · 28 s" pos=53.75,28.27
+[offline server] status player=1 Normal reason=rescue
+[audio] v2 cue Rescue
+[DEV] t=87.81 threat visual level=1
+[DEV] t=87.93 local status=Lagging timer=27.00 hud="Lagging · 27 s" pos=53.75,28.27
+[DEV] t=88.71 terminals 0:0 1:0 2:21 3:100 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=88.91 local status=Lagging timer=26.00 hud="Lagging · 26 s" pos=53.75,28.27
+[DEV] t=89.13 threat visual level=0
+[DEV] t=89.17 terminals 0:0 1:0 2:22 3:100 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=89.61 terminals 0:0 1:0 2:23 3:100 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=89.92 local status=Lagging timer=25.00 hud="Lagging · 25 s" pos=53.75,28.27
+[DEV] t=90.06 terminals 0:0 1:0 2:24 3:100 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=90.72 terminals 0:0 1:0 2:24 3:100 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=90.91 local status=Lagging timer=24.00 hud="Lagging · 24 s" pos=53.75,28.27
+[DEV] t=91.91 local status=Lagging timer=23.00 hud="Lagging · 23 s" pos=53.75,28.27
+[DEV] t=92.72 terminals 0:0 1:0 2:24 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=92.77 terminals 0:0 1:0 2:25 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=92.91 local status=Lagging timer=22.00 hud="Lagging · 22 s" pos=53.75,28.27
+[DEV] t=93.07 selfstate #96 skillCooldown=0.00 rescue=0.02 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=93.21 terminals 0:0 1:0 2:26 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=93.68 terminals 0:0 1:0 2:27 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=93.92 local status=Lagging timer=21.00 hud="Lagging · 21 s" pos=53.75,28.27
+[DEV] t=94.06 selfstate #97 skillCooldown=0.00 rescue=0.35 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=94.06 rescue progress=0.35 invulnerable=0.00
+[DEV] t=94.06 event survivor-rescue.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\survivor-rescue.png
+[DEV] t=94.12 terminals 0:0 1:0 2:28 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=94.71 terminals 0:0 1:0 2:28 3:100 4:0 5:30 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=94.91 local status=Lagging timer=20.00 hud="Lagging · 20 s" pos=53.75,28.27
+[DEV] t=95.06 selfstate #98 skillCooldown=0.00 rescue=0.68 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] t=95.91 local status=Lagging timer=19.00 hud="Lagging · 19 s" pos=53.75,28.27
+[offline server] status player=4 Normal reason=rescue
+[audio] v2 cue Rescue
+[DEV] t=96.03 local status=Normal timer=0.00 hud="" pos=53.75,28.27
+[DEV] t=96.03 selfstate #99 skillCooldown=0.00 rescue=0.00 invulnerable=2.00 collapse=-1.00 action=None:0.00
+[DEV] t=96.03 chase terminal from=53.75,28.27 to=54.50,8.00 yaw=177.89
+[DEV] t=96.74 terminals 0:0 1:0 2:28 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.01 selfstate #100 skillCooldown=0.00 rescue=0.00 invulnerable=1.00 collapse=-1.00 action=None:0.00
+[DEV] t=97.04 chase terminal from=53.89,24.53 to=54.50,8.00 yaw=177.89
+[DEV] t=97.11 terminals 0:0 1:0 2:29 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=97.59 terminals 0:0 1:0 2:30 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=98.03 terminals 0:0 1:0 2:31 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=98.06 chase terminal from=54.04,20.46 to=54.50,8.00 yaw=177.89
+[DEV] t=98.49 terminals 0:0 1:0 2:32 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=98.71 terminals 0:0 1:0 2:32 3:100 4:0 5:28 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=99.06 chase terminal from=54.19,16.47 to=54.50,8.00 yaw=177.89
+[DEV] t=100.12 chase terminal from=54.34,12.45 to=54.50,8.00 yaw=177.89
+[DEV] t=100.52 terminals 0:0 1:0 2:33 3:100 4:0 5:28 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=100.75 terminals 0:0 1:0 2:33 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=100.95 terminals 0:0 1:0 2:34 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=101.14 chase terminal from=54.40,10.99 to=35.50,60.00 yaw=358.13
+[offline server] sync player=8 check=5 result=Good rtt=0
+[DEV] t=101.37 terminals 0:0 1:0 2:35 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=101.83 terminals 0:0 1:0 2:36 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=102.14 chase terminal from=54.26,15.01 to=35.50,60.00 yaw=358.13
+[DEV] t=102.74 terminals 0:0 1:0 2:36 3:100 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=103.17 chase terminal from=54.13,19.13 to=35.50,60.00 yaw=358.13
+[DEV] t=103.97 terminals 0:0 1:0 2:37 3:100 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=104.18 chase terminal from=54.00,23.16 to=35.50,60.00 yaw=358.13
+[DEV] t=104.41 terminals 0:0 1:0 2:38 3:100 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=104.74 terminals 0:0 1:0 2:38 3:100 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=104.86 terminals 0:0 1:0 2:39 3:100 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=105.18 chase terminal from=53.87,27.17 to=35.50,60.00 yaw=358.13
+[DEV] t=105.31 terminals 0:0 1:0 2:40 3:100 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=105.77 terminals 0:0 1:0 2:41 3:100 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=106.18 chase terminal from=53.19,31.05 to=35.50,60.00 yaw=321.92
+[DEV] t=106.73 terminals 0:0 1:0 2:41 3:100 4:0 5:24 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=107.21 chase terminal from=50.66,34.28 to=35.50,60.00 yaw=321.92
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=108.16 terminals 0:0 1:0 2:41 3:100 4:0 5:25 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=108.23 chase terminal from=48.14,37.49 to=35.50,60.00 yaw=321.92
+[DEV] t=108.62 terminals 0:0 1:0 2:41 3:100 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=108.67 terminals 0:0 1:0 2:42 3:100 4:0 5:26 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=109.08 terminals 0:0 1:0 2:42 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=109.12 terminals 0:0 1:0 2:43 3:100 4:0 5:27 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=109.25 chase terminal from=45.81,40.82 to=35.50,60.00 yaw=331.73
+[DEV] t=109.53 terminals 0:0 1:0 2:43 3:100 4:0 5:28 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=109.96 terminals 0:0 1:0 2:43 3:100 4:0 5:29 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=110.25 chase terminal from=43.91,44.37 to=35.50,60.00 yaw=331.73
+[DEV] t=110.41 terminals 0:0 1:0 2:43 3:100 4:0 5:30 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=110.87 terminals 0:0 1:0 2:43 3:100 4:0 5:31 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=111.27 chase terminal from=41.99,47.94 to=35.50,60.00 yaw=331.72
+[DEV] t=112.28 chase terminal from=40.06,51.51 to=35.50,60.00 yaw=331.72
+[DEV] t=113.02 terminals 0:0 1:0 2:43 3:100 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=113.21 terminals 0:0 1:1 2:43 3:100 4:0 5:32 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=113.27 terminals 0:0 1:1 2:43 3:100 4:0 5:33 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=113.30 chase terminal from=38.14,55.10 to=35.50,60.00 yaw=331.72
+[DEV] t=113.52 terminals 0:0 1:1 2:43 3:100 4:0 5:34 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=113.66 terminals 0:0 1:2 2:43 3:100 4:0 5:34 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=113.76 terminals 0:0 1:2 2:43 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=114.12 terminals 0:0 1:3 2:43 3:100 4:0 5:35 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=114.21 terminals 0:0 1:3 2:43 3:100 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=114.32 chase terminal from=36.29,58.64 to=76.00,40.00 yaw=102.55
+[DEV] t=114.58 terminals 0:0 1:4 2:43 3:100 4:0 5:36 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=114.67 terminals 0:0 1:4 2:43 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=115.01 terminals 0:0 1:5 2:43 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=115.34 chase terminal from=40.27,57.75 to=76.00,40.00 yaw=104.07
+[DEV] t=115.46 terminals 0:0 1:6 2:43 3:100 4:0 5:37 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=115.72 terminals 0:0 1:6 2:43 3:100 4:0 5:38 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=116.16 terminals 0:0 1:6 2:43 3:100 4:0 5:39 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=116.35 chase terminal from=44.19,56.77 to=76.00,40.00 yaw=104.07
+[DEV] t=116.51 terminals 0:0 1:6 2:43 3:100 4:0 5:40 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] sync player=1 check=7 result=Good rtt=0
+[DEV] t=116.76 terminals 0:0 1:6 2:43 3:100 4:0 5:41 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=117.02 terminals 0:0 1:6 2:43 3:100 4:0 5:42 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=117.28 terminals 0:0 1:6 2:43 3:100 4:0 5:43 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=117.36 chase terminal from=48.12,55.79 to=76.00,40.00 yaw=104.07
+[DEV] t=117.42 terminals 0:0 1:7 2:43 3:100 4:0 5:43 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=117.73 terminals 0:0 1:7 2:43 3:100 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=117.86 terminals 0:0 1:8 2:43 3:100 4:0 5:44 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=118.17 terminals 0:0 1:8 2:43 3:100 4:0 5:45 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=118.31 terminals 0:0 1:9 2:43 3:100 4:0 5:45 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=118.38 chase terminal from=52.08,54.79 to=76.00,40.00 yaw=104.07
+[DEV] t=118.76 terminals 0:0 1:10 2:43 3:100 4:0 5:45 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=119.39 chase terminal from=54.70,52.37 to=76.00,40.00 yaw=158.19
+[DEV] t=119.76 terminals 0:0 1:10 2:43 3:100 4:0 5:46 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=120.21 terminals 0:0 1:10 2:43 3:100 4:0 5:47 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=120.39 chase terminal from=56.19,48.65 to=76.00,40.00 yaw=158.19
+[DEV] t=120.46 terminals 0:0 1:10 2:43 3:100 4:0 5:48 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=120.72 terminals 0:0 1:10 2:43 3:100 4:0 5:49 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=120.98 terminals 0:0 1:10 2:43 3:100 4:0 5:50 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=121.13 terminals 0:0 1:11 2:43 3:100 4:0 5:50 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=121.22 terminals 0:0 1:11 2:43 3:100 4:0 5:51 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=121.40 chase terminal from=57.69,44.89 to=76.00,40.00 yaw=158.19
+[DEV] t=121.58 terminals 0:0 1:12 2:43 3:100 4:0 5:51 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] kick terminal 2
+[audio] v2 cue TerminalKick
+[DEV] t=121.67 terminals 0:0 1:12 2:38 3:100 4:0 5:52 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=122.03 terminals 0:0 1:13 2:38 3:100 4:0 5:52 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=122.42 chase terminal from=59.20,41.12 to=76.00,40.00 yaw=158.19
+[DEV] t=122.81 terminals 0:0 1:13 2:37 3:100 4:0 5:52 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=123.17 terminals 0:0 1:13 2:37 3:100 4:0 5:53 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=123.41 terminals 0:0 1:13 2:37 3:100 4:0 5:54 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=123.44 chase terminal from=62.78,40.26 to=76.00,40.00 yaw=91.14
+[DEV] t=123.68 terminals 0:0 1:13 2:37 3:100 4:0 5:55 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=123.93 terminals 0:0 1:13 2:37 3:100 4:0 5:56 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=124.16 terminals 0:0 1:13 2:37 3:100 4:0 5:57 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=124.42 terminals 0:0 1:13 2:37 3:100 4:0 5:58 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=124.45 chase terminal from=66.84,40.18 to=76.00,40.00 yaw=91.14
+[DEV] t=124.83 terminals 0:0 1:13 2:36 3:100 4:0 5:59 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=125.47 chase terminal from=70.92,40.10 to=76.00,40.00 yaw=91.14
+[DEV] t=126.49 chase terminal from=73.64,39.64 to=10.00,25.00 yaw=237.40
+[DEV] t=126.76 terminals 0:0 1:14 2:36 3:100 4:0 5:59 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=126.84 terminals 0:0 1:14 2:35 3:100 4:0 5:59 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.02 terminals 0:0 1:14 2:35 3:100 4:0 5:60 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.21 terminals 0:0 1:15 2:35 3:100 4:0 5:60 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.27 terminals 0:0 1:15 2:35 3:100 4:0 5:61 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.50 chase terminal from=70.26,37.47 to=10.00,25.00 yaw=237.40
+[DEV] t=127.52 terminals 0:0 1:15 2:35 3:100 4:0 5:62 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.66 terminals 0:0 1:16 2:35 3:100 4:0 5:62 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=127.76 terminals 0:0 1:16 2:35 3:100 4:0 5:63 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=128.11 terminals 0:0 1:17 2:35 3:100 4:0 5:63 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=128.16 terminals 0:0 1:17 2:35 3:100 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=128.50 chase terminal from=66.87,35.31 to=10.00,25.00 yaw=237.40
+[DEV] t=128.56 terminals 0:0 1:18 2:35 3:100 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=128.81 terminals 0:0 1:18 2:34 3:100 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=129.01 terminals 0:0 1:19 2:34 3:100 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=129.47 terminals 0:0 1:20 2:34 3:100 4:0 5:64 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=129.50 chase terminal from=63.51,33.15 to=10.00,25.00 yaw=237.40
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=129.76 terminals 0:0 1:20 2:34 3:100 4:0 5:65 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=129.91 terminals 0:0 1:21 2:34 3:100 4:0 5:65 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.01 terminals 0:0 1:21 2:34 3:100 4:0 5:66 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.26 terminals 0:0 1:21 2:34 3:100 4:0 5:67 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.36 terminals 0:0 1:22 2:34 3:100 4:0 5:67 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.51 terminals 0:0 1:22 2:34 3:100 4:0 5:68 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.51 chase terminal from=59.65,32.23 to=10.00,25.00 yaw=265.40
+[DEV] t=130.76 terminals 0:0 1:22 2:34 3:100 4:0 5:69 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=130.81 terminals 0:0 1:22 2:33 3:100 4:0 5:69 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=131.01 terminals 0:0 1:22 2:33 3:100 4:0 5:70 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=131.26 terminals 0:0 1:22 2:33 3:100 4:0 5:71 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=131.52 chase terminal from=55.64,31.91 to=10.00,25.00 yaw=265.40
+[DEV] t=131.62 terminals 0:0 1:22 2:33 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=132.17 terminals 0:0 1:23 2:33 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=132.32 killer model shown
+[DEV] t=132.52 chase killer from=53.24,32.12 yaw=58.00
+[DEV] t=132.81 terminals 0:0 1:23 2:32 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=133.53 chase killer from=56.66,34.23 yaw=59.18
+[DEV] t=133.86 threat visual level=1
+[DEV] t=134.55 chase killer from=60.20,36.24 yaw=72.75
+[DEV] t=134.82 terminals 0:0 1:23 2:31 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=135.41 threat visual level=2
+[DEV] t=135.56 chase killer from=64.05,37.44 yaw=72.75
+[DEV] t=136.56 chase killer from=67.90,38.51 yaw=74.89
+[DEV] t=136.83 terminals 0:0 1:23 2:30 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=136.98 threat visual level=3
+[DEV] t=137.58 chase killer from=71.86,39.58 yaw=74.88
+[offline server] status player=4 Eliminated reason=third capture
+[client] eliminated, reason=ThirdCapture ("Disconnected: caught 3 times.")
+[DEV] t=137.81 local status=Eliminated timer=0.00 hud="Eliminated. Watching until the match ends." pos=73.11,39.92
+[fx] capture impact at 72.7,39.8 plays=5
+[DEV] t=137.81 threat visual level=0
+[DEV] t=137.81 killer model hidden
+[DEV] t=138.83 terminals 0:0 1:23 2:29 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=138.83 event eliminated-reason.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\u8-hitfeel\docs\qa\U8-screens\survivor\eliminated-reason.png
+[DEV] t=140.76 terminals 0:0 1:23 2:30 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=3 role=Killer id=1
+[DEV] t=143.12 terminals 0:0 1:23 2:31 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=143.58 terminals 0:0 1:23 2:32 3:100 4:0 5:72 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=155.56 terminals 0:0 1:23 2:32 3:100 4:0 5:73 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=155.63 terminals 0:0 1:23 2:33 3:100 4:0 5:73 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=155.96 terminals 0:0 1:23 2:33 3:100 4:0 5:74 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=156.07 terminals 0:0 1:23 2:34 3:100 4:0 5:74 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=156.43 terminals 0:0 1:23 2:34 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=156.52 terminals 0:0 1:23 2:35 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=158.02 terminals 0:0 1:23 2:36 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=158.46 terminals 0:0 1:23 2:37 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=158.91 terminals 0:0 1:23 2:38 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=159.39 terminals 0:0 1:23 2:39 3:100 4:0 5:75 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=159.43 terminals 0:0 1:23 2:39 3:100 4:0 5:76 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=159.82 terminals 0:0 1:23 2:40 3:100 4:0 5:76 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=159.87 terminals 0:0 1:23 2:40 3:100 4:0 5:77 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=160.31 terminals 0:0 1:23 2:40 3:100 4:0 5:78 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=161.96 terminals 0:0 1:23 2:41 3:100 4:0 5:78 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=162.42 terminals 0:0 1:23 2:42 3:100 4:0 5:78 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=162.86 terminals 0:0 1:23 2:43 3:100 4:0 5:78 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=163.03 terminals 0:0 1:23 2:43 3:100 4:0 5:79 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=163.31 terminals 0:0 1:23 2:44 3:100 4:0 5:79 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=163.47 terminals 0:0 1:23 2:44 3:100 4:0 5:80 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=163.91 terminals 0:0 1:23 2:44 3:100 4:0 5:81 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=165.52 terminals 0:0 1:23 2:45 3:100 4:0 5:81 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=165.97 terminals 0:0 1:23 2:46 3:100 4:0 5:81 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=166.06 terminals 0:0 1:23 2:46 3:100 4:0 5:82 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=166.41 terminals 0:0 1:23 2:47 3:100 4:0 5:82 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=166.46 terminals 0:0 1:23 2:47 3:100 4:0 5:83 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=166.72 terminals 0:0 1:23 2:47 3:100 4:0 5:84 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=166.86 terminals 0:0 1:23 2:48 3:100 4:0 5:84 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=166.98 terminals 0:0 1:23 2:48 3:100 4:0 5:85 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=167.21 terminals 0:0 1:23 2:48 3:100 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=167.51 terminals 0:0 1:23 2:48 3:100 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=168.01 terminals 0:0 1:23 2:48 3:100 4:0 5:88 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=168.44 terminals 0:0 1:23 2:48 3:100 4:0 5:89 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=168.69 terminals 0:0 1:23 2:49 3:100 4:0 5:89 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=169.17 terminals 0:0 1:23 2:50 3:100 4:0 5:89 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=169.42 terminals 0:0 1:23 2:50 3:100 4:0 5:90 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=169.60 terminals 0:0 1:23 2:51 3:100 4:0 5:90 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=169.88 terminals 0:0 1:23 2:51 3:100 4:0 5:91 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=170.03 terminals 0:0 1:23 2:52 3:100 4:0 5:91 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=170.34 terminals 0:0 1:23 2:52 3:100 4:0 5:92 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=170.58 terminals 0:0 1:23 2:52 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=172.39 terminals 0:0 1:23 2:53 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=172.86 terminals 0:0 1:23 2:54 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=173.27 terminals 0:0 1:23 2:55 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] kick terminal 1
+[audio] v2 cue TerminalKick
+[DEV] t=174.04 terminals 0:0 1:18 2:55 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=175.13 terminals 0:0 1:17 2:55 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=175.35 terminals 0:0 1:17 2:56 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=175.83 terminals 0:0 1:17 2:57 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=176.23 terminals 0:0 1:17 2:58 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=176.71 terminals 0:0 1:17 2:59 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=177.11 terminals 0:0 1:16 2:59 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=178.40 terminals 0:0 1:16 2:60 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=178.81 terminals 0:0 1:16 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=179.12 terminals 0:0 1:15 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=181.12 terminals 0:0 1:14 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=3 role=Killer id=1
+[offline server] skill player=2 role=Survivor id=0
+[DEV] t=183.13 terminals 0:0 1:13 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=185.14 terminals 0:0 1:12 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=187.11 terminals 0:0 1:11 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=189.11 terminals 0:0 1:10 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=191.13 terminals 0:0 1:9 2:61 3:100 4:0 5:93 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] kick terminal 5
+[audio] v2 cue TerminalKick
+[DEV] t=191.17 terminals 0:0 1:9 2:61 3:100 4:0 5:88 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=192.88 terminals 0:0 1:9 2:61 3:100 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=193.13 terminals 0:0 1:8 2:61 3:100 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=194.20 terminals 0:0 1:8 2:62 3:100 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=194.62 terminals 0:0 1:8 2:63 3:100 4:0 5:87 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=194.88 terminals 0:0 1:8 2:63 3:100 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=195.09 terminals 0:0 1:8 2:64 3:100 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=195.18 terminals 0:0 1:7 2:64 3:100 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=195.64 terminals 0:0 1:7 2:65 3:100 4:0 5:86 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=196.86 terminals 0:0 1:7 2:65 3:100 4:0 5:85 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=197.11 terminals 0:0 1:6 2:65 3:100 4:0 5:85 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=197.37 terminals 0:0 1:6 2:66 3:100 4:0 5:85 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] quit after 200 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
