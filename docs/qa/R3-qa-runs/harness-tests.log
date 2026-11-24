@@ -1,0 +1,15 @@
+C:\Unity\MultiPlayGame\PtK-work\r3-help\artifacts\bin\Harness.Tests\debug\Harness.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:02:58.81]     PingTheKiller.Harness.Tests.QA.U3c.U3cFullRunUnknownFramesIdModeTests.H1ToH6AllPassWithSkipCountsInEveryCheck [FAIL]
+  실패 PingTheKiller.Harness.Tests.QA.U3c.U3cFullRunUnknownFramesIdModeTests.H1ToH6AllPassWithSkipCountsInEveryCheck [2 m 57 s]
+  오류 메시지:
+   Assert.All() Failure: 1 out of 6 items in the collection did not pass.
+[1]: Item:  CheckResult { Id = H2, Score = 0, Max = 20, Gate = False, Passed = False, Evidence = CheckFailure: WorldState inter-arrival p99=601.241 ms > 120 ms.; skipped unknown packets: id=0x21 ×74, id=0x7E ×86 }
+     Error: H2: CheckFailure: WorldState inter-arrival p99=601.241 ms > 120 ms.; skipped unknown packets: id=0x21 ×74, id=0x7E ×86
+  스택 추적:
+     at PingTheKiller.Harness.Tests.QA.U3c.U3cFullRunWithUnknownFrames.H1ToH6AllPassWithSkipCountsInEveryCheck() in C:\Unity\MultiPlayGame\PtK-work\r3-help\Tools\Harness.Tests\QA\U3c\U3cUnknownPacketTests.cs:line 174
+   at PingTheKiller.Harness.Tests.QA.U3c.U3cFullRunWithUnknownFrames.H1ToH6AllPassWithSkipCountsInEveryCheck() in C:\Unity\MultiPlayGame\PtK-work\r3-help\Tools\Harness.Tests\QA\U3c\U3cUnknownPacketTests.cs:line 184
+   at PingTheKiller.Harness.Tests.QA.U3c.U3cFullRunWithUnknownFrames.H1ToH6AllPassWithSkipCountsInEveryCheck() in C:\Unity\MultiPlayGame\PtK-work\r3-help\Tools\Harness.Tests\QA\U3c\U3cUnknownPacketTests.cs:line 184
+--- End of stack trace from previous location ---
+
+실패!  - 실패:     1, 통과:   640, 건너뜀:     0, 전체:   641, 기간: 19 m 25 s - Harness.Tests.dll (net10.0)
