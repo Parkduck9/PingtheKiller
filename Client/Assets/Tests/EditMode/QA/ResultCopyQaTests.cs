@@ -23,7 +23,7 @@ namespace PingTheKiller.Client.QA.Tests
             var result = new S2C_GameResult
             {
                 Reason = (byte)reason,
-                WinnerRole = (byte)(reason == GameEndReason.SurvivorEscaped ? Role.Survivor : Role.Killer)
+                WinnerRole = (byte)(reason == GameEndReason.AllResolved ? Role.Survivor : Role.Killer)
             };
             result.EscapedIds.AddRange(escaped);
             return result;
@@ -35,9 +35,9 @@ namespace PingTheKiller.Client.QA.Tests
         public void SurvivorEscapedNamesTheEscapedPlayersAndTheExit()
         {
             S2C_LobbyState lobby = Lobby("Ana", "Bo", "Cy");
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 2), lobby), Is.EqualTo("Survivors win. Bo reached the Exit."));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1, 3), lobby), Is.EqualTo("Survivors win. Ana and Cy reached the Exit."));
-            string three = ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1, 2, 3), lobby);
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 2), lobby), Is.EqualTo("Survivors win. Bo reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1, 3), lobby), Is.EqualTo("Survivors win. Ana and Cy reached the Exit."));
+            string three = ResultCopy.Headline(Result(GameEndReason.AllResolved, 1, 2, 3), lobby);
             Assert.That(three, Does.StartWith("Survivors win."));
             Assert.That(three, Does.Contain("Ana"));
             Assert.That(three, Does.Contain("Bo"));
@@ -70,7 +70,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void AnIdMissingFromTheLobbyFallsBackToPlayerId()
         {
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 9), Lobby("Ana")), Is.EqualTo("Survivors win. Player 9 reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 9), Lobby("Ana")), Is.EqualTo("Survivors win. Player 9 reached the Exit."));
             Assert.That(ResultCopy.NameOf(9, Lobby("Ana")), Is.EqualTo("Player 9"));
         }
 
@@ -79,14 +79,14 @@ namespace PingTheKiller.Client.QA.Tests
         {
             S2C_LobbyState lobby = Lobby("", "Bo");
             Assert.That(ResultCopy.NameOf(1, lobby), Is.EqualTo("Player 1"));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 1, 2), lobby), Is.EqualTo("Survivors win. Player 1 and Bo reached the Exit."));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 1, 2), lobby), Is.EqualTo("Survivors win. Player 1 and Bo reached the Exit."));
         }
 
         [Test]
         public void NoLobbyAtAllStillGivesPlayerIds()
         {
-            Assert.DoesNotThrow(() => ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 4), null));
-            Assert.That(ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped, 4), null), Is.EqualTo("Survivors win. Player 4 reached the Exit."));
+            Assert.DoesNotThrow(() => ResultCopy.Headline(Result(GameEndReason.AllResolved, 4), null));
+            Assert.That(ResultCopy.Headline(Result(GameEndReason.AllResolved, 4), null), Is.EqualTo("Survivors win. Player 4 reached the Exit."));
             var broken = new S2C_LobbyState { Slots = null };
             Assert.That(ResultCopy.NameOf(4, broken), Is.EqualTo("Player 4"));
         }
@@ -103,7 +103,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void AnEmptyEscapedListGivesAsentenceWithoutBlankNamesOrNulls()
         {
-            string text = ResultCopy.Headline(Result(GameEndReason.SurvivorEscaped), Lobby("Ana"));
+            string text = ResultCopy.Headline(Result(GameEndReason.AllResolved), Lobby("Ana"));
             Assert.That(text, Does.StartWith("Survivors win."));
             Assert.That(text, Does.Not.Contain("  "), "no blank where the names would be");
             Assert.That(text, Does.Not.Contain("null"));
@@ -144,7 +144,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ANullResultListDoesNotThrow()
         {
-            var result = new S2C_GameResult { Reason = (byte)GameEndReason.SurvivorEscaped, EscapedIds = null };
+            var result = new S2C_GameResult { Reason = (byte)GameEndReason.AllResolved, EscapedIds = null };
             Assert.DoesNotThrow(() => ResultCopy.Headline(result, Lobby("Ana")));
             Assert.DoesNotThrow(() => ResultCopy.Outcome(result, 1, Role.Survivor, PlayerStatus.Normal));
         }
@@ -154,16 +154,16 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ASurvivorOnTheEscapedListEscaped()
         {
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 2), 2, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("You escaped."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved, 2), 2, Role.Survivor, PlayerStatus.Normal), Is.EqualTo("You escaped."));
         }
 
         [Test]
         public void ASurvivorWhoseStatusIsEscapedEscapedEvenIfTheListIsMissing()
         {
-            Assert.That(ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped), 2, Role.Survivor, PlayerStatus.Escaped), Is.EqualTo("You escaped."));
+            Assert.That(ResultCopy.Outcome(Result(GameEndReason.AllResolved), 2, Role.Survivor, PlayerStatus.Escaped), Is.EqualTo("You escaped."));
         }
 
-        [TestCase(GameEndReason.SurvivorEscaped)]
+        [TestCase(GameEndReason.AllResolved)]
         [TestCase(GameEndReason.AllSurvivorsDown)]
         [TestCase(GameEndReason.TimeUp)]
         public void AnEliminatedSurvivorWasEliminatedWhateverTheReason(GameEndReason reason)
@@ -189,7 +189,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void ASurvivorWhoDidNotEscapeWhileTheTeamWonIsToldSo()
         {
-            string text = ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 5), 2, Role.Survivor, PlayerStatus.Normal);
+            string text = ResultCopy.Outcome(Result(GameEndReason.AllResolved, 5), 2, Role.Survivor, PlayerStatus.Normal);
             Assert.That(text, Is.Not.EqualTo("You escaped."));
             Assert.That(text, Does.Not.Contain("were eliminated"));
             Assert.That(text, Does.Not.Contain("lost"), "the survivors won");
@@ -198,7 +198,7 @@ namespace PingTheKiller.Client.QA.Tests
         [Test]
         public void TheKillerViewReportsAKillerWinOrLossAndNeverAnEscape()
         {
-            string lost = ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 2), 1, Role.Killer, PlayerStatus.Normal);
+            string lost = ResultCopy.Outcome(Result(GameEndReason.AllResolved, 2), 1, Role.Killer, PlayerStatus.Normal);
             Assert.That(lost, Does.Contain("Killer"));
             Assert.That(lost, Does.Contain("lost"));
             Assert.That(lost, Does.Not.Contain("won"));
@@ -217,7 +217,7 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheKillerNeverSeesAnEscapedListContainingItsOwnId()
         {
             // A killer id inside EscapedIds would be a server bug; the killer outcome must still be a killer sentence.
-            string text = ResultCopy.Outcome(Result(GameEndReason.SurvivorEscaped, 1), 1, Role.Killer, PlayerStatus.Normal);
+            string text = ResultCopy.Outcome(Result(GameEndReason.AllResolved, 1), 1, Role.Killer, PlayerStatus.Normal);
             Assert.That(text, Is.Not.EqualTo("You escaped."));
         }
 
@@ -245,7 +245,7 @@ namespace PingTheKiller.Client.QA.Tests
         {
             S2C_LobbyState lobby = Lobby("Ana", "Bo");
             var texts = new List<string>();
-            foreach (GameEndReason reason in new[] { GameEndReason.SurvivorEscaped, GameEndReason.AllSurvivorsDown, GameEndReason.TimeUp, (GameEndReason)77 })
+            foreach (GameEndReason reason in new[] { GameEndReason.AllResolved, GameEndReason.AllSurvivorsDown, GameEndReason.TimeUp, (GameEndReason)77 })
             {
                 S2C_GameResult result = Result(reason, 1);
                 texts.Add(ResultCopy.Headline(result, lobby));

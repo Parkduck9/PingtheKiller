@@ -52,7 +52,8 @@ public sealed class U3bStructuralScanTests(Xunit.Abstractions.ITestOutputHelper 
             Check(new S2C_WorldState
             {
                 Tick = (uint)rng.Next(0, 20000), TimeLeft = 600 - rng.Next(0, 12000) * 0.05f, ThreatLevel = (byte)rng.Next(4),
-                ExitOpen = (byte)rng.Next(2), ExitLocked = (byte)rng.Next(2), TerminalsRequired = 2,
+                CollapseLeft = rng.Next(-1, 120), TerminalsRequired = 2,
+                Exits = Enumerable.Range(0, 2).Select(e => new ExitState { Id = (byte)e, X = rng.Next(0, 120) * 0.5f, Z = rng.Next(0, 120) * 0.5f, Flags = (byte)rng.Next(8), SwitchProgress = (byte)rng.Next(101) }).ToList(),
                 Terminals = Enumerable.Range(0, 4).Select(t => new TerminalState { Id = (byte)t, X = rng.Next(0, 120) * 0.5f, Z = rng.Next(0, 120) * 0.5f, Progress = (byte)rng.Next(101) }).ToList(),
                 Players = new List<PlayerState>
                 {
@@ -175,14 +176,19 @@ public sealed class U3bStructuralScanTests(Xunit.Abstractions.ITestOutputHelper 
         Assert.NotNull(e);
     }
 
-    // The structural scan only inspects decoded fields. Four consecutive BYTE fields (ThreatLevel, ExitOpen, ExitLocked,
-    // TerminalsRequired) can carry a float. KNOWN-LIMIT (info): not detected, unless the decoder rejects the bytes.
+    // The structural scan only inspects decoded fields. v0.4: three consecutive BYTE fields (exit 0 Flags and SwitchProgress,
+    // exit 1 Id) plus the low byte of exit 1's X can carry a float. KNOWN-LIMIT (info): not detected, unless the decoder
+    // rejects the bytes.
     [Fact]
     public void KnownLimit_KillerFloatSmuggledAcrossFourConsecutiveByteFields_IsNotDetected()
     {
         float k = 5f; // 00 00 A0 40
         byte[] b = BitConverter.GetBytes(KillerLeakScan.Bits(k));
-        var world = new S2C_WorldState { Tick = 1, TimeLeft = 500, ThreatLevel = b[0], ExitOpen = b[1], ExitLocked = b[2], TerminalsRequired = b[3] };
+        var world = new S2C_WorldState
+        {
+            Tick = 1, TimeLeft = 500,
+            Exits = { new ExitState { Flags = b[0], SwitchProgress = b[1] }, new ExitState { Id = b[2], X = BitConverter.ToSingle(new byte[] { b[3], 0, 0, 0 }) } }
+        };
         string? e;
         try { e = Scan(world, Bits(k)); }
         catch (PacketFormatException ex) { output.WriteLine("decoder rejected: " + ex.Message); return; }

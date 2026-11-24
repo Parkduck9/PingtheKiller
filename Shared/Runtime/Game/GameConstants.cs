@@ -12,13 +12,45 @@ namespace PingTheKiller.Shared.Game
         public const float CaptureRadius = 1.2f;
         public const float RescueRadius = 1.5f;
         public const float RescueTimeSeconds = 3.0f;
+        // GDD v2 §4: Lagging after the first capture lasts 60 s, after the second 30 s; the third capture eliminates.
         public const float LaggingTimeoutSeconds = 60f;
+        public const float SecondLaggingTimeoutSeconds = 30f;
+        public const int EliminatingCaptureCount = 3;
         public const float PostRescueInvulnerabilitySeconds = 2f;
         public const float TerminalRadius = 1.5f;
-        public const float TerminalHackTimeSeconds = 10f;
-        public const int MaxCoHackMultiplier = 3;
+        // GDD v2 §2: one hacker needs 45 s; co-hackers speed it up with diminishing returns (see CoHackRate).
+        public const float TerminalHackTimeSeconds = 45f;
+        public const float TwoHackerRate = 1.8f;
+        public const float ThreeHackerRate = 2.4f;
+        // GDD v2 §2 (killer kick): hold 2 s within TerminalRadius, then -5 points at once and -0.5 points/s until re-hacked.
+        public const float KickHoldSeconds = 2f;
+        public const float KickPenaltyPoints = 5f;
+        public const float RegressionPointsPerSecond = 0.5f;
+        // GDD v2 §2 (sync check): every 8-16 s of hacking; the needle sweeps 0 -> 1 in SyncCheckDurationSeconds.
+        public const float SyncCheckIntervalMinSeconds = 8f;
+        public const float SyncCheckIntervalMaxSeconds = 16f;
+        public const float SyncCheckDurationSeconds = 1.1f;
+        public const float SyncZoneStartMin = 0.45f;
+        public const float SyncZoneStartMax = 0.8f;
+        public const float SyncZoneSize = 0.12f;
+        public const float SyncGreatSize = 0.035f;
+        public const float SyncToleranceSeconds = 0.15f;
+        public const float SyncGreatBonusPoints = 1f;
+        public const float SyncFailPenaltyPoints = 5f;
+        public const float OverloadedSeconds = 2f;
+        // GDD v2 §3: both exits are powered once the required terminals are done; a switch is held 15 s within 1.5 m.
         public const float ExitRadius = 2.0f;
-        public const float MatchLengthSeconds = 600f;
+        public const float ExitSwitchRadius = 1.5f;
+        public const float ExitSwitchSeconds = 15f;
+        // GDD v2 §3: the collapse runs 120 s from the first open exit (or the hatch closing); Lagging clocks run 2x.
+        public const float CollapseSeconds = 120f;
+        public const float CollapseLaggingRate = 2f;
+        // GDD v2 §3 (hatch): the last survivor escapes within 1.5 m; the killer closes it with a 1 s hold.
+        public const float HatchRadius = 1.5f;
+        public const float HatchCloseSeconds = 1f;
+        public const float HatchSightDistance = 15f;
+        // GDD v2 §1: 15 minutes as a safety net; matches normally end through the collapse.
+        public const float MatchLengthSeconds = 900f;
         public const float ThreatLevel1Distance = 18f;
         public const float ThreatLevel2Distance = 12f;
         public const float ThreatLevel3Distance = 6f;
@@ -32,5 +64,9 @@ namespace PingTheKiller.Shared.Game
             required = survivorCount <= 2 ? 3 : survivorCount <= 5 ? 4 : 5;
             placed = survivorCount <= 2 ? 5 : survivorCount <= 5 ? 7 : 8;
         }
+
+        // GDD v2 §2: effective hack rate of n hackers on one terminal (1 -> 1.0, 2 -> 1.8, 3 or more -> 2.4).
+        public static float CoHackRate(int hackers) =>
+            hackers <= 0 ? 0f : hackers == 1 ? 1f : hackers == 2 ? TwoHackerRate : ThreeHackerRate;
     }
 }

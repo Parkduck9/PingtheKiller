@@ -96,7 +96,7 @@ public sealed class UnknownPacketTests
         Assert.Contains("skipped unknown packets: id=0x7E ×10", report.Items.Single(i => i.Id == "H1").Evidence); // >= 10000 pongs
         foreach (var item in report.Items.Where(i => i.Id != "H1"))
         {
-            Assert.Contains("skipped unknown packets: id=0x11 ×", item.Evidence);
+            Assert.Contains("skipped unknown packets: id=0x21 ×", item.Evidence);
             Assert.Contains("id=0x7E ×", item.Evidence);
         }
         Assert.DoesNotContain("(+0 unknown-Id frames)", report.Items.Single(i => i.Id == "H3").Evidence);
@@ -111,7 +111,7 @@ public sealed class UnknownPacketTests
             Only = new HashSet<string> { "H1" } }, deadline.Token);
         var h1 = Assert.Single(report.Items);
         Assert.True(h1.Passed, h1.Evidence);
-        Assert.EndsWith("; skipped unknown packets: id=0x11 ×10001, id=0x7E ×10001", h1.Evidence);
+        Assert.EndsWith("; skipped unknown packets: id=0x21 ×10001, id=0x7E ×10001", h1.Evidence);
     }
 
     [Fact]
@@ -136,9 +136,9 @@ public sealed class UnknownPacketTests
         await client.SendAsync(new C2S_Ping { Timestamp = 1 }, deadline.Token);
         var error = await Assert.ThrowsAsync<IOException>(() => client.ReadAsync(deadline.Token));
         Assert.IsType<PacketFormatException>(error.InnerException);
-        Assert.Equal(new Dictionary<ushort, int> { [0x7E] = 1, [0x11] = 1 }, client.UnknownCounts());
+        Assert.Equal(new Dictionary<ushort, int> { [0x7E] = 1, [0x21] = 1 }, client.UnknownCounts());
         var kept = client.UnknownFramesSince(before);
-        Assert.Equal(new ushort[] { 0x7E, 0x11 }, kept.Select(f => f.Id));
+        Assert.Equal(new ushort[] { 0x7E, 0x21 }, kept.Select(f => f.Id));
         Assert.Equal(18, kept[0].Raw.Length); // header + Id + 12-byte payload, kept raw
     }
 }

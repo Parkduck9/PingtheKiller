@@ -97,7 +97,7 @@ public sealed class U2bSweepTests
                 if (e.CasterId == kId)
                 {
                     bool zero = e.X == 0 && e.Z == 0;
-                    bool exit = e.X == Map.Exit.X && e.Z == Map.Exit.Z;
+                    bool exit = Map.Exits.Any(x => e.X == x.X && e.Z == x.Z); // v0.4: either exit
                     if (!zero && !exit) St.Violation($"survivor-bound killer effect {e.SkillId} carries ({e.X},{e.Z})" + ctx);
                 }
                 else if (e.SkillId == SkillIds.DummyPacket) { _dummies[e.CasterId] = (e.X, e.Z, tick + 85); /* 3 s dummy + 1 s afterimage tail + slack */ St.SurvivorSkillsCast.Add(e.SkillId); }
@@ -127,7 +127,7 @@ public sealed class U2bSweepTests
                 legit.Add(Bits(p.X)); legit.Add(Bits(p.Z)); legit.Add(Bits(p.Yaw)); legit.Add(Bits(p.StatusTimer));
             }
             foreach (var t in sw.Terminals) { legit.Add(Bits(t.X)); legit.Add(Bits(t.Z)); }
-            legit.Add(Bits(sw.TimeLeft)); legit.Add(Bits(Map.Exit.X)); legit.Add(Bits(Map.Exit.Z));
+            legit.Add(Bits(sw.TimeLeft)); legit.Add(Bits(sw.CollapseLeft)); foreach (var x in Map.Exits) { legit.Add(Bits(x.X)); legit.Add(Bits(x.Z)); }
             int survivorEntries = sw.Players.Count(p => p.Role == (byte)Role.Survivor);
             foreach (var raw in sp)
             {
@@ -176,13 +176,14 @@ public sealed class U2bSweepTests
             foreach (var t in kw.Terminals) if (t.Progress != 0 && t.Progress != 100) St.Violation("killer-bound terminal progress " + t.Progress + ctx);
 
             var killerBytes = kp.Select(PacketCodec.Encode).ToList();
-            var kLegit = new HashSet<int> { Bits(kw.TimeLeft) };
+            var kLegit = new HashSet<int> { Bits(kw.TimeLeft), Bits(kw.CollapseLeft) };
             foreach (var t in kw.Terminals) { kLegit.Add(Bits(t.X)); kLegit.Add(Bits(t.Z)); }
             foreach (var p in kw.Players) { kLegit.Add(Bits(p.StatusTimer)); kLegit.Add(Bits(p.Yaw)); }
-            kLegit.Add(Bits(kself.X)); kLegit.Add(Bits(kself.Z)); kLegit.Add(Bits(Map.Exit.X)); kLegit.Add(Bits(Map.Exit.Z));
+            kLegit.Add(Bits(kself.X)); kLegit.Add(Bits(kself.Z)); foreach (var x in Map.Exits) { kLegit.Add(Bits(x.X)); kLegit.Add(Bits(x.Z)); }
+            if (kw.HatchVisible == 1) { kLegit.Add(Bits(kw.HatchX)); kLegit.Add(Bits(kw.HatchZ)); } // v0.4: the hatch is map data once seen
             foreach (var e in kp.OfType<S2C_SkillEffect>()) { kLegit.Add(Bits(e.X)); kLegit.Add(Bits(e.Z)); kLegit.Add(Bits(e.Duration)); }
             // U2c: the killer's own S2C_SelfState floats (cooldown 5.0 s equals the spawn x coordinate 5.0 bit for bit)
-            foreach (var s in kp.OfType<S2C_SelfState>()) { kLegit.Add(Bits(s.SkillCooldown)); kLegit.Add(Bits(s.RescueProgress)); kLegit.Add(Bits(s.InvulnerableLeft)); kLegit.Add(Bits(s.ExecutionGraceLeft)); }
+            foreach (var s in kp.OfType<S2C_SelfState>()) { kLegit.Add(Bits(s.CollapseLeft)); kLegit.Add(Bits(s.ActionProgress)); kLegit.Add(Bits(s.SkillCooldown)); kLegit.Add(Bits(s.RescueProgress)); kLegit.Add(Bits(s.InvulnerableLeft)); kLegit.Add(Bits(s.ExecutionGraceLeft)); }
 
             // ---- B2. ground-truth alignment (index-aligned labels; the match-end tick clears them after the last frame)
             bool aligned = src.Count == kw.Players.Count;
@@ -273,8 +274,11 @@ public sealed class U2bSweepTests
                             // U2d re-target: four bytes straddling fields of the shown entries (e.g. Role 0, Status 0 and the low half of
                             // an X) are made of shown data only; which round coordinates collide this way changes with every bot path.
                             bool straddlesShownEntries = QaWire.ContainsFloat(EntryBytes(kw), f);
-                            if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt || straddlesShownEntries) St.ByteCoincidences++;
-                            else St.Violation($"coordinate {f} of silent survivor {t.Id} found in a killer-bound frame; truthPos=({t.X},{t.Z})" + ctx);
+                            // v0.4: the high bytes of Tick and the low bytes of TimeLeft (frame bytes 0..13) can spell a round
+                            // coordinate (Tick 0x5043 + TimeLeft 773.0 = "00 00 40 41" = 12.0); both are public clock data.
+                            bool straddlesClock = b.Length >= 14 && QaWire.ContainsFloat(b[..14], f);
+                            if (kLegit.Contains(Bits(f)) || sameAxisAsOwnDecoy || otherEntryHasIt || straddlesShownEntries || straddlesClock) St.ByteCoincidences++;
+                            else St.Violation($"coordinate {f} of silent survivor {t.Id} found in a killer-bound frame; truthPos=({t.X},{t.Z}) packet={kp[killerBytes.IndexOf(b)].GetType().Name}" + ctx);
                         }
                 }
             }
@@ -314,7 +318,7 @@ public sealed class U2bSweepTests
             if (tick < _restUntil || sw.ThreatLevel >= 2 && _rng.Next(3) != 0) { s.Move(0, 0); return; }
             if (_rng.Next(300) == 0) _restUntil = tick + 20 + _rng.Next(60);
             float tx, tz;
-            if (sw.ExitOpen == 1 && self.Status == 0) { tx = Map.Exit.X; tz = Map.Exit.Z; }
+            if (sw.AnyOpen() && self.Status == 0) { var open = sw.Exits.First(e => (e.Flags & (byte)ExitFlags.Open) != 0); tx = open.X; tz = open.Z; }
             else
             {
                 var lag = sw.Players.Where(p => p.Id != sId && p.Status == (byte)PlayerStatus.Lagging).OrderBy(p => QaRig.Dist(self.X, self.Z, p.X, p.Z)).FirstOrDefault();
@@ -396,7 +400,7 @@ public sealed class U2bSweepTests
     {
         var sweep = new Sweep();
         var logs = new List<string>();
-        for (int seed = 1; seed <= 14; seed++) RunSweep(seed, 3, 12100, sweep, logs);
+        for (int seed = 1; seed <= 14; seed++) RunSweep(seed, 3, 18100, sweep, logs);
         var st = sweep.St;
         _out.WriteLine($"matches={st.Matches} killerFrames={st.KillerFrames} absentChecks={st.AbsentChecks} decoyEntries={st.DecoyEntries} afterimage={st.AfterimageEntries} realSignal={st.RealSignalEntries} byteCoincidences={st.ByteCoincidences}");
         _out.WriteLine("killer skills " + string.Join(",", st.KillerSkills.OrderBy(x => x)) + " survivor effects seen " + string.Join(",", st.SurvivorSkillsCast.OrderBy(x => x)) + " killer effects " + string.Join(",", st.KillerEffectsSeen.OrderBy(x => x)));
@@ -435,7 +439,7 @@ public sealed class U2bSweepTests
             float lastTimeLeft = float.MaxValue;
             S2C_GameResult? result = null;
             var rnd = new Random(seed);
-            while (ticks < 12100 && results == 0)
+            while (ticks < 18100 && results == 0)
             {
                 if (ticks % 3 == 0 && !humanIsKiller) human.Move((float)rnd.NextDouble() * 2 - 1, (float)rnd.NextDouble() * 2 - 1);
                 f.Tick();
@@ -479,7 +483,7 @@ public sealed class U2bSweepTests
             human.Send(new C2S_StartMatch());
             f.Tick();
             int results = 0;
-            for (int i = 0; i < 12100 && results == 0; i++)
+            for (int i = 0; i < 18100 && results == 0; i++)
             {
                 f.Tick();
                 results += QaWire.Take(human).OfType<S2C_GameResult>().Count();
@@ -519,7 +523,7 @@ public sealed class U2bSweepTests
         long late = Window(1000);
         _out.WriteLine($"bytes/tick early={early} late={late}");
         Assert.True(late < early * 1.25 + 2048, $"allocation per tick grew: {early} -> {late}");
-        foreach (var field in new[] { "_decoys", "_skillRequests", "_faultLogs", "_expiredScratch", "_escaped" })
+        foreach (var field in new[] { "_decoys", "_skillRequests", "_faultLogs", "_expiredScratch", "_exitScratch" })
             Assert.InRange(Spy.CountOf(f.Server, field), 0, 16);
         Assert.Equal(0, Spy.CountOf(f.Server, "_inputs"));
         Assert.InRange(Spy.CountOf(f.Server, "_connections"), 2, 2);
@@ -550,7 +554,7 @@ public sealed class U2bSweepTests
         long acc = 0;
         int n = 0;
         bool ended = false;
-        for (int i = 0; i < 12000 && !ended; i++)
+        for (int i = 0; i < 18000 && !ended; i++)
         {
             drv.Killer(killer, lastK, kId, ks, i);
             drv.Survivor(survivor, lastS, sId, ss, i);
@@ -568,7 +572,7 @@ public sealed class U2bSweepTests
         if (perWindow.Count >= 4)
             Assert.True(perWindow.Skip(perWindow.Count / 2).Average() < perWindow.Take(perWindow.Count / 2).Average() * 1.3 + 4096, "allocation grows with match length");
         f.Tick();
-        foreach (var field in new[] { "_decoys", "_skillRequests", "_escaped" }) Assert.InRange(Spy.CountOf(f.Server, field), 0, 16);
+        foreach (var field in new[] { "_decoys", "_skillRequests", "_exitScratch" }) Assert.InRange(Spy.CountOf(f.Server, field), 0, 16);
     }
 
 
@@ -700,7 +704,7 @@ public sealed class U2bSweepTests
         int id = r.S[0].Id;
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
-        r.Tick(40);
+        r.Tick(180); // GDD v2: 45 s per terminal, 9 s = 20 %
         int progress = r.S[1].World().Terminals[0].Progress;
         Assert.InRange(progress, 19, 21);
         r.S[0].Connection.Close();
@@ -714,7 +718,7 @@ public sealed class U2bSweepTests
         r.Tick(20);
         Assert.Equal(progress, r.S[1].World().Terminals[0].Progress); // the hold did not survive the disconnect
         back.Send(new C2S_Interact { Active = 1 });
-        r.Tick(20);
+        r.Tick(90); // GDD v2: 4.5 s = 10 %
         Assert.InRange(r.S[1].World().Terminals[0].Progress - progress, 9, 11);
     }
     // ------------------------------------------------------------------ thread races between the loop thread and transport callbacks

@@ -166,7 +166,7 @@ public sealed class U3dH6FirstAndLastFrameTests
         });
         Assert.True(premise >= 1, "premise: a GameResult passed conn 1");
         Assert.False(item.Passed, $"FALSE PASS (killer entry after the GameResult, {mode}): {item.Evidence}");
-        Assert.True(elapsed < TimeSpan.FromSeconds(100), $"took {elapsed}");
+        Assert.True(elapsed < TimeSpan.FromSeconds(250), $"took {elapsed}");
     }
 }
 
@@ -192,7 +192,7 @@ public sealed class U3dH6KillerStreamGapTests
         var (item, _, elapsed, dropped) = await U3dR3.H6Async("killer-stops-at-150", tap => KillerDrops(tap, t => t > 150));
         Assert.True(dropped >= 10, $"premise: {dropped}");
         Assert.False(item.Passed, $"FALSE PASS (killer stream stopped at tick 150): {item.Evidence}");
-        Assert.True(elapsed < TimeSpan.FromSeconds(100), $"took {elapsed}");
+        Assert.True(elapsed < TimeSpan.FromSeconds(250), $"took {elapsed}");
     }
 
     // The killer stream stops 15 ticks before the end (the match is about 1125 ticks long): the survivors' last ticks were never
@@ -203,7 +203,7 @@ public sealed class U3dH6KillerStreamGapTests
         var (item, _, elapsed, dropped) = await U3dR3.H6Async("killer-stops-at-end", tap => KillerDrops(tap, t => t > 1100));
         Assert.True(dropped >= 5, $"premise: {dropped}");
         Assert.False(item.Passed, $"FALSE PASS (killer stream stopped 25 ticks before the end): {item.Evidence}");
-        Assert.True(elapsed < TimeSpan.FromSeconds(100), $"took {elapsed}");
+        Assert.True(elapsed < TimeSpan.FromSeconds(250), $"took {elapsed}");
     }
 
     // A hole of 5 killer ticks in the middle, then the stream resumes: the survivors received those ticks.
@@ -339,6 +339,8 @@ public sealed class U3dH6Skew500Tests
         var (item, _, _, _) = await U3dH6Run.RunAsync("control-no-los-B-1000ms", losServer: false,
             delay: conn => conn == 2 ? TimeSpan.FromMilliseconds(1000) : TimeSpan.Zero);
         Assert.False(item.Passed, "Behaviour changed: H6 now tolerates a 1 s lag on B, so the 1 s LOS tests can be added. " + item.Evidence);
-        Assert.True(item.Evidence.Contains("stuck on leg") || (item.Evidence.Contains("[rescue]") && item.Evidence.Contains("not observed")), item.Evidence);
+        // GDD v2 (U6a): the 15 s switch hold is a new step where a lagging walker overshoots the 1.5 m switch radius.
+        Assert.True(item.Evidence.Contains("stuck on leg") || (item.Evidence.Contains("[rescue]") && item.Evidence.Contains("not observed")) ||
+            (item.Evidence.Contains("[switch") && item.Evidence.Contains("not observed")), item.Evidence);
     }
 }

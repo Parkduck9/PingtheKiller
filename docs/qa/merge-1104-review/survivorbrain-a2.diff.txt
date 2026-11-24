@@ -1,0 +1,99 @@
+diff --git a/Server.Core/Runtime/SurvivorBrain.cs b/Server.Core/Runtime/SurvivorBrain.cs
+index 270e55d..f1b9073 100644
+--- a/Server.Core/Runtime/SurvivorBrain.cs
++++ b/Server.Core/Runtime/SurvivorBrain.cs
+@@ -33,6 +33,14 @@ namespace PingTheKiller.ServerCore
+         // ThreatLevel 1 alone is a scare only for a while after it rose; a killer that stays in that band without coming
+         // closer (camping, idle) is then ignored like a human player would.
+         private const double ThreatScareSeconds = 8;
++        // ThreatLevel 2+ stays acute danger only while something changes: ThreatLevel rose, or the killer was seen moving
++        // (or newly sighted, or found elsewhere) within CampSeconds. A killer that neither comes closer nor is seen moving
++        // for that long is camping or idle: the bot leaves a terminal near it for other work (AvoidTerminal) and, when no
++        // other work is left, works there anyway. A rise or a sighted move makes it acute again at once.
++        private const double CampSeconds = 20;
++        private const float KillerShiftDistance = 0.5f;
++        // A terminal the killer was last seen this close to is never worked on the fallback pass (it would be captured there).
++        private const float KillerAtTerminalRadius = GameConstants.CaptureRadius + HackStopDistance + 1f;
+         private const float TerminalLeaveRadius = 3f, HideMinReach = 5f, HideMaxReach = 14f;
+         private const double HoldMin = 3, HoldMax = 6;
+         private const double ExposedWindow = 1.0;
+@@ -66,6 +74,8 @@ namespace PingTheKiller.ServerCore
+         private double _exposedAt = double.NegativeInfinity, _exposedNearAt = double.NegativeInfinity;
+         private double _killerSeenAt = double.NegativeInfinity;
+         private double _threatRoseAt = double.NegativeInfinity;
++        private double _killerMovedAt = double.NegativeInfinity;
++        private bool _campNoted;
+         private byte _lastThreat;
+         private float _killerX, _killerZ, _killerYaw;
+         private bool _killerMoving;
+@@ -143,8 +153,11 @@ namespace PingTheKiller.ServerCore
+                 }
+             if (!view.KillerVisible) return;
+             // Moving: the position changed since the sighting one tick ago (the entry carries no velocity).
+-            _killerMoving = view.Time - _killerSeenAt < 0.2 &&
+-                Distance(_killerX, _killerZ, view.KillerX, view.KillerZ) > 0.05f;
++            float shift = Distance(_killerX, _killerZ, view.KillerX, view.KillerZ);
++            _killerMoving = view.Time - _killerSeenAt < 0.2 && shift > 0.05f;
++            // News about the killer: seen moving, sighted again after a while out of sight, or found somewhere else.
++            if (_killerMoving || view.Time - _killerSeenAt > KillerMemorySeconds || shift > KillerShiftDistance)
++                _killerMovedAt = view.Time;
+             _killerSeenAt = view.Time;
+             _killerX = view.KillerX;
+             _killerZ = view.KillerZ;
+@@ -219,16 +232,32 @@ namespace PingTheKiller.ServerCore
+                 t - _exposedNearAt <= NoticedWindow;
+             // Moving is safe enough while the killer is in sight and either looks elsewhere or is still far off.
+             bool canSlip = view.KillerVisible && killerDistance > SlipMinDistance && (!watched || killerDistance > SlipDistance);
+-            bool blind = !view.KillerVisible && view.Threat >= ThreatFleeLevel && t - _exposedNearAt <= BlindNoticedWindow;
++            bool acute = t - _threatRoseAt <= CampSeconds || t - _killerMovedAt <= CampSeconds;
++            bool blind = !view.KillerVisible && view.Threat >= ThreatFleeLevel && acute && t - _exposedNearAt <= BlindNoticedWindow;
+             if (!holding && ((coming && !canSlip) || blind))
+             {
+                 StartFlee(view, nav, map, random, fresh);
+                 return;
+             }
+-            // A killer standing still far off (camping, idle) only keeps this bot away from its area (see ChooseTerminal).
+-            bool threatened = view.Threat > HideThreatLevel || (view.Threat == HideThreatLevel && t - _threatRoseAt <= ThreatScareSeconds);
++            // A killer standing still far off (camping, idle) only keeps this bot away from its area (see ChooseTerminal);
++            // one standing still close by (ThreatLevel 2+, seen or not) is danger only while acute (see CampSeconds).
++            bool threatened = view.Threat > HideThreatLevel ? acute : view.Threat == HideThreatLevel && t - _threatRoseAt <= ThreatScareSeconds;
+             bool danger = coming || threatened ||
+-                (fresh && killerDistance <= HideSightDistance && (_killerMoving || killerDistance <= GameConstants.ThreatLevel2Distance));
++                (fresh && killerDistance <= HideSightDistance && (_killerMoving || (killerDistance <= GameConstants.ThreatLevel2Distance && acute)));
++            // Every new stale phase (after anything acute) notes the camp once.
++            if (acute) _campNoted = false;
++            else if (view.Threat >= ThreatFleeLevel && !_campNoted)
++            {
++                // The killer camps within ThreatLevel 2 of this bot: leave a terminal this close for other work if any.
++                _campNoted = true;
++                if (_terminal >= 0 && _terminal < view.TerminalCount &&
++                    Distance(view.X, view.Z, view.Terminals[_terminal].X, view.Terminals[_terminal].Z) <= GameConstants.ThreatLevel1Distance)
++                {
++                    _avoidTerminal = _terminal;
++                    _avoidUntil = t + AvoidTerminalSeconds;
++                    _terminal = -1;
++                }
++            }
+             if (holding || danger || t < _calmUntil)
+             {
+                 if (danger) _calmUntil = Math.Max(_calmUntil, t + Uniform(random, CalmMin, CalmMax));
+@@ -455,6 +484,7 @@ namespace PingTheKiller.ServerCore
+             int workers = (normal >= LargeTeam ? ActiveWorkers + 1 : ActiveWorkers) + (t >= UrgentAt ? 1 : 0) + (t >= HurryAt ? 1 : 0);
+             if (rank >= workers) { _terminal = -1; return -1; }
+             bool danger = KillerSeenWithin(t, TerminalDangerMemorySeconds);
++            bool killerKnown = !double.IsNegativeInfinity(_killerSeenAt);
+             if (_terminal >= 0 && _terminal < view.TerminalCount && view.Terminals[_terminal].Progress < 100 &&
+                 !(danger && Distance(view.Terminals[_terminal].X, view.Terminals[_terminal].Z, _killerX, _killerZ) < TerminalDangerRadius))
+                 return _terminal;
+@@ -466,7 +496,10 @@ namespace PingTheKiller.ServerCore
+                     var terminal = view.Terminals[i];
+                     if (terminal.Progress >= 100) continue;
+                     if (pass == 0 && i == _avoidTerminal && t < _avoidUntil) continue;
+-                    if (danger && Distance(terminal.X, terminal.Z, _killerX, _killerZ) < TerminalDangerRadius) continue;
++                    // A killer seen near a terminal blocks it; on the fallback pass only while it is not camping there.
++                    if (danger && Distance(terminal.X, terminal.Z, _killerX, _killerZ) < TerminalDangerRadius &&
++                        (pass == 0 || t - _killerMovedAt <= CampSeconds)) continue;
++                    if (pass == 1 && killerKnown && Distance(terminal.X, terminal.Z, _killerX, _killerZ) <= KillerAtTerminalRadius) continue;
+                     int occupants = Occupants(view, i);
+                     if (occupants >= TerminalCap) continue;
+                     float score = Distance(view.X, view.Z, terminal.X, terminal.Z) + (float)random.NextDouble() * 4f;

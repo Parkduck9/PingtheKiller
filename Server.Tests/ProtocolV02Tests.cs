@@ -13,17 +13,22 @@ public sealed class ProtocolV02Tests
         {
             Players = new() { new PlayerState() }
         };
+        // v0.4 offsets: ThreatLevel 8, TerminalsRequired 9, CollapseLeft 10-13, exit count 14, HatchVisible 15,
+        // terminal count 16, player count 17, then the player (Role 22, Status 23, Flags 36).
         yield return new object[] { world, 8, new byte[] { 0, 1, 2, 3 } }; // ThreatLevel
-        yield return new object[] { world, 18, new byte[] { 0, 1 } }; // Player.Role
-        yield return new object[] { world, 19, new byte[] { 0, 1, 2, 3 } }; // Player.Status
-        yield return new object[] { world, 32, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
-        yield return new object[]
-        {
-            new S2C_WorldState { Terminals = new() { new TerminalState() } },
-            22, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() // Progress
-        };
+        yield return new object[] { world, 22, new byte[] { 0, 1 } }; // Player.Role
+        yield return new object[] { world, 23, new byte[] { 0, 1, 2, 3 } }; // Player.Status
+        yield return new object[] { world, 36, Enumerable.Range(0, 32).Select(i => (byte)i).ToArray() }; // Flags combinations
+        var terminals = new S2C_WorldState { Terminals = new() { new TerminalState() } };
+        yield return new object[] { terminals, 26, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // Progress
+        yield return new object[] { terminals, 27, new byte[] { 0, 1, 2, 3 } }; // Terminal flags
+        var exits = new S2C_WorldState { Exits = new() { new ExitState() } };
+        yield return new object[] { exits, 24, Enumerable.Range(0, 8).Select(i => (byte)i).ToArray() }; // Exit flags
+        yield return new object[] { exits, 25, Enumerable.Range(0, 101).Select(i => (byte)i).ToArray() }; // SwitchProgress
         yield return new object[] { new S2C_GameResult(), 0, new byte[] { 0, 1 } }; // WinnerRole
-        yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2 } }; // Reason
+        yield return new object[] { new S2C_GameResult(), 1, new byte[] { 0, 1, 2, 3 } }; // Reason
+        yield return new object[] { new S2C_SelfState(), 24, new byte[] { 0, 1, 2, 3 } }; // ActionKind
+        yield return new object[] { new S2C_SyncResult(), 4, new byte[] { 0, 1, 2 } }; // Result
         yield return new object[] { new S2C_LobbyState(), 1, new byte[] { 0, 1, 255 } }; // HostRoleChoice
         yield return new object[] { new S2C_MatchStart(), 0, new byte[] { 0, 1 } }; // Role
         yield return new object[] { new C2S_Interact(), 0, new byte[] { 0, 1 } };
@@ -65,7 +70,7 @@ public sealed class ProtocolV02Tests
     {
         var packets = DefaultPackets().Select(row => (IPacket)row[0]).ToArray();
         int count = Enum.GetValues<PacketId>().Length;
-        Assert.Equal(16, count); // v0.3 adds S2C_SelfState (0x0010)
+        Assert.Equal(19, count); // v0.3 adds S2C_SelfState (0x0010); v0.4 adds the sync check packets (0x0011-0x0013)
         Assert.Equal(count, packets.Length);
         Assert.Equal(Enumerable.Range(1, count).Select(i => (PacketId)i), packets.Select(p => p.Id).Order());
     }

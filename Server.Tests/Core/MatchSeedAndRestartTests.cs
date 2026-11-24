@@ -42,7 +42,7 @@ public sealed class MatchSeedAndRestartTests
         {
             human.Send(new C2S_StartMatch());
             bool ended = false;
-            for (int tick = 0; tick < 12100 && !ended; tick++)
+            for (int tick = 0; tick < 18100 && !ended; tick++)
             {
                 f.Tick();
                 human.Drain();
@@ -141,8 +141,9 @@ public sealed class MatchSeedAndRestartTests
         survivor.NextSeq = 500;
         f.Walk(survivor, 0, 1, 10);
         survivor.Move(0, 0);
-        // The killer walks up x = 5 into the only survivor: AllSurvivorsDown ends match 1.
-        for (int i = 0; i < 400 && !killer.All<S2C_GameResult>().Any(); i++)
+        // The killer walks up x = 5 into the only survivor and stays on it: GDD v2 §4, the Lagging timers (60 s + 30 s) run
+        // out and AllSurvivorsDown ends match 1.
+        for (int i = 0; i < 2400 && !killer.All<S2C_GameResult>().Any(); i++)
         {
             var self = killer.Self();
             var target = survivor.Self();

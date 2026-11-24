@@ -22,18 +22,22 @@ internal readonly record struct RawEntry(int Id, byte Role, byte Status, float X
 internal static class RawFrame
 {
     // Independent parser of the S2C_WorldState wire layout (not the Shared codec):
-    // [Length:4][PacketId:2][Tick:4][TimeLeft:4][Threat:1][ExitOpen:1][ExitLocked:1][Required:1]
-    // [TermCount:1][Terminal x (Id:1 X:4 Z:4 Progress:1)][PlayerCount:1][Player x (Id:4 Role:1 Status:1 X:4 Z:4 Yaw:4 Flags:1 Timer:4 Cc:1)]
+    // [Length:4][PacketId:2][Tick:4][TimeLeft:4][Threat:1][Required:1][CollapseLeft:4]
+    // [ExitCount:1][Exit x (Id:1 X:4 Z:4 Flags:1 Switch:1)][HatchVisible:1][(X:4 Z:4) if visible] (v0.4)
+    // [TermCount:1][Terminal x (Id:1 X:4 Z:4 Progress:1 Flags:1)][PlayerCount:1][Player x (Id:4 Role:1 Status:1 X:4 Z:4 Yaw:4 Flags:1 Timer:4 Cc:1)]
     internal static (byte Threat, List<(byte Id, byte Progress)> Terminals, List<RawEntry> Entries) ParseWorld(byte[] frame)
     {
         int length = BinaryPrimitives.ReadInt32LittleEndian(frame);
         Assert.Equal(frame.Length - 4, length);
         Assert.Equal(0x0005, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(4)));
-        int p = 6 + 12;
+        int p = 6 + 14;
         byte threat = frame[6 + 8];
+        int exitCount = frame[p++];
+        p += exitCount * 11;
+        if (frame[p++] == 1) p += 8;
         int terminalCount = frame[p++];
         var terminals = new List<(byte, byte)>();
-        for (int i = 0; i < terminalCount; i++) { terminals.Add((frame[p], frame[p + 9])); p += 10; }
+        for (int i = 0; i < terminalCount; i++) { terminals.Add((frame[p], frame[p + 9])); p += 11; }
         int count = frame[p++];
         Assert.True(count <= Protocol.MaxWorldEntries, "entry count byte " + count);
         var entries = new List<RawEntry>();
@@ -218,7 +222,7 @@ public sealed class U2cAdversarialTests
         r.Place(r.S[0], 10, 25.6f);
         r.Interact(r.S[0], true);
         int partial = 0;
-        for (int n = 1; n <= 230; n++)
+        for (int n = 1; n <= 930; n++) // GDD v2: 45 s per terminal
         {
             r.Tick();
             var (_, kTerminals, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.KW));
@@ -229,11 +233,11 @@ public sealed class U2cAdversarialTests
             // the other three terminals are untouched everywhere
             for (int i = 1; i < 4; i++) { Assert.Equal(0, kTerminals[i].Progress); Assert.Equal(0, sTerminals[i].Progress); }
         }
-        Assert.True(partial > 150, "the survivor view really did show partial progress: " + partial);
+        Assert.True(partial > 800, "the survivor view really did show partial progress: " + partial);
         // Two terminals at different progress: still only done / not done for the killer.
         r.Place(r.S[1], 72.2f, 44.5f);
         r.Interact(r.S[1], true);
-        r.Tick(60);
+        r.Tick(240); // GDD v2: 12 s of 45 s
         var (_, k2, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.KW));
         var (_, s2, _) = RawFrame.ParseWorld(PacketCodec.Encode(r.SW));
         Assert.InRange((int)s2[1].Progress, 20, 99);
@@ -277,7 +281,7 @@ public sealed class U2cAdversarialTests
         {
             using var r = new QaRig(2);
             r.SetSkill(r.K, skill);
-            if (skill == SkillIds.FirewallBlock) r.OpenExitFlag();
+            if (skill == SkillIds.FirewallBlock) r.ArmFirewall();
             r.Place(r.S[0], 14, 10);
             r.Place(r.K, 10, 10);
             r.Tick(2);
@@ -406,7 +410,7 @@ public sealed class U2cAdversarialTests
         r.Place(r.S[0], 40, 55);
         double sum = 0, sumReal = 0;
         int snapshots = 0;
-        for (int t = 0; t < 11900; t++) // match length is 12000 ticks
+        for (int t = 0; t < 17900; t++) // match length is 18000 ticks
         {
             if (t % 40 == 0)
             {
@@ -603,7 +607,10 @@ public sealed class U2cAdversarialTests
         // The orchestrator accepted a per-track residual (average speed/stillness D~0.49, lifetime, spawn distance). This test
         // pins the measured level (reported above, see docs/qa/U2c-qa-a1.md) as a regression ceiling, not as proof of
         // indistinguishability: a rise above 0.85 means the residual got worse.
-        Assert.True(aucGated < 0.85, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
+        // Orchestrator, U6a attempt 2: the gated AUC ceiling is 0.86 (was 0.85) because survivors now live longer without Lagging
+        // executions, so phantom tracks are longer and more numerous (571); the phantom code itself did not change. U6d retunes
+        // phantoms and restores 0.85.
+        Assert.True(aucGated < 0.86, $"gated-feature classifier AUC {aucGated:0.000} exceeds the accepted residual ceiling");
         Assert.True(bestGated < 0.85, $"a single gated feature reaches AUC {bestGated:0.000}");
     }
 
@@ -652,7 +659,7 @@ public sealed class U2cAdversarialTests
     // 3. RNG
     // ====================================================================================================================
 
-    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom" };
+    private static readonly string[] StreamFields = { "_random", "_decoyRandom", "_shuffleRandom", "_syncRandom" };
 
     [Fact]
     public void Rng_HiddenStreams_AreXoshiro256NotSystemRandom_With256BitCsprngStateThatDiffersPerServerAndPerMatch()
@@ -679,8 +686,8 @@ public sealed class U2cAdversarialTests
         q.NextMatch();
         var after = StreamFields.Select(f => string.Join(",", Words(Spy.Server<object>(q.Server, f)))).ToList();
         for (int i = 0; i < 3; i++) Assert.NotEqual(before[i], after[i]);
-        // the three streams of one server are independent states
-        Assert.Equal(3, after.Distinct().Count());
+        // the private streams of one server are independent states (v0.4 adds the sync-check stream)
+        Assert.Equal(StreamFields.Length, after.Distinct().Count());
     }
 
     private static ulong[] Words(object stream)
@@ -785,7 +792,7 @@ public sealed class U2cAdversarialTests
         // the hidden draw sites use only the three private streams
         foreach (var file in Directory.EnumerateFiles(Path.Combine(root, "Server.Core", "Runtime"), "GameServer*.cs"))
             foreach (var line in File.ReadAllLines(file))
-                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|random\b)\w*[rR]andom\w*\.Next"),
+                Assert.False(System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(?!_random|_decoyRandom|_shuffleRandom|_syncRandom|SyncRandom|random\b)\w*[rR]andom\w*\.Next"),
                     "unexpected random source in " + Path.GetFileName(file) + ": " + line.Trim());
     }
 
@@ -877,17 +884,8 @@ public sealed class U2cAdversarialTests
         var status = (PlayerStatus)Spy.Get(p, "Status");
         float cooldown = (float)Math.Max(0, Spy.Get<double>(p, "SkillReadyAt") - now);
         float rescue = 0, invulnerable = 0, grace = 0;
-        if (role == Role.Killer)
-        {
-            float kx = Spy.Get<float>(p, "X"), kz = Spy.Get<float>(p, "Z");
-            float best = float.MaxValue;
-            foreach (var q in Spy.Players(r.Server))
-            {
-                if ((Role)Spy.Get(q, "Role") != Role.Survivor || (PlayerStatus)Spy.Get(q, "Status") != PlayerStatus.Lagging) continue;
-                float d = QaRig.Dist(kx, kz, Spy.Get<float>(q, "X"), Spy.Get<float>(q, "Z"));
-                if (d <= 3f && d < best) { best = d; grace = (float)Math.Max(0, Spy.Get<double>(q, "ExecutionGraceUntil") - now); }
-            }
-        }
+        // GDD v2 §4 (2026-11-03): no execution, so the killer's grace guidance (ExecutionGraceLeft) is always 0.
+        if (role == Role.Killer) grace = 0;
         else
         {
             if (status == PlayerStatus.Lagging) rescue = (float)Math.Min(1, Spy.Get<double>(p, "RescueProgress") / GameConstants.RescueTimeSeconds);
@@ -906,8 +904,8 @@ public sealed class U2cAdversarialTests
         return (cooldown, rescue, invulnerable, grace);
     }
 
-    // A scripted match that exercises every SelfState field: a cast (cooldown), a capture (grace), a rescue (progress),
-    // post-rescue immunity and an execution.
+    // A scripted match that exercises every SelfState field: a cast (cooldown), a capture (the deprecated grace stays 0),
+    // a rescue (progress) and post-rescue immunity.
     private sealed class SelfScript : IDisposable
     {
         internal QaRig R;
@@ -964,7 +962,7 @@ public sealed class U2cAdversarialTests
         s.Tick(() => r.Use(r.K, SkillIds.Overclock));                                           // killer cooldown jump
         for (int i = 0; i < 20; i++) s.Tick();
         s.Tick(() => { r.Place(r.K, 11.0f, 10); });                                             // capture S1 (Lagging)
-        for (int i = 0; i < 10; i++) s.Tick();                                                  // execution grace shown to the killer
+        for (int i = 0; i < 10; i++) s.Tick();                                                  // no execution grace (GDD v2 §4)
         s.Tick(() => r.Place(r.K, 14.5f, 10));                                                  // killer steps away (>3 m)
         for (int i = 0; i < 10; i++) s.Tick();
         s.Tick(() => r.Place(r.S[0], 11.2f, 10));                                               // S0 arrives: rescue starts
@@ -990,7 +988,7 @@ public sealed class U2cAdversarialTests
         // the script exercised every field
         Assert.Contains(script.Raw[r.S[0]], s => s.SkillCooldown > 14f);
         Assert.Contains(script.Raw[r.K], s => s.SkillCooldown > 11f);
-        Assert.Contains(script.Raw[r.K], s => s.ExecutionGraceLeft > 1f);
+        Assert.All(script.Raw[r.K], s => Assert.Equal(0f, s.ExecutionGraceLeft)); // deprecated, GDD v2 §4
         Assert.Contains(script.Raw[r.S[1]], s => s.RescueProgress > 0f);                 // the Lagging survivor's own progress
         Assert.Contains(script.Raw[r.S[0]], s => s.RescueProgress > 0f);                 // the rescuer sees the target's progress
         Assert.Contains(script.Raw[r.S[1]], s => s.InvulnerableLeft > 1f);
@@ -1024,20 +1022,19 @@ public sealed class U2cAdversarialTests
             // not every tick: fewer than a third of the ticks carry one (idle stretches are 1 Hz)
             Assert.True(ticks.Count < totalTicks / 3, $"player {peer.Id}: {ticks.Count} SelfStates in {totalTicks} ticks");
         }
-        // every jump has its SelfState in the same tick: cooldown start and the killer's capture grace
+        // every jump has its SelfState in the same tick: cooldown start (the capture grace is gone, GDD v2 §4)
         Assert.Contains(script.Raw[r.S[0]], s => s.SkillCooldown is > 14.9f and <= 15f);
         Assert.Contains(script.Raw[r.K], s => s.SkillCooldown is > 11.9f and <= 12f);
-        Assert.Contains(script.Raw[r.K], s => s.ExecutionGraceLeft is > 1.9f and <= 2f);
         Assert.Contains(script.Raw[r.S[1]], s => s.InvulnerableLeft is > 1.9f and <= 2f);
     }
 
     [Fact]
-    public void SelfState_ExecutionGraceLeft_IsForTheKillerOnly_SurvivorsAlwaysReceiveZeroEvenNextToTheKillerAndALaggingAlly()
+    // GDD v2 §4 (2026-11-03): the field is deprecated; everyone, the killer included, always receives 0.
+    public void SelfState_ExecutionGraceLeft_IsAlwaysZero_EvenForTheKillerNextToALaggingSurvivor()
     {
         using var r = new QaRig(3, seed: 4);
         r.Place(r.S[0], 10, 10);
         r.MakeLagging(r.S[0]);
-        Spy.Set(r.P(r.S[0]), "ExecutionGraceUntil", Spy.Server<double>(r.Server, "_now") + 2.0);
         r.Place(r.S[1], 11.0f, 10.5f);   // a survivor next to the Lagging ally
         r.Place(r.S[2], 9.0f, 10.5f);
         r.Place(r.K, 11.5f, 10f);        // the killer within 3 m of the Lagging survivor
@@ -1048,16 +1045,16 @@ public sealed class U2cAdversarialTests
             foreach (var peer in new[] { r.K }.Concat(r.S))
                 foreach (var s in QaWire.Take(peer).OfType<S2C_SelfState>()) all.Add((peer, s));
         }
-        Assert.All(all.Where(x => x.P != r.K), x => Assert.Equal(0f, x.S.ExecutionGraceLeft));
-        Assert.Contains(all, x => x.P == r.K && x.S.ExecutionGraceLeft > 1f);
+        Assert.All(all, x => Assert.Equal(0f, x.S.ExecutionGraceLeft));
+        Assert.Contains(all, x => x.P == r.K);
         // beyond 3 m the killer gets nothing about a Lagging survivor
         r.Place(r.K, 14.1f, 10f);
         r.Tick(2);
         r.K.Drain();
         Assert.Equal(0f, r.K.Packets.OfType<S2C_SelfState>().Last().ExecutionGraceLeft);
-        // byte level: SelfState is exactly four floats, fixed size, with no identifier
+        // byte level: SelfState is a fixed size (v0.4: six floats and the action kind byte) with no identifier
         byte[] frame = PacketCodec.Encode(all[0].S);
-        Assert.Equal(4 + 2 + 16, frame.Length);
+        Assert.Equal(4 + 2 + 25, frame.Length);
     }
 
     [Fact]
@@ -1078,7 +1075,7 @@ public sealed class U2cAdversarialTests
         Assert.Equal(id, back.Last<S2C_JoinResult>().PlayerId);
         Assert.True(back.Has<S2C_SelfState>(), "no SelfState after reconnect");
         // after the match ends nothing more is sent
-        r.SetMatchTime(599.9);
+        r.SetMatchTime(899.9);
         r.Tick(3);
         r.K.Drain();
         int count = r.K.Packets.Count(p => p is S2C_SelfState);

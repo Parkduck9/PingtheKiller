@@ -49,6 +49,8 @@ namespace PingTheKiller.ServerCore
         // _random: killer/skill assignment and bots; _decoyRandom: phantom placement and motion; _shuffleRandom:
         // killer-view entry order. Separate streams keep each one deterministic regardless of the others' draw counts.
         private Random _random, _decoyRandom, _shuffleRandom;
+        // _syncRandom: seeds of the per-survivor sync-check streams (GameServer.Terminals).
+        private Random _syncRandom;
         private int _matchSeed;
         private Thread _thread;
         private int _running, _nextId = 1;
@@ -56,8 +58,6 @@ namespace PingTheKiller.ServerCore
         private RoleChoice _hostChoice = RoleChoice.Random;
         private double _now, _matchTime;
         private uint _tick;
-        private TerminalState[] _terminals = Array.Empty<TerminalState>();
-        private byte _terminalsRequired;
         private readonly Dictionary<string, double> _faultLogs = new Dictionary<string, double>();
 
         public GameServer(ServerOptions options = null)
@@ -80,12 +80,14 @@ namespace PingTheKiller.ServerCore
                 _random = PrivateRandom.FromSeed(seed, 0);
                 _decoyRandom = PrivateRandom.FromSeed(seed, 1);
                 _shuffleRandom = PrivateRandom.FromSeed(seed, 2);
+                _syncRandom = PrivateRandom.FromSeed(seed, 3);
             }
             else
             {
                 _random = PrivateRandom.FromCsprng();
                 _decoyRandom = PrivateRandom.FromCsprng();
                 _shuffleRandom = PrivateRandom.FromCsprng();
+                _syncRandom = PrivateRandom.FromCsprng();
             }
         }
 
@@ -316,6 +318,7 @@ namespace PingTheKiller.ServerCore
             player.DirX = player.DirZ = 0;
             player.LastSignal = double.NegativeInfinity;
             player.Interacting = false;
+            player.RttSeconds = 0;
             WriteLog($"leave player={player.Id}");
             BroadcastLobby();
         }
@@ -334,6 +337,7 @@ namespace PingTheKiller.ServerCore
             if (packet is C2S_MoveInput move) { if (_matchStarted) ApplyMove(player, move); return; }
             if (packet is C2S_Interact interact) { if (_matchStarted) SetInteract(player, interact.Active); return; }
             if (packet is C2S_UseSkill skill) { if (_matchStarted) RequestSkill(player, skill.SkillId); return; }
+            if (packet is C2S_SyncPress press) { if (_matchStarted) SyncPress(player, press.CheckId); return; }
             if (!_matchStarted && player.IsHost)
             {
                 if (packet is C2S_SetBots bots)

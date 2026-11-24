@@ -10,7 +10,7 @@ namespace PingTheKiller.Tests.Core;
 // All-bot matches use AutoStart with BotCount = survivors + 1 and no connection at all, so the killer is a bot too.
 internal static class BotBalance
 {
-    internal const int MaxTicks = 12000 + 5;
+    internal const int MaxTicks = 18000 + 5;
 
     internal sealed class MatchStats
     {
@@ -147,7 +147,8 @@ internal static class BotBalance
 
     private static string Short(string reason) => reason switch
     {
-        "SurvivorEscaped" => "escaped",
+        "AllResolved" => "resolved",
+        "Collapse" => "collapse",
         "AllSurvivorsDown" => "all down",
         "TimeUp" => "time up",
         _ => reason

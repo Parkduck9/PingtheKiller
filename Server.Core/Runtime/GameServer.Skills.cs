@@ -63,11 +63,15 @@ namespace PingTheKiller.ServerCore
                     SendEffect(killer, killer, SkillIds.Overclock, killer.X, killer.Z, SkillIds.OverclockSeconds);
                     return true;
                 case SkillIds.FirewallBlock:
-                    if (!_exitOpen) return false;
-                    _exitLockedUntil = _now + SkillIds.FirewallBlockSeconds;
+                {
+                    // GDD v2 §3: locks the switch of the unopened exit with the most progress; unusable without one.
+                    int exit = FirewallTarget();
+                    if (exit < 0) return false;
+                    _exitLockedUntil[exit] = _now + SkillIds.FirewallBlockSeconds;
                     foreach (var player in _players)
-                        SendEffect(player, killer, SkillIds.FirewallBlock, Map.Exit.X, Map.Exit.Z, SkillIds.FirewallBlockSeconds);
+                        SendEffect(player, killer, SkillIds.FirewallBlock, Map.Exits[exit].X, Map.Exits[exit].Z, SkillIds.FirewallBlockSeconds);
                     return true;
+                }
                 default:
                     // PacketAfterimage is passive and cannot be activated.
                     return false;

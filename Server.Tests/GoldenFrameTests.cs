@@ -28,14 +28,14 @@ public sealed class GoldenFrameTests
         {
             new S2C_WorldState
             {
-                Tick = 0x12345678, TimeLeft = 1f, ThreatLevel = 3, ExitOpen = 1, ExitLocked = 0, TerminalsRequired = 2,
+                Tick = 0x12345678, TimeLeft = 1f, ThreatLevel = 3, TerminalsRequired = 2,
                 Terminals = new() { new() { Id = 7, X = 2f, Z = -1f, Progress = 100 } },
                 Players = new() { new() { Id = -2, Role = 1, Status = 3, X = 1f, Z = -0f, Yaw = -2f, Flags = 31, StatusTimer = 0.5f, CaptureCount = 2 } }
             },
             new byte[]
             {
-                50, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 3, 1, 0, 2, 1,
-                7, 0, 0, 0, 0x40, 0, 0, 0x80, 0xBF, 100, 1,
+                55, 0, 0, 0, 5, 0, 0x78, 0x56, 0x34, 0x12, 0, 0, 0x80, 0x3F, 3, 2, 0, 0, 0x80, 0xBF, 0, 0, 1,
+                7, 0, 0, 0, 0x40, 0, 0, 0x80, 0xBF, 100, 0, 1,
                 0xFE, 0xFF, 0xFF, 0xFF, 1, 3, 0, 0, 0x80, 0x3F, 0, 0, 0, 0x80, 0, 0, 0, 0xC0, 31,
                 0, 0, 0, 0x3F, 2
             }
@@ -47,8 +47,8 @@ public sealed class GoldenFrameTests
         };
         yield return new object[]
         {
-            new S2C_GameResult { WinnerRole = 1, Reason = 2, EscapedIds = new() { -1, 2147483647 } },
-            new byte[] { 13, 0, 0, 0, 7, 0, 1, 2, 2, 255, 255, 255, 255, 255, 255, 255, 127 }
+            new S2C_GameResult { WinnerRole = 1, Reason = 2, EscapedIds = new() { -1, 2147483647 }, EliminatedIds = new() { 3 } },
+            new byte[] { 18, 0, 0, 0, 7, 0, 1, 2, 2, 255, 255, 255, 255, 255, 255, 255, 127, 1, 3, 0, 0, 0 }
         };
         yield return new object[]
         {

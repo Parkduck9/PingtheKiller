@@ -91,9 +91,11 @@ namespace PingTheKiller.Client.Tests
             Assert.That(DevArgs.Parse(new[] { "-ptk-offline", "-ptk-start" }).Start, Is.True, "-ptk-offline never swallows the next flag");
         }
 
-        [TestCase("SurvivorEscaped", GameEndReason.SurvivorEscaped)]
+        [TestCase("SurvivorEscaped", GameEndReason.AllResolved)]
         [TestCase("allsurvivorsdown", GameEndReason.AllSurvivorsDown)]
         [TestCase("TIMEUP", GameEndReason.TimeUp)]
+        [TestCase("AllResolved", GameEndReason.AllResolved)]
+        [TestCase("collapse", GameEndReason.Collapse)]
         public void PreviewResultNamesMapToGameEndReason(string value, GameEndReason expected)
         {
             DevArgs args = DevArgs.Parse(new[] { "-ptk-preview-result", value });

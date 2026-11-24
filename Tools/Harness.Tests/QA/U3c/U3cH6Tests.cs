@@ -77,12 +77,23 @@ public sealed class U3cH6KillerStreamExitOpenWithoutTerminalsTests
     public async Task H6FailsWhenTheKillerStreamShowsTheExitOpenWhileItsOwnQuantisedTerminalsShowFewerThanRequiredAt100()
     {
         await using var server = new ScenarioServer { AnonymousKillerView = true };
-        await using var proxy = new QaProxy(server.Port, U3cH6.OnKillerWorld(w => { if (w.Tick >= 100) w.ExitOpen = 1; }));
+        await using var proxy = new QaProxy(server.Port, U3cH6.OnKillerWorld(w => { if (w.Tick >= 100) SetExitFlags(w, ExitFlags.Powered | ExitFlags.Open); }));
         var h6 = await U3cH6.RunAsync(proxy.Port, "anon/H6-killer-exit-open-without-terminals");
         Assert.False(h6.Passed, $"FALSE PASS: {h6.Evidence}");
         Assert.Equal(0, h6.Score);
-        Assert.Contains("ExitOpen=1 in killer's WorldState", h6.Evidence);
-        Assert.Contains("exit opened without terminals", h6.Evidence);
+        Assert.Contains("in killer's WorldState", h6.Evidence);
+        Assert.Contains("exit powered without terminals", h6.Evidence);
+    }
+
+    // v0.4: the exit flags of every exit in a killer-bound frame.
+    internal static void SetExitFlags(PingTheKiller.Shared.Packets.S2C_WorldState w, ExitFlags flags)
+    {
+        for (int i = 0; i < w.Exits.Count; i++)
+        {
+            var exit = w.Exits[i];
+            exit.Flags = (byte)flags;
+            w.Exits[i] = exit;
+        }
     }
 }
 
@@ -92,10 +103,10 @@ public sealed class U3cH6KillerStreamNeverOpensTheExitTests
     public async Task H6FailsWhenTheKillerStreamNeverShowsTheExitOpen()
     {
         await using var server = new ScenarioServer { AnonymousKillerView = true };
-        await using var proxy = new QaProxy(server.Port, U3cH6.OnKillerWorld(w => w.ExitOpen = 0));
+        await using var proxy = new QaProxy(server.Port, U3cH6.OnKillerWorld(w => U3cH6KillerStreamExitOpenWithoutTerminalsTests.SetExitFlags(w, 0)));
         var h6 = await U3cH6.RunAsync(proxy.Port, "anon/H6-killer-never-sees-exit-open");
         Assert.False(h6.Passed, $"FALSE PASS: {h6.Evidence}");
-        Assert.Contains("ExitOpen == 1 after the required terminals", h6.Evidence);
+        Assert.Contains("both exits Powered after the required terminals", h6.Evidence);
     }
 }
 
@@ -148,9 +159,9 @@ public abstract class U3cH6UnknownFrameLeak(ushort id, int xOffset, int zOffset,
     }
 }
 
-public sealed class U3cH6UnknownFutureIdKillerXOddOffsetTests() : U3cH6UnknownFrameLeak(0x11, 3, -1, false);
+public sealed class U3cH6UnknownFutureIdKillerXOddOffsetTests() : U3cH6UnknownFrameLeak(0x21, 3, -1, false);
 public sealed class U3cH6UnknownIdKillerZOddOffsetTests() : U3cH6UnknownFrameLeak(0x7E, -1, 17, false);
-public sealed class U3cH6UnknownKillerCoordinatesSentToTheKillerOnlyTests() : U3cH6UnknownFrameLeak(0x11, 0, 4, true, toKillerInstead: true);
+public sealed class U3cH6UnknownKillerCoordinatesSentToTheKillerOnlyTests() : U3cH6UnknownFrameLeak(0x21, 0, 4, true, toKillerInstead: true);
 
 public sealed class U3cH6AnonymousViewWithUnknownFramesTests
 {
@@ -160,7 +171,7 @@ public sealed class U3cH6AnonymousViewWithUnknownFramesTests
         await using var server = new ScenarioServer { AnonymousKillerView = true, UnknownFrames = true, ExecutionGrace = true };
         var h6 = await U3cH6.RunAsync(server.Port, "anon/H6-unknown-frames");
         Assert.True(h6.Passed, h6.Evidence);
-        Assert.Contains("skipped unknown packets: id=0x11 ×", h6.Evidence);
+        Assert.Contains("skipped unknown packets: id=0x21 ×", h6.Evidence);
         Assert.Contains("id=0x7E ×", h6.Evidence);
     }
 }

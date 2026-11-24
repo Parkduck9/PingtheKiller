@@ -34,7 +34,7 @@ namespace PingTheKiller.ServerCore
             if (survivor.Status != PlayerStatus.Normal) return false;
             if (Active(survivor.ExposedUntil)) return true;
             if (Active(survivor.StealthUntil)) return false;
-            return survivor.InputHeld(_now) || survivor.Hacking || survivor.Rescuing;
+            return survivor.InputHeld(_now) || survivor.Hacking || survivor.Rescuing || survivor.SwitchExit >= 0;
         }
 
         private void UpdateVisibility()
@@ -181,24 +181,12 @@ namespace PingTheKiller.ServerCore
             return ThreatForDistance((float)Math.Sqrt(dx * dx + dz * dz));
         }
 
-        private const float ExecutionGuidanceRange = 3f;
-
         private S2C_SelfState SelfStateFor(Player player)
         {
             var state = new S2C_SelfState { SkillCooldown = (float)Math.Max(0, player.SkillReadyAt - _now) };
-            if (player.Role == Role.Killer)
-            {
-                Player target = null;
-                float best = ExecutionGuidanceRange * ExecutionGuidanceRange + 0.000001f;
-                foreach (var survivor in _players)
-                {
-                    if (survivor.Role != Role.Survivor || survivor.Status != PlayerStatus.Lagging) continue;
-                    float distance = DistanceSquared(player.X, player.Z, survivor.X, survivor.Z);
-                    if (distance <= best) { best = distance; target = survivor; }
-                }
-                if (target != null) state.ExecutionGraceLeft = (float)Math.Max(0, target.ExecutionGraceUntil - _now);
-                return state;
-            }
+            SetActionState(player, state);
+            // Deprecated (GDD v2 §4, 2026-11-03): no execution, so ExecutionGraceLeft stays 0 on the wire.
+            if (player.Role == Role.Killer) return state;
             if (player.Status == PlayerStatus.Lagging) state.RescueProgress = RescueFraction(player);
             else if (player.Rescuing)
             {
@@ -218,7 +206,7 @@ namespace PingTheKiller.ServerCore
         }
 
         // Clients count the timers down (and a running rescue up) locally, so SelfState is sent only when a value
-        // departs from that prediction (cooldown started, rescue started or stopped, immunity or grace granted) and
+        // departs from that prediction (cooldown started, rescue started or stopped, immunity granted) and
         // as a 1 Hz refresh.
         private const double SelfStateRefreshSeconds = 1;
         private const double SelfStateTolerance = 0.01;
@@ -227,12 +215,47 @@ namespace PingTheKiller.ServerCore
         {
             var last = player.SelfSent;
             double elapsed = _now - player.SelfSentAt;
-            if (last == null || elapsed >= SelfStateRefreshSeconds - TimeEpsilon) return true;
+            if (last == null || elapsed >= SelfStateRefreshSeconds - TimeEpsilon || last.ActionKind != now.ActionKind) return true;
             double rescue = last.RescueProgress > 0 ? Math.Min(1, last.RescueProgress + elapsed / GameConstants.RescueTimeSeconds) : 0;
             return Departs(now.SkillCooldown, Math.Max(0, last.SkillCooldown - elapsed)) ||
                 Departs(now.InvulnerableLeft, Math.Max(0, last.InvulnerableLeft - elapsed)) ||
-                Departs(now.ExecutionGraceLeft, Math.Max(0, last.ExecutionGraceLeft - elapsed)) ||
-                Departs(now.RescueProgress, rescue);
+                Departs(now.RescueProgress, rescue) ||
+                Departs(now.CollapseLeft, last.CollapseLeft < 0 ? -1 : Math.Max(0, last.CollapseLeft - elapsed * CollapseRate(player))) ||
+                Departs(now.ActionProgress, last.ActionProgress <= 0 ? 0 : Math.Min(1, last.ActionProgress + elapsed * ActionRate(last.ActionKind)));
+        }
+
+        private static double CollapseRate(Player player) =>
+            player.Role == Role.Survivor && player.Status == PlayerStatus.Lagging ? GameConstants.CollapseLaggingRate : 1;
+
+        private static double ActionRate(byte kind) =>
+            kind == (byte)ActionKind.Switch ? 1 / GameConstants.ExitSwitchSeconds
+            : kind == (byte)ActionKind.Kick ? 1 / GameConstants.KickHoldSeconds
+            : kind == (byte)ActionKind.HatchClose ? 1 / GameConstants.HatchCloseSeconds : 0;
+
+        // v0.4 SelfState: the own collapse clock and the own hold action (exit switch, kick or hatch close).
+        private void SetActionState(Player player, S2C_SelfState state)
+        {
+            if (_collapseRunning)
+            {
+                if (player.Role == Role.Killer) state.CollapseLeft = (float)_collapseLeft;
+                else if (player.IsActiveSurvivor) state.CollapseLeft = (float)player.CollapseLeft;
+            }
+            if (player.Role == Role.Survivor)
+            {
+                if (player.SwitchExit < 0) return;
+                state.ActionKind = (byte)ActionKind.Switch;
+                state.ActionProgress = (float)Math.Min(1, _switchSeconds[player.SwitchExit] / GameConstants.ExitSwitchSeconds);
+            }
+            else if (player.HatchHeld > 0)
+            {
+                state.ActionKind = (byte)ActionKind.HatchClose;
+                state.ActionProgress = (float)Math.Min(1, player.HatchHeld / GameConstants.HatchCloseSeconds);
+            }
+            else if (player.KickHeld > 0)
+            {
+                state.ActionKind = (byte)ActionKind.Kick;
+                state.ActionProgress = (float)Math.Min(1, player.KickHeld / GameConstants.KickHoldSeconds);
+            }
         }
 
         private static bool Departs(float value, double predicted) => Math.Abs(value - predicted) > SelfStateTolerance;
@@ -251,22 +274,28 @@ namespace PingTheKiller.ServerCore
                 var world = new S2C_WorldState
                 {
                     Tick = _tick, TimeLeft = Math.Max(0, GameConstants.MatchLengthSeconds - (float)_matchTime),
-                    ExitOpen = (byte)(_exitOpen ? 1 : 0), ExitLocked = (byte)(ExitBlocked ? 1 : 0),
-                    TerminalsRequired = _terminalsRequired
+                    TerminalsRequired = _terminalsRequired,
+                    CollapseLeft = _collapseRunning ? (float)_collapseLeft : -1
                 };
-                if (recipient.Role == Role.Killer)
+                AddExitStates(world.Exits);
+                if (HatchVisibleTo(recipient))
                 {
-                    // Exact progress would locate a hidden hacker: the killer only learns done or not done.
-                    foreach (var terminal in _terminals)
-                        world.Terminals.Add(new TerminalState
-                        {
-                            Id = terminal.Id, X = terminal.X, Z = terminal.Z, Progress = (byte)(terminal.Progress >= 100 ? 100 : 0)
-                        });
-                    world.Players.AddRange(_killerView);
+                    world.HatchVisible = 1;
+                    world.HatchX = _hatchX;
+                    world.HatchZ = _hatchZ;
                 }
+                bool killer = recipient.Role == Role.Killer;
+                for (int i = 0; i < _terminals.Length; i++)
+                {
+                    var terminal = _terminals[i];
+                    // Exact progress would locate a hidden hacker: the killer only learns done or not done.
+                    if (killer) terminal.Progress = (byte)(terminal.Progress >= 100 ? 100 : 0);
+                    terminal.Flags = TerminalFlagsFor(i, killer);
+                    world.Terminals.Add(terminal);
+                }
+                if (killer) world.Players.AddRange(_killerView);
                 else
                 {
-                    world.Terminals.AddRange(_terminals);
                     world.ThreatLevel = ThreatFor(recipient);
                     world.Players.AddRange(_survivorView);
                     // Same tick, same positions as the snapshot: the line-of-sight decision and the entry agree.

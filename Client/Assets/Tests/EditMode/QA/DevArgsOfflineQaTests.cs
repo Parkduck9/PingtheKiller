@@ -94,10 +94,10 @@ namespace PingTheKiller.Client.QA.Tests
 
         // ---- -ptk-preview-result ----------------------------------------------------------------------------------------
 
-        [TestCase("SurvivorEscaped", (byte)GameEndReason.SurvivorEscaped)]
+        [TestCase("SurvivorEscaped", (byte)GameEndReason.AllResolved)]
         [TestCase("AllSurvivorsDown", (byte)GameEndReason.AllSurvivorsDown)]
         [TestCase("TimeUp", (byte)GameEndReason.TimeUp)]
-        [TestCase("survivorescaped", (byte)GameEndReason.SurvivorEscaped)]
+        [TestCase("survivorescaped", (byte)GameEndReason.AllResolved)]
         [TestCase("ALLSURVIVORSDOWN", (byte)GameEndReason.AllSurvivorsDown)]
         [TestCase("timeup", (byte)GameEndReason.TimeUp)]
         public void APreviewReasonIsAcceptedAndMapsToTheGameEndReason(string value, byte expected)
@@ -169,7 +169,7 @@ namespace PingTheKiller.Client.QA.Tests
         public void TheLastValidPreviewValueWinsAndParsingTwiceIsIndependent()
         {
             DevArgs a = Parse("-ptk-preview-result", "TimeUp", "-ptk-preview-result", "SurvivorEscaped");
-            Assert.That(a.PreviewResult, Is.EqualTo((byte)GameEndReason.SurvivorEscaped));
+            Assert.That(a.PreviewResult, Is.EqualTo((byte)GameEndReason.AllResolved));
             DevArgs b = Parse("-ptk-offline");
             Assert.That(b.PreviewResult.HasValue, Is.False);
             Assert.That(a.Offline, Is.False);

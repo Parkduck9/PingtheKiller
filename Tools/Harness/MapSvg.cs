@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using PingTheKiller.ServerCore.Map;
+using PingTheKiller.Shared.Game;
 
 namespace PingTheKiller.Harness;
 
@@ -25,6 +26,7 @@ public static class MapSvg
         }
         for (int i = 0; i < map.TerminalPositions.Count; i++) Point(map.TerminalPositions[i], 1.5f, "#735000", $"T{i}");
         for (int i = 0; i < map.Exits.Count; i++) Point(map.Exits[i], 2, "#405594", $"E{i}");
+        for (int i = 0; i < map.ExitSwitches.Count; i++) Point(map.ExitSwitches[i], GameConstants.ExitSwitchRadius, "#6a7fb8", $"W{i}");
         for (int i = 0; i < map.HatchPoints.Count; i++) Point(map.HatchPoints[i], .7f, "#574e39", $"H{i}");
         for (int i = 0; i < map.SpawnPoints.Count; i++) Point(map.SpawnPoints[i], .4f, i == 0 ? "#e5484d" : "#167e76", i == 0 ? "K" : $"S{i}");
         return svg.AppendLine("</svg>").ToString();

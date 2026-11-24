@@ -161,7 +161,7 @@ public sealed class U2bSkillTests
         r.SetSkill(r.K, SkillIds.FirewallBlock);
         for (int i = 0; i < 5; i++) { r.Use(r.K, SkillIds.FirewallBlock); r.Tick(); }
         Assert.Empty(Effects(r.K));
-        r.OpenExitFlag();
+        r.ArmFirewall();
         Assert.InRange(CastGap(r, r.K, SkillIds.FirewallBlock), 239, 241);
     }
 
@@ -666,7 +666,7 @@ public sealed class U2bSkillTests
         r.Place(r.S[1], 30, 30);
         r.Place(r.S[2], 30, 35);
         if (killerSkill) r.SetSkill(r.K, skill); else r.SetSkill(r.S[0], skill);
-        if (skill == SkillIds.FirewallBlock && killerSkill) r.OpenExitFlag();
+        if (skill == SkillIds.FirewallBlock && killerSkill) r.ArmFirewall();
         if (skill == SkillIds.EmergencyRestore && !killerSkill)
         {
             r.Place(r.S[1], 15, 10);
@@ -697,7 +697,7 @@ public sealed class U2bSkillTests
             foreach (var e in s.SelectMany(x => x))
             {
                 bool zero = e.X == 0 && e.Z == 0;
-                bool exit = e.X == map.Exit.X && e.Z == map.Exit.Z;
+                bool exit = map.Exits.Any(x => e.X == x.X && e.Z == x.Z); // v0.4: either exit
                 Assert.True(zero || exit, $"survivor-bound killer effect carries ({e.X},{e.Z})");
                 Assert.NotEqual(9.37f, e.X);
                 Assert.NotEqual(10.21f, e.Z);

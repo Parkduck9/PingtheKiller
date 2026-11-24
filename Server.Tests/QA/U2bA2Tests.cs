@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace PingTheKiller.Tests.QA;
 
 // U2b QA attempt 2: adversarial re-verification of the attempt-3 fixes.
-//   F0  2 s execution grace            (grace boundary ticks, spent re-entry, per-survivor timers, three matches)
+//   F0  execution grace, retargeted (GDD v2 §4, 2026-11-03: no execution; touches never advance a Lagging survivor)
 //   F4  wire seed no longer drives gameplay randomness (trace invariance, stream scan, reseed per match)
 //   F2  Seq filter and rate window reset at match start (two and three matches back to back, reconnect)
 // Every test is deterministic: hooks fix the seeds that a test depends on. Where production (CSPRNG) seeding must be
@@ -22,11 +22,15 @@ public sealed class U2bA2Tests
     private static bool Is(PlayerState p, PlayerStatus s) => p.Status == (byte)s;
 
     // ------------------------------------------------------------------ F0: execution grace
+    // GDD v2 §4 (user decision 2026-11-03): there is no execution any more. The F0 scenarios are kept and now prove that
+    // no touch pattern (inside or after the old 2 s grace, continuous, re-entry, per survivor, across matches) changes a
+    // Lagging survivor's stage or status.
 
     private static QaRig Captured(int survivors = 2, float dt = 0.05f)
     {
         var r = new QaRig(survivors) { Dt = dt };
         r.Place(r.S[0], 13, 10);
+        r.SetCaptureCount(r.S[0], 1); // the second capture: Lagging 30 s, count 2
         r.Place(r.K, 11.9f, 10);
         r.Tick(); // tick 0: the capture
         Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
@@ -34,112 +38,110 @@ public sealed class U2bA2Tests
     }
     private static void Away(QaRig r, int ticks) { for (int i = 0; i < ticks; i++) { r.Place(r.K, 5, 5); r.Tick(); } }
     private static void Touch(QaRig r) { r.Place(r.K, 12.0f, 10); r.Tick(); }
+    private static void Unchanged(QaRig r, int survivor, string because)
+    {
+        var t = r.Truth(r.S[survivor]);
+        Assert.True(Is(t, PlayerStatus.Lagging), because);
+        Assert.Equal(2, t.CaptureCount);
+    }
 
     [Theory]
     [InlineData(0.05f, 2, false)]
     [InlineData(0.05f, 10, false)]
     [InlineData(0.05f, 38, false)]
     [InlineData(0.05f, 39, false)] // 1.95 s after the capture
-    [InlineData(0.05f, 40, true)]  // exactly 2.00 s: the grace is over
+    [InlineData(0.05f, 40, true)]  // exactly 2.00 s: the old grace was over
     [InlineData(0.05f, 41, true)]
     [InlineData(0.05f, 60, true)]
     [InlineData(0.1f, 19, false)]
     [InlineData(0.1f, 20, true)]
     [InlineData(0.025f, 79, false)]
     [InlineData(0.025f, 80, true)]
-    public void Grace_LeaveAfterCaptureThenTouchAgain_ExecutesOnlyFromTwoSecondsOn(float dt, int touchTick, bool executes)
+    public void Grace_LeaveAfterCaptureThenTouchAgain_NeverExecutes(float dt, int touchTick, bool oldRuleExecuted)
     {
         using var r = Captured(dt: dt);
-        Away(r, touchTick - 1); // ticks 1 .. touchTick-1: out of range (armed)
-        Touch(r);               // tick touchTick
-        Assert.Equal(executes, Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
-        if (executes) return;
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
-        // The touch inside the grace is spent: staying in contact for 10 more seconds never executes...
+        Away(r, touchTick - 1);
+        Touch(r);
+        Unchanged(r, 0, $"touch at tick {touchTick} (old rule executed: {oldRuleExecuted})");
         r.Tick((int)(10 / dt));
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging), "a touch inside the grace must use up the re-entry");
-        // ...and a genuine re-entry after the grace does.
+        Unchanged(r, 0, "10 s of contact");
         Away(r, 1);
         Touch(r);
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
+        Unchanged(r, 0, "a re-entry after leaving");
     }
 
     [Fact]
-    public void Grace_TouchInsideGraceThenLeavingRearmsAtOnce_ReEntryAfterTheGraceExecutes()
+    public void Grace_TouchesAndReEntriesInsideAndAfterTheOldGrace_NeverExecute()
     {
         using var r = Captured();
-        Away(r, 4);   // ticks 1-4
-        Touch(r);     // tick 5, 0.25 s: spent
-        Away(r, 1);   // tick 6: left, armed
-        Touch(r);     // tick 7: still inside the grace, spent again
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
-        Away(r, 1);   // tick 8: armed
-        r.Tick(2);    // ticks 9-10 (killer stays away: armed)
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
-        Away(r, 30);  // up to tick 40
-        Touch(r);     // tick 41, 2.05 s
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
+        Away(r, 4);
+        Touch(r);
+        Away(r, 1);
+        Touch(r);
+        Unchanged(r, 0, "inside the old grace");
+        Away(r, 33);
+        Touch(r);     // 2.05 s
+        Unchanged(r, 0, "after the old grace");
     }
 
     [Fact]
-    public void Grace_ContinuousContactFromTheCaptureNeverExecutes_ForTenSeconds_ThenLeaveAndTouchDoes()
+    public void Grace_ContinuousContactAndThenLeaveAndTouch_NeverExecutes()
     {
         using var r = Captured();
         for (int i = 0; i < 200; i++)
         {
             r.Place(r.K, 11.9f + (i % 5) * 0.1f, 10); // jitter inside 1.2 m
             r.Tick();
-            Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging), $"executed by continuing contact at tick {i + 1}");
+            Unchanged(r, 0, $"continuing contact at tick {i + 1}");
         }
         Away(r, 1);
         Touch(r);
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated));
+        Unchanged(r, 0, "leave and touch");
     }
 
     [Fact]
-    public void Grace_EachSurvivorHasItsOwnTwoSecondTimer()
+    public void Grace_TwoLaggingSurvivorsTouchedTogether_NeitherIsExecuted_OnlyTheirOwnTimersEndThem()
     {
         using var r = new QaRig(3);
+        r.SetCaptureCount(r.S[0], 1);
+        r.SetCaptureCount(r.S[1], 1);
         r.Place(r.S[0], 13, 10);
         r.Place(r.K, 11.9f, 10);
         r.Tick();                                  // tick 0: S0 captured
-        Away(r, 19);                               // ticks 1-19
+        Away(r, 19);
         r.Place(r.K, 11.9f, 10);
         r.Place(r.S[1], 11.9f, 11.0f);
-        r.Tick();                                  // tick 20: S1 captured, S0 touched inside its grace
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging));
-        Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging));
-        Away(r, 21);                               // ticks 21-41: both armed
+        r.Tick();                                  // tick 20: S1 captured
+        Away(r, 21);
         r.Place(r.K, 12.4f, 10.5f);                // 0.78 m from S0, 0.71 m from S1
-        r.Tick();                                  // tick 42: S0 is 2.1 s old, S1 1.1 s
-        Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated), "S0's grace was over");
-        Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Lagging), "S1 is still inside its own grace");
-        Away(r, 18);                               // ticks 43-60
-        r.Place(r.K, 12.4f, 10.5f);
-        r.Tick();                                  // tick 61: S1 is 2.05 s old
-        Assert.True(Is(r.Truth(r.S[1]), PlayerStatus.Eliminated));
+        r.Tick();
+        Unchanged(r, 0, "S0 touched at 2.1 s");
+        Unchanged(r, 1, "S1 touched at 1.1 s");
+        // Each 30 s timer runs out on its own: S0 first, S1 20 ticks later.
+        double s0Left = r.Truth(r.S[0]).StatusTimer, s1Left = r.Truth(r.S[1]).StatusTimer;
+        Assert.InRange(s1Left - s0Left, 0.99, 1.01);
         Assert.True(Is(r.Truth(r.S[2]), PlayerStatus.Normal));
     }
 
     [Fact]
-    public void Grace_ThreeMatchesBackToBack_NoStaleArmedOrGraceState_AcrossMatches()
+    public void Grace_ThreeMatchesBackToBack_TouchesNeverExecute_AndCaptureStateResetsAcrossMatches()
     {
         using var r = new QaRig(2);
         for (int match = 1; match <= 3; match++)
         {
             if (match > 1) r.NextMatch();
+            Assert.Equal(0, r.Truth(r.S[0]).CaptureCount);
             r.Place(r.S[0], 13, 10);
             r.Place(r.K, 11.9f, 10);
             r.Tick();                                        // capture
             Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging), $"match {match}: capture");
+            Assert.Equal(1, r.Truth(r.S[0]).CaptureCount);
             Away(r, 3);
-            Touch(r);                                        // 0.2 s: inside the grace
-            Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging), $"match {match}: touch at 0.2 s must not execute");
-            Away(r, 1);                                      // armed again
-            if (match < 3) continue;                         // matches 1 and 2 end with S0 Lagging and armed
+            Touch(r);
             Away(r, 40);
             Touch(r);
-            Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Eliminated), "match 3: execution after the grace");
+            Assert.True(Is(r.Truth(r.S[0]), PlayerStatus.Lagging), $"match {match}: touches never execute");
+            Assert.Equal(1, r.Truth(r.S[0]).CaptureCount);
         }
     }
 
@@ -264,7 +266,7 @@ public sealed class U2bA2Tests
                     foreach (var p in Spy.Players(f.Server))
                         truth.Append(BitConverter.SingleToInt32Bits(Spy.Get<float>(p, "X"))).Append(',').Append(BitConverter.SingleToInt32Bits(Spy.Get<float>(p, "Z"))).Append(' ');
             }
-            if (!ended) { Spy.SetServer(f.Server, "_matchTime", 599.9); f.Tick(3); Absorb(); }
+            if (!ended) { Spy.SetServer(f.Server, "_matchTime", 899.9); f.Tick(3); Absorb(); }
             truth.Append('|');
         }
         return (Convert.ToHexString(hash.GetHashAndReset()), truth.ToString());

@@ -74,7 +74,7 @@ namespace PingTheKiller.Client.World
             foreach (var terminal in terminals)
                 if (!retained.Contains(terminal.Key)) { Object.Destroy(terminal.Value.Root); removed.Add(terminal.Key); }
             foreach (byte id in removed) terminals.Remove(id);
-            bool open = state.ExitOpen != 0 && state.ExitLocked == 0;
+            bool open = WorldExits.AnyOpen(state);
             exit.GetComponent<MeshRenderer>().sharedMaterial.color = open ? (role == Role.Survivor ? Survivor : Neutral) : new Color32(154, 152, 144, 255); // Q11: ally ring for Survivors, text ring for the Killer
         }
 
