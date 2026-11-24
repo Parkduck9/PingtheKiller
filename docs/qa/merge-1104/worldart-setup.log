@@ -1,0 +1,1001 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.25f1 (e1dba0a9aba4) revision 14801824'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-User" at "2026-11-04T02:08:13.4059397Z"
+OS: 'Windows 11  (10.0.26200) Core' Language: 'ko' Physical Memory: 130909 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-11-04T02:08:13Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 18460, path: "C:/Program Files/Unity Hub/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              b3cfbbe944f24a1eb7ebe5dc148013b1
+  Correlation Id:          ca66e4c4b079da2bd962a24a8e1ae6dc
+  External correlation Id: 6115075285183314888
+  Machine Id:              bAB71IQqoLhh2FyYS3SQuRAzkWY=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-User" (connect: 0.00s, validation: 0.00s, handshake: 0.03s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-User-notifications" at "2026-11-04T02:08:13.4394029Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 14569623097346-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.04s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Unity.exe
+-batchmode
+-quit
+-projectPath
+Client
+-executeMethod
+PingTheKiller.Editor.Setup.WorldArtSetup.Run
+-logFile
+C:/Unity/MultiPlayGame/PingtheKiller/docs/qa/merge-1104/worldart-setup.log
+Successfully changed project path to: C:/Unity/MultiPlayGame/PingtheKiller/Client
+C:/Unity/MultiPlayGame/PingtheKiller/Client
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [35248]  Target information:
+
+Player connection [35248]  * "[IP] 172.24.1.7 [Port] 55504 [Flags] 2 [Guid] 681185776 [EditorId] 681185776 [Version] 1048832 [Id] WindowsEditor(7,K-2301160066) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [35248] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [35248] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-46760" after 0.2 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.05 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PingtheKiller/Client/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56760
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.25f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.001346 seconds.
+- Loaded All Assemblies, in  0.286 seconds
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.267 seconds
+Domain Reload Profiling: 552ms
+	BeginReloadAssembly (91ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (9ms)
+	RebuildCommonClasses (24ms)
+	RebuildNativeTypeToScriptingClass (8ms)
+	initialDomainReloadingComplete (33ms)
+	LoadAllAssembliesAndSetupDomain (128ms)
+		LoadAssemblies (81ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (125ms)
+			TypeCache.Refresh (123ms)
+				TypeCache.ScanAssembly (114ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (267ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (242ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (35ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (56ms)
+			ProcessInitializeOnLoadAttributes (93ms)
+			ProcessInitializeOnLoadMethodAttributes (56ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 55 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.inputsystem@1.17.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.inputsystem@02433b2481ab)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.searcher@4.9.5 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.burst@1.8.30 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.burst@2f3d916873ea)
+    com.unity.mathematics@1.3.3 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.collections@2.6.8 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.collections@84e8eb3fc12e)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.test-framework@1.6.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.ugui@f3ea87521141)
+    com.unity.multiplayer.center@1.0.1 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.render-pipelines.universal@a0dd9d2bd983)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.render-pipelines.core@17.3.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.render-pipelines.core@3f80e92e91c2)
+    com.unity.shadergraph@17.3.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.shadergraph@2fa139ee8b62)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.ext.nunit@2.0.5 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+  Local packages:
+    com.pingthekiller.shared@file:C:\Unity\MultiPlayGame\PingtheKiller\Shared (location: C:\Unity\MultiPlayGame\PingtheKiller\Shared)
+    com.pingthekiller.servercore@file:C:\Unity\MultiPlayGame\PingtheKiller\Server.Core (location: C:\Unity\MultiPlayGame\PingtheKiller\Server.Core)
+  Git packages:
+    com.coplaydev.unity-mcp@https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.3.0 (location: C:\Unity\MultiPlayGame\PingtheKiller\Client\Library\PackageCache\com.coplaydev.unity-mcp@da7b9ae4aeeb)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.01 seconds
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:80
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Unity\MultiPlayGame\PingtheKiller\Client\
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 25.0597ms
+Starting: C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: C:/Unity/MultiPlayGame/PingtheKiller/Client
+DisplayProgressbar: Compiling Scripts
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\Facades\System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\NetStandard\Extensions\2.0.0\System.Runtime.InteropServices.WindowsRuntime.dll"
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\System.ComponentModel.Composition.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\NetStandard\compat\2.1.0\shims\netfx\System.ComponentModel.Composition.dll"
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil, Version=0.11.6.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@2f3d916873ea\Unity.Burst.CodeGen\Unity.Burst.Cecil.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Mono.Cecil, Version=0.11.5.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff\Mono.Cecil.dll
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 34.1662ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.ServerCore.dll, with 140 defines and 130 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 18.2162ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.dll, with 140 defines and 271 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 1.9730ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Editor.Setup.dll, with 138 defines and 280 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 19.1437ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-firstpass.dll, with 140 defines and 301 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with Library\Bee\artifacts\1900b0aE.dag\Unity.Collections.dll
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.Tests.dll, with 138 defines and 272 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 1.3679ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.QA.Tests.dll, with 138 defines and 272 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 1.5994ms
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\Managed\UnityEngine\UnityEditor.CoreModule.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with C:\Program Files\Unity\Hub\Editor\6000.3.25f1\Editor\Data\Managed\UnityEngine\UnityEngine.CoreModule.dll
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp.dll, with 140 defines and 302 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil.Rocks, Version=0.11.6.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@2f3d916873ea\Unity.Burst.CodeGen\Unity.Burst.Cecil.Rocks.dll
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 269.8571ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 108.5599ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll, with 138 defines and 317 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 18.6616ms
+ExitCode: 0 Duration: 1s545ms
+[567/729    0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[697/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.ServerCore.dll (+2 others)
+[           0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.ServerCore.dll (+2 others) [CacheWrite 00000000000000000000000000000005]
+[698/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/PingTheKiller.ServerCore.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.ServerCore.dll, with 140 defines and 130 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[699/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.ServerCore.pdb
+[700/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.dll (+2 others)
+Assets\Scripts\UI\RulesV2\RulesV2Blocks.cs(56,32): warning CS0108: 'ExitCell.name' hides inherited member 'VisualElement.name'. Use the new keyword if hiding was intended.
+
+Assets\Scripts\UI\MarkerLayer.cs(29,36): warning CS0108: 'MarkerLayer.layout' hides inherited member 'VisualElement.layout'. Use the new keyword if hiding was intended.
+[701/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.ServerCore.dll
+[702/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/PingTheKiller.Client.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.dll, with 140 defines and 271 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[703/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.pdb
+[704/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Editor.Setup.dll (+2 others)
+[705/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.Tests.dll (+2 others)
+[706/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.dll
+[707/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.QA.Tests.dll (+2 others)
+[708/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-firstpass.dll (+2 others)
+[709/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/PingTheKiller.Editor.Setup.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Editor.Setup.dll, with 138 defines and 280 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[710/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Editor.Setup.pdb
+[711/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/PingTheKiller.Client.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.Tests.dll, with 138 defines and 272 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[712/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.Tests.pdb
+[713/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp.dll (+2 others)
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Outline\Scripts\OutlineSettings.cs(13,13): warning CS0618: 'VolumeComponent.displayName' is obsolete: 'Use DisplayInfo attribute to define a display name instead. #from(6000.3)'
+[714/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/PingTheKiller.Client.QA.Tests.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/PingTheKiller.Client.QA.Tests.dll, with 138 defines and 272 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[715/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.pdb
+[716/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Editor.Setup.dll
+[717/729    0s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Toon\Editor\Vector2Drawer.cs(34,17): warning CS0618: 'MaterialProperty.type' is obsolete: 'The 'type' property is deprecated. Please use 'propertyType' instead. (UnityUpgradable) -> propertyType'
+
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Toon\Editor\Vector2Drawer.cs(34,30): warning CS0618: 'MaterialProperty.PropType' is obsolete: 'Use UnityEngine.Rendering.ShaderPropertyType instead. (UnityUpgradable) -> UnityEngine.Rendering.ShaderPropertyType'
+[718/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/Assembly-CSharp-firstpass.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-firstpass.dll, with 140 defines and 301 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[719/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/Assembly-CSharp.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp.dll, with 140 defines and 302 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[720/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-firstpass.pdb
+[721/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.pdb
+[722/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.dll
+[723/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.Tests.dll
+[724/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-firstpass.dll
+[725/729    0s] CopyFiles Library/ScriptAssemblies/PingTheKiller.Client.QA.Tests.dll
+[726/729    0s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll, with 138 defines and 317 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[727/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.pdb
+[728/729    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.dll
+*** Tundra build success (1.51 seconds), 33 items updated, 729 evaluated
+[ApiUpdater] Total time: 554ms, Parse response file: 32ms, Collect updater configs: 171ms, Update: 322ms, Save: 29ms Files: 1 modified / 1 visited / 5 total (Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll).
+[API Updater] Updated Files:
+Skipping ScriptUpdater consent dialog. Consent declined based on command line parameters.
+Finished running ScriptUpdaters
+Assets\Scripts\UI\RulesV2\RulesV2Blocks.cs(56,32): warning CS0108: 'ExitCell.name' hides inherited member 'VisualElement.name'. Use the new keyword if hiding was intended.
+Assets\Scripts\UI\MarkerLayer.cs(29,36): warning CS0108: 'MarkerLayer.layout' hides inherited member 'VisualElement.layout'. Use the new keyword if hiding was intended.
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Outline\Scripts\OutlineSettings.cs(13,13): warning CS0618: 'VolumeComponent.displayName' is obsolete: 'Use DisplayInfo attribute to define a display name instead. #from(6000.3)'
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Toon\Editor\Vector2Drawer.cs(34,17): warning CS0618: 'MaterialProperty.type' is obsolete: 'The 'type' property is deprecated. Please use 'propertyType' instead. (UnityUpgradable) -> propertyType'
+Assets\ThirdParty\Toon Shaders Pro\Shaders\Toon\Editor\Vector2Drawer.cs(34,30): warning CS0618: 'MaterialProperty.PropType' is obsolete: 'Use UnityEngine.Rendering.ShaderPropertyType instead. (UnityUpgradable) -> UnityEngine.Rendering.ShaderPropertyType'
+AssetDatabase: script compilation time: 2.270153s
+Begin MonoManager ReloadAssembly
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  1.773 seconds
+Refreshing native plugins compatible for Editor in 0.22 ms, found 0 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  2.032 seconds
+Domain Reload Profiling: 3803ms
+	BeginReloadAssembly (277ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (31ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (153ms)
+	RebuildCommonClasses (24ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (23ms)
+	LoadAllAssembliesAndSetupDomain (1438ms)
+		LoadAssemblies (1396ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (107ms)
+			TypeCache.Refresh (72ms)
+				TypeCache.ScanAssembly (64ms)
+			BuildScriptInfoCaches (27ms)
+			ResolveRequiredComponents (5ms)
+	FinalizeReload (2032ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (1887ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (17ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (99ms)
+			ProcessInitializeOnLoadAttributes (1658ms)
+			ProcessInitializeOnLoadMethodAttributes (106ms)
+			AfterProcessingInitializeOnLoad (4ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (19ms)
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=f20f989b56bcd5f469d394a93265cbf3): Total: 6.722 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=2387 ms
+		Asset DB Callback time: managed=251 ms, native=11 ms
+		Scripting: domain reloads=1, domain reload time=1773 ms, compile time=2271 ms, other=25 ms
+		Project Asset Count: scripts=1061, non-scripts=3217
+		Asset File Changes: new=0, changed=5, moved=0, deleted=2
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.002ms
+	InvokePackagesCallback: 9.599ms
+	ApplyChangesToAssetFolders: 0.577ms
+	Scan: 178.733ms
+	OnSourceAssetsModified: 1.630ms
+	CategorizeAssetsWithTransientArtifact: 14.678ms
+	ProcessAssetsWithTransientArtifactChanges: 30.740ms
+	UnregisterDeletedAssets: 0.002ms
+	CategorizeAssets: 41.494ms
+	ImportOutOfDateAssets: 2037.458ms (-235.325ms without children)
+		CompileScripts: 2271.383ms
+		ReloadNativeAssets: 0.026ms
+		UnloadImportedAssets: 0.545ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.370ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 0.459ms
+	PostProcessAllAssets: 251.101ms
+	Hotreload: 3.379ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 2.198ms
+	PersistCurrentRevisions: 0.161ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 1.933ms
+	Untracked: 4149.953ms
+
+Application.AssetDatabase Initial Refresh End
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.01 seconds
+Scanning for USB devices : 2.525ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-Client
+Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 4159 unused Assets / (4.4 MB). Loaded Objects now: 5029.
+Memory consumption went from 185.3 MB to 180.9 MB.
+Total: 6.860100 ms (FindLiveObjects: 0.345200 ms CreateObjectMapping: 0.147700 ms MarkObjects: 4.817100 ms  DeleteObjects: 1.549000 ms)
+
+Asset Pipeline Refresh (id=4b4ff50210fa70c45b14bf774c9546c4): Total: 0.041 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=cf02d328168a6d84f8e26c15e838b051): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=7d22fff2597eee2438c57892d1947fdd): Total: 0.006 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=59e5d42a7336ac744a1b96cbd841826a): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=031d7b2b19bd5044b87abadb98bf85d5): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=310bcc403c9278e478a706cfe1c5c546): Total: 0.011 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=70de5586dd1986c46bddabc0e0ec9557): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=19f033226574a7944af762c880cc364c): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=857568eb799255b4680c93783de57f12): Total: 0.011 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=e61d7853a75435a4b81cd9b2e24a94ad): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=6c459755681b9844684e25df39f06da9): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=abc18d8a56fead048896899f6c6ccf20): Total: 0.011 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=d2c4fb3902c91a14688cea6b3e367755): Total: 0.009 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=29037df5ffd1d8a47af06e883b2ab383): Total: 0.011 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=45950ecfe2e882148a838cac1b1a7e60): Total: 0.009 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=e86d01908b2b4a341ad5bac1dfa68143): Total: 0.007 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=c207ad6723099fe409faea5ecfd6f85f): Total: 0.010 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=52e2d6e26d326634caaf36c192430f3d): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=ec93789c59950e44bac8c60187049de4): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=680a495012afa3348bfea4f8ecc6f742): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=408f6a5be46fffc4ea02272285677857): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=cfe1d7e87ec926340984dfbeed1603b8): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=73362c0a73f9a304ba9c0746b0dfd50f): Total: 0.010 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=54f2dfc848d24454e9337195ec086638): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=e97ccf7e718ca7248805d119b3a7046e): Total: 0.014 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=f1915fb8d8ce9a147b4bf2d8a751f022): Total: 0.006 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=c9e3183e4f1ea6e4ebcabfefd80132b1): Total: 0.006 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=0a74b1df0e597a545a1557cde6985bac): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=ff5f591068204ed45b5983c84664435e): Total: 0.005 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=d1503bb5a569bc043abf83036ba30ed5): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=1e3c005dc133e3241b366b97ecc4e7d3): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=da5ffa0cbd201c841ada696679cb9918): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 0.asset using Guid(e2cd7c2364cada246ba12cfe5cb9780a) (NativeFormatImporter) -> (artifact id: '7b924940340d190b4d1d693a4aa876d1') in 0.0052803 seconds
+Refreshing native plugins compatible for Editor in 0.14 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=4cfe3385c4d286541929d60eccf525bc): Total: 0.034 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 0.prefab using Guid(7b3a83e30b884584d80628035c2b0d83) (PrefabImporter) -> (artifact id: '2d5832c4d1729b5f8e3e8d969cb7f86b') in 0.0030371 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=d31c798d8ac85cb42bd2fe61dd9ad0c7): Total: 0.034 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 1.asset using Guid(ea47bfee378218b4d8a31223e44836fa) (NativeFormatImporter) -> (artifact id: 'f1f864d44b2245955220076a206b4dba') in 0.0013366 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=d2f5976a0dc6d2b44854117c2ae7d206): Total: 0.027 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 1.prefab using Guid(6b6fede58f2245349ad9cbb93171bc1b) (PrefabImporter) -> (artifact id: '3b6abcf28444fc7642b1081958b87485') in 0.0023722 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=9b8d3367c7eeac249a9f630b85fbe739): Total: 0.032 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 2.asset using Guid(de74a8a823dc50e4aa6c5510d3470289) (NativeFormatImporter) -> (artifact id: '981fc3530422c0a96246a24247306e36') in 0.0013334 seconds
+Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=26b9107ea13a9674cbdc7253d63881aa): Total: 0.028 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 2.prefab using Guid(24bf36c6abcd7e045b155bcebdd3ac70) (PrefabImporter) -> (artifact id: 'b67110ac66a9c323d483dc1cc4501ba4') in 0.002255 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=277ee83c59b01f544802b4e4fd141802): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 3.asset using Guid(466013e17e6c71b468e04732080f45a1) (NativeFormatImporter) -> (artifact id: 'afae2e3ee5ab42ca58f125797426e2ec') in 0.0014805 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=3112c17ad22656b47ad74a9c6d139092): Total: 0.029 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 3.prefab using Guid(86d7b2739b8d9ef41959dac5342d5ab5) (PrefabImporter) -> (artifact id: '69717c816bbfe86cbb32e2038a3482ba') in 0.0019843 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=e6eeb3625bc840146b32a26b553c320d): Total: 0.033 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 4.asset using Guid(786737465fe280245968e25838f2fe36) (NativeFormatImporter) -> (artifact id: '3bdcdd0928e4ae902fe77404b8a735aa') in 0.0012856 seconds
+Refreshing native plugins compatible for Editor in 0.14 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=4c34b4760331f7d43ac2ee6d29313d67): Total: 0.028 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 4.prefab using Guid(489e25e5c6f2b9c4ba310d537705f1b7) (PrefabImporter) -> (artifact id: 'a310a7aa3de99f977a0e51c76de282e7') in 0.0020842 seconds
+Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=6bb3ce9e92101384aa557e796f18a998): Total: 0.032 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 5.asset using Guid(f811b7577e27bae42b30c34e0afd23ca) (NativeFormatImporter) -> (artifact id: '59e36565ee06e9202c1276926c4c4af5') in 0.0012922 seconds
+Refreshing native plugins compatible for Editor in 0.15 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=8e450d997f7f646448b25eb786b82d18): Total: 0.027 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 5.prefab using Guid(f6412e7997f4ab343a58f9b4c7f26f1e) (PrefabImporter) -> (artifact id: '574952ab2fcf2d39c7625e2ffb368330') in 0.00209 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=df15ffdb95cdaa4439fca10af05765ab): Total: 0.032 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 6.asset using Guid(97d177d3451e9d542ad0ff0941834f0c) (NativeFormatImporter) -> (artifact id: 'f1fd165e13b7f50616729e8e335aa496') in 0.001332 seconds
+Refreshing native plugins compatible for Editor in 0.16 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=c148e2906872a504983088f679f88791): Total: 0.028 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 6.prefab using Guid(8e440b5b19c57d84d963cad8393bcf53) (PrefabImporter) -> (artifact id: '28e8952eccd4c3d033c150e8ab367ff5') in 0.0019376 seconds
+Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=391e695bd5ba9e140b430d9b94bef74f): Total: 0.030 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 7.asset using Guid(84e3c81db10797845b9b04392235bca2) (NativeFormatImporter) -> (artifact id: '59ab7232612763014f12d841f4ea6738') in 0.0012457 seconds
+Refreshing native plugins compatible for Editor in 0.16 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=eda3cbfef58678d4dac33bd731ef4406): Total: 0.028 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 7.prefab using Guid(234c8e1dac7468f4b8db41406144b75d) (PrefabImporter) -> (artifact id: '2836e23fe26e8d9bda4f578172645f25') in 0.0020184 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=442b5c62c1838624dbdf6b4f67e6fc38): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 8.prefab using Guid(d483738e3dc0843458cb4799ab6fa2bd) (PrefabImporter) -> (artifact id: 'cae63e63120fa801c3dc405f0cbb1efb') in 0.002421 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=aadaf8867e9c2aa41904dd18bd141a2b): Total: 0.030 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 9.prefab using Guid(ea3bc238bd86c574cbaf3af3a75a5728) (PrefabImporter) -> (artifact id: 'aadf883b23728931ad7e12d464e1fcf3') in 0.0029741 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=1a780439b84f6b44996abc31206c4308): Total: 0.038 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 10.asset using Guid(ffcde1c5746334f4287d5fdcc47c1c50) (NativeFormatImporter) -> (artifact id: '87266c8a9f57904e4c5020ba9a984b4f') in 0.0015643 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=909719880dba4ed42b9261f7aa1b2307): Total: 0.030 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 10.prefab using Guid(ef11ce7983967fa4688e69d28ebcc205) (PrefabImporter) -> (artifact id: 'b5967f72360b6286d046bf502f9bb46c') in 0.0019512 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=42cdbbe278b3814429a8a31960ab6f20): Total: 0.032 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 11.prefab using Guid(4eabdb0e7391154478d7f1228a3e72bf) (PrefabImporter) -> (artifact id: '69bcd381bcd87abcb860f0833a2dcde0') in 0.0022308 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=8b9ae907b8e48eb4bafa311b8debb81c): Total: 0.030 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 12.prefab using Guid(ce1b990bff48d9d4693b2a6b84bf55ba) (PrefabImporter) -> (artifact id: 'e51ce16899a7a6b251df3b34bfc9d700') in 0.00204 seconds
+Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=3ddf6ad1b78f9ee4589f7d7345eaad13): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Meshes/Parking pad 13.asset using Guid(07b360d9b187a734f80e5dc184ec023f) (NativeFormatImporter) -> (artifact id: 'ee9ef8026d8ec4ee3287d39ae153f5ab') in 0.0018701 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=1fe9bced6a3a5ce47aa35f916513d0b7): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 13.prefab using Guid(403d861e7fb4afc41bc2b3ee7122eae4) (PrefabImporter) -> (artifact id: '71124f3d6f7ba7027187f38055904473') in 0.0020583 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=74bff0bc6eccadb4f8ec653d71fe2b91): Total: 0.033 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Obstacle 14.prefab using Guid(672842477cc4aaf4c95f7feb66fda52a) (PrefabImporter) -> (artifact id: '24e33eaf5a26d6106c654f4f86a7859c') in 0.002337 seconds
+Refreshing native plugins compatible for Editor in 0.17 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=a1ca672bac55f2d4b885ebcab86d8aca): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=243414a59d1bacb4da4f0f0c6c4568fe): Total: 0.004 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Backdrop.prefab using Guid(acc3be135a08cd24dab9c9053bfa063f) (PrefabImporter) -> (artifact id: '66b8b3db042b4e74b8f8e6ef959e39f8') in 0.0051638 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=4863a2e4773b49f41a5289b95d5f2658): Total: 0.038 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Prefabs/Terminal.prefab using Guid(659919b8dd2c0e74b9f2a47efe87dfc9) (PrefabImporter) -> (artifact id: 'f535f7457aaec203f5783bcc5981b44b') in 0.0026981 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=1c317636961fe8a4a8eccc43984b2e60): Total: 0.031 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=92924e63e51c97a4fbdafcf7e7e2f6b3): Total: 0.008 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Start importing Assets/Art/World/Materials/Glass lit warm.mat using Guid(0096070925af19d4a910e89f3a38b533) (NativeFormatImporter) -> (artifact id: 'cba053c11dbafa869ea4c9defaf8273b') in 0.0019398 seconds
+Start importing Assets/Art/World/Materials/City 424242.mat using Guid(70d1e8679ec606841b9eebcad08730cb) (NativeFormatImporter) -> (artifact id: 'd3b7069fafe18052c792c24bd71e5f54') in 0.001039 seconds
+Start importing Assets/Art/World/Materials/City 383838.mat using Guid(1156f7fab8575c647b3b8f3974d8b130) (NativeFormatImporter) -> (artifact id: '0d209e42d178cc26e347ad9d9d7c2d88') in 0.0008426 seconds
+Start importing Assets/Art/World/Materials/City 835D59.mat using Guid(1159b9df865b79349ae16f54bd9d5770) (NativeFormatImporter) -> (artifact id: '3b9f881cdc50cc9b621b331f678c11e1') in 0.0008096 seconds
+Start importing Assets/Art/World/Materials/City 4E4E4E.mat using Guid(31c67d25eac654d49a64e49db2c19d57) (NativeFormatImporter) -> (artifact id: '37bbc6f7262bbc024ab4456e96ac5897') in 0.000747 seconds
+Start importing Assets/Art/World/Materials/City 949494.mat using Guid(3179f016738718641acf4a440b4dfd8c) (NativeFormatImporter) -> (artifact id: '1ffd8a3873ceac442c9567ddcf3d91b8') in 0.0009091 seconds
+Start importing Assets/Art/World/Materials/City 545D75.mat using Guid(416f583e1fbe96544b222befeee95fe3) (NativeFormatImporter) -> (artifact id: 'c7a927778cca19fae87d858b09b0bbc7') in 0.0009483 seconds
+Start importing Assets/Art/World/Materials/City 767372.mat using Guid(61f1ebedec043664599eb989ae0a4b7f) (NativeFormatImporter) -> (artifact id: '89b91c655871a87de1f4ff9255695e7f') in 0.0007953 seconds
+Start importing Assets/Art/World/Materials/City 798198.mat using Guid(61e8b7feee493264bbb30c7762cca7f0) (NativeFormatImporter) -> (artifact id: '8af0d6e44070327ceaa615d1599f2d52') in 0.0008188 seconds
+Start importing Assets/Art/World/Materials/City 5C5E5C.mat using Guid(61ed10ac3c6cc8e448b8f0c25e4bba88) (NativeFormatImporter) -> (artifact id: 'cdb288e6ee3adad2a25145f7cc89a129') in 0.0008744 seconds
+Start importing Assets/Art/World/Materials/Device SapperKit_mtl.mat using Guid(e1d0d7ba30fa21245bc9023f8b31e61c) (NativeFormatImporter) -> (artifact id: '219c3f5c27d10071968ae84437b7c24c') in 0.0009206 seconds
+Start importing Assets/Art/World/Materials/City 614243.mat using Guid(f1ebd47ed0ba30f4db3d51ba7980f7d6) (NativeFormatImporter) -> (artifact id: '312d9b1f565b3c0e6516cb878b946028') in 0.0009595 seconds
+Start importing Assets/Art/World/Materials/Frame.mat using Guid(f1ae7b45af5ad384ea5c65db92f0d519) (NativeFormatImporter) -> (artifact id: '27adf7840d77707d3ad85057d29300f2') in 0.0008094 seconds
+Start importing Assets/Art/World/Materials/City 7D7D7D.mat using Guid(02c0977a1c0340944a45693a3230cdf1) (NativeFormatImporter) -> (artifact id: '4477e0b4af4bad2dcc916319085a86f9') in 0.0007474 seconds
+Start importing Assets/Art/World/Materials/City 979797.mat using Guid(32f00d9097c5d194691ecb443f133bb7) (NativeFormatImporter) -> (artifact id: '6b2bc3326c1ea95280d96f391ece4504') in 0.0007923 seconds
+Start importing Assets/Art/World/Materials/City 909292.mat using Guid(32f1a885fac6ffa439078ed516729a2d) (NativeFormatImporter) -> (artifact id: '10a65e030ca72c38dc4c671735ca8d62') in 0.0008067 seconds
+Start importing Assets/Art/World/Materials/City 7F7F7F.mat using Guid(32e835b08ff64af4ca51b324b28951d0) (NativeFormatImporter) -> (artifact id: '1e6d7a8e0d326ffdd5c104f0a7bdfaeb') in 0.0007569 seconds
+Start importing Assets/Art/World/Materials/City A07F7A.mat using Guid(32cce1dd9b4fd4543aa215bb210c2220) (NativeFormatImporter) -> (artifact id: '6db2c3775dd25a1aac495c6b178acd14') in 0.0008263 seconds
+Start importing Assets/Art/World/Materials/City 585858.mat using Guid(524db3b7ebd675345b11cb0ddaa70fd2) (NativeFormatImporter) -> (artifact id: '9dca0e6747fc2e68a93e85318518ae89') in 0.0007525 seconds
+Start importing Assets/Art/World/Materials/City BEB481.mat using Guid(52cdb50e567317741a54a8139454b726) (NativeFormatImporter) -> (artifact id: '0dd5a3f813da8efb5089f680443fb9b8') in 0.0007836 seconds
+Start importing Assets/Art/World/Materials/City 7D6D57.mat using Guid(520e79b54f3a4ff418a28d7d874c433b) (NativeFormatImporter) -> (artifact id: 'dc1ae87920aef013b3b065266e49321a') in 0.0008841 seconds
+Start importing Assets/Art/World/Materials/City BEBCB8.mat using Guid(6202a2ac535315d4dae106c09439e8ce) (NativeFormatImporter) -> (artifact id: '6feae5464f94ad4e8434db49eda73c8f') in 0.000831 seconds
+Start importing Assets/Art/World/Materials/Plaza B.mat using Guid(82704f71002f72c4ca0467c1ec6f6821) (NativeFormatImporter) -> (artifact id: 'c07ac269fe90fc9807129dd8ee6e5ff1') in 0.0007663 seconds
+Start importing Assets/Art/World/Materials/City 8A845E.mat using Guid(822819e3cd00b474a90b137509ce416e) (NativeFormatImporter) -> (artifact id: '2a53e8ca430b1c196e35516d346b2964') in 0.0010152 seconds
+Start importing Assets/Art/World/Materials/City 3F3F3F.mat using Guid(826c130245db3984a9a4fb09fbba7122) (NativeFormatImporter) -> (artifact id: '2fc5ef91772255ca80393f9237b1a0a7') in 0.0010029 seconds
+Start importing Assets/Art/World/Materials/City 9EA7BE.mat using Guid(924b09839527a63409ba46f6fdf0ca0d) (NativeFormatImporter) -> (artifact id: 'b9c2de46d9375c34236ec2ebee5b901b') in 0.0009059 seconds
+Start importing Assets/Art/World/Materials/Exit marker MarkersAtlas1bcg.mat using Guid(a294e4dc9c8568543968c47a5086040b) (NativeFormatImporter) -> (artifact id: 'd630e3afb8f926cf347c7a9f9937181e') in 0.0008389 seconds
+Start importing Assets/Art/World/Materials/City 999793.mat using Guid(b22aae40654f0174c8a282b7d7066c3a) (NativeFormatImporter) -> (artifact id: '5d97481d3770de01d4725e72ba988155') in 0.0008347 seconds
+Start importing Assets/Art/World/Materials/City 414C34.mat using Guid(c2eaa937e159b8c458ef08b7f8b781f9) (NativeFormatImporter) -> (artifact id: 'c9db3fc4aa7a1320e5f06ef9d1086ae3') in 0.0008214 seconds
+Start importing Assets/Art/World/Materials/City 676767.mat using Guid(c2ebb1cf737724142870336df56b3c0e) (NativeFormatImporter) -> (artifact id: '923e61315a4d921afa905c834ad1ebb2') in 0.0008042 seconds
+Start importing Assets/Art/World/Materials/Wall 3B3C3F.mat using Guid(d231ad24569f6ca478cb14fe6ca72037) (NativeFormatImporter) -> (artifact id: 'f2fea23bb1f72eb062266535c1ef5821') in 0.0014645 seconds
+Start importing Assets/Art/World/Materials/City 645544.mat using Guid(d2ef175aa8020af41a63d1f2cfeaeee3) (NativeFormatImporter) -> (artifact id: 'aa15bab1b262e87390160aad02f9319a') in 0.0010871 seconds
+Start importing Assets/Art/World/Materials/Accent 54423A.mat using Guid(03ea61aadc089944997f22cfe9628586) (NativeFormatImporter) -> (artifact id: '2081f46fc3b9ebbb57bd3f44a519b759') in 0.0008321 seconds
+Start importing Assets/Art/World/Materials/City 8BA973.mat using Guid(1344df96fc9551d468eee23455007005) (NativeFormatImporter) -> (artifact id: 'df5df877592e0816dad55f9a70185dce') in 0.0009184 seconds
+Start importing Assets/Art/World/Materials/City 5C5245.mat using Guid(33bc26a1c9a9cb946b6544ab90d0fda6) (NativeFormatImporter) -> (artifact id: '0c878dc0731941a77feb00ac4fee49c3') in 0.0008411 seconds
+Start importing Assets/Art/World/Materials/City 969696.mat using Guid(6303eb1a80c562d4687474fff8967c46) (NativeFormatImporter) -> (artifact id: 'd3818a068aaa217727bede0e58f030a3') in 0.0008104 seconds
+Start importing Assets/Art/World/Materials/Wall 665549.mat using Guid(63e5986f1028e08459d54e618c3af9a3) (NativeFormatImporter) -> (artifact id: '0ad4c670872d654c18ee49813ed4f44d') in 0.0007057 seconds
+Start importing Assets/Art/World/Materials/City 8F8D81.mat using Guid(731f8f0087ea4d84287e782634ef7cca) (NativeFormatImporter) -> (artifact id: '31e4799067775cfd39b1524664eece28') in 0.0008123 seconds
+Start importing Assets/Art/World/Materials/Wall 555845.mat using Guid(938cd2a4e3fe6a24eb74817b04d0e73a) (NativeFormatImporter) -> (artifact id: '622e397cad9397e676f12ce2b1e59df3') in 0.0008072 seconds
+Start importing Assets/Art/World/Materials/City 966668.mat using Guid(c358e421029e90e4e841d55fdcbf7f1e) (NativeFormatImporter) -> (artifact id: '0f280f440127aabc9100921a26f5d3c3') in 0.000876 seconds
+Start importing Assets/Art/World/Materials/City C7B398.mat using Guid(f31592f0a65279f44a69d6f4d20a52fb) (NativeFormatImporter) -> (artifact id: '40ac1168f1c4abae468af588f038e94c') in 0.0007261 seconds
+Start importing Assets/Art/World/Materials/City 76675C.mat using Guid(f368698db4b53874dace04b09e3991f6) (NativeFormatImporter) -> (artifact id: '91a16547540ec5f827bf44b11e82279b') in 0.0007829 seconds
+Start importing Assets/Art/World/Materials/City 5A5A5A.mat using Guid(f31a5bec1c73a7a4b9faef105ffce3ed) (NativeFormatImporter) -> (artifact id: '725cd22bb14b534e3397697efdf9c2dd') in 0.0007744 seconds
+Start importing Assets/Art/World/Materials/Wall 41454B.mat using Guid(f37b2509f4f711d4b85428187fef3d8f) (NativeFormatImporter) -> (artifact id: '48832d2b0952b01b7d9e16bbc3ca6717') in 0.0007668 seconds
+Start importing Assets/Art/World/Materials/City 9D9D9D.mat using Guid(1415dd504f4ca054ca792d118f8aa7ad) (NativeFormatImporter) -> (artifact id: '88a6df08151bd61b03fbc6ad164364bf') in 0.0007684 seconds
+Start importing Assets/Art/World/Materials/City A1BEA6.mat using Guid(2463ac9a1d204ce458b988015093af3f) (NativeFormatImporter) -> (artifact id: '26c856ea900a415d81e7f0fe690b0607') in 0.0007448 seconds
+Start importing Assets/Art/World/Materials/City 4F514A.mat using Guid(241a1f5377ef2134a8e1e5505ee47b4a) (NativeFormatImporter) -> (artifact id: '650c08b85fbdd52bf9ea57d7dcb82353') in 0.0007434 seconds
+Start importing Assets/Art/World/Materials/City 454748.mat using Guid(6456580ca48548f44bd3adb400f96bb1) (NativeFormatImporter) -> (artifact id: '45eda404b982313234ccd8d12209f875') in 0.0008009 seconds
+Start importing Assets/Art/World/Materials/Accent 3C4452.mat using Guid(74606b90a9dad3b40b7037e580c2f868) (NativeFormatImporter) -> (artifact id: 'cb7baa598c11b6f763cd9960f441d449') in 0.0007937 seconds
+Start importing Assets/Art/World/Materials/City A09995.mat using Guid(b46d8d69b8f0bca488524506ac47cf86) (NativeFormatImporter) -> (artifact id: 'a7b34931e0a0e18c7364792fd3558519') in 0.0008165 seconds
+Start importing Assets/Art/World/Materials/City 86B8BE.mat using Guid(d42f2de58c1542941a3198fc9b555340) (NativeFormatImporter) -> (artifact id: 'd7c84e5c9fb32163925f0d3b36d79216') in 0.0008046 seconds
+Start importing Assets/Art/World/Materials/City BDA68E.mat using Guid(e40b6a5a0426dad46ad24381eff02e42) (NativeFormatImporter) -> (artifact id: 'a27c1b05c3e65dc8070b6b83b67d78da') in 0.0007956 seconds
+Start importing Assets/Art/World/Materials/City BCBFBE.mat using Guid(f4842f5ba16eb8049bd40007d7298cbb) (NativeFormatImporter) -> (artifact id: '663925e6890f341b4e45763af82c622e') in 0.0007868 seconds
+Start importing Assets/Art/World/Materials/Sign cool.mat using Guid(f4aea9f5a4d32794096ac170047a0706) (NativeFormatImporter) -> (artifact id: 'ac04f8baa6febf24aa395d97dbede489') in 0.0008166 seconds
+Start importing Assets/Art/World/Materials/City 666666.mat using Guid(0554fd3ad8f9150469876b81adc7c292) (NativeFormatImporter) -> (artifact id: 'aa2db34c0e4b96651409ce3dd3706f5a') in 0.0007532 seconds
+Start importing Assets/Art/World/Materials/Wall 6D6153.mat using Guid(45ab6b2474e2d1b4e80f73e3733ade45) (NativeFormatImporter) -> (artifact id: 'dcc4490aa5614f5bb635bed9197dae32') in 0.0008359 seconds
+Start importing Assets/Art/World/Materials/City 7A7A7A.mat using Guid(555d22b567ae5434888d9aa5dad8419c) (NativeFormatImporter) -> (artifact id: '2495201eb0ec95cc9863571421350295') in 0.0007405 seconds
+Start importing Assets/Resources/WorldToonFade.mat using Guid(55fd0800244077343850f4cfaf37fedf) (NativeFormatImporter) -> (artifact id: '236b57274a57c2e63ff0326e85a76304') in 0.0008752 seconds
+Start importing Assets/Art/World/Materials/Glass lit cool.mat using Guid(65063e375969f7f468743c3f755ff6c5) (NativeFormatImporter) -> (artifact id: '71bcca978c3271f104e258da1a25c50f') in 0.0007276 seconds
+Start importing Assets/Art/World/Materials/City 6A6A6A.mat using Guid(8543f52e5b3084a4db92d82eefd5238d) (NativeFormatImporter) -> (artifact id: '56b63277138150aae2d723b8ad992617') in 0.000849 seconds
+Start importing Assets/Art/World/Materials/City 676669.mat using Guid(85a63020297d7d04db0f894de442e3de) (NativeFormatImporter) -> (artifact id: '38965e69ef04e6343300ac830449a95b') in 0.0008112 seconds
+Start importing Assets/Art/World/Materials/City BEA081.mat using Guid(95d954d17bc85124aa72d0861b80ec93) (NativeFormatImporter) -> (artifact id: 'b3c02a13fa3a1d4205ddaf4c72c41924') in 0.0010383 seconds
+Start importing Assets/Art/World/Materials/City BE8781.mat using Guid(d50c28ec6eff8814eb0a69d36cb71692) (NativeFormatImporter) -> (artifact id: 'ed485bd11fa494f1eae7345b1769bd9b') in 0.0008113 seconds
+Start importing Assets/Art/World/Materials/City 7A7953.mat using Guid(f5f28c0220785e54e8ce7fccd7693eee) (NativeFormatImporter) -> (artifact id: 'c3745f7d2f58fdb5434a8579a3910c21') in 0.0008622 seconds
+Start importing Assets/Art/World/Materials/City BFAE9E.mat using Guid(f5ec727bcc61ee849bdcd925e83dba8d) (NativeFormatImporter) -> (artifact id: 'd084cdbb5a52e94c0795385a474f610f') in 0.0008167 seconds
+Start importing Assets/Art/World/Materials/City 737373.mat using Guid(064c4c97c57a6f14db4bcfea7faf1e14) (NativeFormatImporter) -> (artifact id: '5a82aaf498094e0c37912c75e3514337') in 0.0008674 seconds
+Start importing Assets/Art/World/Materials/Wall A68A76.mat using Guid(162fee284e822234c979b1d50551c78c) (NativeFormatImporter) -> (artifact id: '7fc78a1726879de1848f0c4cbeb8ee37') in 0.0007896 seconds
+Start importing Assets/Resources/WorldToon.mat using Guid(26d6cf620c46ea141aaf562595d07a91) (NativeFormatImporter) -> (artifact id: '05b9600085298ac4d50604bdcbf4c181') in 0.0009128 seconds
+Start importing Assets/Art/World/Materials/City BEBEBE.mat using Guid(4600d11b25ba81f4a8a4ca8ea5dcd522) (NativeFormatImporter) -> (artifact id: '1b88e7f2e6d27ccd1591578e5689a887') in 0.0008659 seconds
+Start importing Assets/Art/World/Materials/City 5F5441.mat using Guid(46f396aad4c34124e8e05ec27c7e507e) (NativeFormatImporter) -> (artifact id: '11f151ac95228db2eba5b41a8addda6a') in 0.0008825 seconds
+Start importing Assets/Art/World/Materials/City 474443.mat using Guid(86d5aa9fb28ba5f41859438a3beadbd3) (NativeFormatImporter) -> (artifact id: '4f104df017db40f00d751c666f0e822c') in 0.0008544 seconds
+Start importing Assets/Art/World/Materials/City 916B63.mat using Guid(864981d7de58fa44b973f40276fb7b6e) (NativeFormatImporter) -> (artifact id: '941ea8c7de3f18bd40990943f75a1531') in 0.000826 seconds
+Start importing Assets/Art/World/Materials/City 787878.mat using Guid(86fa8f44882b5ea4e839d2263eefc7ba) (NativeFormatImporter) -> (artifact id: 'c7367b7a3c951b36d9b520ea080624c5') in 0.0008508 seconds
+Start importing Assets/Art/World/Materials/City 161616.mat using Guid(96ce3c3cfd09c3e4e9327eb5f1b15e56) (NativeFormatImporter) -> (artifact id: '85d6645aea894854b4d208f4bc829b43') in 0.0007906 seconds
+Start importing Assets/Art/World/Materials/City A5AD8A.mat using Guid(b663f004511f6274081f1ad873495ec5) (NativeFormatImporter) -> (artifact id: '2b3214be0aa30ac8805b3c30d02ff192') in 0.0008404 seconds
+Start importing Assets/Art/World/Materials/Accent 34363A.mat using Guid(c60ebc1ebdfeb834d86f8e1c29c80e97) (NativeFormatImporter) -> (artifact id: '2b04665ed666187f2fa8b1add7476e67') in 0.0009293 seconds
+Start importing Assets/Art/World/Materials/Wall B09E86.mat using Guid(d677736a1e4f42a4dba410cd50f06847) (NativeFormatImporter) -> (artifact id: '3192a4f2c53ac1c42d8ea655d8f8c8a2') in 0.0007518 seconds
+Start importing Assets/Art/World/Materials/City BE9781.mat using Guid(d6ffe62b401009043a04ecb319d534a9) (NativeFormatImporter) -> (artifact id: 'bbc65558b8be6a445b646670659ef9b8') in 0.0009827 seconds
+Start importing Assets/Art/World/Materials/City 9D968A.mat using Guid(07c78a8f1bc3a7a44bc7644357d7325b) (NativeFormatImporter) -> (artifact id: 'cf38a1cb70914498054374165db5346a') in 0.0008233 seconds
+Start importing Assets/Art/World/Materials/City BEB193.mat using Guid(174ffd085f2485549bf737105db62aa5) (NativeFormatImporter) -> (artifact id: 'b08a14c6522f773e5752717dc492ba84') in 0.000806 seconds
+Start importing Assets/Art/World/Materials/Plaza A.mat using Guid(27fd991eb42b8b242ae3c1ddd193df88) (NativeFormatImporter) -> (artifact id: 'a5dd751e0334e1a46f9f35501a3822c9') in 0.0009612 seconds
+Start importing Assets/Art/World/Materials/City BE8681.mat using Guid(578558dade4da084fb677170fcfa7180) (NativeFormatImporter) -> (artifact id: 'b8619b06d697169ef844c37b7e7f7751') in 0.001191 seconds
+Start importing Assets/Art/World/Materials/City 4D4235.mat using Guid(67977187d172fea4ea4038b1613b0af7) (NativeFormatImporter) -> (artifact id: 'fd1f726f6586f67136e05cc65fc99e84') in 0.0011116 seconds
+Start importing Assets/Art/World/Materials/City 86BE81.mat using Guid(67bee535d65683f4f80c366cb9379607) (NativeFormatImporter) -> (artifact id: '6232b36dba4c171974b6c29bf3a2c939') in 0.0009282 seconds
+Start importing Assets/Art/World/Materials/City B4A27A.mat using Guid(77d4823b054a8e64584e6e42e0b5670a) (NativeFormatImporter) -> (artifact id: '4c35b1f9eba7985f1e4d8bd28a422c9f') in 0.0007909 seconds
+Start importing Assets/Art/World/Materials/Wall BCB29E.mat using Guid(7718a4a630ed0f14495708de5e9faadf) (NativeFormatImporter) -> (artifact id: '267b4337c379fdff84c07e5073650da3') in 0.0009166 seconds
+Start importing Assets/Art/World/Materials/City 616161.mat using Guid(77c9b1f67a06b7e48bc1e2798d94ce25) (NativeFormatImporter) -> (artifact id: '73eeb21c259727d3e70c8e517ce59438') in 0.0008398 seconds
+Start importing Assets/Art/World/Materials/Wall 5D413A.mat using Guid(87401980b7ec6e2438927fb725ecaea6) (NativeFormatImporter) -> (artifact id: 'adf23b0e39810a455d57ef857a0c1685') in 0.0008339 seconds
+Start importing Assets/Art/World/Materials/City C3C7B4.mat using Guid(97a7e8878168eec41a3af845bd86863c) (NativeFormatImporter) -> (artifact id: '5a5b94a7eeaba515739146662c3a5b15') in 0.0007895 seconds
+Start importing Assets/Art/World/Materials/City BFAF82.mat using Guid(9718368d358b8684a8b32510926a3f67) (NativeFormatImporter) -> (artifact id: '0c5d92483d0a03d4c98773133595bdbb') in 0.0008137 seconds
+Start importing Assets/Art/World/Materials/City 94818D.mat using Guid(b7fbaf77fa372ea4e929c0e9fccb749a) (NativeFormatImporter) -> (artifact id: '3ffd33b2bf67e94a5c6f33240ae8fe56') in 0.001093 seconds
+Start importing Assets/Art/World/Materials/City 252525.mat using Guid(d774986b505121b49be5e4488eb55b64) (NativeFormatImporter) -> (artifact id: '8ac86643110b4dabd7b791fd8dbc6939') in 0.0008901 seconds
+Start importing Assets/Art/World/Materials/City 926B63.mat using Guid(f75145ada65597e4385f7798a18eb763) (NativeFormatImporter) -> (artifact id: 'f9577704193cb56f94d8c3ecd58e69fe') in 0.0008016 seconds
+Start importing Assets/Art/World/Materials/City C2C099.mat using Guid(0894da8b25ee9ae458dff42582436186) (NativeFormatImporter) -> (artifact id: '8dcc6aa31baf9a57a12f5f5d211c2cf6') in 0.0008145 seconds
+Start importing Assets/Art/World/Materials/City 70829B.mat using Guid(7877e74968f2f914ba3ed13a3eaa4c87) (NativeFormatImporter) -> (artifact id: '09617e1dfd73732417324de0513de6c4') in 0.0008005 seconds
+Start importing Assets/Art/World/Materials/City 838383.mat using Guid(78fabc93c979aba47bc29038229a4589) (NativeFormatImporter) -> (artifact id: '4135badf8c4b4978ee59413548fb313f') in 0.0007884 seconds
+Start importing Assets/Art/World/Materials/City 928573.mat using Guid(789fa9f95d93b6a4f8106175c755328a) (NativeFormatImporter) -> (artifact id: '101868765f5e52e2c4d6f351a8cfd899') in 0.0008969 seconds
+Start importing Assets/Art/World/Materials/City 303030.mat using Guid(88fb0bd9bb33ad742a3de900c14c4a5e) (NativeFormatImporter) -> (artifact id: 'f54d78be5004fb674166247ef25b0d00') in 0.000827 seconds
+Start importing Assets/Art/World/Materials/City BEA2AF.mat using Guid(a8d54899be7b3cd41b831b46fb49a8bb) (NativeFormatImporter) -> (artifact id: 'c70efac39819207a2486db725a6df5a4') in 0.0007837 seconds
+Start importing Assets/Art/World/Materials/Glass dark.mat using Guid(f8fa4cbcce4703c468cd0d8847b596e7) (NativeFormatImporter) -> (artifact id: '71ebc8d304e308e96db57ee30411280e') in 0.0007797 seconds
+Start importing Assets/Art/World/Materials/City 525252.mat using Guid(494b043cb6b04b04eb47effcd8dafe39) (NativeFormatImporter) -> (artifact id: '5e16e624f265e5ad5506010c008effcf') in 0.0007421 seconds
+Start importing Assets/Art/World/Materials/City BEB9AA.mat using Guid(491c28aeb2d7a6f4ca3107cf1c6bbd0c) (NativeFormatImporter) -> (artifact id: 'e6dcc622affb60c88a96e9afc245e00f') in 0.0007934 seconds
+Start importing Assets/Art/World/Materials/City 9B6F69.mat using Guid(6929fcf13faa9174ab7e2f9550134b7d) (NativeFormatImporter) -> (artifact id: '10c0f2383521b5e0ebdb928bc92d15cc') in 0.000787 seconds
+Start importing Assets/Art/World/Materials/City A7A7A7.mat using Guid(79dde97c3679a98429c0d6a55f7b5295) (NativeFormatImporter) -> (artifact id: '5f15710ff1e75943b781bc73990195f0') in 0.0009192 seconds
+Start importing Assets/Art/World/Materials/City AD9E76.mat using Guid(a9cbfeb914cf2fb42892edc134828184) (NativeFormatImporter) -> (artifact id: '0c384fd7f81b65182884af5736f32ad0') in 0.0008042 seconds
+Start importing Assets/Art/World/Materials/City 6D624A.mat using Guid(c90d0af88e1c4df439679b180cd87ca3) (NativeFormatImporter) -> (artifact id: '6b913f7e7d9db9d61bda7e41d1e4a753') in 0.0007856 seconds
+Start importing Assets/Art/World/Materials/City C7C7C7.mat using Guid(e9b87c1ff17fc914eb348988895d800b) (NativeFormatImporter) -> (artifact id: 'd8546991be6f527d17c0e7938d86ef34') in 0.0007698 seconds
+Start importing Assets/Art/World/Materials/City BEAD9D.mat using Guid(f943388fac906f446bbf28e780a7beb4) (NativeFormatImporter) -> (artifact id: 'cd9badfd490ce031f2fdfed7b7bf6611') in 0.0007285 seconds
+Start importing Assets/Art/World/Materials/City 343333.mat using Guid(f94716e0f64de1443a84e9f2d689bac5) (NativeFormatImporter) -> (artifact id: '91801ec87dcbdd942591533b066087ae') in 0.0007605 seconds
+Start importing Assets/Art/World/Materials/City 2F2F2F.mat using Guid(f9eae6a82ab1f47479c4765695711938) (NativeFormatImporter) -> (artifact id: 'efca00cf1b500b0fec764f34608b0efa') in 0.0007301 seconds
+Start importing Assets/Art/World/Materials/City AEB6BE.mat using Guid(f98cccc6fcc0907418abbc13b2d43e8f) (NativeFormatImporter) -> (artifact id: '24fe00e50b21db1b1088cfdcfb9d7fb8') in 0.0007795 seconds
+Start importing Assets/Art/World/Materials/City B6A99C.mat using Guid(2a94ba448645dec40afef8804154d58a) (NativeFormatImporter) -> (artifact id: '24924c3494da410570eda8c6754d71e6') in 0.0008461 seconds
+Start importing Assets/Art/World/Materials/City 2D2D2D.mat using Guid(5a2c37d7494a6fe4c985a5ce0c5213b1) (NativeFormatImporter) -> (artifact id: 'ee1a8f8760d944bd745fec0132d3e6b8') in 0.0008877 seconds
+Start importing Assets/Art/World/Materials/City A3926F.mat using Guid(6abbd406bdca85c4dbeb9acef7ef1dd4) (NativeFormatImporter) -> (artifact id: '4f00c94c069f18ec09e5f8c0219be6a7') in 0.0008588 seconds
+Start importing Assets/Art/World/Materials/Paving.mat using Guid(6aac32d537dabf3489ada3280d4762ab) (NativeFormatImporter) -> (artifact id: '493ae5d22d9829afdd7cbbcaf3f030ac') in 0.0008948 seconds
+Start importing Assets/Art/World/Materials/City 6D6D6D.mat using Guid(ca073cbe4d690694d9ab201e9b84f41f) (NativeFormatImporter) -> (artifact id: 'cd5d487d88b0962a09c87f77ec72e9ea') in 0.000843 seconds
+Start importing Assets/Art/World/Materials/City 747474.mat using Guid(cafdd6d314fdc0640849f8215c28add6) (NativeFormatImporter) -> (artifact id: 'de9b601e3396af69557ca8bab2502361') in 0.0008461 seconds
+Start importing Assets/Art/World/Materials/Wall 8A8E70.mat using Guid(da0ab142f6afdc84a829b5216275d694) (NativeFormatImporter) -> (artifact id: 'fbe539af71fff2b2e3001c49b5b4bd8b') in 0.0008215 seconds
+Start importing Assets/Art/World/Materials/City 7E7E7E.mat using Guid(da1b29b4532706948bbdfeac08ed9dae) (NativeFormatImporter) -> (artifact id: 'd7453324e6c3ba0a05579883a4cd2f97') in 0.0007644 seconds
+Start importing Assets/Art/World/Materials/City 6D855F.mat using Guid(da1f80ca94d3eef4894eebd3d549a75b) (NativeFormatImporter) -> (artifact id: '507dc479b48a9e7a7547819c0dfe8c15') in 0.0008337 seconds
+Start importing Assets/Art/World/Materials/City BDB1A8.mat using Guid(fa325c29b71fcad4bafa136bba031a94) (NativeFormatImporter) -> (artifact id: 'cbfe776c15ba40647b316aa3513398bb') in 0.0009297 seconds
+Start importing Assets/Art/World/Materials/Sign warm.mat using Guid(0b06244d33077a243a37aba97aa73f3c) (NativeFormatImporter) -> (artifact id: 'bda76638fe5b691c53cd7c278ef7bc0d') in 0.0008554 seconds
+Start importing Assets/Art/World/Materials/City 4E4947.mat using Guid(1bd86bbf253ec8d40904c71ceb58430c) (NativeFormatImporter) -> (artifact id: 'e7f376dccb87b0ed18ef37ab3056ad79') in 0.0007456 seconds
+Start importing Assets/Art/World/Materials/City BEB681.mat using Guid(3b727b7259d05b24e90cd7391a891d61) (NativeFormatImporter) -> (artifact id: '406d6985b3ca419a317230b82e6f16ff') in 0.0008889 seconds
+Start importing Assets/Art/World/Materials/City 8C8C8C.mat using Guid(4b21377a2c3c7f743a9dada16bfabb6e) (NativeFormatImporter) -> (artifact id: 'e4a5c8e91ed0ead8a74a02e57ba2e46e') in 0.0007799 seconds
+Start importing Assets/Art/World/Materials/City A8A896.mat using Guid(5b92ee10e1eb91f4b9d532da21dea33e) (NativeFormatImporter) -> (artifact id: 'd367e873c47e56784a92358885c8c15f') in 0.0008495 seconds
+Start importing Assets/Art/World/Materials/City 4F4F4F.mat using Guid(5b7583bd5ebcb724bada4f8ba87f655a) (NativeFormatImporter) -> (artifact id: '342bd1a5bb5c5ab12750deec4d9479ec') in 0.0008507 seconds
+Start importing Assets/Art/World/Materials/City 685447.mat using Guid(5b6ccc280f1c3294da14699b5d0b4328) (NativeFormatImporter) -> (artifact id: 'b1f3a074098278c02eae23e842fedd05') in 0.00081 seconds
+Start importing Assets/Art/World/Materials/Marking.mat using Guid(7beb287b409923646a15a2b7248f618b) (NativeFormatImporter) -> (artifact id: '595b1ab92d1fbbff3e7cce06359d8e3f') in 0.000802 seconds
+Start importing Assets/Art/World/Materials/City 5D5D5D.mat using Guid(9b4e02e4e00afd24cafb769b9ac9468e) (NativeFormatImporter) -> (artifact id: 'de59f659618bd423ee516ac3034e6858') in 0.0008561 seconds
+Start importing Assets/Art/World/Materials/City 8E7C6D.mat using Guid(abaa9ada6e67f9b478c9749b56e0beda) (NativeFormatImporter) -> (artifact id: '6e8fe05c7286039dd27cccd6768cd50a') in 0.0007836 seconds
+Start importing Assets/Art/World/Materials/City 636363.mat using Guid(bb050d712e6546d4eb1d97f4ca2f73b0) (NativeFormatImporter) -> (artifact id: '63ac8a3ff6f2000df80797a3a6c6ed36') in 0.000841 seconds
+Start importing Assets/Art/World/Materials/City 5B5B5B.mat using Guid(bbef7c9757ba3a54d892c7ccce5b7327) (NativeFormatImporter) -> (artifact id: '6b091340452461d9fa8ba38921fb4fb0') in 0.000784 seconds
+Start importing Assets/Art/World/Materials/City 626262.mat using Guid(dbb4efdc819964e4cadffa0d45df587f) (NativeFormatImporter) -> (artifact id: '17ffb95adb4c028b802cd00f7b38a01f') in 0.0009484 seconds
+Start importing Assets/Art/World/Materials/City C0C2C5.mat using Guid(db4ec162041ea2e4fb2d7a4d3dbb7347) (NativeFormatImporter) -> (artifact id: 'd8e4046b9684e0aa33afc9b9b6a7e99e') in 0.0008815 seconds
+Start importing Assets/Art/World/Materials/City 243524.mat using Guid(eb55dd1159d8f144a84369f01054838a) (NativeFormatImporter) -> (artifact id: 'f8eca1f01064aa216706ea7be9d87582') in 0.0008547 seconds
+Start importing Assets/Art/World/Materials/City BEA281.mat using Guid(eb9a18bb23a81d24291e2da3050f5906) (NativeFormatImporter) -> (artifact id: 'a29a4eb6a437a9c9cc11775fc1516c2e') in 0.00078 seconds
+Start importing Assets/Art/World/Materials/Door.mat using Guid(fbb8d839660b60547b8ef42265030c7e) (NativeFormatImporter) -> (artifact id: '4fb8887d72c3cb4f9bbb2e282005a25d') in 0.0007855 seconds
+Start importing Assets/Art/World/Materials/City 3D3D3D.mat using Guid(fbe9307f4c87a17439476c8439c7e426) (NativeFormatImporter) -> (artifact id: '3871f90071bebf1960a6f1f97571491b') in 0.0007598 seconds
+Start importing Assets/Art/World/Materials/City 444444.mat using Guid(fb2fa32ebe654f245b8e71cdb41ecfdc) (NativeFormatImporter) -> (artifact id: 'a62f6803f3d74d2898ec570af06607a4') in 0.0007442 seconds
+Start importing Assets/Art/World/Materials/City 8E7264.mat using Guid(2cd4294bb22707443bbb5d0a1e6db64d) (NativeFormatImporter) -> (artifact id: '3596778545347c9c9cf3498c1e60011f') in 0.0007345 seconds
+Start importing Assets/Art/World/Materials/City 696355.mat using Guid(4c2590b515815504687f44d40b87ddb6) (NativeFormatImporter) -> (artifact id: '9300a35e02b57403ae11a02a088b7659') in 0.0007911 seconds
+Start importing Assets/Art/World/Materials/City 1F1F1F.mat using Guid(8c504e39bbfadc14193103a695128019) (NativeFormatImporter) -> (artifact id: 'ae653d1e436609b7a5f0cd659c8fbc37') in 0.0007456 seconds
+Start importing Assets/Art/World/Materials/Wall 56595D.mat using Guid(9c7748e02d1c8cd4ea36b06b220320bc) (NativeFormatImporter) -> (artifact id: '6a729c2b3887a5c9ccaa26af1b9d0b94') in 0.0008906 seconds
+Start importing Assets/Art/World/Materials/Roof.mat using Guid(dca6b40e42165074b904a0f1beb8780d) (NativeFormatImporter) -> (artifact id: 'eeb87fa2aca4df04206e5fa32a3bd66b') in 0.0007613 seconds
+Start importing Assets/Art/World/Materials/Wall 6A707A.mat using Guid(1d445301ca8788c4ab4e0087116137c6) (NativeFormatImporter) -> (artifact id: 'e313f1b51f3827eb88f89647c6c3d7d9') in 0.000802 seconds
+Start importing Assets/Art/World/Materials/Wall 606266.mat using Guid(2d2444dffc47bf1469d5d07ccfb9b77c) (NativeFormatImporter) -> (artifact id: 'aa946715a0e22a548a0256248d485fd7') in 0.0007374 seconds
+Start importing Assets/Art/World/Materials/City 7B695D.mat using Guid(2d6cb7469bd6fad4e8ad0aafd8872736) (NativeFormatImporter) -> (artifact id: '3c417eaf3b1dd7e245e54e7543da8ad4') in 0.0007446 seconds
+Start importing Assets/Art/World/Materials/Wall 8C9196.mat using Guid(3d40594c5b33bd941b38cab25cf43c22) (NativeFormatImporter) -> (artifact id: 'b93a2e293d5b77c3f4aabf4340dde294') in 0.0008179 seconds
+Start importing Assets/Art/World/Materials/City 2D3B28.mat using Guid(3d50a2ef763b1be43b2cfbc733129e8a) (NativeFormatImporter) -> (artifact id: 'bce4f03b0d202f5edce71be5f71180a4') in 0.000834 seconds
+Start importing Assets/Art/World/Materials/Device ExplosiveDeviceC4_mtl.mat using Guid(3d1b1cd5d9e469d448b98209209b2eaa) (NativeFormatImporter) -> (artifact id: 'de79b3f93ff9dd2d7020ef4df5365cf8') in 0.0008041 seconds
+Start importing Assets/Art/World/Materials/City 777777.mat using Guid(6de7a98efa46fa0448550a2c41cbbe5e) (NativeFormatImporter) -> (artifact id: '9638636adbe264f8c77e0b4e9bcd338a') in 0.0008608 seconds
+Start importing Assets/Art/World/Materials/City 747952.mat using Guid(6d88fdb74d541ac488f53d7ec2e64665) (NativeFormatImporter) -> (artifact id: '7317333672687a701ea31b898456b92b') in 0.0007363 seconds
+Start importing Assets/Art/World/Materials/City 5C7852.mat using Guid(7dee72cc707eee64899fbdf7241c673d) (NativeFormatImporter) -> (artifact id: 'a13f7b8b2aef569e580ec170992c13ec') in 0.0008244 seconds
+Start importing Assets/Art/World/Materials/Asphalt.mat using Guid(9da0a007a0ef6e147929a80bba2df147) (NativeFormatImporter) -> (artifact id: '4aebb912cb81b92391eb5d73945f65b3') in 0.0008551 seconds
+Start importing Assets/Art/World/Materials/Shutter.mat using Guid(adad83df51b8d7d49b5e78a0ccf6d26c) (NativeFormatImporter) -> (artifact id: 'e7385c74a662cf15d3bdc955e6b2a3b8') in 0.0007836 seconds
+Start importing Assets/Art/World/Materials/Steel.mat using Guid(bdd500b3587b0734e8beb1d247f8a9b8) (NativeFormatImporter) -> (artifact id: 'bef99d500b7699fbbccb3ec88416f343') in 0.0008255 seconds
+Start importing Assets/Art/World/Materials/City 4A4C38.mat using Guid(bda9bfdaede18b54c9e4a986326be850) (NativeFormatImporter) -> (artifact id: '950069c3257cf1f67394ea28b7223705') in 0.0007676 seconds
+Start importing Assets/Art/World/Materials/Steel dark.mat using Guid(cd39e649c46f00943a0959295811f5c9) (NativeFormatImporter) -> (artifact id: 'c80327f630ef62f3e09477c7dec8ebf7') in 0.0007752 seconds
+Start importing Assets/Art/World/Materials/City 000000.mat using Guid(dda015a39598e0b4f9f24f4700016d05) (NativeFormatImporter) -> (artifact id: '21ce7e439811c598322516d6f6e088f2') in 0.0009744 seconds
+Start importing Assets/Art/World/Materials/City 4A505C.mat using Guid(dd12b13d926083b48b519a0f6d7421d9) (NativeFormatImporter) -> (artifact id: '1adac97e14ec1fa50df4b37f09a6b493') in 0.0009653 seconds
+Start importing Assets/Art/World/Materials/City 707070.mat using Guid(fd39fe5d18dc9e044aef51a2cfc149e9) (NativeFormatImporter) -> (artifact id: '0db4526a7890e740549a6a00d2f4ce1b') in 0.0037773 seconds
+Start importing Assets/Art/World/Materials/Wall 454E5A.mat using Guid(1e093970dc397db4ea12612fb5703f11) (NativeFormatImporter) -> (artifact id: '76653cc03e8174cea17242885a307fe5') in 0.0009678 seconds
+Start importing Assets/Art/World/Materials/Wall 966A5E.mat using Guid(1efe0f377acdda644a7c0e7cb153fc1c) (NativeFormatImporter) -> (artifact id: '6004885d5fde36a6cf4aaa87937c14d1') in 0.0009636 seconds
+Start importing Assets/Art/World/Materials/City BEAD99.mat using Guid(3ebff74e49de3254889c1b722e1adfc8) (NativeFormatImporter) -> (artifact id: 'd3494bdd2134d6207a292a4eb74efdbc') in 0.0009195 seconds
+Start importing Assets/Art/World/Materials/City 989898.mat using Guid(4e659cfb68d32ac4bb0e906728279ae0) (NativeFormatImporter) -> (artifact id: 'd15a8da91414e915eedc2620081aa8da') in 0.0008198 seconds
+Start importing Assets/Art/World/Materials/Kerb.mat using Guid(4e9e5ed8b5d8452439f8f2f548e31af3) (NativeFormatImporter) -> (artifact id: 'aa5a6cefb99a875ea04804e738e93f7f') in 0.0007873 seconds
+Start importing Assets/Art/World/Materials/City A4A4A4.mat using Guid(7e8e024a54615e7419fe19783ea70a34) (NativeFormatImporter) -> (artifact id: '566559f2f9eead114aa0cd487941ca9e') in 0.0008249 seconds
+Start importing Assets/Art/World/Materials/City 6B6B6B.mat using Guid(7e8e3fe3313555d48baccb05a1d29604) (NativeFormatImporter) -> (artifact id: 'b2a65af0cc9026d8d7a2136285b141a6') in 0.0007404 seconds
+Start importing Assets/Art/World/Materials/Wall 746E61.mat using Guid(8e070001feeb71a4e91e94c6412647b2) (NativeFormatImporter) -> (artifact id: '734ef952fda2aa90c33d957c8be64e94') in 0.0009116 seconds
+Start importing Assets/Art/World/Materials/City 6E6E6E.mat using Guid(8ed8306ae00439d4da397110f5b2b321) (NativeFormatImporter) -> (artifact id: 'f4c3a791a5459874932b5e3d4682536e') in 0.0007269 seconds
+Start importing Assets/Art/World/Materials/City 1F2A1D.mat using Guid(9e803b898ef1b0145892ffcae3b42502) (NativeFormatImporter) -> (artifact id: '3be17841c1c17ca1a1652df7031e21b0') in 0.0008526 seconds
+Start importing Assets/Art/World/Materials/Wall 707E92.mat using Guid(9ee2114556c42124db1243077b2b49d2) (NativeFormatImporter) -> (artifact id: '146e8675bcea6eabb23428c76e3233a2') in 0.0008482 seconds
+Start importing Assets/Art/World/Materials/City 303047.mat using Guid(de894ebd3f1c9f04f89301586db7587c) (NativeFormatImporter) -> (artifact id: '436be0e377d72dde234a962ff288d326') in 0.0008542 seconds
+Start importing Assets/Art/World/Materials/City 606060.mat using Guid(def907660cff6f145a3b74fd69a534dc) (NativeFormatImporter) -> (artifact id: '006a85173580cca15fd0da7f3c0587d5') in 0.000823 seconds
+Start importing Assets/Art/World/Materials/City 3F3D3D.mat using Guid(ee470ecb127127248abfeb2eaa2c9afb) (NativeFormatImporter) -> (artifact id: 'c8f04968a367035a7c9364e3071883cf') in 0.000827 seconds
+Start importing Assets/Art/World/Materials/City 96B28C.mat using Guid(4f17ac715a0d3164394862e3e6add147) (NativeFormatImporter) -> (artifact id: '5733e96f3dd6c4b212ce39f9ad30941b') in 0.0007701 seconds
+Start importing Assets/Art/World/Materials/Accent 485044.mat using Guid(5fd8244e8e089fc4e80b019c4bf00f13) (NativeFormatImporter) -> (artifact id: '5caf8c1b91359733a9b9d902811848e6') in 0.0008548 seconds
+Start importing Assets/Art/World/Materials/City 404040.mat using Guid(5f0eea47b9c519c4987e15e65fdde5d0) (NativeFormatImporter) -> (artifact id: 'f4749869ebafc73ff004375711e5a9ca') in 0.0007933 seconds
+Start importing Assets/Art/World/Materials/City 515151.mat using Guid(6f21d68b1aeb5f046bd9400d2144095e) (NativeFormatImporter) -> (artifact id: '5e1239d3cdbce1f043edbe6933abef75') in 0.0007851 seconds
+Start importing Assets/Art/World/Materials/City 9C876A.mat using Guid(6f41668a7486f2d448fd24951f54d0c5) (NativeFormatImporter) -> (artifact id: 'c65b8b6514972ac78df5561ae9a5e589') in 0.0007582 seconds
+Start importing Assets/Art/World/Materials/City 6C6C6C.mat using Guid(7f842d1ae4c2033489d1dce6fae852e2) (NativeFormatImporter) -> (artifact id: 'e7d2c19a735162aa26e3778d19de6232') in 0.0008215 seconds
+Start importing Assets/Art/World/Materials/City 848484.mat using Guid(af28d55b9e732344d873c8ee664d7648) (NativeFormatImporter) -> (artifact id: '8a12d30db4672d3298fb0d29aa9909a0') in 0.0007905 seconds
+Start importing Assets/Art/World/Materials/City 9C9C9C.mat using Guid(bf2b523d5848b8b4088a5311f8afc87c) (NativeFormatImporter) -> (artifact id: 'ffbf11c0903c482ed447379349a728be') in 0.0008433 seconds
+Start importing Assets/Art/World/Materials/City C7C7C5.mat using Guid(ef3755ca63565a84e8046dd76d333fd5) (NativeFormatImporter) -> (artifact id: '171d445d1895740d74f5c994b403dc40') in 0.0008366 seconds
+Start importing Assets/Art/World/Materials/City 4C3333.mat using Guid(efd7c8fa19fc4584e9c4276e6338c8da) (NativeFormatImporter) -> (artifact id: '71fe19372fd98788b16a08f343a91f4b') in 0.0008631 seconds
+Start importing Assets/Art/World/Meshes/Building 0 podium.asset using Guid(20f27eed1578d814bb59fb1f93e58941) (NativeFormatImporter) -> (artifact id: '8c4ebacf19f23205b7016aa379185d90') in 0.0011501 seconds
+Start importing Assets/Art/World/Meshes/Building 17 podium.asset using Guid(70bcecb41d541734cb3e3521897d0133) (NativeFormatImporter) -> (artifact id: 'a96eb86ab63335dbce112e2a4405732a') in 0.0009756 seconds
+Start importing Assets/Art/World/Meshes/Ground.asset using Guid(9096ee50e19bce74985841ef33a0627d) (NativeFormatImporter) -> (artifact id: 'f7f5c2ff98a2768dc23ab3f0334e51e0') in 0.0025852 seconds
+Start importing Assets/Art/World/Meshes/Terminal cabinet.asset using Guid(c0717b368d1ade74db958f341c1f435c) (NativeFormatImporter) -> (artifact id: '40d3d2bdf67d51ba28b1b4e370502c31') in 0.0009178 seconds
+Start importing Assets/Art/World/Meshes/Building 29 podium.asset using Guid(812262f83dde8f84d8624ff282535f65) (NativeFormatImporter) -> (artifact id: 'cd1fdeb79a7a96c486aa729e4f1909f7') in 0.0009362 seconds
+Start importing Assets/Resources/WorldArt.asset using Guid(120a83f8ab0a1fc4e82eec79e6f13d46) (NativeFormatImporter) -> (artifact id: '86f6535205b4e9531104b69c68ea9c6f') in 0.0008132 seconds
+Start importing Assets/Art/World/Meshes/Building 5 podium.asset using Guid(82fc7147fe9a9d84ab52d92210d43aaf) (NativeFormatImporter) -> (artifact id: '6e8f47e2762fd116e747399db6a672cf') in 0.0009461 seconds
+Start importing Assets/Art/World/Meshes/Building 19 podium.asset using Guid(92435ae020e60e04d9e5f9965b50746e) (NativeFormatImporter) -> (artifact id: '8a73e81542e0b67435ae78c06d53c936') in 0.0008664 seconds
+Start importing Assets/Art/World/Meshes/Building 2 podium.asset using Guid(e246d1292e1bbe44181cf60124e154cf) (NativeFormatImporter) -> (artifact id: '3a707d5d397ada8b8c11790f6d3eaefc') in 0.0011245 seconds
+Start importing Assets/Art/World/Meshes/Building 24 podium.asset using Guid(e2fc47754d9824f4f98e8eb464674778) (NativeFormatImporter) -> (artifact id: '7646784dfd2a84d3c69765113ca0ee00') in 0.0008945 seconds
+Start importing Assets/Art/World/Meshes/Building 18 podium.asset using Guid(43c34eee72f467444a055f8fb9a2b76b) (NativeFormatImporter) -> (artifact id: '1f466c82a65aab8c01aec5f092d28720') in 0.0008521 seconds
+Start importing Assets/Art/World/Meshes/Building 6 storeys.asset using Guid(a3cccf3aff23e304bb8310d0b2baab8c) (NativeFormatImporter) -> (artifact id: '9c0a2a04ca8c2a092ebc4f4b6656d56a') in 0.0008933 seconds
+Start importing Assets/Art/World/Meshes/Building 15 storeys.asset using Guid(f3b6ff900bed5bb47931ad92def1be38) (NativeFormatImporter) -> (artifact id: 'bfcc2b7eff596f2f6c8addc461944e08') in 0.0008842 seconds
+Start importing Assets/Art/World/Meshes/Terminal screen.asset using Guid(04b14df8fa4c5e74fa7b82d17ef4da06) (NativeFormatImporter) -> (artifact id: '2b182c40c5c2d5b171b4c381a8f63d1e') in 0.0008225 seconds
+Start importing Assets/Art/World/Meshes/Building 13 podium.asset using Guid(c49097b57b578e24b9f60e98ab073a59) (NativeFormatImporter) -> (artifact id: '1aa77661d6e956240992885d2958de66') in 0.0010245 seconds
+Start importing Assets/Art/World/Meshes/Building 16 podium.asset using Guid(e44234daa982fcf4cb1cece64fc09a72) (NativeFormatImporter) -> (artifact id: '4839339e7d6ad84763e246310efa7fad') in 0.0009807 seconds
+Start importing Assets/Art/World/Meshes/Building 9 storeys.asset using Guid(35516afe48c8fb0468cf47edceef902c) (NativeFormatImporter) -> (artifact id: '88fb4e06b22eda6463c28951e42aa00a') in 0.0008309 seconds
+Start importing Assets/Art/World/Meshes/Building 30 podium.asset using Guid(85e0a41bdf9ae1e49b96319367b5bab2) (NativeFormatImporter) -> (artifact id: '0e838614d006ac0c4c4924e420b23820') in 0.0009615 seconds
+Start importing Assets/Art/World/Meshes/Building 10 podium.asset using Guid(b5845553761b8db43a660b348f2cbf4d) (NativeFormatImporter) -> (artifact id: '6a4ca0d346e3184dd9fc8aca6e3b7b55') in 0.0008723 seconds
+Start importing Assets/Art/World/Meshes/Building 12 podium.asset using Guid(36dc2835336065843a78048ab8286e22) (NativeFormatImporter) -> (artifact id: '1231a60546af1a45aecf7b8339fcd37d') in 0.0008863 seconds
+Start importing Assets/Art/World/Meshes/Building 4 podium.asset using Guid(560de9e0e330dfa4dbd46302afd6b145) (NativeFormatImporter) -> (artifact id: 'c1d4f3cf81810add5904d82d2ede9cb9') in 0.0009657 seconds
+Start importing Assets/Art/World/Meshes/Terminal screen frame.asset using Guid(e7c95d64f1566ea42a41b86e9675d6b4) (NativeFormatImporter) -> (artifact id: 'e42b20c49776af821f6bdc6ab050ae49') in 0.0007776 seconds
+Start importing Assets/Art/World/Meshes/Building 3 podium.asset using Guid(89d213866ffb1be4685645f620f8f523) (NativeFormatImporter) -> (artifact id: '084ea47cf970c50cb4d6e26317a8b11b') in 0.0011326 seconds
+Start importing Assets/Art/World/Meshes/Building 22 podium.asset using Guid(a9718291694f2b8408ff65b2c09f91e2) (NativeFormatImporter) -> (artifact id: '21b8ecedf0b20ea49368456f962166c3') in 0.0010186 seconds
+Start importing Assets/Art/World/Meshes/Building 9 podium.asset using Guid(6aa417ffafaadbd498e8208f1b74a764) (NativeFormatImporter) -> (artifact id: '0a27c293c6a9edf3edba9a8fc488b766') in 0.0009274 seconds
+Start importing Assets/Art/World/Meshes/Building 8 podium.asset using Guid(6a5f2fb4d6acb0d4ab1b59cd246db546) (NativeFormatImporter) -> (artifact id: 'ead41be917bead1d5f4b622f7178f138') in 0.0008699 seconds
+Start importing Assets/Art/World/Meshes/Building 14 podium.asset using Guid(7a769610fd1e7784ab1997004b99f328) (NativeFormatImporter) -> (artifact id: 'dd1244a7aa3335421379910f52f75685') in 0.0009398 seconds
+Start importing Assets/Art/World/Meshes/Building 7 podium.asset using Guid(2b6cab7a9b71dde4493336f26f9b68d3) (NativeFormatImporter) -> (artifact id: '2aa82527fa6cbc87f9717d829f6bb02b') in 0.0009266 seconds
+Start importing Assets/Art/World/Meshes/Building 26 podium.asset using Guid(5b311a5852f47e849b99dc5e2adc0cbf) (NativeFormatImporter) -> (artifact id: '4ee441e18146f13cce94af2c6682d294') in 0.0008924 seconds
+Start importing Assets/Art/World/Meshes/Building 15 podium.asset using Guid(5b9c28a217ee9a447bd6deff1a309426) (NativeFormatImporter) -> (artifact id: '3602b079d0d4e7afd8e354b97931099e') in 0.0009534 seconds
+Start importing Assets/Art/World/Meshes/Building 25 podium.asset using Guid(1c2eaa17c3af5d5418e58c0925fd6aff) (NativeFormatImporter) -> (artifact id: 'f26553bc6d86a6b880783b106bb0b82d') in 0.0008838 seconds
+Start importing Assets/Art/World/Meshes/Building 21 podium.asset using Guid(3cd30c9c5980e4e44aaf433066076709) (NativeFormatImporter) -> (artifact id: '0f16b29971c1e417fe55e457cc3688eb') in 0.0009486 seconds
+Start importing Assets/Art/World/Meshes/Building 28 podium.asset using Guid(7d5aada4cabc8ae44bf9cfde0364a513) (NativeFormatImporter) -> (artifact id: '2ba03859c9e86d8c7b04205f535251bb') in 0.0009322 seconds
+Start importing Assets/Art/World/Meshes/Building 27 podium.asset using Guid(dd18d17e435da944788807df4965b48c) (NativeFormatImporter) -> (artifact id: '73c0be5816936dfe06c5d4d39e9469b8') in 0.0008306 seconds
+Start importing Assets/Art/World/Meshes/Building 6 podium.asset using Guid(8ea41afef0976d94daeaad4d55cdc571) (NativeFormatImporter) -> (artifact id: 'e9bb6b925aff1f3fcf3da5b4a9aab3d5') in 0.000884 seconds
+Start importing Assets/Art/World/Meshes/Building 20 podium.asset using Guid(2fed7bfdd92a9094ca0cc69e2ba47f38) (NativeFormatImporter) -> (artifact id: '7bd480fc42f3243e7a874a8abe3f1619') in 0.0009189 seconds
+Start importing Assets/Art/World/Meshes/Building 23 podium.asset using Guid(3fd214fcfb630ea4b81acf2a5e90fcdf) (NativeFormatImporter) -> (artifact id: '4f22e6ad079f78e36a04c6b714cd028b') in 0.0009537 seconds
+Start importing Assets/Art/World/Meshes/Building 1 podium.asset using Guid(bf3c9191309122048a33411dc56d233c) (NativeFormatImporter) -> (artifact id: '218de7587ccda7fda42806e4ebec6854') in 0.0010706 seconds
+Start importing Assets/Art/World/Meshes/Building 11 podium.asset using Guid(ff0e0befb82844149a33923dbf84445f) (NativeFormatImporter) -> (artifact id: 'f9bf11a52e2cfc0d680819b6a1a47a1e') in 0.0008656 seconds
+Refreshing native plugins compatible for Editor in 0.15 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=e9320ecada15b624a97678744ccd0cdb): Total: 0.281 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+[WorldArtSetup] WorldArt catalog ready: 31 buildings, 15 obstacles.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+PingTheKiller.Editor.Setup.WorldArtSetup:Run () (at Assets/Editor/Setup/WorldArtSetup.cs:75)
+
+(Filename: Assets/Editor/Setup/WorldArtSetup.cs Line: 75)
+
+Batchmode quit successfully invoked - shutting down!
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-User-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-User channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+abort_threads: Failed aborting id: 00000000000096F0, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 00000000000084B8, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 00000000000096F0, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 00000000000084B8, mono_thread_manage will ignore it
+
+debugger-agent: Unable to listen on 5188
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0
