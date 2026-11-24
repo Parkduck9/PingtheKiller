@@ -1,0 +1,11 @@
+commit a28ed475e0780d8ee6054bf9ea45ea7f34ac8764 (Q5a-rules S0, protocol v0.7)
+1. Geometry: Shared/Runtime/Game/WorldChaseProps.cs -> WorldChaseProps.Shutters (10) and .Rails (8), IReadOnlyList<ChaseProp>, id == index.
+2. ChaseProp (readonly struct): Id, MinX, MinZ, MaxX, MaxZ, CenterX/Z, AlongX, CrossX/Z (crossing axis), HalfLength, HalfThickness (0.15), Distance(x,z), IntersectsCircle, Side(x,z). Rail vault point = centre.
+3. Heights: GameConstants.ShutterHeight 1.2, RailHeight 1.0. Props block movement, never sight.
+4. enum ShutterState : byte { Up = 0, Down = 1, Broken = 2 } (Broken permanent).
+5. S2C_WorldState: new LAST field List<byte> Shutters -> wire [byte count <= Protocol.MaxShutters (10)][byte ShutterState x count], same for every recipient, every snapshot (no new packet id; late join/reconnect come free).
+6. PlayerState: new trailing byte Chase (entry now 25 bytes). [Flags] enum ChaseFlags : byte { Pulling = 1, Vaulting = 2, Breaking = 4, Stunned = 8 }; decode rejects > 15.
+7. Killer-bound anonymous survivor entries always carry Chase = 0 (phantom indistinguishability); survivors see every survivor's and the visible killer's Chase.
+8. S2C_SelfState.ActionKind adds Pull = 4, Vault = 5, Break = 6 (ActionProgress 0-1); decode rejects > 6.
+9. Helpers: WorldChaseProps.Has(PlayerState, ChaseFlags), WorldChaseProps.ShutterOf(S2C_WorldState, id) (Up when absent).
+10. Timings (GameConstants): ShutterPull 0.3 s / 1.5 m, ShutterStun 2.0 s (+0.6 m zone), ShutterVault 1.0 s / 1.0 m, ShutterBreak 2.0 s hold / 1.5 m, RailVault 0.8 s survivor / 1.6 s killer / 1.0 m, ChaseSignalTail 1.0 s. Client still sends only C2S_Interact.

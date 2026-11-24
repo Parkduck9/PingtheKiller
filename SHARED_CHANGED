@@ -1,0 +1,7 @@
+Shared changed after S0 commit a28ed47 (uncommitted, Shared/Runtime/Game/WorldChaseProps.cs only; API and wire layout unchanged):
+three rails moved because they cut long-standing server test lanes (straight runs along the south edge street z=2,
+up the west road x=5, and the centre crossroads at (41, 36-38)):
+  Rail 0: (5, 43.85)-(8, 44.15)     -> (5, 56.85)-(8, 57.15)      west plaza, north edge
+  Rail 4: (40, 38.35)-(43, 38.65)   -> (55.85, 32)-(56.15, 35)    east plaza, west edge (crossed along X now)
+  Rail 7: (15, 1.85)-(18, 2.15)     -> (56, 19.85)-(59, 20.15)    south of the east plaza
+Shutters are unchanged. Clients reading WorldChaseProps pick the new boxes up on recompile.
