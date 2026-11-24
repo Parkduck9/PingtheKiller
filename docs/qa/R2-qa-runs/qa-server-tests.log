@@ -1,0 +1,76 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  Shared -> C:\Unity\MultiPlayGame\PtK-work\r2-hack\artifacts\bin\Shared\debug\Shared.dll
+  Server.Core -> C:\Unity\MultiPlayGame\PtK-work\r2-hack\artifacts\bin\Server.Core\debug\Server.Core.dll
+  Server.Tests -> C:\Unity\MultiPlayGame\PtK-work\r2-hack\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+C:\Unity\MultiPlayGame\PtK-work\r2-hack\artifacts\bin\Server.Tests\debug\Server.Tests.dll(.NETCoreApp,Version=v10.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+C:\Unity\MultiPlayGame\PtK-work\r2-hack\artifacts\bin\Server.Tests\debug\Server.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.12)
+[xUnit.net 00:00:00.10]   Discovering: Server.Tests
+[xUnit.net 00:00:00.28]   Discovered:  Server.Tests
+[xUnit.net 00:00:00.30]   Starting:    Server.Tests
+[xUnit.net 00:00:00.39]     PingTheKiller.Tests.QA.R2.R2HackQaTests.F1_ARouteIsNotAdvertisedOnceItsOwnerStoppedHackingAndWalkedAway [FAIL]
+[xUnit.net 00:00:00.39]       System.ArgumentOutOfRangeException : Specified argument was out of the range of valid values. (Parameter 'x')
+[xUnit.net 00:00:00.39]       Stack Trace:
+[xUnit.net 00:00:00.39]         C:\Unity\MultiPlayGame\PtK-work\r2-hack\Server.Core\Runtime\GameServer.Visibility.cs(160,0): at PingTheKiller.ServerCore.GameServer.PlaceForTests(Int32 playerId, Single x, Single z)
+[xUnit.net 00:00:00.39]         C:\Unity\MultiPlayGame\PtK-work\r2-hack\Server.Tests\QA\R2\R2HackQaTests.cs(51,0): at PingTheKiller.Tests.QA.R2.R2HackQaTests.F1_ARouteIsNotAdvertisedOnceItsOwnerStoppedHackingAndWalkedAway()
+[xUnit.net 00:00:00.39]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+[xUnit.net 00:00:00.39]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 PingTheKiller.Tests.QA.R2.R2HackQaTests.F1_ARouteIsNotAdvertisedOnceItsOwnerStoppedHackingAndWalkedAway [49 ms]
+  오류 메시지:
+   System.ArgumentOutOfRangeException : Specified argument was out of the range of valid values. (Parameter 'x')
+  스택 추적:
+     at PingTheKiller.ServerCore.GameServer.PlaceForTests(Int32 playerId, Single x, Single z) in C:\Unity\MultiPlayGame\PtK-work\r2-hack\Server.Core\Runtime\GameServer.Visibility.cs:line 160
+   at PingTheKiller.Tests.QA.R2.R2HackQaTests.F1_ARouteIsNotAdvertisedOnceItsOwnerStoppedHackingAndWalkedAway() in C:\Unity\MultiPlayGame\PtK-work\r2-hack\Server.Tests\QA\R2\R2HackQaTests.cs:line 51
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.SoloCompletionTimeByPace(name: "fast 0.15 s/key", keySeconds: 0.14999999999999999, wrongEvery: 0, min: 26, max: 36) [22 ms]
+  표준 출력 메시지:
+ fast 0.15 s/key: 30.8 s per terminal, 36 keys (70 per minute), 0 errors
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.SoloCompletionTimeByPace(name: "sloppy 0.15 s/key, every 5th wrong", keySeconds: 0.14999999999999999, wrongEvery: 5, min: 30, max: 60) [19 ms]
+  표준 출력 메시지:
+ sloppy 0.15 s/key, every 5th wrong: 40.7 s per terminal, 54 keys (80 per minute), 10 errors
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.SoloCompletionTimeByPace(name: "very slow 1.0 s/key", keySeconds: 1, wrongEvery: 0, min: 35, max: 60) [33 ms]
+  표준 출력 메시지:
+ very slow 1.0 s/key: 46.7 s per terminal, 27 keys (35 per minute), 0 errors
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.SoloCompletionTimeByPace(name: "idle (no keys)", keySeconds: 0, wrongEvery: 0, min: 89, max: 91) [47 ms]
+  표준 출력 메시지:
+ idle (no keys): 89.9 s per terminal, 0 keys (0 per minute), 0 errors
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.SoloCompletionTimeByPace(name: "slow 0.5 s/key", keySeconds: 0.5, wrongEvery: 0, min: 30, max: 45) [19 ms]
+  표준 출력 메시지:
+ slow 0.5 s/key: 38.3 s per terminal, 32 keys (50 per minute), 0 errors
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.StaleIdsOfTheOwnEarlierRoutesAreDroppedAndDoNotCountAsErrors [12 ms]
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.APerfectScriptedClientNeedsAboutThirtySecondsPerTerminal [15 ms]
+  표준 출력 메시지:
+ perfect client: 25.4 s per terminal
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.RouteKeysFromTheKillerABystanderALaggingSurvivorOrWithGuessedIdsChangeNothing [12 ms]
+  표준 출력 메시지:
+ route id 1 untouched after 2048 foreign keys
+
+
+[xUnit.net 00:00:00.63]   Finished:    Server.Tests
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.TwoPerfectCoHackersReport [16 ms]
+  표준 출력 메시지:
+ two perfect co-hackers: 12.8 s per terminal (old rule: 25.0 s)
+
+
+  통과 PingTheKiller.Tests.QA.R2.R2HackQaTests.ReleasingEKeepsTheSameRouteAndIndex [6 ms]
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 11
+     통과: 10
+     실패: 1
+ 총 시간: 1.2512 초

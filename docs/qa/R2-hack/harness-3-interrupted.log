@@ -1,0 +1,4 @@
+H1-H5 require a fresh sandbox lobby server (--bots 0 --bind 127.0.0.1 --sandbox, WITHOUT --autostart; 2 humans + 6 bots); H6 requires its own fresh normal lobby server (--bots 0 --bind 127.0.0.1, no --sandbox; --h6-port; 3 humans + 0 bots). Every network wait has a deadline.
+H1 completed: PASS ? 10000/10000 ordered timestamps; zero disconnects; seed=20794; chunks=1..1500 bytes; final Ping/Pong barrier passed.
+H2 completed: FAIL ? IOException: Server disconnected or sent an invalid frame.
+H3 completed: FAIL ? IOException: Server disconnected or sent an invalid frame.

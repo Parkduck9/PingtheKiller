@@ -1,0 +1,47 @@
+listening address=127.0.0.1 port=7788 bots=0
+join player=1 reconnect=false
+join player=3 reconnect=false
+join player=4 reconnect=false
+match start players=3 killer=1 matchSeed=973253264
+route player=4 terminal=1 complete progress=9.6
+route player=3 terminal=1 complete progress=17.6
+route player=3 terminal=1 complete progress=33.1
+route player=4 terminal=1 complete progress=41.1
+route player=3 terminal=1 complete progress=56.6
+route player=4 terminal=1 complete progress=64.6
+route player=4 terminal=1 complete progress=80.1
+route player=3 terminal=1 complete progress=88.1
+route player=4 terminal=1 complete progress=103.6
+terminal 1 complete
+route player=3 terminal=4 complete progress=9.6
+route player=4 terminal=4 complete progress=23.5
+route player=3 terminal=4 complete progress=33.1
+route player=4 terminal=4 complete progress=47.0
+route player=3 terminal=4 complete progress=56.6
+route player=4 terminal=4 complete progress=70.5
+route player=3 terminal=4 complete progress=80.1
+route player=4 terminal=4 complete progress=94.0
+route player=3 terminal=4 complete progress=103.6
+terminal 4 complete
+route player=4 terminal=3 complete progress=13.9
+route player=3 terminal=3 complete progress=23.5
+route player=4 terminal=3 complete progress=37.4
+route player=3 terminal=3 complete progress=47.0
+route player=4 terminal=3 complete progress=60.9
+route player=3 terminal=3 complete progress=70.5
+route player=4 terminal=3 complete progress=84.4
+route player=3 terminal=3 complete progress=94.0
+route player=4 terminal=3 complete progress=107.9
+terminal 3 complete
+exits powered reason=terminals
+exit 1 open
+collapse start reason=exit
+status player=3 Lagging reason=capture
+status player=3 Normal reason=rescue
+status player=4 Escaped reason=exit
+hatch open x=66 z=38.5
+status player=3 Escaped reason=exit
+match end winner=Survivor reason=AllResolved escaped=2
+leave player=3
+leave player=1
+leave player=4

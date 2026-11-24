@@ -1,0 +1,148 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.120 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 1.058600 ms
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\lobby.png
+[offline server] match start players=8 killer=8 matchSeed=-1613303833
+[fx] warm ms=24.4 objects=120 meshes=11 materials=19 glyphs=9
+[DEV] match 1 start role=Survivor skill=3
+[DEV] t=0.02 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.02 local status=Normal timer=0.00 hud="" pos=4.00,76.00
+[net] SelfState received (first of the match)
+[DEV] t=0.02 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\play-1s.png
+[DEV] t=1.03 local position 4.00,76.00 moved=0.00 m
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\survivor-3p.png
+[DEV] t=2.01 autopilot ToTerminal goal=19.00,49.00 held=0.00 pos=4.00,76.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\play-4s.png
+[offline server] route player=6 terminal=7 error progress=0.0
+[DEV] t=5.01 local position 13.94,70.91 moved=11.17 m
+[DEV] t=5.46 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.46 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\hacking.png
+[offline server] route player=6 terminal=7 complete progress=4.7
+[DEV] t=5.77 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=5.77 event chase-prompt.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\chase-prompt.png
+[DEV] t=6.01 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:5 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=7 role=Survivor id=0
+[DEV] t=6.94 event skillfx-survivor-s0-ally-720p.png
+[fx] survivor skill=0 viewer=Ally line="" visual=WireDouble sound=Dummy (positional) reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[fx] first cast WireDouble frame ms=15.2 (average before 9.2)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\skillfx-survivor-s0-ally-720p.png
+[DEV] t=7.52 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=7 terminal=7 error progress=4.3
+[DEV] t=7.82 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:4 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.17 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:5 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.88 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.26 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.40 autopilot Hacking goal=19.00,49.00 held=0.02 pos=18.76,49.92
+[DEV] t=10.42 route id=1 dirs=RUDL index=0 completed=0 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=10.94 route key id=1 dir=Right index=1 keys=1 completed=0 errors=0
+[DEV] t=11.27 terminals 0:0 1:0 2:0 3:1 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=11.45 route key id=1 dir=Up index=2 keys=2 completed=0 errors=0
+[DEV] route panel mid-route id=1 index=2 label="Press the arrows in order"
+[DEV] t=11.45 event v2-route-mid.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\v2-route-mid.png
+[audio] v2 cue RouteKey
+[DEV] t=11.96 route key id=1 dir=Down index=3 keys=3 completed=0 errors=0
+[DEV] t=12.17 terminals 0:0 1:0 2:0 3:2 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=12.46 route key id=1 dir=Left index=4 keys=4 completed=1 errors=0
+[DEV] route done flash label="+3.4 %" completed=1
+[DEV] t=12.46 event v2-route-done.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\v2-route-done.png
+[offline server] route player=4 terminal=3 complete progress=5.7
+[DEV] t=12.51 terminals 0:0 1:0 2:0 3:5 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=12.51 route id=0 dirs=- index=0 completed=1 errors=0
+[DEV] t=12.58 dev-hack budget spent: E released, walking away for 6.00 s from 18.83,49.67
+[DEV] t=12.58 autopilot Idle goal=19.00,49.00 held=2.20 pos=18.83,49.67
+[offline server] skill player=8 role=Killer id=1
+[offline server] skill player=6 role=Survivor id=2
+[DEV] t=14.62 event skillfx-survivor-s2-ally-720p.png
+[fx] survivor skill=2 viewer=Ally line="Bot 5 slowed the Killer · 2 s" visual=Spikes sound=Overload (positional) reduced=False
+[net] SkillEffect skill=2 (survivor HUD)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\skillfx-survivor-s2-ally-720p.png
+[offline server] skill player=5 role=Survivor id=0
+[DEV] t=17.61 terminals 0:0 1:0 2:0 3:6 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.52 terminals 0:0 1:0 2:0 3:7 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.59 walked away 13.56 m to 24.74,37.47 (route panel shown=False)
+[DEV] t=18.59 event walked-away.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\walked-away.png
+[offline server] route player=5 terminal=3 complete progress=10.7
+[DEV] t=18.81 terminals 0:0 1:0 2:0 3:10 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=19.06 terminals 0:0 1:0 2:0 3:11 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.07 terminals 0:0 1:0 2:0 3:12 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=16.2
+[DEV] t=22.82 terminals 0:0 1:0 2:0 3:16 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.22 killer model shown
+[DEV] t=25.53 terminals 0:0 1:0 2:0 3:17 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.72 event killer-in-sight.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\killer-in-sight.png
+[offline server] route player=5 terminal=3 error progress=15.6
+[DEV] t=26.12 terminals 0:0 1:0 2:0 3:15 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.43 terminals 0:0 1:0 2:0 3:16 4:0 5:1 6:0 7:6 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] kick terminal 7
+[audio] v2 cue TerminalKick
+[DEV] t=27.26 terminals 0:0 1:0 2:0 3:16 4:0 5:1 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.92 terminals 0:0 1:0 2:0 3:16 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.37 terminals 0:0 1:0 2:0 3:17 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=20.4
+[DEV] t=29.41 terminals 0:0 1:0 2:0 3:20 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.46 event killer-fade.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-qa-screens\a2-walkaway\killer-fade.png
+[DEV] t=29.63 killer model hidden
+[DEV] t=29.91 terminals 0:0 1:0 2:0 3:21 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] skill player=5 role=Survivor id=0
+[DEV] t=32.67 terminals 0:0 1:0 2:0 3:22 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.57 terminals 0:0 1:0 2:0 3:23 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=26.5
+[DEV] t=33.66 terminals 0:0 1:0 2:0 3:26 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=34.07 terminals 0:0 1:0 2:0 3:27 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=36.41 terminals 0:0 1:0 2:0 3:28 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=32.2
+[DEV] t=37.17 terminals 0:0 1:0 2:0 3:32 4:0 5:1 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] quit after 40 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.

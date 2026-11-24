@@ -1,0 +1,567 @@
+Mono path[0] = 'C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/PingTheKiller_Data/Managed'
+Mono config path = 'C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.25f1 (e1dba0a9aba4)
+[Subsystems] Discovering subsystems at path C:/Unity/MultiPlayGame/PtK-work/r2-hack/Client/Builds/Win64/PingTheKiller_Data/UnitySubsystems
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 3060
+[D3D12 Device Filter] Driver Version: 32.0.16.1088
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 12115 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 3060 (ID=0x2504)
+    Vendor:          NVIDIA
+    VRAM:            12115 MB
+    App VRAM Budget: 11347 MB
+    Driver:          32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.260 seconds
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+Using Windows.Gaming.Input
+UnloadTime: 0.647800 ms
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\menu.png
+[offline server] join player=4 reconnect=false
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\lobby.png
+[offline server] match start players=8 killer=8 matchSeed=-1248843771
+[fx] warm ms=22.4 objects=120 meshes=11 materials=19 glyphs=9
+[DEV] match 1 start role=Survivor skill=2
+[DEV] t=0.02 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:0 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=0.02 local status=Normal timer=0.00 hud="" pos=4.00,76.00
+[net] SelfState received (first of the match)
+[DEV] t=0.02 selfstate #1 skillCooldown=0.00 rescue=0.00 invulnerable=0.00 collapse=-1.00 action=None:0.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\play-1s.png
+[DEV] t=1.03 local position 4.00,76.00 moved=0.00 m
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\survivor-3p.png
+[DEV] t=2.00 autopilot ToTerminal goal=19.00,49.00 held=0.00 pos=4.00,76.00
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\play-4s.png
+[DEV] t=5.00 local position 13.93,71.03 moved=11.11 m
+[DEV] t=5.79 event chase-prompt.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\chase-prompt.png
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=6.96 event skillfx-survivor-s0-ally-720p.png
+[fx] survivor skill=0 viewer=Ally line="" visual=WireDouble sound=Dummy (positional) reduced=False
+[net] SkillEffect skill=0 (survivor HUD)
+[fx] first cast WireDouble frame ms=6.1 (average before 6.1)
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\skillfx-survivor-s0-ally-720p.png
+[DEV] t=7.43 terminals 0:0 1:0 2:0 3:0 4:0 5:0 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=7.43 event hacking.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\hacking.png
+[DEV] t=7.79 terminals 0:0 1:0 2:0 3:0 4:0 5:1 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=3 terminal=5 complete progress=4.4
+[DEV] t=8.34 terminals 0:0 1:0 2:0 3:0 4:0 5:4 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=8.63 terminals 0:0 1:0 2:0 3:0 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=10.41 autopilot Hacking goal=19.00,49.00 held=0.01 pos=18.75,49.96
+[DEV] t=10.43 route id=1 dirs=DLUD index=0 completed=0 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=10.59 route key id=1 dir=Down index=1 keys=1 completed=0 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=10.74 route key id=1 dir=Left index=2 keys=2 completed=0 errors=0
+[DEV] route panel mid-route id=1 index=2 label="Press the arrows in order"
+[DEV] t=10.74 event v2-route-mid.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\v2-route-mid.png
+[audio] v2 cue RouteKey
+[DEV] t=10.89 route key id=1 dir=Up index=3 keys=3 completed=0 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=11.04 route key id=1 dir=Down index=4 keys=4 completed=1 errors=0
+[DEV] route done flash label="+3.4 %" completed=1
+[DEV] t=11.04 event v2-route-done.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\v2-route-done.png
+[offline server] route player=4 terminal=3 complete progress=4.1
+[DEV] t=11.09 terminals 0:0 1:0 2:0 3:4 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=11.09 route id=0 dirs=- index=0 completed=1 errors=0
+[DEV] t=11.74 route id=2 dirs=UDDL index=0 completed=1 errors=0
+[DEV] t=11.83 terminals 0:0 1:0 2:0 3:5 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=11.89 route key id=2 dir=Up index=1 keys=5 completed=1 errors=0
+[offline server] skill player=8 role=Killer id=1
+[audio] v2 cue RouteKey
+[DEV] t=12.05 route key id=2 dir=Down index=2 keys=6 completed=1 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=12.20 route key id=2 dir=Down index=3 keys=7 completed=1 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=12.35 route key id=2 dir=Left index=4 keys=8 completed=2 errors=0
+[offline server] route player=4 terminal=3 complete progress=9.0
+[DEV] t=12.38 terminals 0:0 1:0 2:0 3:9 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=12.38 route id=0 dirs=- index=0 completed=2 errors=0
+[DEV] t=13.03 route id=3 dirs=LULU index=0 completed=2 errors=0
+[offline server] skill player=6 role=Survivor id=1
+[DEV] t=13.08 event skillfx-survivor-s1-ally-720p.png
+[fx] survivor skill=1 viewer=Ally line="" visual=Dome sound=None reduced=False
+[net] SkillEffect skill=1 (survivor HUD)
+[audio] v2 cue RouteKey
+[DEV] t=13.18 route key id=3 dir=Left index=1 keys=9 completed=2 errors=0
+[DEV] t=13.29 terminals 0:0 1:0 2:0 3:10 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=13.33 route key id=3 dir=Up index=2 keys=10 completed=2 errors=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\skillfx-survivor-s1-ally-720p.png
+[DEV] holo route pulse keys=10 pulse=0.76
+[DEV] t=13.36 event holo-route-pulse.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\holo-route-pulse.png
+[audio] v2 cue RouteKey
+[DEV] t=13.49 route key id=3 dir=Left index=3 keys=11 completed=2 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=13.64 route key id=3 dir=Up index=4 keys=12 completed=3 errors=0
+[offline server] route player=4 terminal=3 complete progress=13.8
+[DEV] t=13.68 terminals 0:0 1:0 2:0 3:13 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=13.68 route id=0 dirs=- index=0 completed=3 errors=0
+[DEV] t=13.84 terminals 0:0 1:0 2:0 3:14 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.33 route id=4 dirs=RLUD index=0 completed=3 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=14.49 route key id=4 dir=Right index=1 keys=13 completed=3 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=14.64 route key id=4 dir=Left index=2 keys=14 completed=3 errors=0
+[DEV] t=14.73 terminals 0:0 1:0 2:0 3:15 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=14.79 route key id=4 dir=Up index=3 keys=15 completed=3 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=14.94 route key id=4 dir=Down index=4 keys=16 completed=4 errors=0
+[offline server] route player=4 terminal=3 complete progress=18.7
+[DEV] t=14.98 terminals 0:0 1:0 2:0 3:18 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=14.98 route id=0 dirs=- index=0 completed=4 errors=0
+[DEV] t=15.28 terminals 0:0 1:0 2:0 3:19 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=15.63 route id=5 dirs=LRLD index=0 completed=4 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=15.79 route key id=5 dir=Left index=1 keys=17 completed=4 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=15.94 route key id=5 dir=Right index=2 keys=18 completed=4 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=16.09 route key id=5 dir=Left index=3 keys=19 completed=4 errors=0
+[DEV] t=16.18 terminals 0:0 1:0 2:0 3:20 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=16.25 route key id=5 dir=Down index=4 keys=20 completed=5 errors=0
+[offline server] route player=4 terminal=3 complete progress=23.5
+[DEV] t=16.28 terminals 0:0 1:0 2:0 3:23 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.28 route id=0 dirs=- index=0 completed=5 errors=0
+[DEV] t=16.68 terminals 0:0 1:0 2:0 3:24 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=16.93 route id=6 dirs=LRUD index=0 completed=5 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=17.09 route key id=6 dir=Left index=1 keys=21 completed=5 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=17.24 route key id=6 dir=Right index=2 keys=22 completed=5 errors=0
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=17.29 event skillfx-survivor-s4-ally-720p.png
+[fx] survivor skill=4 viewer=Ally line="Bot 4 sent fake Signals across the map · 1.5 s" visual=Static sound=WhiteNoise (positional) reduced=False
+[net] SkillEffect skill=4 (survivor HUD)
+[audio] v2 cue RouteKey
+[DEV] t=17.39 route key id=6 dir=Up index=3 keys=23 completed=5 errors=0
+[DEV] t=17.43 terminals 0:0 1:0 2:0 3:25 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=17.54 route key id=6 dir=Down index=4 keys=24 completed=6 errors=0
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\skillfx-survivor-s4-ally-720p.png
+[offline server] route player=4 terminal=3 complete progress=28.0
+[DEV] t=17.58 terminals 0:0 1:0 2:0 3:28 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=17.58 route id=0 dirs=- index=0 completed=6 errors=0
+[DEV] t=18.08 terminals 0:0 1:0 2:0 3:29 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.23 route id=7 dirs=RLUU index=0 completed=6 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=18.39 route key id=7 dir=Right index=1 keys=25 completed=6 errors=0
+[offline server] route player=5 terminal=3 complete progress=32.4
+[DEV] t=18.43 terminals 0:0 1:0 2:0 3:32 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=18.55 route key id=7 dir=Left index=2 keys=26 completed=6 errors=0
+[DEV] t=18.68 terminals 0:0 1:0 2:0 3:33 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=18.70 route key id=7 dir=Up index=3 keys=27 completed=6 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=18.86 route key id=7 dir=Up index=4 keys=28 completed=7 errors=0
+[offline server] route player=4 terminal=3 complete progress=36.1
+[DEV] t=18.88 terminals 0:0 1:0 2:0 3:36 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=18.88 route id=0 dirs=- index=0 completed=7 errors=0
+[DEV] t=19.53 route id=8 dirs=ULRD index=0 completed=7 errors=0
+[DEV] t=19.63 terminals 0:0 1:0 2:0 3:37 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=19.69 route key id=8 dir=Up index=1 keys=29 completed=7 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=19.84 route key id=8 dir=Left index=2 keys=30 completed=7 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=20.00 route key id=8 dir=Right index=3 keys=31 completed=7 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=20.15 route key id=8 dir=Down index=4 keys=32 completed=8 errors=0
+[offline server] route player=4 terminal=3 complete progress=41.0
+[DEV] t=20.18 terminals 0:0 1:0 2:0 3:41 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=20.18 route id=0 dirs=- index=0 completed=8 errors=0
+[DEV] t=20.83 route id=9 dirs=RDUL index=0 completed=8 errors=0
+[DEV] t=20.88 terminals 0:0 1:0 2:0 3:42 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=20.98 route key id=9 dir=Right index=1 keys=33 completed=8 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=21.13 route key id=9 dir=Down index=2 keys=34 completed=8 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=21.29 route key id=9 dir=Up index=3 keys=35 completed=8 errors=0
+[DEV] t=21.38 terminals 0:0 1:0 2:0 3:43 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=21.44 route key id=9 dir=Left index=4 keys=36 completed=9 errors=0
+[offline server] route player=4 terminal=3 complete progress=45.9
+[DEV] t=21.48 terminals 0:0 1:0 2:0 3:46 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=21.48 route id=0 dirs=- index=0 completed=9 errors=0
+[DEV] t=21.99 terminals 0:0 1:0 2:0 3:47 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=49.8
+[DEV] t=22.04 terminals 0:0 1:0 2:0 3:49 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.14 terminals 0:0 1:0 2:0 3:50 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.14 route id=10 dirs=DLDR index=0 completed=9 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=22.29 route key id=10 dir=Down index=1 keys=37 completed=9 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=22.44 route key id=10 dir=Left index=2 keys=38 completed=9 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=22.60 route key id=10 dir=Down index=3 keys=39 completed=9 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=22.75 route key id=10 dir=Right index=4 keys=40 completed=10 errors=0
+[offline server] route player=4 terminal=3 complete progress=54.1
+[offline server] shutter 8 pull by player=7
+[DEV] t=22.78 terminals 0:0 1:0 2:0 3:54 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=22.78 route id=0 dirs=- index=0 completed=10 errors=0
+[offline server] shutter 8 down by player=7 stun=killer
+[offline server] stun player=8 seconds=2 shutter=8
+[audio] chase cue ShutterSlam at 54.0, 67.0
+[DEV] t=23.43 route id=11 dirs=DLDL index=0 completed=10 errors=0
+[DEV] t=23.58 terminals 0:0 1:0 2:0 3:55 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=23.58 route key id=11 dir=Down index=1 keys=41 completed=10 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=23.73 route key id=11 dir=Left index=2 keys=42 completed=10 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=23.89 route key id=11 dir=Down index=3 keys=43 completed=10 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=24.04 route key id=11 dir=Left index=4 keys=44 completed=11 errors=0
+[offline server] route player=4 terminal=3 complete progress=58.5
+[DEV] t=24.09 terminals 0:0 1:0 2:0 3:58 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.09 route id=0 dirs=- index=0 completed=11 errors=0
+[DEV] t=24.29 terminals 0:0 1:0 2:0 3:59 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=24.73 route id=12 dirs=UUDU index=0 completed=11 errors=0
+[DEV] t=24.78 terminals 0:0 1:0 2:0 3:60 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=24.89 route key id=12 dir=Up index=1 keys=45 completed=11 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=25.04 route key id=12 dir=Up index=2 keys=46 completed=11 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=25.19 route key id=12 dir=Down index=3 keys=47 completed=11 errors=0
+[DEV] t=25.28 terminals 0:0 1:0 2:0 3:61 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=25.34 route key id=12 dir=Up index=4 keys=48 completed=12 errors=0
+[offline server] route player=4 terminal=3 complete progress=64.5
+[DEV] t=25.38 terminals 0:0 1:0 2:0 3:64 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=25.38 route id=0 dirs=- index=0 completed=12 errors=0
+[DEV] t=25.83 terminals 0:0 1:0 2:0 3:65 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.03 route id=13 dirs=RLDL index=0 completed=12 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=26.18 route key id=13 dir=Right index=1 keys=49 completed=12 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=26.33 route key id=13 dir=Left index=2 keys=50 completed=12 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=26.49 route key id=13 dir=Down index=3 keys=51 completed=12 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=26.64 route key id=13 dir=Left index=4 keys=52 completed=13 errors=0
+[offline server] route player=4 terminal=3 complete progress=69.3
+[DEV] t=26.68 terminals 0:0 1:0 2:0 3:69 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=26.68 route id=0 dirs=- index=0 completed=13 errors=0
+[offline server] shutter 8 broken by player=8
+[audio] chase cue ShutterCrunch at 54.0, 67.0
+[DEV] t=27.28 terminals 0:0 1:0 2:0 3:70 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.33 route id=14 dirs=LLRU index=0 completed=13 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=27.49 route key id=14 dir=Left index=1 keys=53 completed=13 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=27.64 route key id=14 dir=Left index=2 keys=54 completed=13 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=27.79 route key id=14 dir=Right index=3 keys=55 completed=13 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=27.94 route key id=14 dir=Up index=4 keys=56 completed=14 errors=0
+[offline server] route player=4 terminal=3 complete progress=73.6
+[DEV] t=27.99 terminals 0:0 1:0 2:0 3:73 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=27.99 route id=0 dirs=- index=0 completed=14 errors=0
+[offline server] skill player=6 role=Survivor id=1
+[DEV] t=28.14 terminals 0:0 1:0 2:0 3:74 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[offline server] route player=5 terminal=3 complete progress=77.7
+[DEV] t=28.63 terminals 0:0 1:0 2:0 3:77 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=28.63 route id=15 dirs=URLL index=0 completed=14 errors=0
+[DEV] t=28.78 terminals 0:0 1:0 2:0 3:78 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=28.78 route key id=15 dir=Up index=1 keys=57 completed=14 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=28.94 route key id=15 dir=Right index=2 keys=58 completed=14 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=29.09 route key id=15 dir=Left index=3 keys=59 completed=14 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=29.25 route key id=15 dir=Left index=4 keys=60 completed=15 errors=0
+[offline server] route player=4 terminal=3 complete progress=81.7
+[DEV] t=29.30 terminals 0:0 1:0 2:0 3:81 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.30 route id=0 dirs=- index=0 completed=15 errors=0
+[DEV] t=29.44 terminals 0:0 1:0 2:0 3:82 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=29.93 route id=16 dirs=LRUU index=0 completed=15 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=30.10 route key id=16 dir=Left index=1 keys=61 completed=15 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=30.25 route key id=16 dir=Right index=2 keys=62 completed=15 errors=0
+[DEV] t=30.34 terminals 0:0 1:0 2:0 3:83 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=30.41 route key id=16 dir=Up index=3 keys=63 completed=15 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=30.57 route key id=16 dir=Up index=4 keys=64 completed=16 errors=0
+[offline server] route player=4 terminal=3 complete progress=86.6
+[DEV] t=30.58 terminals 0:0 1:0 2:0 3:86 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=30.58 route id=0 dirs=- index=0 completed=16 errors=0
+[DEV] t=30.90 terminals 0:0 1:0 2:0 3:87 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.25 route id=17 dirs=UUDD index=0 completed=16 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=31.41 route key id=17 dir=Up index=1 keys=65 completed=16 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=31.56 route key id=17 dir=Up index=2 keys=66 completed=16 errors=0
+[DEV] t=31.68 terminals 0:0 1:0 2:0 3:88 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=31.73 route key id=17 dir=Down index=3 keys=67 completed=16 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=31.88 route key id=17 dir=Down index=4 keys=68 completed=17 errors=0
+[offline server] route player=4 terminal=3 complete progress=91.2
+[DEV] t=31.95 terminals 0:0 1:0 2:0 3:91 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=31.95 route id=0 dirs=- index=0 completed=17 errors=0
+[offline server] skill player=5 role=Survivor id=4
+[DEV] t=32.33 terminals 0:0 1:0 2:0 3:92 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=32.58 route id=18 dirs=DDLR index=0 completed=17 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=32.75 route key id=18 dir=Down index=1 keys=69 completed=17 errors=0
+[offline server] route player=5 terminal=3 complete progress=95.7
+[DEV] t=32.84 terminals 0:0 1:0 2:0 3:95 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=32.90 route key id=18 dir=Down index=2 keys=70 completed=17 errors=0
+[DEV] t=32.99 terminals 0:0 1:0 2:0 3:96 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[audio] v2 cue RouteKey
+[DEV] t=33.06 route key id=18 dir=Left index=3 keys=71 completed=17 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=33.22 route key id=18 dir=Right index=4 keys=72 completed=18 errors=0
+[offline server] route player=4 terminal=3 complete progress=99.6
+[DEV] t=33.23 terminals 0:0 1:0 2:0 3:99 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 0/5"
+[DEV] t=33.23 route id=0 dirs=- index=0 completed=18 errors=0
+[offline server] terminal 3 complete
+[DEV] t=33.55 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:0 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=33.55 autopilot ToTerminal goal=35.50,60.00 held=23.09 pos=18.87,49.49
+[DEV] t=38.41 autopilot Hacking goal=35.50,60.00 held=23.10 pos=34.71,59.41
+[DEV] t=38.75 route id=19 dirs=RDDR index=0 completed=18 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=38.90 route key id=19 dir=Right index=1 keys=73 completed=18 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=39.05 route key id=19 dir=Down index=2 keys=74 completed=18 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=39.21 route key id=19 dir=Down index=3 keys=75 completed=18 errors=0
+[DEV] t=39.28 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:1 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=39.38 route key id=19 dir=Right index=4 keys=76 completed=19 errors=0
+[offline server] route player=4 terminal=6 complete progress=4.5
+[DEV] t=39.43 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:4 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=39.43 route id=0 dirs=- index=0 completed=19 errors=0
+[DEV] t=39.84 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:5 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=40.08 route id=20 dirs=DURR index=0 completed=19 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=40.25 route key id=20 dir=Down index=1 keys=77 completed=19 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=40.40 route key id=20 dir=Up index=2 keys=78 completed=19 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=40.56 route key id=20 dir=Right index=3 keys=79 completed=19 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=40.72 route key id=20 dir=Right index=4 keys=80 completed=20 errors=0
+[offline server] route player=4 terminal=6 complete progress=9.4
+[DEV] t=40.73 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:9 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=40.73 route id=0 dirs=- index=0 completed=20 errors=0
+[DEV] t=41.29 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:10 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=41.39 route id=21 dirs=DRDD index=0 completed=20 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=41.54 route key id=21 dir=Down index=1 keys=81 completed=20 errors=0
+[DEV] t=41.58 threat visual level=1
+[audio] v2 cue RouteKey
+[DEV] t=41.70 route key id=21 dir=Right index=2 keys=82 completed=20 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=41.85 route key id=21 dir=Down index=3 keys=83 completed=20 errors=0
+[DEV] t=41.90 event threat-1.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\threat-1.png
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=42.02 route key id=21 dir=Down index=4 keys=84 completed=21 errors=0
+[offline server] route player=4 terminal=6 complete progress=14.2
+[DEV] t=42.04 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:14 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=42.04 route id=0 dirs=- index=0 completed=21 errors=0
+[DEV] t=42.68 route id=22 dirs=DUDL index=0 completed=21 errors=0
+[DEV] t=42.73 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:15 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[audio] v2 cue RouteKey
+[DEV] t=42.84 route key id=22 dir=Down index=1 keys=85 completed=21 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=43.01 route key id=22 dir=Up index=2 keys=86 completed=21 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=43.17 route key id=22 dir=Down index=3 keys=87 completed=21 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=43.33 route key id=22 dir=Left index=4 keys=88 completed=22 errors=0
+[offline server] route player=4 terminal=6 complete progress=19.0
+[DEV] t=43.34 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:19 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=43.34 route id=0 dirs=- index=0 completed=22 errors=0
+[DEV] t=43.60 threat visual level=2
+[DEV] t=43.90 event threat-2.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\threat-2.png
+[DEV] t=43.99 route id=23 dirs=LDDL index=0 completed=22 errors=0
+[offline server] skill player=8 role=Killer id=1
+[DEV] t=44.13 killer model shown
+[audio] v2 cue RouteKey
+[DEV] t=44.14 route key id=23 dir=Left index=1 keys=89 completed=22 errors=0
+[DEV] t=44.18 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:20 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[audio] v2 cue RouteKey
+[DEV] t=44.30 route key id=23 dir=Down index=2 keys=90 completed=22 errors=0
+[audio] v2 cue RouteKey
+[DEV] t=44.47 route key id=23 dir=Down index=3 keys=91 completed=22 errors=0
+[audio] v2 cue RouteKey
+[audio] v2 cue RouteDone
+[DEV] t=44.62 route key id=23 dir=Left index=4 keys=92 completed=23 errors=0
+[offline server] route player=4 terminal=6 complete progress=23.9
+[DEV] t=44.64 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:23 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=44.64 route id=0 dirs=- index=0 completed=23 errors=0
+[DEV] t=44.64 threat visual level=3
+[DEV] t=44.64 event killer-in-sight.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\killer-in-sight.png
+[DEV] t=44.68 terminals 0:0 1:0 2:0 3:100 4:0 5:5 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=44.85 event threat-3.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\threat-3.png
+[DEV] t=45.30 route id=24 dirs=ULUD index=0 completed=23 errors=0
+[offline server] status player=4 Lagging reason=capture
+[client] captured: banner + burst + hit-stop
+[DEV] t=45.34 local status=Lagging timer=60.00 hud="Lagging · 60 s" pos=35.10,59.71
+[DEV] t=45.34 autopilot Idle goal=35.50,60.00 held=30.02 pos=35.10,59.71
+[fx] capture impact scheduled (dev log, no position)
+[client] Lagging look on (steady look + capture burst, full frame rate)
+[DEV] t=45.45 event u8-capture-a-windup.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\u8-capture-a-windup.png
+[DEV] t=45.65 event u8-capture-0-hit.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\u8-capture-0-hit.png
+[DEV] t=45.81 event u8-capture-1-burst.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\u8-capture-1-burst.png
+[DEV] t=45.96 event capture-banner.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\capture-banner.png
+[perf] capture frame times (own capture) before: n=100 mean=10.1 max=54.6 ms; after: n=95 mean=10.3 max=48.5 ms; spikes>33ms=6 +0.662s=36.4 +0.612s=48.5 +0.521s=36.4 +0.219s=36.4 -0.387s=48.5 -0.581s=54.6
+[DEV] t=46.35 local status=Lagging timer=59.00 hud="Lagging · 59 s" pos=35.91,60.30
+[DEV] t=46.35 event lagging.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\lagging.png
+[DEV] t=46.45 event u8-capture-2-after.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\u8-capture-2-after.png
+[DEV] t=47.34 local status=Lagging timer=58.00 hud="Lagging · 58 s" pos=36.71,60.90
+[DEV] t=48.33 local status=Lagging timer=57.00 hud="Lagging · 57 s" pos=37.51,61.49
+[DEV] t=48.66 event lagging-stutter.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\lagging-stutter.png
+[DEV] t=48.98 threat visual level=2
+[DEV] t=49.34 local status=Lagging timer=56.00 hud="Lagging · 56 s" pos=38.32,62.09
+[DEV] t=49.69 event killer-fade.png
+[DEV] screenshot C:\Unity\MultiPlayGame\PtK-work\r2-hack\docs\qa\R2-hack\a3-n1\killer-fade.png
+[DEV] t=49.83 killer model hidden
+[DEV] t=50.33 local status=Lagging timer=55.00 hud="Lagging · 55 s" pos=39.12,62.68
+[DEV] t=51.34 local status=Lagging timer=54.00 hud="Lagging · 54 s" pos=39.92,63.28
+[DEV] t=52.14 threat visual level=1
+[DEV] t=52.34 local status=Lagging timer=53.00 hud="Lagging · 53 s" pos=40.73,63.58
+[DEV] t=53.33 local status=Lagging timer=52.00 hud="Lagging · 52 s" pos=41.53,63.58
+[DEV] t=54.33 local status=Lagging timer=51.00 hud="Lagging · 51 s" pos=41.57,63.58
+[DEV] t=55.34 local status=Lagging timer=50.00 hud="Lagging · 50 s" pos=41.57,63.58
+[DEV] t=56.35 local status=Lagging timer=49.00 hud="Lagging · 49 s" pos=41.57,63.58
+[DEV] t=57.19 threat visual level=2
+[DEV] t=57.33 local status=Lagging timer=48.00 hud="Lagging · 48 s" pos=41.57,63.58
+[DEV] t=58.33 local status=Lagging timer=47.00 hud="Lagging · 47 s" pos=41.57,63.58
+[DEV] t=59.34 local status=Lagging timer=46.00 hud="Lagging · 46 s" pos=41.57,63.58
+[DEV] t=60.33 local status=Lagging timer=45.00 hud="Lagging · 45 s" pos=41.57,63.58
+[DEV] t=60.54 threat visual level=3
+[offline server] skill player=8 role=Killer id=1
+[DEV] t=61.24 killer model shown
+[DEV] t=61.34 local status=Lagging timer=44.00 hud="Lagging · 44 s" pos=41.57,63.58
+[offline server] skill player=5 role=Survivor id=4
+[offline server] rail 6 vault by player=5 role=Survivor
+[audio] chase cue VaultThud at 40.5, 56.9
+[DEV] t=62.33 local status=Lagging timer=43.00 hud="Lagging · 43 s" pos=41.57,63.58
+[DEV] t=62.44 threat visual level=2
+[DEV] t=63.34 local status=Lagging timer=42.00 hud="Lagging · 42 s" pos=41.57,63.58
+[DEV] t=63.63 killer model hidden
+[DEV] t=64.33 local status=Lagging timer=41.00 hud="Lagging · 41 s" pos=41.57,63.58
+[DEV] t=65.33 local status=Lagging timer=40.00 hud="Lagging · 40 s" pos=41.57,63.58
+[DEV] t=66.33 local status=Lagging timer=39.00 hud="Lagging · 39 s" pos=41.57,63.58
+[DEV] t=66.38 terminals 0:0 1:0 2:0 3:100 4:0 5:6 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] route player=1 terminal=5 complete progress=9.9
+[DEV] t=66.88 terminals 0:0 1:0 2:0 3:100 4:0 5:9 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=66.93 terminals 0:0 1:0 2:0 3:100 4:0 5:10 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=3 role=Survivor id=0
+[DEV] t=67.33 local status=Lagging timer=38.00 hud="Lagging · 38 s" pos=41.57,63.58
+[DEV] t=67.64 threat visual level=1
+[DEV] t=68.08 terminals 0:0 1:0 2:0 3:100 4:0 5:11 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] route player=2 terminal=5 complete progress=14.6
+[DEV] t=68.35 terminals 0:0 1:0 2:0 3:100 4:0 5:14 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=68.35 local status=Lagging timer=37.00 hud="Lagging · 37 s" pos=41.57,63.58
+[DEV] t=68.63 terminals 0:0 1:0 2:0 3:100 4:0 5:15 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=69.08 threat visual level=0
+[DEV] t=69.23 terminals 0:0 1:0 2:0 3:100 4:0 5:16 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=69.35 local status=Lagging timer=36.00 hud="Lagging · 36 s" pos=41.57,63.58
+[DEV] t=69.73 terminals 0:0 1:0 2:0 3:100 4:0 5:17 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[offline server] skill player=6 role=Survivor id=1
+[offline server] route player=2 terminal=5 complete progress=20.5
+[DEV] t=70.09 terminals 0:0 1:0 2:0 3:100 4:0 5:20 6:24 7:1 required=5 exits=0:0/0 1:0/0 exitOpen=0 collapse=-1.00 hatch=0 hud="Terminals 1/5"
+[DEV] t=70.34 local status=Lagging timer=35.00 hud="Lagging · 35 s" pos=41.57,63.58
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+[DEV] t=71.33 local status=Lagging timer=34.00 hud="Lagging · 34 s" pos=41.57,63.58
+[offline server] rail 4 vault by player=5 role=Survivor
+[audio] chase cue VaultThud at 56.8, 33.7
+[DEV] t=72.34 local status=Lagging timer=33.00 hud="Lagging · 33 s" pos=41.57,63.58
+[offline server] skill player=8 role=Killer id=1
+[DEV] t=73.33 local status=Lagging timer=32.00 hud="Lagging · 32 s" pos=41.57,63.58
+[offline server] rail 4 vault by player=8 role=Killer
+[offline server] status player=5 Lagging reason=capture
+[audio] v2 cue Capture
+[fx] capture impact scheduled (dev log, no position)
+[DEV] t=74.34 local status=Lagging timer=31.00 hud="Lagging · 31 s" pos=41.57,63.58
+[DEV] t=75.33 local status=Lagging timer=30.00 hud="Lagging · 30 s" pos=41.57,63.58
+[DEV] t=76.33 local status=Lagging timer=29.00 hud="Lagging · 29 s" pos=41.57,63.58
+[DEV] t=77.34 local status=Lagging timer=28.00 hud="Lagging · 28 s" pos=41.57,63.58
+[DEV] t=78.33 local status=Lagging timer=27.00 hud="Lagging · 27 s" pos=41.57,63.58
+[DEV] t=79.34 local status=Lagging timer=26.00 hud="Lagging · 26 s" pos=41.57,63.58
+[DEV] t=80.33 local status=Lagging timer=25.00 hud="Lagging · 25 s" pos=41.57,63.58
+[DEV] t=81.33 local status=Lagging timer=24.00 hud="Lagging · 24 s" pos=41.57,63.58
+[DEV] t=82.33 local status=Lagging timer=23.00 hud="Lagging · 23 s" pos=41.57,63.58
+[DEV] t=83.34 local status=Lagging timer=22.00 hud="Lagging · 22 s" pos=41.57,63.58
+[DEV] t=84.33 local status=Lagging timer=21.00 hud="Lagging · 21 s" pos=41.57,63.58
+[DEV] t=85.34 local status=Lagging timer=20.00 hud="Lagging · 20 s" pos=41.57,63.58
+[DEV] t=86.34 local status=Lagging timer=19.00 hud="Lagging · 19 s" pos=41.57,63.58
+[DEV] t=87.33 local status=Lagging timer=18.00 hud="Lagging · 18 s" pos=41.57,63.58
+[DEV] quit after 90 s
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
